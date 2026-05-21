@@ -226,7 +226,7 @@ function renderTransactions() {
     <article class="money-row ${transaction.status === 'cancelada' ? 'is-canceled' : ''}">
       <div>
         <strong>${getMoneyTitle(transaction)}</strong>
-        <span>${transaction.status === 'cancelada' ? 'Cancelada' : getTransactionDetail(transaction)}</span>
+        <span>${transaction.status === 'cancelada' ? `Cancelada - ${getTransactionDetail(transaction)}` : getTransactionDetail(transaction)}</span>
       </div>
       <div class="money-row__right">
         <span>${formatDate(transaction.createdAt)}</span>
@@ -318,14 +318,23 @@ function getMoneyTitle(transaction) {
 }
 
 function getTransactionDetail(transaction) {
-  const pieces = [
-    getTransactionLabel(transaction.type),
-    transaction.paymentMethod ? getPaymentLabel(transaction.paymentMethod) : '',
-    transaction.description || '',
-    transaction.comandaNumber ? `Comanda ${formatComandaNumber(transaction.comandaNumber)}` : ''
-  ].filter(Boolean);
+  if (transaction.type === 'venda') {
+    if (transaction.description) {
+      return transaction.description;
+    }
 
-  return pieces.join(' - ') || 'Sem descricao';
+    if (transaction.paymentMethod) {
+      return `Pagamento: ${getPaymentLabel(transaction.paymentMethod)}`;
+    }
+
+    if (transaction.comandaNumber) {
+      return `Comanda ${formatComandaNumber(transaction.comandaNumber)}`;
+    }
+
+    return 'Sem descricao';
+  }
+
+  return transaction.description || 'Sem descricao';
 }
 
 function formatComandaNumber(number) {
