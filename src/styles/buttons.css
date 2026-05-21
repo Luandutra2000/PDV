@@ -14,6 +14,7 @@
 
 .button:hover {
   background: var(--color-primary-strong);
+  box-shadow: 0 12px 30px rgba(255, 107, 26, 0.2);
 }
 
 .button:disabled {
@@ -22,12 +23,14 @@
 }
 
 .button--ghost {
-  background: var(--color-surface-muted);
+  border-color: var(--color-border);
+  background: var(--color-surface);
   color: var(--color-text);
 }
 
 .button--ghost:hover {
-  background: #dde6ef;
+  background: var(--crm-orange-soft);
+  color: var(--color-primary);
 }
 
 .button--danger {

@@ -821,6 +821,219 @@ select.compact-select[multiple] {
   align-items: center;
 }
 
+.crm-screen {
+  display: grid;
+  gap: 16px;
+  background: var(--crm-bg);
+}
+
+.crm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.crm-filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 620px;
+}
+
+.crm-filter {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--crm-border);
+  border-radius: 7px;
+  background: var(--crm-surface);
+  color: var(--crm-text-muted);
+  font-weight: 800;
+}
+
+.crm-filter.is-active,
+.crm-filter:hover {
+  border-color: var(--crm-orange);
+  background: var(--crm-orange);
+  color: #ffffff;
+}
+
+.crm-kpis {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.crm-kpi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 94px;
+  padding: 16px;
+  border: 1px solid var(--crm-border);
+  border-radius: 8px;
+  background: var(--crm-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.crm-kpi__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: var(--crm-orange);
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.crm-kpi span,
+.crm-panel__header span {
+  color: var(--crm-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.crm-kpi strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.crm-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+  gap: 14px;
+}
+
+.crm-panel {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--crm-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-soft);
+}
+
+.crm-panel--wide {
+  min-height: 260px;
+}
+
+.crm-panel__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.crm-panel__header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.crm-bars {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  height: 190px;
+  padding: 18px 8px 0;
+  border-bottom: 1px solid var(--crm-border);
+}
+
+.crm-bar {
+  position: relative;
+  flex: 1;
+  min-width: 28px;
+  border-radius: 10px 10px 0 0;
+  background: linear-gradient(180deg, var(--crm-orange) 0%, #ffd7bd 100%);
+}
+
+.crm-bar span {
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--crm-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.crm-payment-row,
+.crm-closing-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--crm-border);
+}
+
+.crm-payment-row:last-child,
+.crm-closing-row:last-child {
+  border-bottom: 0;
+}
+
+.crm-payment-row span,
+.crm-closing-row span {
+  display: block;
+  color: var(--crm-text-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.crm-table {
+  display: grid;
+  gap: 8px;
+}
+
+.crm-table__head,
+.crm-table__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(70px, 0.7fr) minmax(90px, 0.8fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.crm-table__head {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 7px;
+  background: var(--crm-muted);
+  color: var(--crm-text-muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.crm-table__row {
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid var(--crm-border);
+  border-radius: 7px;
+  background: #ffffff;
+}
+
+.crm-closing-card {
+  background: #fffaf6;
+}
+
+.closing-form-grid--compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 14px 0;
+}
+
+.crm-closing-card .button {
+  width: 100%;
+  margin-top: 12px;
+}
+
 @media (max-width: 1120px) {
   .pdv-screen {
     grid-template-columns: 1fr;
@@ -863,9 +1076,22 @@ select.compact-select[multiple] {
   .stock-form,
   .closing-layout,
   .closing-form-grid,
+  .closing-form-grid--compact,
   .closing-difference-controls,
   .custom-period-row,
-  .payment-methods {
+  .payment-methods,
+  .crm-header,
+  .crm-grid,
+  .crm-kpis {
     grid-template-columns: 1fr;
+  }
+
+  .crm-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .crm-filters {
+    justify-content: flex-start;
   }
 }

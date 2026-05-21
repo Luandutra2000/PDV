@@ -11,7 +11,7 @@
 
 .field:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(31, 122, 224, 0.16);
+  box-shadow: 0 0 0 3px rgba(255, 107, 26, 0.15);
 }
 
 .category-tabs {

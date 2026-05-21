@@ -1,10 +1,11 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  background: #223044;
-  color: #f8fafc;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  min-height: calc(100vh - 36px);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--color-text);
+  border-right: 1px solid var(--color-border);
+  backdrop-filter: blur(18px);
 }
 
 .sidebar__brand {
@@ -13,7 +14,7 @@
   gap: 8px;
   height: 74px;
   padding: 0 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--color-border);
   font-size: 20px;
   font-weight: 800;
 }
@@ -22,6 +23,7 @@
   padding: 3px 7px;
   border-radius: 5px;
   background: var(--color-primary);
+  color: #ffffff;
   font-size: 12px;
   font-weight: 800;
 }
@@ -38,7 +40,7 @@
 
 .sidebar__title {
   padding: 0 12px 8px;
-  color: #a6b5c8;
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0;
@@ -54,25 +56,35 @@
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: #eef4fb;
+  color: var(--color-text-muted);
   text-align: left;
   font-weight: 700;
 }
 
 .sidebar__item:hover,
 .sidebar__item.is-active {
-  background: #ffffff;
-  color: var(--color-text);
+  background: var(--crm-orange-soft);
+  color: var(--color-primary);
+  box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
 .sidebar__icon {
-  width: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: rgba(255, 107, 26, 0.1);
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 900;
   text-align: center;
 }
 
 .sidebar__footer {
   padding: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--color-border);
 }
 
 .sidebar__store {
@@ -84,7 +96,7 @@
   width: 100%;
   border: 0;
   background: transparent;
-  color: #ffb4aa;
+  color: var(--color-danger);
   text-align: left;
   font-weight: 700;
 }
