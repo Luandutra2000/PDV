@@ -26,7 +26,7 @@ export function createCategory(name, options = {}) {
   const categories = getCategories();
   const category = normalizeCategory({
     id: createSlugId(name, categories.map((item) => item.id)),
-    name: String(name || '').trim(),
+    name,
     showInShowcase: options.showInShowcase
   });
 
@@ -157,9 +157,31 @@ function normalizeProduct(product) {
 function normalizeCategory(category) {
   return {
     id: category.id,
-    name: String(category.name || '').trim(),
+    name: normalizeCategoryName(category.name, category.id),
     showInShowcase: category.id === 'todos' ? false : category.showInShowcase !== false
   };
+}
+
+function normalizeCategoryName(value, categoryId) {
+  if (value && typeof value === 'object' && 'name' in value) {
+    return normalizeCategoryName(value.name, categoryId);
+  }
+
+  const normalizedName = String(value || '').trim();
+
+  if (normalizedName && normalizedName !== '[object Object]') {
+    return normalizedName;
+  }
+
+  return humanizeSlug(categoryId || 'categoria');
+}
+
+function humanizeSlug(value) {
+  return String(value || 'categoria')
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ') || 'Categoria';
 }
 
 function normalizeSearchText(value) {

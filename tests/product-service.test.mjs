@@ -22,6 +22,7 @@ const assert = (condition, message) => {
 };
 
 const storage = await import('../src/services/storage.service.js');
+const { STORAGE_KEYS } = await import('../src/database/schema.js');
 const products = await import('../src/services/product.service.js');
 
 storage.ensureSeedData();
@@ -85,6 +86,16 @@ const visibleShowcaseCategory = products.updateCategory(category.id, {
 });
 assert(visibleShowcaseCategory.showInShowcase === true, 'category should allow showing in showcase');
 assert(products.getShowcaseCategories().some((item) => item.id === category.id), 'visible category should appear in showcase categories');
+
+storage.setItem(STORAGE_KEYS.categories, [
+  { id: 'todos', name: 'Todos' },
+  { id: 'fritos', name: '[object Object]', showInShowcase: false },
+  { id: 'assados', name: { name: 'Assados' }, showInShowcase: true }
+]);
+const repairedCategories = products.getCategories();
+assert(repairedCategories.find((item) => item.id === 'fritos').name === 'Fritos', 'corrupted object category name should fall back to id label');
+assert(repairedCategories.find((item) => item.id === 'assados').name === 'Assados', 'object category name should use nested name');
+storage.resetAppData();
 
 products.deleteCategory(category.id);
 assert(!products.getCategories().some((item) => item.id === category.id), 'deleted category should be removed');
