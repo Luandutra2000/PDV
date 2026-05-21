@@ -10,6 +10,7 @@ import { initCaixaModule } from './modules/caixa/caixa.module.js';
 import { formatCurrency } from './utils/currency.js';
 import { initNotificationService } from './services/notification.service.js';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js';
+import { getDailyMoneySummary } from './services/transaction.service.js';
 
 const routes = {
   'frente-caixa': initVendasModule,
@@ -27,15 +28,20 @@ function bootstrap() {
   const app = document.getElementById('app');
   initNotificationService(document.querySelector('.toast-root'));
   const caixa = getCaixaSummary();
+  const moneySummary = getDailyMoneySummary();
+  const estimatedCash = moneySummary.expectedCash;
+  const currentCash = Number(caixa.currentAmount || 0);
 
   app.innerHTML = `
     <div class="pdv-layout">
       ${renderSidebar()}
       <section class="workspace">
         <header class="topbar">
-          <div class="cash-pill">
-            <span>Caixa:</span>
-            <strong>${formatCurrency(caixa.currentAmount)}</strong>
+          <div class="cash-strip" aria-label="Resumo do caixa">
+            ${renderCashMetric('Caixa atual', currentCash, true)}
+            ${renderCashMetric('Caixa estimado', estimatedCash, true)}
+            ${renderCashMetric('Entradas', moneySummary.entriesTotal, false, 'money-positive')}
+            ${renderCashMetric('Saidas', moneySummary.outputsTotal, false, 'money-negative')}
           </div>
           <div class="header-actions">
             <button class="button button--ghost" type="button" data-action="toggle-theme">${getThemeLabel()}</button>
@@ -50,6 +56,18 @@ function bootstrap() {
   const workspace = app.querySelector('[data-workspace-body]');
   initVendasModule(workspace);
   bindNavigation(app, workspace);
+}
+
+function renderCashMetric(label, value, signed = false, fixedClass = '') {
+  const amount = Number(value || 0);
+  const stateClass = fixedClass || (signed && amount < 0 ? 'money-negative' : 'money-positive');
+
+  return `
+    <div class="cash-pill ${stateClass}">
+      <span>${label}:</span>
+      <strong>${formatCurrency(amount)}</strong>
+    </div>
+  `;
 }
 
 bootstrap();
