@@ -130,6 +130,14 @@ export function confirmClosing(draft) {
     throw new Error('Toda divergencia precisa de motivo.');
   }
 
+  const missingNote = (draft.differences || []).some((difference) => (
+    hasDifferenceValue(difference) && !String(difference.note || '').trim()
+  ));
+
+  if (missingNote) {
+    throw new Error('Toda divergencia precisa de observacao.');
+  }
+
   const closedAt = new Date().toISOString();
   const closing = {
     ...draft,
@@ -194,6 +202,10 @@ function sumPayment(sales, paymentMethod) {
 
 function sumTransactions(transactions) {
   return transactions.reduce((total, transaction) => total + Number(transaction.total || transaction.amount || 0), 0);
+}
+
+function hasDifferenceValue(difference) {
+  return Boolean(Number(difference.amount || 0) || Number(difference.quantity || 0));
 }
 
 function normalizeRequiredNumber(value) {

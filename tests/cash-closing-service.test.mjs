@@ -98,6 +98,26 @@ const draft = closing.saveClosingDraft({
 });
 assert(draft.status === 'rascunho', 'draft should be saved as draft');
 
+const missingNoteDraft = closing.saveClosingDraft({
+  countedCash: 45,
+  differences: [
+    {
+      scope: 'payment',
+      referenceId: 'dinheiro',
+      reason: 'erro-caixa',
+      note: '',
+      amount: -2
+    }
+  ]
+});
+let missingNoteFailed = false;
+try {
+  closing.confirmClosing(missingNoteDraft);
+} catch (error) {
+  missingNoteFailed = error.message.includes('observacao');
+}
+assert(missingNoteFailed, 'closing with difference should require an observation');
+
 const confirmed = closing.confirmClosing(draft);
 assert(confirmed.status === 'fechado', 'confirmed closing should be closed');
 assert(closing.getCashClosings().length === 1, 'closing history should include confirmed closing');

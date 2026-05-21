@@ -100,6 +100,135 @@
   line-height: 1.5;
 }
 
+.quick-closing-modal {
+  align-self: flex-start;
+  width: min(980px, 100%);
+  margin-top: 18px;
+}
+
+.quick-closing-modal .modal__header {
+  background: #fffaf6;
+}
+
+.quick-closing-body {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.quick-closing-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.quick-closing-card {
+  display: grid;
+  gap: 7px;
+  min-height: 82px;
+  padding: 14px;
+  border: 1px solid var(--crm-border);
+  border-radius: 8px;
+  background: var(--crm-orange-soft);
+}
+
+.quick-closing-card span,
+.quick-closing-line span,
+.quick-showcase-head {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.quick-closing-card strong {
+  font-size: 20px;
+}
+
+.quick-closing-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quick-closing-tab {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-weight: 900;
+}
+
+.quick-closing-tab.is-active,
+.quick-closing-tab:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.quick-closing-section {
+  display: grid;
+  gap: 14px;
+}
+
+.quick-closing-list {
+  display: grid;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.quick-closing-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.quick-closing-line:last-child {
+  border-bottom: 0;
+}
+
+.quick-closing-payments {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.quick-showcase-table {
+  display: grid;
+  gap: 8px;
+}
+
+.quick-showcase-head,
+.quick-showcase-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.4fr) 90px 100px 70px;
+  gap: 10px;
+  align-items: center;
+}
+
+.quick-showcase-head {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 7px;
+  background: var(--color-surface-muted);
+  text-transform: uppercase;
+}
+
+.quick-showcase-row {
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: #ffffff;
+}
+
 .toast-root {
   position: fixed;
   top: 18px;
@@ -142,4 +271,13 @@
   background: transparent;
   color: var(--color-text-muted);
   font-weight: 900;
+}
+
+@media (max-width: 760px) {
+  .quick-closing-summary,
+  .quick-closing-payments,
+  .quick-showcase-head,
+  .quick-showcase-row {
+    grid-template-columns: 1fr;
+  }
 }

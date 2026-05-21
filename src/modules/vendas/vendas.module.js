@@ -1,6 +1,9 @@
 import { renderOrderPanel } from '../../components/order-panel.component.js';
 import { renderProductCard } from '../../components/product-card.component.js';
+import { renderFechamentoRapidoModal } from '../../components/fechamento-rapido-modal.component.js';
+import { buildClosingSummary, buildShowcaseConference, confirmClosing, saveClosingDraft } from '../../services/cash-closing.service.js';
 import { getActiveComanda, addItem, addItemQuantity, clearComanda, removeItem, updateQuantity } from '../../services/comanda.service.js';
+import { createPeriodFilter, getCrmSummary } from '../../services/crm-dashboard.service.js';
 import { getCategories, getFavoriteProducts, getProductById, searchProducts } from '../../services/product.service.js';
 import { finalizeComandaPayment, getBestSellingProducts, registerCashMovement } from '../../services/transaction.service.js';
 import { formatCurrency } from '../../utils/currency.js';
@@ -11,13 +14,17 @@ import { createShowcaseWriteOff, getTodayShowcaseProducts } from '../../services
 const CATEGORY_ALL = 'todos';
 const CATEGORY_FAVORITES = '__favoritos';
 const CATEGORY_BEST_SELLERS = '__mais-vendidos';
+const ENTRY_CATEGORIES = ['Reforco de caixa', 'Pagamento de cliente', 'Dinheiro extra', 'Ajuste manual', 'Outros'];
+const OUTPUT_CATEGORIES = ['Compra de material', 'Compra de ingredientes', 'Pagamento de fornecedor', 'Despesa operacional', 'Retirada do dono', 'Troco', 'Manutencao', 'Outros'];
 
 const state = {
   query: '',
   categoryId: CATEGORY_ALL,
   modal: null,
   paymentMethod: 'dinheiro',
-  quantityProductId: null
+  quantityProductId: null,
+  quickClosingTab: 'resumo',
+  quickClosing: createEmptyQuickClosing()
 };
 const boundContainers = new WeakSet();
 
@@ -39,6 +46,7 @@ function renderScreen(container) {
           <div class="pdv-actions">
             <label class="sr-only" for="product-search">Buscar produto</label>
             <input id="product-search" class="field" type="search" placeholder="Buscar produto..." value="${state.query}">
+            <button class="button button--ghost" type="button" data-action="open-quick-closing">Fechamento Rapido</button>
             <button class="button button--danger" type="button" data-action="open-write-off">Perda / Consumo</button>
           </div>
         </header>
@@ -73,6 +81,10 @@ function bindEvents(container) {
     if (event.target.matches('[name="receivedAmount"]')) {
       renderPaymentChange(container);
     }
+
+    if (event.target.matches('[data-quick-note]')) {
+      state.quickClosing.note = event.target.value;
+    }
   });
 
   container.addEventListener('click', (event) => {
@@ -87,6 +99,13 @@ function bindEvents(container) {
       state.categoryId = categoryButton.dataset.categoryId;
       renderCategories(container);
       renderProducts(container);
+      return;
+    }
+
+    const quickTab = event.target.closest('[data-quick-closing-tab]');
+    if (quickTab) {
+      state.quickClosingTab = quickTab.dataset.quickClosingTab;
+      renderModal(container);
       return;
     }
 
@@ -133,6 +152,16 @@ function bindEvents(container) {
       state.paymentMethod = event.target.value;
       renderModal(container);
     }
+
+    if (event.target.matches('[data-quick-payment]')) {
+      state.quickClosing[event.target.dataset.quickPayment] = event.target.value;
+      renderModal(container);
+    }
+
+    if (event.target.matches('[data-quick-leftover]')) {
+      state.quickClosing.leftovers[event.target.dataset.quickLeftover] = event.target.value;
+      renderModal(container);
+    }
   });
 
   container.addEventListener('submit', (event) => {
@@ -173,7 +202,9 @@ function bindEvents(container) {
       registerCashMovement({
         type: data.get('type'),
         amount: data.get('amount'),
-        description: data.get('description')
+        category: data.get('category'),
+        description: data.get('description'),
+        userName: 'Operador local'
       });
       showNotification({
         title: data.get('type') === 'entrada' ? 'Entrada registrada' : 'Saida registrada',
@@ -373,6 +404,16 @@ function handleOrderAction(actionButton, container) {
     state.modal = 'write-off';
   }
 
+  if (action === 'open-quick-closing') {
+    state.modal = 'quick-closing';
+    state.quickClosingTab = 'resumo';
+  }
+
+  if (action === 'confirm-quick-closing') {
+    confirmQuickClosing(container);
+    return;
+  }
+
   renderComanda(container);
   renderModal(container);
 }
@@ -401,7 +442,104 @@ function renderModal(container) {
     return;
   }
 
+  if (state.modal === 'quick-closing') {
+    const closingSummary = buildClosingSummary({
+      countedCash: state.quickClosing.countedCash,
+      checkedPix: state.quickClosing.checkedPix,
+      checkedDebit: state.quickClosing.checkedDebit,
+      checkedCredit: state.quickClosing.checkedCredit,
+      leftovers: state.quickClosing.leftovers
+    });
+    target.innerHTML = renderFechamentoRapidoModal({
+      summary: getCrmSummary(createPeriodFilter('today')),
+      closingSummary,
+      showcase: buildShowcaseConference(state.quickClosing.leftovers),
+      state
+    });
+    return;
+  }
+
   target.innerHTML = renderCashMovementModal(state.modal);
+}
+
+function confirmQuickClosing(container) {
+  try {
+    const draft = saveClosingDraft({
+      countedCash: state.quickClosing.countedCash,
+      checkedPix: state.quickClosing.checkedPix,
+      checkedDebit: state.quickClosing.checkedDebit,
+      checkedCredit: state.quickClosing.checkedCredit,
+      leftovers: state.quickClosing.leftovers,
+      differences: buildQuickClosingDifferences(),
+      note: state.quickClosing.note
+    });
+    confirmClosing(draft);
+    showNotification({
+      title: 'Caixa fechado',
+      message: 'Fechamento rapido salvo no historico.',
+      type: 'success'
+    });
+    state.modal = null;
+    state.quickClosing = createEmptyQuickClosing();
+    state.quickClosingTab = 'resumo';
+    renderComanda(container);
+    renderModal(container);
+  } catch (error) {
+    showNotification({
+      title: 'Nao foi possivel fechar',
+      message: error.message || 'Confira os campos do fechamento.',
+      type: 'danger'
+    });
+  }
+}
+
+function buildQuickClosingDifferences() {
+  const summary = buildClosingSummary({
+    countedCash: state.quickClosing.countedCash,
+    checkedPix: state.quickClosing.checkedPix,
+    checkedDebit: state.quickClosing.checkedDebit,
+    checkedCredit: state.quickClosing.checkedCredit,
+    leftovers: state.quickClosing.leftovers
+  });
+  const differences = [];
+
+  if (summary.payments.generalDifference) {
+    differences.push({
+      scope: 'payment',
+      referenceId: 'geral',
+      reason: 'fechamento-rapido',
+      note: state.quickClosing.note,
+      amount: summary.payments.generalDifference
+    });
+  }
+
+  summary.showcase.forEach((item) => {
+    if (!item.differenceQuantity) {
+      return;
+    }
+
+    differences.push({
+      scope: 'showcase',
+      referenceId: item.productId,
+      reason: 'fechamento-rapido',
+      note: state.quickClosing.note,
+      quantity: item.differenceQuantity,
+      amount: item.estimatedDifferenceValue || 0
+    });
+  });
+
+  return differences;
+}
+
+function createEmptyQuickClosing() {
+  return {
+    countedCash: '',
+    checkedPix: '',
+    checkedDebit: '',
+    checkedCredit: '',
+    leftovers: {},
+    note: ''
+  };
 }
 
 function renderQuantityModal() {
@@ -541,6 +679,7 @@ function renderPaymentModal() {
 
 function renderCashMovementModal(type) {
   const title = type === 'entrada' ? 'Registrar entrada' : 'Registrar saida';
+  const categories = type === 'entrada' ? ENTRY_CATEGORIES : OUTPUT_CATEGORIES;
 
   return `
     <div class="modal-backdrop is-open">
@@ -554,6 +693,12 @@ function renderCashMovementModal(type) {
           <label class="stacked-label">
             Valor
             <input class="field" name="amount" type="number" min="0.01" step="0.01" required>
+          </label>
+          <label class="stacked-label">
+            Categoria
+            <select class="field" name="category" required>
+              ${categories.map((category) => `<option value="${category}">${category}</option>`).join('')}
+            </select>
           </label>
           <label class="stacked-label">
             Descricao
