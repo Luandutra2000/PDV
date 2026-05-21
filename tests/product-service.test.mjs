@@ -75,4 +75,22 @@ products.deleteCategory(category.id);
 assert(!products.getCategories().some((item) => item.id === category.id), 'deleted category should be removed');
 assert(!products.getProducts().some((product) => product.categoryId === category.id), 'products in deleted category should be removed');
 
+const aliasProduct = products.createProduct({
+  name: 'Coxinha Especial',
+  categoryId: 'lanches',
+  price: 9,
+  cost: 4,
+  stock: 12,
+  active: true,
+  aliases: ['cox', 'salgado'],
+  favorite: true
+});
+
+assert(products.getProductById(aliasProduct.id).aliases.includes('cox'), 'product aliases should be persisted');
+assert(products.getProductById(aliasProduct.id).favorite === true, 'product favorite flag should be persisted');
+assert(products.searchProducts({ query: 'cox' }).some((product) => product.id === aliasProduct.id), 'search should match aliases');
+assert(products.searchProducts({ query: 'salgado' }).some((product) => product.id === aliasProduct.id), 'search should match aliases with business terms');
+assert(products.searchProducts({ query: 'lanches' }).some((product) => product.id === aliasProduct.id), 'search should match category name');
+assert(products.getFavoriteProducts().some((product) => product.id === aliasProduct.id), 'favorite products should be returned');
+
 console.log('product service crud ok');

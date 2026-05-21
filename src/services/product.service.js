@@ -61,14 +61,27 @@ export function getProductById(productId) {
 }
 
 export function searchProducts({ query = '', categoryId = 'todos' } = {}) {
-  const normalizedQuery = query.trim().toLowerCase();
+  const normalizedQuery = normalizeSearchText(query);
+  const categoriesById = new Map(getCategories().map((category) => [category.id, category.name]));
 
   return getActiveProducts().filter((product) => {
-    const matchesCategory = categoryId === 'todos' || product.categoryId === categoryId;
-    const matchesQuery = !normalizedQuery || product.name.toLowerCase().includes(normalizedQuery);
+    const matchesCategory = categoryId === 'todos'
+      || product.categoryId === categoryId
+      || (categoryId === 'favoritos' && product.favorite);
+    const categoryName = categoriesById.get(product.categoryId) || '';
+    const searchableText = normalizeSearchText([
+      product.name,
+      categoryName,
+      ...(product.aliases || [])
+    ].join(' '));
+    const matchesQuery = !normalizedQuery || searchableText.includes(normalizedQuery);
 
     return matchesCategory && matchesQuery;
   });
+}
+
+export function getFavoriteProducts() {
+  return getActiveProducts().filter((product) => product.favorite);
 }
 
 export function createProduct(productData) {
@@ -120,8 +133,20 @@ function normalizeProduct(product) {
     price: Number(product.price) || 0,
     cost: Number(product.cost) || 0,
     stock: Number(product.stock) || 0,
-    active: Boolean(product.active)
+    active: Boolean(product.active),
+    aliases: Array.isArray(product.aliases)
+      ? product.aliases.map((alias) => String(alias).trim()).filter(Boolean)
+      : [],
+    favorite: Boolean(product.favorite)
   };
+}
+
+function normalizeSearchText(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
 }
 
 function createProductId(name) {
