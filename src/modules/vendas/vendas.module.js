@@ -143,19 +143,28 @@ function bindEvents(container) {
     if (event.target.matches('[data-payment-form]')) {
       event.preventDefault();
       const data = new FormData(event.target);
-      finalizeComandaPayment({
-        paymentMethod: data.get('paymentMethod'),
-        receivedAmount: data.get('receivedAmount')
-      });
-      const change = qs('[data-change-value]', container)?.textContent || formatCurrency(0);
-      showNotification({
-        title: 'Comanda finalizada',
-        message: `Troco: ${change}`,
-        type: 'success'
-      });
-      state.modal = null;
-      renderComanda(container);
-      renderModal(container);
+
+      try {
+        finalizeComandaPayment({
+          paymentMethod: data.get('paymentMethod'),
+          receivedAmount: data.get('receivedAmount')
+        });
+        const change = qs('[data-change-value]', container)?.textContent || formatCurrency(0);
+        showNotification({
+          title: 'Comanda finalizada',
+          message: `Troco: ${change}`,
+          type: 'success'
+        });
+        state.modal = null;
+        renderComanda(container);
+        renderModal(container);
+      } catch (error) {
+        showNotification({
+          title: 'Nao foi possivel finalizar',
+          message: error.message || 'Confira a comanda e o pagamento.',
+          type: 'danger'
+        });
+      }
     }
 
     if (event.target.matches('[data-cash-form]')) {

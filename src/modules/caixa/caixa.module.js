@@ -455,20 +455,50 @@ function readClosingInput() {
   };
 }
 
-function buildDifferences(summary) {
+export function buildDifferences(summary) {
   const differences = [];
-
-  if (summary.payments.cashDifference) {
-    differences.push({
+  const paymentDifferences = [
+    {
       key: 'payment:dinheiro',
-      scope: 'payment',
       referenceId: 'dinheiro',
       label: 'Dinheiro',
-      description: `Diferenca de ${formatCurrency(summary.payments.cashDifference)} entre esperado e contado.`,
-      quantity: null,
       amount: summary.payments.cashDifference
+    },
+    {
+      key: 'payment:pix',
+      referenceId: 'pix',
+      label: 'Pix',
+      amount: summary.payments.pixDifference
+    },
+    {
+      key: 'payment:debito',
+      referenceId: 'debito',
+      label: 'Debito',
+      amount: summary.payments.debitDifference
+    },
+    {
+      key: 'payment:credito',
+      referenceId: 'credito',
+      label: 'Credito',
+      amount: summary.payments.creditDifference
+    }
+  ];
+
+  paymentDifferences.forEach((payment) => {
+    if (!payment.amount) {
+      return;
+    }
+
+    differences.push({
+      key: payment.key,
+      scope: 'payment',
+      referenceId: payment.referenceId,
+      label: payment.label,
+      description: `Diferenca de ${formatCurrency(payment.amount)} entre esperado e conferido.`,
+      quantity: null,
+      amount: payment.amount
     });
-  }
+  });
 
   summary.showcase.forEach((item) => {
     if (!item.differenceQuantity) {

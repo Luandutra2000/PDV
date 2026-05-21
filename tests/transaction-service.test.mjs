@@ -158,4 +158,16 @@ assert(dailyMoney.netTotal === 51, 'net total should be sales plus entries minus
 assert(dailyMoney.closedComandas === 1, 'daily money should ignore previous-day closed comandas');
 assert(dailyMoney.canceledComandas === 1, 'daily money should count canceled comandas');
 
+const transactionCanceledSale = transactions.finalizeComandaPayment({
+  paymentMethod: 'pix'
+});
+transactions.cancelTransaction(transactionCanceledSale.id);
+const canceledByTransaction = transactions.getTransactions().find((transaction) => transaction.id === transactionCanceledSale.id);
+const comandaCanceledByTransaction = transactions.getClosedComandas().find((comanda) => comanda.id === transactionCanceledSale.comandaId);
+const transactionCanceledSummary = transactions.getTransactionSummary();
+
+assert(canceledByTransaction.status === 'cancelada', 'canceling sale transaction should mark transaction as canceled');
+assert(comandaCanceledByTransaction.status === 'cancelada', 'canceling sale transaction should mark matching closed comanda as canceled');
+assert(transactionCanceledSummary.closedComandas === 2, 'canceling sale transaction should remove matching closed comanda from active count');
+
 console.log('transaction service ok');

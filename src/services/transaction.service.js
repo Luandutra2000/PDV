@@ -116,19 +116,43 @@ export function cancelClosedComanda(comandaId) {
 }
 
 export function cancelTransaction(transactionId) {
+  const canceledAt = new Date().toISOString();
+  let canceledSaleComandaId = null;
   const transactions = getTransactions().map((transaction) => {
     if (transaction.id !== transactionId) {
       return transaction;
     }
 
+    if (transaction.type === 'venda' && transaction.comandaId) {
+      canceledSaleComandaId = transaction.comandaId;
+    }
+
     return {
       ...transaction,
       status: 'cancelada',
-      canceledAt: new Date().toISOString()
+      canceledAt
     };
   });
 
   setItem(STORAGE_KEYS.transactions, transactions);
+
+  if (!canceledSaleComandaId) {
+    return;
+  }
+
+  const comandas = getClosedComandas().map((comanda) => {
+    if (comanda.id !== canceledSaleComandaId || comanda.status !== 'fechada') {
+      return comanda;
+    }
+
+    return {
+      ...comanda,
+      status: 'cancelada',
+      canceledAt
+    };
+  });
+
+  setItem(STORAGE_KEYS.closedComandas, comandas);
 }
 
 export function getActiveTransactions() {
