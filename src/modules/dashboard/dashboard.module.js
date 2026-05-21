@@ -35,7 +35,7 @@ function renderDashboard(container) {
       <header class="module-header">
         <div>
           <h1 class="pdv-title">Historico de Transacoes</h1>
-          <p class="module-subtitle">Entradas, saidas, vendas e historico das comandas finalizadas.</p>
+          <p class="module-subtitle">Comandas finalizadas, entradas, saidas e movimentos do dinheiro.</p>
         </div>
         <div class="header-actions">
           <select class="field compact-select"><option>Hoje</option></select>

@@ -2,13 +2,13 @@ const menuGroups = [
   {
     title: 'Vendas',
     items: [
-      { id: 'frente-caixa', label: 'Frente de Caixa', icon: 'FC', active: true }
+      { id: 'frente-caixa', label: 'Frente de Caixa', icon: 'FC', active: true },
+      { id: 'dashboard', label: 'Historico de Transacoes', icon: 'HT' }
     ]
   },
   {
     title: 'Gestao',
     items: [
-      { id: 'dashboard', label: 'Dashboard', icon: 'DB' },
       { id: 'produtos', label: 'Produtos', icon: 'PR' },
       { id: 'pessoas', label: 'Pessoas', icon: 'PS' },
       { id: 'estoque', label: 'Estoque', icon: 'ES' }
@@ -17,7 +17,7 @@ const menuGroups = [
   {
     title: 'Financeiro',
     items: [
-      { id: 'fechar-caixa', label: 'Fechar Caixa', icon: 'CX' },
+      { id: 'fechar-caixa', label: 'Fechar Caixa / CRM', icon: 'CX' },
       { id: 'fichario-fiado', label: 'Fichario / Fiado', icon: 'FI' },
       { id: 'despesas', label: 'Despesas', icon: 'DE' }
     ]
