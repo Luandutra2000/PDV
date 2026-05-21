@@ -1,11 +1,12 @@
 import { renderOrderPanel } from '../../components/order-panel.component.js';
-import { renderItemAvulsoCard, renderProductCard } from '../../components/product-card.component.js';
+import { renderProductCard } from '../../components/product-card.component.js';
 import { getActiveComanda, addItem, clearComanda, removeItem, updateQuantity } from '../../services/comanda.service.js';
 import { getCategories, getProductById, searchProducts } from '../../services/product.service.js';
 import { finalizeComandaPayment, registerCashMovement } from '../../services/transaction.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { qs } from '../../utils/dom.js';
 import { showNotification } from '../../services/notification.service.js';
+import { createShowcaseWriteOff, getTodayShowcaseProducts } from '../../services/estoque.service.js';
 
 const state = {
   query: '',
@@ -33,7 +34,7 @@ function renderScreen(container) {
           <div class="pdv-actions">
             <label class="sr-only" for="product-search">Buscar produto</label>
             <input id="product-search" class="field" type="search" placeholder="Buscar produto..." value="${state.query}">
-            <button class="button" type="button" data-action="item-avulso">+ Novo Item Avulso</button>
+            <button class="button button--danger" type="button" data-action="open-write-off">Perda / Consumo</button>
           </div>
         </header>
         <section class="products-panel">
@@ -146,6 +147,33 @@ function bindEvents(container) {
       state.modal = null;
       renderModal(container);
     }
+
+    if (event.target.matches('[data-write-off-form]')) {
+      event.preventDefault();
+      const data = new FormData(event.target);
+
+      try {
+        createShowcaseWriteOff({
+          productId: data.get('productId'),
+          quantity: data.get('quantity'),
+          reason: data.get('reason'),
+          note: data.get('note')
+        });
+        showNotification({
+          title: 'Baixa registrada',
+          message: 'Perda ou consumo entrou na conferencia da vitrine.',
+          type: 'success'
+        });
+        state.modal = null;
+        renderModal(container);
+      } catch (error) {
+        showNotification({
+          title: 'Nao foi possivel registrar',
+          message: error.message || 'Confira produto, quantidade e motivo.',
+          type: 'danger'
+        });
+      }
+    }
   });
 }
 
@@ -174,13 +202,10 @@ function renderProducts(container) {
     return;
   }
 
-  target.innerHTML = [
-    ...products.map((product) => {
-      const category = categories.find((item) => item.id === product.categoryId);
-      return renderProductCard(product, category ? category.name : 'Sem categoria');
-    }),
-    renderItemAvulsoCard()
-  ].join('');
+  target.innerHTML = products.map((product) => {
+    const category = categories.find((item) => item.id === product.categoryId);
+    return renderProductCard(product, category ? category.name : 'Sem categoria');
+  }).join('');
 }
 
 function renderComanda(container) {
@@ -227,8 +252,8 @@ function handleOrderAction(actionButton, container) {
     state.modal = null;
   }
 
-  if (action === 'item-avulso') {
-    console.info('Item avulso sera implementado na proxima etapa funcional.');
+  if (action === 'open-write-off') {
+    state.modal = 'write-off';
   }
 
   renderComanda(container);
@@ -249,7 +274,69 @@ function renderModal(container) {
     return;
   }
 
+  if (state.modal === 'write-off') {
+    target.innerHTML = renderWriteOffModal();
+    return;
+  }
+
   target.innerHTML = renderCashMovementModal(state.modal);
+}
+
+function renderWriteOffModal() {
+  const showcaseProducts = getTodayShowcaseProducts();
+
+  return `
+    <div class="modal-backdrop is-open">
+      <div class="modal modal--small" role="dialog" aria-modal="true">
+        <header class="modal__header">
+          <h2>Perda / Consumo</h2>
+          <button class="icon-button" type="button" data-action="close-modal">X</button>
+        </header>
+        ${showcaseProducts.length ? `
+          <form class="product-form" data-write-off-form>
+            <label class="stacked-label">
+              Produto da vitrine
+              <select class="field" name="productId" required>
+                ${showcaseProducts.map((product) => `
+                  <option value="${product.id}">${product.name} - ${formatCurrency(product.price)}</option>
+                `).join('')}
+              </select>
+            </label>
+            <label class="stacked-label">
+              Quantidade
+              <input class="field" name="quantity" type="number" min="1" step="1" required>
+            </label>
+            <label class="stacked-label">
+              Motivo
+              <select class="field" name="reason" required>
+                <option value="quebra">Quebra</option>
+                <option value="consumo-interno">Consumo interno</option>
+                <option value="cortesia">Cortesia</option>
+                <option value="vencido">Vencido</option>
+                <option value="erro-lancamento">Erro de lancamento</option>
+                <option value="outro">Outro</option>
+              </select>
+            </label>
+            <label class="stacked-label">
+              Observacao
+              <input class="field" name="note" placeholder="Opcional">
+            </label>
+            <div class="form-actions">
+              <button class="button button--ghost" type="button" data-action="close-modal">Cancelar</button>
+              <button class="button button--danger" type="submit">Registrar baixa</button>
+            </div>
+          </form>
+        ` : `
+          <div class="product-form">
+            <p class="modal-text">Nenhum produto foi lancado na vitrine hoje. Lance estoque antes de registrar perda ou consumo.</p>
+            <div class="form-actions">
+              <button class="button" type="button" data-action="close-modal">Entendi</button>
+            </div>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
 }
 
 function renderPaymentModal() {

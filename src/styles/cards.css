@@ -40,12 +40,3 @@
   font-size: 18px;
   font-weight: 900;
 }
-
-.item-avulso-card {
-  min-height: 124px;
-  border: 1px dashed #a9b6c6;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--color-text-muted);
-  font-weight: 800;
-}

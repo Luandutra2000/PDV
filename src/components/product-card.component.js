@@ -11,11 +11,3 @@ export function renderProductCard(product, categoryName = '') {
     </button>
   `;
 }
-
-export function renderItemAvulsoCard() {
-  return `
-    <button class="item-avulso-card" type="button" data-action="item-avulso">
-      + Item avulso
-    </button>
-  `;
-}
