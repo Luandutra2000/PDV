@@ -23,6 +23,7 @@ const state = {
   modal: null,
   paymentMethod: 'dinheiro',
   quantityProductId: null,
+  saleSuccess: null,
   quickClosingTab: 'resumo',
   quickClosing: createEmptyQuickClosing()
 };
@@ -174,17 +175,12 @@ function bindEvents(container) {
       const data = new FormData(event.target);
 
       try {
-        finalizeComandaPayment({
+        const sale = finalizeComandaPayment({
           paymentMethod: data.get('paymentMethod'),
           receivedAmount: data.get('receivedAmount')
         });
-        const change = qs('[data-change-value]', container)?.textContent || formatCurrency(0);
-        showNotification({
-          title: 'Comanda finalizada',
-          message: `Troco: ${change}`,
-          type: 'success'
-        });
-        state.modal = null;
+        state.saleSuccess = sale;
+        state.modal = 'sale-success';
         renderComanda(container);
         renderModal(container);
       } catch (error) {
@@ -398,6 +394,7 @@ function handleOrderAction(actionButton, container) {
   if (action === 'close-modal') {
     state.modal = null;
     state.quantityProductId = null;
+    state.saleSuccess = null;
   }
 
   if (action === 'open-write-off') {
@@ -437,6 +434,11 @@ function renderModal(container) {
     return;
   }
 
+  if (state.modal === 'sale-success') {
+    target.innerHTML = renderSaleSuccessModal();
+    return;
+  }
+
   if (state.modal === 'write-off') {
     target.innerHTML = renderWriteOffModal();
     return;
@@ -460,6 +462,57 @@ function renderModal(container) {
   }
 
   target.innerHTML = renderCashMovementModal(state.modal);
+}
+
+function renderSaleSuccessModal() {
+  const sale = state.saleSuccess;
+
+  if (!sale) {
+    return '';
+  }
+
+  return `
+    <div class="modal-backdrop modal-backdrop--soft is-open">
+      <div class="modal sale-success-modal" role="dialog" aria-modal="true">
+        <header class="sale-success-header">
+          <div>
+            <span>Venda finalizada</span>
+            <h2>Comanda ${sale.comandaNumber}</h2>
+          </div>
+          <strong>${formatCurrency(sale.total)}</strong>
+        </header>
+        <div class="sale-success-body">
+          <section class="sale-success-list">
+            ${sale.items.map((item) => `
+              <div class="sale-success-item">
+                <div>
+                  <strong>${item.name}</strong>
+                  <span>${item.quantity} x ${formatCurrency(item.unitPrice)}</span>
+                </div>
+                <strong>${formatCurrency(item.total)}</strong>
+              </div>
+            `).join('')}
+          </section>
+          <section class="sale-success-totals">
+            ${renderSaleSuccessLine('Forma de pagamento', getPaymentLabel(sale.paymentMethod))}
+            ${renderSaleSuccessLine('Total da comanda', formatCurrency(sale.total))}
+            ${sale.paymentMethod === 'dinheiro' ? renderSaleSuccessLine('Valor recebido', formatCurrency(sale.receivedAmount)) : ''}
+            ${sale.paymentMethod === 'dinheiro' ? renderSaleSuccessLine('Troco', formatCurrency(sale.change), 'sale-success-change') : ''}
+          </section>
+          <button class="button sale-success-ok" type="button" data-action="close-modal">OK</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderSaleSuccessLine(label, value, className = '') {
+  return `
+    <div class="sale-success-line ${className}">
+      <span>${label}</span>
+      <strong>${value}</strong>
+    </div>
+  `;
 }
 
 function confirmQuickClosing(container) {

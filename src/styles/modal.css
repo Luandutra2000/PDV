@@ -13,6 +13,11 @@
   background: rgba(11, 18, 32, 0.54);
 }
 
+.modal-backdrop--soft.is-open {
+  background: rgba(46, 42, 39, 0.34);
+  backdrop-filter: blur(8px);
+}
+
 .modal {
   width: min(620px, 100%);
   max-height: calc(100vh - 40px);
@@ -229,6 +234,99 @@
   background: #ffffff;
 }
 
+.sale-success-modal {
+  width: min(720px, 100%);
+  overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.76);
+  background: rgba(255, 250, 246, 0.94);
+  box-shadow: 0 30px 90px rgba(46, 42, 39, 0.3);
+}
+
+.sale-success-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(255, 107, 26, 0.95), rgba(255, 145, 72, 0.9));
+  color: #ffffff;
+}
+
+.sale-success-header span {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
+  font-weight: 900;
+  opacity: 0.86;
+  text-transform: uppercase;
+}
+
+.sale-success-header h2 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.sale-success-header > strong {
+  font-size: 30px;
+  white-space: nowrap;
+}
+
+.sale-success-body {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+}
+
+.sale-success-list,
+.sale-success-totals {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.sale-success-item,
+.sale-success-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 52px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sale-success-item:last-child,
+.sale-success-line:last-child {
+  border-bottom: 0;
+}
+
+.sale-success-item span,
+.sale-success-line span {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.sale-success-change {
+  background: var(--crm-orange-soft);
+}
+
+.sale-success-change strong {
+  color: var(--color-primary);
+  font-size: 24px;
+}
+
+.sale-success-ok {
+  justify-self: center;
+  width: min(260px, 100%);
+  min-height: 52px;
+  font-size: 16px;
+}
+
 .toast-root {
   position: fixed;
   top: 18px;
@@ -279,5 +377,12 @@
   .quick-showcase-head,
   .quick-showcase-row {
     grid-template-columns: 1fr;
+  }
+
+  .sale-success-header,
+  .sale-success-item,
+  .sale-success-line {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
