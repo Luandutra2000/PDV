@@ -397,6 +397,17 @@ function handleOrderAction(actionButton, container) {
     state.saleSuccess = null;
   }
 
+  if (action === 'close-sale-success') {
+    state.modal = null;
+    state.quantityProductId = null;
+    state.saleSuccess = null;
+    state.query = '';
+    state.categoryId = CATEGORY_ALL;
+    setActiveSalesMenu();
+    renderScreen(container);
+    return;
+  }
+
   if (action === 'open-write-off') {
     state.modal = 'write-off';
   }
@@ -499,7 +510,7 @@ function renderSaleSuccessModal() {
             ${sale.paymentMethod === 'dinheiro' ? renderSaleSuccessLine('Valor recebido', formatCurrency(sale.receivedAmount)) : ''}
             ${sale.paymentMethod === 'dinheiro' ? renderSaleSuccessLine('Troco', formatCurrency(sale.change), 'sale-success-change') : ''}
           </section>
-          <button class="button sale-success-ok" type="button" data-action="close-modal">OK</button>
+          <button class="button sale-success-ok" type="button" data-action="close-sale-success">OK</button>
         </div>
       </div>
     </div>
@@ -789,4 +800,10 @@ function getPaymentLabel(method) {
   };
 
   return labels[method];
+}
+
+function setActiveSalesMenu() {
+  document.querySelectorAll('[data-menu-id]').forEach((item) => {
+    item.classList.toggle('is-active', item.dataset.menuId === 'frente-caixa');
+  });
 }
