@@ -135,8 +135,8 @@ export function getActiveTransactions() {
   return getTransactions().filter((transaction) => transaction.status !== 'cancelada');
 }
 
-export function getPaymentMethodTotals() {
-  const sales = getActiveTransactions().filter((transaction) => transaction.type === 'venda');
+export function getPaymentMethodTotals(transactions = getActiveTransactions()) {
+  const sales = transactions.filter((transaction) => transaction.type === 'venda' && transaction.status !== 'cancelada');
 
   return {
     dinheiro: sumPaymentMethod(sales, 'dinheiro'),
@@ -147,11 +147,12 @@ export function getPaymentMethodTotals() {
 }
 
 export function getDailyMoneySummary() {
-  const activeTransactions = getActiveTransactions();
+  const activeTransactions = getActiveTransactions().filter((transaction) => isInPeriod(transaction.createdAt, 'today'));
   const entriesTotal = sumByType(activeTransactions, 'entrada');
   const salesTotal = sumByType(activeTransactions, 'venda');
   const outputsTotal = sumByType(activeTransactions, 'saida');
-  const paymentTotals = getPaymentMethodTotals();
+  const paymentTotals = getPaymentMethodTotals(activeTransactions);
+  const closedComandas = getClosedComandas().filter((comanda) => comanda.closedAt && isInPeriod(comanda.closedAt, 'today'));
 
   return {
     salesTotal,
@@ -160,8 +161,8 @@ export function getDailyMoneySummary() {
     paymentTotals,
     expectedCash: paymentTotals.dinheiro + entriesTotal - outputsTotal,
     netTotal: salesTotal + entriesTotal - outputsTotal,
-    closedComandas: getClosedComandas().filter((comanda) => comanda.status !== 'cancelada').length,
-    canceledComandas: getClosedComandas().filter((comanda) => comanda.status === 'cancelada').length
+    closedComandas: closedComandas.filter((comanda) => comanda.status !== 'cancelada').length,
+    canceledComandas: closedComandas.filter((comanda) => comanda.status === 'cancelada').length
   };
 }
 

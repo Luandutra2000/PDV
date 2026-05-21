@@ -22,6 +22,7 @@ const assert = (condition, message) => {
 };
 
 const storage = await import('../src/services/storage.service.js');
+const schema = await import('../src/database/schema.js');
 const products = await import('../src/services/product.service.js');
 const comandas = await import('../src/services/comanda.service.js');
 const transactions = await import('../src/services/transaction.service.js');
@@ -102,6 +103,50 @@ const quickItem = comandas.getActiveComanda().items.find((item) => item.productI
 assert(quickItem.quantity === 5, 'quick quantity should add requested amount');
 assert(quickItem.total === 30, 'quick quantity should calculate total');
 
+const yesterday = new Date();
+yesterday.setDate(yesterday.getDate() - 1);
+const yesterdayIso = yesterday.toISOString();
+
+storage.setItem(schema.STORAGE_KEYS.transactions, [
+  ...transactions.getTransactions(),
+  {
+    id: 'sale-yesterday',
+    type: 'venda',
+    status: 'ativa',
+    total: 100,
+    paymentMethod: 'dinheiro',
+    createdAt: yesterdayIso
+  },
+  {
+    id: 'entry-yesterday',
+    type: 'entrada',
+    status: 'ativa',
+    amount: 20,
+    createdAt: yesterdayIso
+  },
+  {
+    id: 'output-yesterday',
+    type: 'saida',
+    status: 'ativa',
+    amount: 4,
+    createdAt: yesterdayIso
+  }
+]);
+
+storage.setItem(schema.STORAGE_KEYS.closedComandas, [
+  ...transactions.getClosedComandas(),
+  {
+    id: 'closed-yesterday',
+    status: 'fechada',
+    closedAt: yesterdayIso
+  },
+  {
+    id: 'canceled-yesterday',
+    status: 'cancelada',
+    closedAt: yesterdayIso
+  }
+]);
+
 const dailyMoney = transactions.getDailyMoneySummary();
 assert(dailyMoney.salesTotal === 44, 'daily money should ignore canceled sale');
 assert(dailyMoney.entriesTotal === 10, 'daily money should ignore canceled entry');
@@ -110,6 +155,7 @@ assert(dailyMoney.expectedCash === 7, 'expected cash should be active cash sales
 assert(dailyMoney.paymentTotals.pix === 44, 'pix total should include active pix sale');
 assert(dailyMoney.paymentTotals.dinheiro === 0, 'cash sale total should ignore canceled cash sale');
 assert(dailyMoney.netTotal === 51, 'net total should be sales plus entries minus outputs');
+assert(dailyMoney.closedComandas === 1, 'daily money should ignore previous-day closed comandas');
 assert(dailyMoney.canceledComandas === 1, 'daily money should count canceled comandas');
 
 console.log('transaction service ok');
