@@ -290,16 +290,23 @@ function renderProducts(container) {
 
 function getVisibleProducts() {
   if (state.categoryId === CATEGORY_BEST_SELLERS) {
-    return getActiveBestSellingProducts()
-      .filter((product) => !state.query || searchProducts({ query: state.query }).some((item) => item.id === product.id));
+    return filterProductsByCurrentQuery(getActiveBestSellingProducts());
   }
 
   if (state.categoryId === CATEGORY_FAVORITES) {
-    return getFavoriteProducts()
-      .filter((product) => !state.query || searchProducts({ query: state.query }).some((item) => item.id === product.id));
+    return filterProductsByCurrentQuery(getFavoriteProducts());
   }
 
   return searchProducts({ query: state.query, categoryId: state.categoryId });
+}
+
+function filterProductsByCurrentQuery(products) {
+  if (!state.query) {
+    return products;
+  }
+
+  const matchingIds = new Set(searchProducts({ query: state.query, categoryId: CATEGORY_ALL }).map((product) => product.id));
+  return products.filter((product) => matchingIds.has(product.id));
 }
 
 function getActiveBestSellingProducts() {

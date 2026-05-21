@@ -93,4 +93,21 @@ assert(products.searchProducts({ query: 'salgado' }).some((product) => product.i
 assert(products.searchProducts({ query: 'lanches' }).some((product) => product.id === aliasProduct.id), 'search should match category name');
 assert(products.getFavoriteProducts().some((product) => product.id === aliasProduct.id), 'favorite products should be returned');
 
+const favoritesCategory = products.createCategory('Favoritos');
+const productInFavoritesCategory = products.createProduct({
+  name: 'Produto Categoria Favoritos',
+  categoryId: favoritesCategory.id,
+  price: 11,
+  cost: 4,
+  stock: 3,
+  active: true,
+  favorite: false
+});
+const realFavoritesCategoryResults = products.searchProducts({ categoryId: favoritesCategory.id });
+
+assert(favoritesCategory.id === 'favoritos', 'real favorites category should use favoritos slug');
+assert(realFavoritesCategoryResults.some((product) => product.id === productInFavoritesCategory.id), 'real favorites category search should include products in that category');
+assert(!realFavoritesCategoryResults.some((product) => product.id === aliasProduct.id), 'real favorites category search should not include favorite products from other categories');
+assert(products.getFavoriteProducts().some((product) => product.id === aliasProduct.id), 'favorite products helper should still return favorite products');
+
 console.log('product service crud ok');

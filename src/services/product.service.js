@@ -66,8 +66,7 @@ export function searchProducts({ query = '', categoryId = 'todos' } = {}) {
 
   return getActiveProducts().filter((product) => {
     const matchesCategory = categoryId === 'todos'
-      || product.categoryId === categoryId
-      || (categoryId === 'favoritos' && product.favorite);
+      || product.categoryId === categoryId;
     const categoryName = categoriesById.get(product.categoryId) || '';
     const searchableText = normalizeSearchText([
       product.name,
