@@ -3,6 +3,7 @@ const menuGroups = [
     title: 'Vendas',
     items: [
       { id: 'frente-caixa', label: 'Frente de Caixa', icon: 'FC', active: true },
+      { id: 'estoque', label: 'Vitrine', icon: 'VT' },
       { id: 'dashboard', label: 'Historico de Transacoes', icon: 'HT' }
     ]
   },
@@ -10,8 +11,7 @@ const menuGroups = [
     title: 'Gestao',
     items: [
       { id: 'produtos', label: 'Produtos', icon: 'PR' },
-      { id: 'pessoas', label: 'Pessoas', icon: 'PS' },
-      { id: 'estoque', label: 'Estoque', icon: 'ES' }
+      { id: 'pessoas', label: 'Pessoas', icon: 'PS' }
     ]
   },
   {
