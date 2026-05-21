@@ -323,15 +323,12 @@ function getTransactionDetail(transaction) {
       return transaction.description;
     }
 
-    if (transaction.paymentMethod) {
-      return `Pagamento: ${getPaymentLabel(transaction.paymentMethod)}`;
+    const itemCount = transaction.items?.reduce((total, item) => total + (Number(item.quantity) || 0), 0);
+    if (itemCount) {
+      return `${itemCount} item(ns)`;
     }
 
-    if (transaction.comandaNumber) {
-      return `Comanda ${formatComandaNumber(transaction.comandaNumber)}`;
-    }
-
-    return 'Sem descricao';
+    return 'Venda registrada';
   }
 
   return transaction.description || 'Sem descricao';
