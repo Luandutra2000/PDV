@@ -58,6 +58,11 @@
   color: var(--color-danger);
 }
 
+.cash-pill.money-warning {
+  background: #fff7d6;
+  color: #9a6a00;
+}
+
 .workspace-body {
   min-height: 0;
   overflow: auto;

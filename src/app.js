@@ -39,7 +39,7 @@ function bootstrap() {
         <header class="topbar">
           <div class="cash-strip" aria-label="Resumo do caixa">
             ${renderCashMetric('Caixa atual', currentCash, true)}
-            ${renderCashMetric('Caixa estimado', estimatedCash, true)}
+            ${renderCashMetric('Caixa estimado', estimatedCash, false, 'money-warning')}
             ${renderCashMetric('Entradas', moneySummary.entriesTotal, false, 'money-positive')}
             ${renderCashMetric('Saidas', moneySummary.outputsTotal, false, 'money-negative')}
           </div>
