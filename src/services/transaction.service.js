@@ -48,7 +48,13 @@ export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
   return sale;
 }
 
-export function registerCashMovement({ type, amount, description = '' }) {
+export function registerCashMovement({
+  type,
+  amount,
+  category = 'sem-categoria',
+  description = '',
+  userName = 'Local'
+}) {
   const normalizedAmount = Number(amount) || 0;
 
   if (!['entrada', 'saida'].includes(type)) {
@@ -64,7 +70,9 @@ export function registerCashMovement({ type, amount, description = '' }) {
     type,
     status: 'ativa',
     amount: normalizedAmount,
+    category: String(category || 'sem-categoria').trim() || 'sem-categoria',
     description,
+    userName: String(userName || 'Local').trim() || 'Local',
     createdAt: new Date().toISOString()
   };
 

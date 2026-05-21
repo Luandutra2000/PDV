@@ -170,4 +170,29 @@ assert(canceledByTransaction.status === 'cancelada', 'canceling sale transaction
 assert(comandaCanceledByTransaction.status === 'cancelada', 'canceling sale transaction should mark matching closed comanda as canceled');
 assert(transactionCanceledSummary.closedComandas === 2, 'canceling sale transaction should remove matching closed comanda from active count');
 
+const categorizedEntry = transactions.registerCashMovement({
+  type: 'entrada',
+  amount: 30,
+  category: 'reforco-caixa',
+  description: 'Troco inicial',
+  userName: 'Administrador'
+});
+
+assert(categorizedEntry.category === 'reforco-caixa', 'cash entry should store category');
+assert(categorizedEntry.userName === 'Administrador', 'cash entry should store responsible user');
+
+const categorizedOutput = transactions.registerCashMovement({
+  type: 'saida',
+  amount: 12,
+  category: 'compra-ingredientes',
+  description: 'Compra de queijo',
+  userName: 'Administrador'
+});
+
+assert(categorizedOutput.category === 'compra-ingredientes', 'cash output should store category');
+assert(categorizedOutput.userName === 'Administrador', 'cash output should store responsible user');
+
+const uncategorized = transactions.getTransactions().find((transaction) => transaction.id === entrada.id);
+assert((uncategorized.category || 'sem-categoria') === 'sem-categoria', 'old movements should remain compatible without category');
+
 console.log('transaction service ok');
