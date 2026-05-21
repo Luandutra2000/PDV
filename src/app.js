@@ -6,6 +6,7 @@ import { initVendasModule } from './modules/vendas/vendas.module.js';
 import { initProdutosModule } from './modules/produtos/produtos.module.js';
 import { initDashboardModule } from './modules/dashboard/dashboard.module.js';
 import { initEstoqueModule } from './modules/estoque/estoque.module.js';
+import { initCaixaModule } from './modules/caixa/caixa.module.js';
 import { formatCurrency } from './utils/currency.js';
 import { initNotificationService } from './services/notification.service.js';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js';
@@ -14,7 +15,8 @@ const routes = {
   'frente-caixa': initVendasModule,
   dashboard: initDashboardModule,
   produtos: initProdutosModule,
-  estoque: initEstoqueModule
+  estoque: initEstoqueModule,
+  'fechar-caixa': initCaixaModule
 };
 
 function bootstrap() {

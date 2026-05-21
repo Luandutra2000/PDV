@@ -647,6 +647,80 @@ select.compact-select[multiple] {
   color: var(--color-danger);
 }
 
+.closing-layout {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.closing-steps {
+  display: grid;
+  gap: 8px;
+  align-self: start;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.closing-step {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-weight: 800;
+  text-align: left;
+}
+
+.closing-step.is-active {
+  background: var(--color-surface-muted);
+  color: var(--color-primary);
+}
+
+.closing-content {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.closing-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+.closing-field span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.closing-small-input {
+  width: 96px;
+}
+
+.closing-actions {
+  padding: 16px;
+}
+
+.closing-history-row {
+  align-items: flex-start;
+}
+
+.closing-difference-row {
+  align-items: stretch;
+}
+
+.closing-difference-controls {
+  display: grid;
+  grid-template-columns: 190px minmax(180px, 260px);
+  gap: 8px;
+  align-items: center;
+}
+
 @media (max-width: 1120px) {
   .pdv-screen {
     grid-template-columns: 1fr;
@@ -686,6 +760,9 @@ select.compact-select[multiple] {
   .best-seller-row,
   .stock-summary-grid,
   .stock-form,
+  .closing-layout,
+  .closing-form-grid,
+  .closing-difference-controls,
   .custom-period-row,
   .payment-methods {
     grid-template-columns: 1fr;

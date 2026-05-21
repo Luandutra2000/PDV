@@ -113,7 +113,12 @@ export function confirmClosing(draft) {
     throw new Error('Rascunho de fechamento invalido.');
   }
 
-  if (!Number.isFinite(Number(draft.payments.countedCash))) {
+  if (
+    draft.input?.countedCash === ''
+      || draft.input?.countedCash === null
+      || draft.input?.countedCash === undefined
+      || !Number.isFinite(Number(draft.payments.countedCash))
+  ) {
     throw new Error('Dinheiro contado obrigatorio.');
   }
 
