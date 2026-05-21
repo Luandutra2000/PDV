@@ -42,6 +42,41 @@ export function addItem(product) {
   return comanda;
 }
 
+export function addItemQuantity(product, quantity = 1) {
+  const normalizedQuantity = Number(quantity);
+
+  if (!product) {
+    console.warn('Produto inexistente. Item nao adicionado a comanda.');
+    return getActiveComanda();
+  }
+
+  if (!Number.isFinite(normalizedQuantity) || normalizedQuantity <= 0) {
+    throw new Error('Quantidade precisa ser maior que zero.');
+  }
+
+  const comanda = getActiveComanda();
+  const existingItem = comanda.items.find((item) => item.productId === product.id);
+
+  if (existingItem) {
+    existingItem.quantity += normalizedQuantity;
+    existingItem.total = existingItem.quantity * existingItem.unitPrice;
+  } else {
+    comanda.items.push({
+      productId: product.id,
+      name: product.name,
+      unitPrice: product.price,
+      quantity: normalizedQuantity,
+      total: product.price * normalizedQuantity
+    });
+  }
+
+  comanda.updatedAt = new Date().toISOString();
+  saveComanda(comanda);
+  emit(SYNC_EVENTS.comandaItemAdded, { comandaId: comanda.id, productId: product.id, quantity: normalizedQuantity, comanda });
+
+  return comanda;
+}
+
 export function removeItem(productId) {
   const comanda = getActiveComanda();
   comanda.items = comanda.items.filter((item) => item.productId !== productId);

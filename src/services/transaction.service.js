@@ -131,6 +131,40 @@ export function cancelTransaction(transactionId) {
   setItem(STORAGE_KEYS.transactions, transactions);
 }
 
+export function getActiveTransactions() {
+  return getTransactions().filter((transaction) => transaction.status !== 'cancelada');
+}
+
+export function getPaymentMethodTotals() {
+  const sales = getActiveTransactions().filter((transaction) => transaction.type === 'venda');
+
+  return {
+    dinheiro: sumPaymentMethod(sales, 'dinheiro'),
+    pix: sumPaymentMethod(sales, 'pix'),
+    debito: sumPaymentMethod(sales, 'debito'),
+    credito: sumPaymentMethod(sales, 'credito')
+  };
+}
+
+export function getDailyMoneySummary() {
+  const activeTransactions = getActiveTransactions();
+  const entriesTotal = sumByType(activeTransactions, 'entrada');
+  const salesTotal = sumByType(activeTransactions, 'venda');
+  const outputsTotal = sumByType(activeTransactions, 'saida');
+  const paymentTotals = getPaymentMethodTotals();
+
+  return {
+    salesTotal,
+    entriesTotal,
+    outputsTotal,
+    paymentTotals,
+    expectedCash: paymentTotals.dinheiro + entriesTotal - outputsTotal,
+    netTotal: salesTotal + entriesTotal - outputsTotal,
+    closedComandas: getClosedComandas().filter((comanda) => comanda.status !== 'cancelada').length,
+    canceledComandas: getClosedComandas().filter((comanda) => comanda.status === 'cancelada').length
+  };
+}
+
 export function getTransactionSummary() {
   const transactions = getTransactions();
 
@@ -206,6 +240,12 @@ function sumByType(transactions, type) {
   return transactions
     .filter((transaction) => transaction.type === type && transaction.status !== 'cancelada')
     .reduce((total, transaction) => total + (transaction.total || transaction.amount || 0), 0);
+}
+
+function sumPaymentMethod(sales, paymentMethod) {
+  return sales
+    .filter((sale) => sale.paymentMethod === paymentMethod)
+    .reduce((total, sale) => total + Number(sale.total || 0), 0);
 }
 
 function createId(prefix) {

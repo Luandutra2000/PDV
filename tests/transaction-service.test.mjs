@@ -96,4 +96,20 @@ const canceledMovement = transactions.getTransactions().find((transaction) => tr
 
 assert(canceledMovement.status === 'cancelada', 'canceling movement should mark transaction as canceled');
 
+comandas.clearComanda();
+comandas.addItemQuantity(products.getProductById('refrigerante-lata'), 5);
+const quickItem = comandas.getActiveComanda().items.find((item) => item.productId === 'refrigerante-lata');
+assert(quickItem.quantity === 5, 'quick quantity should add requested amount');
+assert(quickItem.total === 30, 'quick quantity should calculate total');
+
+const dailyMoney = transactions.getDailyMoneySummary();
+assert(dailyMoney.salesTotal === 44, 'daily money should ignore canceled sale');
+assert(dailyMoney.entriesTotal === 10, 'daily money should ignore canceled entry');
+assert(dailyMoney.outputsTotal === 3, 'daily money should include active outputs');
+assert(dailyMoney.expectedCash === 7, 'expected cash should be active cash sales plus entries minus outputs');
+assert(dailyMoney.paymentTotals.pix === 44, 'pix total should include active pix sale');
+assert(dailyMoney.paymentTotals.dinheiro === 0, 'cash sale total should ignore canceled cash sale');
+assert(dailyMoney.netTotal === 51, 'net total should be sales plus entries minus outputs');
+assert(dailyMoney.canceledComandas === 1, 'daily money should count canceled comandas');
+
 console.log('transaction service ok');
