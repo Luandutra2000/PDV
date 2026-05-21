@@ -8,9 +8,13 @@ import { qs } from '../../utils/dom.js';
 import { showNotification } from '../../services/notification.service.js';
 import { createShowcaseWriteOff, getTodayShowcaseProducts } from '../../services/estoque.service.js';
 
+const CATEGORY_ALL = 'todos';
+const CATEGORY_FAVORITES = '__favoritos';
+const CATEGORY_BEST_SELLERS = '__mais-vendidos';
+
 const state = {
   query: '',
-  categoryId: 'todos',
+  categoryId: CATEGORY_ALL,
   modal: null,
   paymentMethod: 'dinheiro',
   quantityProductId: null
@@ -222,10 +226,10 @@ function bindEvents(container) {
 function renderCategories(container) {
   const target = qs('[data-category-tabs]', container);
   const categories = [
-    { id: 'todos', name: 'Todos' },
-    { id: 'mais-vendidos', name: 'Mais vendidos' },
-    { id: 'favoritos', name: 'Favoritos' },
-    ...getCategories().filter((category) => category.id !== 'todos')
+    { id: CATEGORY_ALL, name: 'Todos' },
+    { id: CATEGORY_BEST_SELLERS, name: 'Mais vendidos' },
+    { id: CATEGORY_FAVORITES, name: 'Favoritos' },
+    ...getCategories().filter((category) => category.id !== CATEGORY_ALL)
   ];
 
   target.innerHTML = categories.map((category) => `
@@ -241,9 +245,7 @@ function renderCategories(container) {
 
 function renderQuickAccess() {
   const favorites = getFavoriteProducts().slice(0, 4);
-  const bestSellers = getBestSellingProducts().slice(0, 4)
-    .map((item) => getProductById(item.productId))
-    .filter(Boolean);
+  const bestSellers = getActiveBestSellingProducts().slice(0, 4);
   const quickProducts = [...favorites, ...bestSellers]
     .filter((product, index, list) => list.findIndex((item) => item.id === product.id) === index)
     .slice(0, 6);
@@ -287,14 +289,23 @@ function renderProducts(container) {
 }
 
 function getVisibleProducts() {
-  if (state.categoryId === 'mais-vendidos') {
-    return getBestSellingProducts()
-      .map((item) => getProductById(item.productId))
-      .filter(Boolean)
+  if (state.categoryId === CATEGORY_BEST_SELLERS) {
+    return getActiveBestSellingProducts()
+      .filter((product) => !state.query || searchProducts({ query: state.query }).some((item) => item.id === product.id));
+  }
+
+  if (state.categoryId === CATEGORY_FAVORITES) {
+    return getFavoriteProducts()
       .filter((product) => !state.query || searchProducts({ query: state.query }).some((item) => item.id === product.id));
   }
 
   return searchProducts({ query: state.query, categoryId: state.categoryId });
+}
+
+function getActiveBestSellingProducts() {
+  return getBestSellingProducts()
+    .map((item) => getProductById(item.productId))
+    .filter((product) => product?.active);
 }
 
 function renderComanda(container) {
