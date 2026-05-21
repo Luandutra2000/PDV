@@ -1,8 +1,8 @@
 import { renderOrderPanel } from '../../components/order-panel.component.js';
 import { renderProductCard } from '../../components/product-card.component.js';
-import { getActiveComanda, addItem, clearComanda, removeItem, updateQuantity } from '../../services/comanda.service.js';
-import { getCategories, getProductById, searchProducts } from '../../services/product.service.js';
-import { finalizeComandaPayment, registerCashMovement } from '../../services/transaction.service.js';
+import { getActiveComanda, addItem, addItemQuantity, clearComanda, removeItem, updateQuantity } from '../../services/comanda.service.js';
+import { getCategories, getFavoriteProducts, getProductById, searchProducts } from '../../services/product.service.js';
+import { finalizeComandaPayment, getBestSellingProducts, registerCashMovement } from '../../services/transaction.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { qs } from '../../utils/dom.js';
 import { showNotification } from '../../services/notification.service.js';
@@ -12,7 +12,8 @@ const state = {
   query: '',
   categoryId: 'todos',
   modal: null,
-  paymentMethod: 'dinheiro'
+  paymentMethod: 'dinheiro',
+  quantityProductId: null
 };
 const boundContainers = new WeakSet();
 
@@ -37,6 +38,7 @@ function renderScreen(container) {
             <button class="button button--danger" type="button" data-action="open-write-off">Perda / Consumo</button>
           </div>
         </header>
+        ${renderQuickAccess()}
         <section class="products-panel">
           <div class="category-tabs" data-category-tabs></div>
           <div class="product-grid" data-product-grid></div>
@@ -75,7 +77,6 @@ function bindEvents(container) {
     }
 
     const categoryButton = event.target.closest('[data-category-id]');
-    const productButton = event.target.closest('[data-product-id]');
     const actionButton = event.target.closest('[data-action]');
 
     if (categoryButton) {
@@ -85,10 +86,32 @@ function bindEvents(container) {
       return;
     }
 
-    if (productButton && productButton.classList.contains('product-card')) {
-      const product = getProductById(productButton.dataset.productId);
+    if (actionButton?.dataset.action === 'add-product') {
+      const product = getProductById(actionButton.dataset.productId);
       addItem(product);
       renderComanda(container);
+      return;
+    }
+
+    if (actionButton?.dataset.action === 'quick-add') {
+      try {
+        const product = getProductById(actionButton.dataset.productId);
+        addItemQuantity(product, actionButton.dataset.quantity);
+        renderComanda(container);
+      } catch (error) {
+        showNotification({
+          title: 'Quantidade invalida',
+          message: error.message || 'Informe uma quantidade maior que zero.',
+          type: 'danger'
+        });
+      }
+      return;
+    }
+
+    if (actionButton?.dataset.action === 'open-quantity') {
+      state.modal = 'quantity';
+      state.quantityProductId = actionButton.dataset.productId;
+      renderModal(container);
       return;
     }
 
@@ -174,12 +197,36 @@ function bindEvents(container) {
         });
       }
     }
+
+    if (event.target.matches('[data-quantity-form]')) {
+      event.preventDefault();
+      const data = new FormData(event.target);
+
+      try {
+        addItemQuantity(getProductById(state.quantityProductId), data.get('quantity'));
+        state.modal = null;
+        state.quantityProductId = null;
+        renderComanda(container);
+        renderModal(container);
+      } catch (error) {
+        showNotification({
+          title: 'Quantidade invalida',
+          message: error.message || 'Informe uma quantidade maior que zero.',
+          type: 'danger'
+        });
+      }
+    }
   });
 }
 
 function renderCategories(container) {
   const target = qs('[data-category-tabs]', container);
-  const categories = getCategories();
+  const categories = [
+    { id: 'todos', name: 'Todos' },
+    { id: 'mais-vendidos', name: 'Mais vendidos' },
+    { id: 'favoritos', name: 'Favoritos' },
+    ...getCategories().filter((category) => category.id !== 'todos')
+  ];
 
   target.innerHTML = categories.map((category) => `
     <button
@@ -192,10 +239,41 @@ function renderCategories(container) {
   `).join('');
 }
 
+function renderQuickAccess() {
+  const favorites = getFavoriteProducts().slice(0, 4);
+  const bestSellers = getBestSellingProducts().slice(0, 4)
+    .map((item) => getProductById(item.productId))
+    .filter(Boolean);
+  const quickProducts = [...favorites, ...bestSellers]
+    .filter((product, index, list) => list.findIndex((item) => item.id === product.id) === index)
+    .slice(0, 6);
+
+  if (!quickProducts.length) {
+    return '';
+  }
+
+  return `
+    <section class="quick-access" aria-label="Acesso rapido">
+      <div class="quick-access__header">
+        <strong>Acesso rapido</strong>
+        <span>Favoritos e mais vendidos</span>
+      </div>
+      <div class="quick-access__list">
+        ${quickProducts.map((product) => `
+          <button class="quick-access__item" type="button" data-action="add-product" data-product-id="${product.id}">
+            <span>${product.name}</span>
+            <strong>${formatCurrency(product.price)}</strong>
+          </button>
+        `).join('')}
+      </div>
+    </section>
+  `;
+}
+
 function renderProducts(container) {
   const target = qs('[data-product-grid]', container);
   const categories = getCategories();
-  const products = searchProducts({ query: state.query, categoryId: state.categoryId });
+  const products = getVisibleProducts();
 
   if (!products.length) {
     target.innerHTML = '<div class="empty-products">Nenhum produto encontrado.</div>';
@@ -206,6 +284,17 @@ function renderProducts(container) {
     const category = categories.find((item) => item.id === product.categoryId);
     return renderProductCard(product, category ? category.name : 'Sem categoria');
   }).join('');
+}
+
+function getVisibleProducts() {
+  if (state.categoryId === 'mais-vendidos') {
+    return getBestSellingProducts()
+      .map((item) => getProductById(item.productId))
+      .filter(Boolean)
+      .filter((product) => !state.query || searchProducts({ query: state.query }).some((item) => item.id === product.id));
+  }
+
+  return searchProducts({ query: state.query, categoryId: state.categoryId });
 }
 
 function renderComanda(container) {
@@ -250,6 +339,7 @@ function handleOrderAction(actionButton, container) {
 
   if (action === 'close-modal') {
     state.modal = null;
+    state.quantityProductId = null;
   }
 
   if (action === 'open-write-off') {
@@ -268,6 +358,11 @@ function renderModal(container) {
     return;
   }
 
+  if (state.modal === 'quantity') {
+    target.innerHTML = renderQuantityModal();
+    return;
+  }
+
   if (state.modal === 'payment') {
     target.innerHTML = renderPaymentModal();
     renderPaymentChange(container);
@@ -280,6 +375,39 @@ function renderModal(container) {
   }
 
   target.innerHTML = renderCashMovementModal(state.modal);
+}
+
+function renderQuantityModal() {
+  const product = getProductById(state.quantityProductId);
+
+  if (!product) {
+    return '';
+  }
+
+  return `
+    <div class="modal-backdrop is-open">
+      <div class="modal modal--small" role="dialog" aria-modal="true">
+        <header class="modal__header">
+          <h2>Adicionar quantidade</h2>
+          <button class="icon-button" type="button" data-action="close-modal">X</button>
+        </header>
+        <form class="product-form" data-quantity-form>
+          <div class="payment-total">
+            <span>${product.name}</span>
+            <strong>${formatCurrency(product.price)}</strong>
+          </div>
+          <label class="stacked-label">
+            Quantidade
+            <input class="field" name="quantity" type="number" min="1" step="1" value="1" required>
+          </label>
+          <div class="form-actions">
+            <button class="button button--ghost" type="button" data-action="close-modal">Cancelar</button>
+            <button class="button" type="submit">Adicionar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
 }
 
 function renderWriteOffModal() {
@@ -358,7 +486,7 @@ function renderPaymentModal() {
           <fieldset class="payment-methods">
             <legend>Forma de pagamento</legend>
             ${['dinheiro', 'debito', 'credito', 'pix'].map((method) => `
-              <label>
+              <label class="payment-method ${state.paymentMethod === method ? 'is-selected' : ''}">
                 <input type="radio" name="paymentMethod" value="${method}" ${state.paymentMethod === method ? 'checked' : ''}>
                 ${getPaymentLabel(method)}
               </label>
