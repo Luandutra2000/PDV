@@ -441,6 +441,10 @@
   gap: 12px;
 }
 
+.money-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
 .summary-card {
   display: grid;
   gap: 10px;

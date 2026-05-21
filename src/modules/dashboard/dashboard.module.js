@@ -3,7 +3,7 @@ import {
   cancelClosedComanda,
   cancelTransaction,
   getClosedComandas,
-  getTransactionSummary,
+  getDailyMoneySummary,
   getTransactions,
   registerCashMovement
 } from '../../services/transaction.service.js';
@@ -28,7 +28,7 @@ export function initDashboardModule(container) {
 }
 
 function renderDashboard(container) {
-  const summary = getTransactionSummary();
+  const moneySummary = getDailyMoneySummary();
 
   container.innerHTML = `
     <section class="module-screen products-module" data-dashboard-screen>
@@ -44,11 +44,16 @@ function renderDashboard(container) {
         </div>
       </header>
 
-      <div class="summary-grid">
-        ${renderSummaryCard('Entrada de dinheiro', summary.entriesTotal)}
-        ${renderSummaryCard('Vendas', summary.salesTotal)}
-        ${renderSummaryCard('Saidas', summary.outputsTotal)}
-        <article class="summary-card"><span>Comandas</span><strong>${summary.closedComandas}</strong></article>
+      <div class="summary-grid money-summary-grid">
+        ${renderSummaryCard('Total vendido', moneySummary.salesTotal)}
+        ${renderSummaryCard('Dinheiro esperado', moneySummary.expectedCash)}
+        ${renderSummaryCard('Pix', moneySummary.paymentTotals.pix)}
+        ${renderSummaryCard('Debito', moneySummary.paymentTotals.debito)}
+        ${renderSummaryCard('Credito', moneySummary.paymentTotals.credito)}
+        ${renderSummaryCard('Entradas', moneySummary.entriesTotal)}
+        ${renderSummaryCard('Saidas', moneySummary.outputsTotal)}
+        ${renderSummaryCard('Saldo liquido', moneySummary.netTotal)}
+        <article class="summary-card"><span>Comandas canceladas</span><strong>${moneySummary.canceledComandas}</strong></article>
       </div>
 
       <div class="history-grid">
@@ -221,7 +226,7 @@ function renderTransactions() {
     <article class="money-row ${transaction.status === 'cancelada' ? 'is-canceled' : ''}">
       <div>
         <strong>${getMoneyTitle(transaction)}</strong>
-        <span>${transaction.status === 'cancelada' ? 'Movimentacao cancelada' : transaction.description || transaction.paymentMethod || 'Sem descricao'}</span>
+        <span>${transaction.status === 'cancelada' ? 'Cancelada' : getTransactionDetail(transaction)}</span>
       </div>
       <div class="money-row__right">
         <span>${formatDate(transaction.createdAt)}</span>
@@ -310,6 +315,17 @@ function getMoneyTitle(transaction) {
   }
 
   return getTransactionLabel(transaction.type);
+}
+
+function getTransactionDetail(transaction) {
+  const pieces = [
+    getTransactionLabel(transaction.type),
+    transaction.paymentMethod ? getPaymentLabel(transaction.paymentMethod) : '',
+    transaction.description || '',
+    transaction.comandaNumber ? `Comanda ${formatComandaNumber(transaction.comandaNumber)}` : ''
+  ].filter(Boolean);
+
+  return pieces.join(' - ') || 'Sem descricao';
 }
 
 function formatComandaNumber(number) {
