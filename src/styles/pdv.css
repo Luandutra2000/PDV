@@ -445,6 +445,37 @@
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
+.money-conference {
+  margin-top: 16px;
+}
+
+.payment-conference-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.payment-conference-card {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  padding: 12px;
+}
+
+.payment-conference-card span,
+.payment-conference-card small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.payment-conference-card strong {
+  font-size: 18px;
+}
+
 .summary-card {
   display: grid;
   gap: 10px;

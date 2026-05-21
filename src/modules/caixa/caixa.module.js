@@ -315,6 +315,7 @@ function renderConfirm(summary) {
 
   return `
     ${renderSummary(summary)}
+    ${renderMoneyConference(summary)}
     <section class="manager-section">
       <header class="manager-section__header">
         <strong>Confirmar fechamento</strong>
@@ -338,6 +339,56 @@ function renderConfirm(summary) {
       <div class="form-actions closing-actions">
         <button class="button button--ghost" type="button" data-action="save-closing-draft">Salvar rascunho</button>
         <button class="button" type="button" data-action="confirm-closing">Confirmar fechamento</button>
+      </div>
+    </section>
+  `;
+}
+
+function renderMoneyConference(summary) {
+  const paymentRows = [
+    {
+      label: 'Pix',
+      expected: summary.payments.expectedPix,
+      checked: summary.payments.checkedPix,
+      difference: summary.payments.pixDifference
+    },
+    {
+      label: 'Debito',
+      expected: summary.payments.expectedDebit,
+      checked: summary.payments.checkedDebit,
+      difference: summary.payments.debitDifference
+    },
+    {
+      label: 'Credito',
+      expected: summary.payments.expectedCredit,
+      checked: summary.payments.checkedCredit,
+      difference: summary.payments.creditDifference
+    }
+  ];
+
+  return `
+    <section class="manager-section money-conference">
+      <header class="manager-section__header">
+        <strong>Conferencia do dinheiro</strong>
+        <span>Dinheiro esperado = vendas em dinheiro + entradas - saidas</span>
+      </header>
+      <div class="summary-grid money-summary-grid">
+        ${renderSummaryCard('Vendas em dinheiro', summary.payments.expectedCash - summary.totals.entries + summary.totals.outputs)}
+        ${renderSummaryCard('Entradas', summary.totals.entries)}
+        ${renderSummaryCard('Saidas', summary.totals.outputs)}
+        ${renderSummaryCard('Dinheiro esperado', summary.payments.expectedCash)}
+        ${renderSummaryCard('Dinheiro contado', summary.payments.countedCash)}
+        ${renderSummaryCard('Diferenca', summary.payments.cashDifference)}
+      </div>
+      <div class="payment-conference-grid">
+        ${paymentRows.map((row) => `
+          <article class="payment-conference-card">
+            <span>${row.label}</span>
+            <strong>${formatCurrency(row.expected)}</strong>
+            <small>${row.checked === null ? 'Nao conferido' : `Conferido: ${formatCurrency(row.checked)}`}</small>
+            <small>Diferenca: ${row.difference === null ? '-' : formatCurrency(row.difference)}</small>
+          </article>
+        `).join('')}
       </div>
     </section>
   `;
