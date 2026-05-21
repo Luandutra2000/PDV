@@ -71,6 +71,21 @@ const editedCategory = products.updateCategory(category.id, 'Ofertas');
 assert(editedCategory.name === 'Ofertas', 'category should be renamed');
 assert(products.getCategories().some((item) => item.id === category.id && item.name === 'Ofertas'), 'renamed category should persist');
 
+const hiddenShowcaseCategory = products.updateCategory(category.id, {
+  name: 'Ofertas',
+  showInShowcase: false
+});
+assert(hiddenShowcaseCategory.showInShowcase === false, 'category should allow hiding from showcase');
+assert(!products.getShowcaseCategories().some((item) => item.id === category.id), 'hidden category should not appear in showcase categories');
+assert(!products.getShowcaseProducts().some((product) => product.id === productWithNewCategory.id), 'products in hidden category should not appear in showcase products');
+
+const visibleShowcaseCategory = products.updateCategory(category.id, {
+  name: 'Ofertas',
+  showInShowcase: true
+});
+assert(visibleShowcaseCategory.showInShowcase === true, 'category should allow showing in showcase');
+assert(products.getShowcaseCategories().some((item) => item.id === category.id), 'visible category should appear in showcase categories');
+
 products.deleteCategory(category.id);
 assert(!products.getCategories().some((item) => item.id === category.id), 'deleted category should be removed');
 assert(!products.getProducts().some((product) => product.categoryId === category.id), 'products in deleted category should be removed');

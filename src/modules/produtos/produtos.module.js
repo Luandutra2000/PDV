@@ -252,6 +252,7 @@ function saveProductFromForm(form) {
 function saveCategoryFromForm(form) {
   const formData = new FormData(form);
   const name = String(formData.get('name') || '').trim();
+  const showInShowcase = formData.get('showInShowcase') === 'on';
 
   if (!name) {
     showNotification({
@@ -263,9 +264,9 @@ function saveCategoryFromForm(form) {
   }
 
   if (productState.editingCategoryId) {
-    updateCategory(productState.editingCategoryId, name);
+    updateCategory(productState.editingCategoryId, { name, showInShowcase });
   } else {
-    createCategory(name);
+    createCategory(name, { showInShowcase });
   }
 
   closeModal();
@@ -285,7 +286,7 @@ function renderCategoryRows() {
       <article class="manager-row">
         <div>
           <strong>${category.name}</strong>
-          <span>${productCount} produtos</span>
+          <span>${productCount} produtos - ${category.showInShowcase ? 'Aparece na vitrine' : 'Nao aparece na vitrine'}</span>
         </div>
         <div class="row-actions">
           <button class="button button--ghost" type="button" data-action="edit-category" data-category-id="${category.id}">Editar</button>
@@ -390,6 +391,10 @@ function renderCategoryModal() {
           <label class="stacked-label">
             Nome da categoria
             <input class="field" name="name" required placeholder="Ex: Salgados" value="${category ? category.name : ''}">
+          </label>
+          <label class="checkbox-field category-visibility-toggle">
+            <input type="checkbox" name="showInShowcase" ${category?.showInShowcase !== false ? 'checked' : ''}>
+            Aparecer para lancar na Vitrine
           </label>
           <div class="form-actions">
             <button class="button" type="submit">${submitLabel}</button>

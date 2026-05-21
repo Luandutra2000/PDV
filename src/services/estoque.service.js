@@ -13,6 +13,10 @@ export function createStockLaunch({ produtoId, quantidade }) {
   const category = getCategories().find((item) => item.id === product.categoryId);
   const normalizedQuantity = Number(quantidade) || 0;
 
+  if (category?.showInShowcase === false) {
+    throw new Error('Categoria desativada para lancamento na vitrine.');
+  }
+
   if (normalizedQuantity <= 0) {
     throw new Error('Quantidade precisa ser maior que zero.');
   }

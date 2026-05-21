@@ -10,15 +10,25 @@ export function getActiveProducts() {
 }
 
 export function getCategories() {
-  return getItem(STORAGE_KEYS.categories, []);
+  return getItem(STORAGE_KEYS.categories, []).map(normalizeCategory);
 }
 
-export function createCategory(name) {
+export function getShowcaseCategories() {
+  return getCategories().filter((category) => category.id !== 'todos' && category.showInShowcase);
+}
+
+export function getShowcaseProducts() {
+  const showcaseCategoryIds = new Set(getShowcaseCategories().map((category) => category.id));
+  return getProducts().filter((product) => product.active && showcaseCategoryIds.has(product.categoryId));
+}
+
+export function createCategory(name, options = {}) {
   const categories = getCategories();
-  const category = {
+  const category = normalizeCategory({
     id: createSlugId(name, categories.map((item) => item.id)),
-    name: String(name || '').trim()
-  };
+    name: String(name || '').trim(),
+    showInShowcase: options.showInShowcase
+  });
 
   categories.push(category);
   setItem(STORAGE_KEYS.categories, categories);
@@ -26,7 +36,7 @@ export function createCategory(name) {
   return category;
 }
 
-export function updateCategory(categoryId, name) {
+export function updateCategory(categoryId, data = {}) {
   const categories = getCategories();
   const index = categories.findIndex((category) => category.id === categoryId);
 
@@ -36,7 +46,11 @@ export function updateCategory(categoryId, name) {
 
   categories[index] = {
     ...categories[index],
-    name: String(name || '').trim()
+    ...normalizeCategory({
+      ...categories[index],
+      name: typeof data === 'string' ? data : data.name ?? categories[index].name,
+      showInShowcase: typeof data === 'string' ? categories[index].showInShowcase : data.showInShowcase
+    })
   };
 
   setItem(STORAGE_KEYS.categories, categories);
@@ -137,6 +151,14 @@ function normalizeProduct(product) {
       ? product.aliases.map((alias) => String(alias).trim()).filter(Boolean)
       : [],
     favorite: Boolean(product.favorite)
+  };
+}
+
+function normalizeCategory(category) {
+  return {
+    id: category.id,
+    name: String(category.name || '').trim(),
+    showInShowcase: category.id === 'todos' ? false : category.showInShowcase !== false
   };
 }
 

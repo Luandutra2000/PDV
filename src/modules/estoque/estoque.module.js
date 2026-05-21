@@ -1,4 +1,4 @@
-import { getCategories, getProductById, getProducts } from '../../services/product.service.js';
+import { getCategories, getProductById, getShowcaseCategories, getShowcaseProducts } from '../../services/product.service.js';
 import {
   cancelStockLaunch,
   createStockLaunch,
@@ -47,8 +47,8 @@ function renderEstoque(container) {
           <select class="field compact-select" data-stock-period aria-label="Periodo">
             ${renderPeriodOptions()}
           </select>
-          ${renderFilterDropdown('Categorias', 'category', getCategories().filter((category) => category.id !== 'todos'), estoqueState.categoryIds)}
-          ${renderFilterDropdown('Produtos', 'product', getProducts(), estoqueState.productIds)}
+          ${renderFilterDropdown('Categorias', 'category', getShowcaseCategories(), estoqueState.categoryIds)}
+          ${renderFilterDropdown('Produtos', 'product', getShowcaseProducts(), estoqueState.productIds)}
         </div>
       </header>
 
@@ -264,7 +264,7 @@ function renderStockForm() {
       Produto
       <select class="field" name="produtoId" required ${launch ? 'disabled' : ''}>
         <option value="">Selecione um produto</option>
-        ${getProducts().map((product) => `
+        ${getLaunchableProducts(launch).map((product) => `
           <option value="${product.id}" ${launch?.produtoId === product.id ? 'selected' : ''}>
             ${product.name}
           </option>
@@ -309,6 +309,17 @@ function renderLaunchRows(launches) {
       </div>
     </article>
   `).join('');
+}
+
+function getLaunchableProducts(launch = null) {
+  const products = getShowcaseProducts();
+
+  if (!launch || products.some((product) => product.id === launch.produtoId)) {
+    return products;
+  }
+
+  const currentProduct = getProductById(launch.produtoId);
+  return currentProduct ? [currentProduct, ...products] : products;
 }
 
 function renderComparison(filters) {

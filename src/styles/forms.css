@@ -67,3 +67,15 @@
   width: 18px;
   height: 18px;
 }
+
+.category-visibility-toggle {
+  align-items: center;
+  flex-direction: row;
+  min-height: 48px;
+  margin: 4px 0 16px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--crm-orange-soft);
+  color: var(--color-text);
+}

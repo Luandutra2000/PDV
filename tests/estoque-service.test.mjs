@@ -74,6 +74,24 @@ assert(estoque.getProductionSalesComparison().length === 0, 'deleting comparison
 
 storage.resetAppData();
 const saleOnlyProduct = products.getProductById('x-burger');
+products.updateCategory(saleOnlyProduct.categoryId, {
+  name: 'Lanches',
+  showInShowcase: false
+});
+let rejectedHiddenCategory = false;
+try {
+  estoque.createStockLaunch({
+    produtoId: saleOnlyProduct.id,
+    quantidade: 1
+  });
+} catch (error) {
+  rejectedHiddenCategory = error.message === 'Categoria desativada para lancamento na vitrine.';
+}
+assert(rejectedHiddenCategory, 'stock launch should reject category hidden from showcase');
+products.updateCategory(saleOnlyProduct.categoryId, {
+  name: 'Lanches',
+  showInShowcase: true
+});
 comandas.clearComanda();
 comandas.addItem(saleOnlyProduct);
 transactions.finalizeComandaPayment({
