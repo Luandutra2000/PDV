@@ -87,4 +87,59 @@ estoque.createStockLaunch({
 });
 assert(estoque.getProductionSalesComparison().length === 1, 'new launch should show hidden product in comparison again');
 
+storage.resetAppData();
+const writeOffProduct = products.getProductById('x-burger');
+estoque.createStockLaunch({
+  produtoId: writeOffProduct.id,
+  quantidade: 5
+});
+
+const todayProducts = estoque.getTodayShowcaseProducts();
+assert(todayProducts.some((item) => item.id === writeOffProduct.id), 'today showcase products should include launched products');
+
+const writeOff = estoque.createShowcaseWriteOff({
+  productId: writeOffProduct.id,
+  quantity: 2,
+  reason: 'consumo-interno',
+  note: ''
+});
+
+assert(writeOff.productId === writeOffProduct.id, 'write-off should store product id');
+assert(writeOff.quantity === 2, 'write-off should store quantity');
+assert(writeOff.unitValue === writeOffProduct.price, 'write-off should store current product price');
+assert(writeOff.totalValue === writeOffProduct.price * 2, 'write-off should calculate total estimated value');
+
+const writeOffSummary = estoque.getShowcaseWriteOffSummary();
+assert(writeOffSummary.get(writeOffProduct.id).quantity === 2, 'write-off summary should group quantity by product');
+assert(writeOffSummary.get(writeOffProduct.id).totalValue === writeOffProduct.price * 2, 'write-off summary should group value by product');
+
+const comparisonWithWriteOff = estoque.getProductionSalesComparison();
+assert(comparisonWithWriteOff[0].quantidadeBaixada === 2, 'comparison should include write-off quantity');
+assert(comparisonWithWriteOff[0].valorBaixado === writeOffProduct.price * 2, 'comparison should include write-off value');
+assert(comparisonWithWriteOff[0].sobraQuantidade === 3, 'comparison should subtract write-offs from leftover');
+
+let rejectedMissingLaunch = false;
+try {
+  estoque.createShowcaseWriteOff({
+    productId: 'agua',
+    quantity: 1,
+    reason: 'quebra'
+  });
+} catch (error) {
+  rejectedMissingLaunch = error.message === 'Produto sem lancamento de vitrine no periodo.';
+}
+assert(rejectedMissingLaunch, 'write-off should reject product without showcase launch today');
+
+let rejectedTooLarge = false;
+try {
+  estoque.createShowcaseWriteOff({
+    productId: writeOffProduct.id,
+    quantity: 10,
+    reason: 'quebra'
+  });
+} catch (error) {
+  rejectedTooLarge = error.message === 'Quantidade maior que a sobra disponivel na vitrine.';
+}
+assert(rejectedTooLarge, 'write-off should reject quantity greater than available showcase leftover');
+
 console.log('estoque service ok');

@@ -7,6 +7,9 @@ export const STORAGE_KEYS = {
   closedComandas: 'pdv.closedComandas',
   stockLaunches: 'pdv.stockLaunches',
   hiddenStockComparisons: 'pdv.hiddenStockComparisons',
+  cashClosings: 'pdv.cashClosings',
+  cashClosingDraft: 'pdv.cashClosingDraft',
+  showcaseWriteOffs: 'pdv.showcaseWriteOffs',
   syncQueue: 'pdv.syncQueue'
 };
 

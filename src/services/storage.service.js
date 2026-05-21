@@ -57,6 +57,18 @@ export function ensureSeedData() {
   if (!getItem(STORAGE_KEYS.hiddenStockComparisons)) {
     setItem(STORAGE_KEYS.hiddenStockComparisons, []);
   }
+
+  if (!getItem(STORAGE_KEYS.cashClosings)) {
+    setItem(STORAGE_KEYS.cashClosings, []);
+  }
+
+  if (!getItem(STORAGE_KEYS.cashClosingDraft)) {
+    setItem(STORAGE_KEYS.cashClosingDraft, null);
+  }
+
+  if (!getItem(STORAGE_KEYS.showcaseWriteOffs)) {
+    setItem(STORAGE_KEYS.showcaseWriteOffs, []);
+  }
 }
 
 export function resetAppData() {
@@ -69,4 +81,7 @@ export function resetAppData() {
   setItem(STORAGE_KEYS.closedComandas, []);
   setItem(STORAGE_KEYS.stockLaunches, []);
   setItem(STORAGE_KEYS.hiddenStockComparisons, []);
+  setItem(STORAGE_KEYS.cashClosings, []);
+  setItem(STORAGE_KEYS.cashClosingDraft, null);
+  setItem(STORAGE_KEYS.showcaseWriteOffs, []);
 }

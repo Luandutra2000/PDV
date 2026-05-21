@@ -102,6 +102,94 @@ export function cancelStockLaunch(launchId) {
   }
 }
 
+export function getTodayShowcaseProducts() {
+  const productIds = new Set(getActiveLaunches({ period: 'today' }).map((launch) => launch.produtoId));
+  return getProducts().filter((product) => productIds.has(product.id));
+}
+
+export function createShowcaseWriteOff({ productId, quantity, reason, note = '' }) {
+  const product = getProductById(productId);
+  const normalizedQuantity = Number(quantity) || 0;
+  const normalizedReason = String(reason || '').trim();
+
+  if (!product) {
+    throw new Error('Produto nao encontrado.');
+  }
+
+  if (normalizedQuantity <= 0) {
+    throw new Error('Quantidade precisa ser maior que zero.');
+  }
+
+  if (!normalizedReason) {
+    throw new Error('Motivo obrigatorio.');
+  }
+
+  const comparison = getProductionSalesComparison({ period: 'today' }).find((item) => item.produtoId === product.id);
+
+  if (!comparison) {
+    throw new Error('Produto sem lancamento de vitrine no periodo.');
+  }
+
+  if (normalizedQuantity > comparison.sobraQuantidade) {
+    throw new Error('Quantidade maior que a sobra disponivel na vitrine.');
+  }
+
+  const category = getCategories().find((item) => item.id === product.categoryId);
+  const unitValue = Number(product.price) || 0;
+  const writeOff = {
+    id: createId('writeoff'),
+    productId: product.id,
+    productName: product.name,
+    categoryId: product.categoryId,
+    categoryName: category ? category.name : 'Sem categoria',
+    quantity: normalizedQuantity,
+    unitValue,
+    totalValue: normalizedQuantity * unitValue,
+    reason: normalizedReason,
+    note: String(note || '').trim(),
+    createdAt: new Date().toISOString(),
+    status: 'ativa'
+  };
+
+  const writeOffs = getItem(STORAGE_KEYS.showcaseWriteOffs, []);
+  writeOffs.unshift(writeOff);
+  setItem(STORAGE_KEYS.showcaseWriteOffs, writeOffs);
+
+  return writeOff;
+}
+
+export function getShowcaseWriteOffs(filters = {}) {
+  return getItem(STORAGE_KEYS.showcaseWriteOffs, []).filter((writeOff) => {
+    const matchesStatus = writeOff.status !== 'cancelada';
+    const matchesPeriod = isInPeriod(writeOff.createdAt, filters.period || 'today', filters);
+    const productFilter = new Set(filters.productIds || []);
+    const categoryFilter = new Set(filters.categoryIds || []);
+    const matchesProduct = !productFilter.size || productFilter.has(writeOff.productId);
+    const matchesCategory = !categoryFilter.size || categoryFilter.has(writeOff.categoryId);
+
+    return matchesStatus && matchesPeriod && matchesProduct && matchesCategory;
+  });
+}
+
+export function getShowcaseWriteOffSummary(filters = {}) {
+  const summary = new Map();
+
+  getShowcaseWriteOffs(filters).forEach((writeOff) => {
+    const current = summary.get(writeOff.productId) || {
+      quantity: 0,
+      totalValue: 0,
+      reasons: {}
+    };
+
+    current.quantity += writeOff.quantity;
+    current.totalValue += writeOff.totalValue;
+    current.reasons[writeOff.reason] = (current.reasons[writeOff.reason] || 0) + writeOff.quantity;
+    summary.set(writeOff.productId, current);
+  });
+
+  return summary;
+}
+
 export function getStockLaunches(filters = {}) {
   const launches = getItem(STORAGE_KEYS.stockLaunches, []);
   return applyStockFilters(launches, filters);
@@ -110,11 +198,14 @@ export function getStockLaunches(filters = {}) {
 export function getStockSummary(filters = {}) {
   const launches = getActiveLaunches(filters);
   const comparison = getProductionSalesComparison(filters);
+  const writeOffs = getShowcaseWriteOffs(filters);
   const estimatedProductionValue = launches.reduce((total, launch) => total + launch.valorTotal, 0);
   const producedUnits = launches.reduce((total, launch) => total + launch.quantidade, 0);
   const uniqueProducts = new Set(launches.map((launch) => launch.produtoId)).size;
   const salesValue = comparison.reduce((total, item) => total + item.valorVendido, 0);
   const soldUnits = comparison.reduce((total, item) => total + item.quantidadeVendida, 0);
+  const writeOffUnits = writeOffs.reduce((total, writeOff) => total + writeOff.quantity, 0);
+  const writeOffValue = writeOffs.reduce((total, writeOff) => total + writeOff.totalValue, 0);
 
   return {
     estimatedProductionValue,
@@ -122,8 +213,10 @@ export function getStockSummary(filters = {}) {
     uniqueProducts,
     salesValue,
     soldUnits,
-    valueDifference: estimatedProductionValue - salesValue,
-    quantityBalance: producedUnits - soldUnits
+    writeOffUnits,
+    writeOffValue,
+    valueDifference: estimatedProductionValue - salesValue - writeOffValue,
+    quantityBalance: producedUnits - soldUnits - writeOffUnits
   };
 }
 
@@ -132,6 +225,7 @@ export function getProductionSalesComparison(filters = {}) {
   const salesByProduct = getSalesByProduct(filters);
   const hiddenProducts = new Set(getHiddenStockComparisonProducts());
   const productIds = new Set(launches.map((launch) => launch.produtoId));
+  const writeOffsByProduct = getShowcaseWriteOffSummary(filters);
 
   return Array.from(productIds).filter((produtoId) => !hiddenProducts.has(produtoId)).map((produtoId) => {
     const product = getProductById(produtoId);
@@ -139,6 +233,7 @@ export function getProductionSalesComparison(filters = {}) {
     const producedQuantity = productLaunches.reduce((total, launch) => total + launch.quantidade, 0);
     const producedValue = productLaunches.reduce((total, launch) => total + launch.valorTotal, 0);
     const sold = salesByProduct.get(produtoId) || { quantity: 0, value: 0 };
+    const writeOff = writeOffsByProduct.get(produtoId) || { quantity: 0, totalValue: 0 };
 
     return {
       produtoId,
@@ -149,8 +244,10 @@ export function getProductionSalesComparison(filters = {}) {
       valorProduzido: producedValue,
       quantidadeVendida: sold.quantity,
       valorVendido: sold.value,
-      sobraQuantidade: producedQuantity - sold.quantity,
-      diferencaValor: producedValue - sold.value,
+      quantidadeBaixada: writeOff.quantity,
+      valorBaixado: writeOff.totalValue,
+      sobraQuantidade: producedQuantity - sold.quantity - writeOff.quantity,
+      diferencaValor: producedValue - sold.value - writeOff.totalValue,
       percentualVendido: producedQuantity > 0 ? Math.round((sold.quantity / producedQuantity) * 100) : 0
     };
   }).sort((a, b) => b.valorProduzido - a.valorProduzido);
