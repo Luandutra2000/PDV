@@ -1,0 +1,145 @@
+.modal-backdrop {
+  display: none;
+}
+
+.modal-backdrop.is-open {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(11, 18, 32, 0.54);
+}
+
+.modal {
+  width: min(620px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: 0 22px 70px rgba(18, 31, 53, 0.28);
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal__header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.modal .product-form {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.category-choice {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.category-choice legend {
+  padding: 0 6px;
+  color: var(--color-text-muted);
+  font-weight: 800;
+}
+
+.category-choice label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.stacked-label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 14px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.modal--small {
+  width: min(460px, 100%);
+}
+
+.product-quick-modal {
+  align-self: flex-start;
+  margin-top: 28px;
+}
+
+.product-quick-modal .modal__header {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.product-quick-modal .form-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.modal-text {
+  margin: 0 0 16px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.toast-root {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 50;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 36px));
+}
+
+.app-toast {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-left: 5px solid var(--color-primary);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+}
+
+.app-toast--success {
+  border-left-color: var(--color-success);
+}
+
+.app-toast--danger {
+  border-left-color: var(--color-danger);
+}
+
+.app-toast p {
+  margin: 6px 0 0;
+  color: var(--color-text-muted);
+}
+
+.app-toast__close {
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-weight: 900;
+}
