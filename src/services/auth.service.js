@@ -1,3 +1,5 @@
+import { getSupabaseClient } from './supabase-client.service.js';
+
 let authClientForTests = null;
 
 export function setAuthClientForTests(client) {
@@ -5,7 +7,7 @@ export function setAuthClientForTests(client) {
 }
 
 export async function login({ email, password }) {
-  const client = getAuthClient();
+  const client = await getAuthClient();
   const { data, error } = await client.signInWithPassword({ email, password });
 
   if (error) {
@@ -16,7 +18,7 @@ export async function login({ email, password }) {
 }
 
 export async function logout() {
-  const client = getAuthClient();
+  const client = await getAuthClient();
   const { error } = await client.signOut();
 
   if (error) {
@@ -25,7 +27,7 @@ export async function logout() {
 }
 
 export async function getCurrentUser() {
-  const client = getAuthClient();
+  const client = await getAuthClient();
   const { data, error } = await client.getSession();
 
   if (error) {
@@ -35,10 +37,10 @@ export async function getCurrentUser() {
   return data.session?.user || null;
 }
 
-function getAuthClient() {
-  if (!authClientForTests) {
-    throw new Error('Cliente de autenticacao nao configurado.');
+async function getAuthClient() {
+  if (authClientForTests) {
+    return authClientForTests;
   }
 
-  return authClientForTests;
+  return (await getSupabaseClient()).auth;
 }

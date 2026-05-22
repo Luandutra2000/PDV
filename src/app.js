@@ -11,6 +11,9 @@ import { formatCurrency } from './utils/currency.js';
 import { initNotificationService } from './services/notification.service.js';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js';
 import { getDailyMoneySummary } from './services/transaction.service.js';
+import { getDataProviderMode } from './services/app-config.service.js';
+import { getCurrentUser } from './services/auth.service.js';
+import { renderLoginModule } from './modules/auth/login.module.js';
 
 const routes = {
   'frente-caixa': initVendasModule,
@@ -20,12 +23,26 @@ const routes = {
   'fechar-caixa': initCaixaModule
 };
 
-function bootstrap() {
+async function bootstrap() {
   ensureSeedData();
   initSyncService();
   initTheme();
 
   const app = document.getElementById('app');
+
+  if (getDataProviderMode() === 'supabase') {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      renderLoginModule(app, () => bootstrap());
+      return;
+    }
+  }
+
+  renderAppShell(app);
+}
+
+function renderAppShell(app) {
   initNotificationService(document.querySelector('.toast-root'));
   const caixa = getCaixaSummary();
   const moneySummary = getDailyMoneySummary();
