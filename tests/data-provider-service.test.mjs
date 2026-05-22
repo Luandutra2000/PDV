@@ -42,17 +42,35 @@ const {
 assert(DATA_PROVIDER_MODES.local === 'local', 'local mode should be exported');
 
 const provider = getDataProvider();
-provider.setCollection('products', [{ id: 'x-salada', name: 'X Salada' }]);
-const products = provider.getCollection('products', []);
+const supportedCollections = [
+  ['products', [{ id: 'x-salada', name: 'X Salada' }]],
+  ['categories', [{ id: 'lanches', name: 'Lanches' }]],
+  ['activeComanda', { id: 'mesa-1', items: [] }],
+  ['caixa', { aberto: true, saldoInicial: 50 }],
+  ['transactions', [{ id: 'txn-1', total: 25 }]],
+  ['closedComandas', [{ id: 'comanda-1', total: 25 }]],
+  ['stockLaunches', [{ id: 'stock-1', quantity: 3 }]],
+  ['hiddenStockComparisons', ['product-1']],
+  ['cashClosings', [{ id: 'closing-1', total: 100 }]],
+  ['cashClosingDraft', { operador: 'Luan', total: 100 }],
+  ['showcaseWriteOffs', [{ id: 'write-off-1', quantity: 1 }]],
+  ['syncQueue', [{ id: 'sync-1', type: 'SALE_FINISHED' }]]
+];
 
-assert(products.length === 1, 'local provider should read collection');
-assert(products[0].id === 'x-salada', 'local provider should preserve item');
+for (const [name, value] of supportedCollections) {
+  provider.setCollection(name, value);
+  assert(
+    JSON.stringify(provider.getCollection(name, null)) === JSON.stringify(value),
+    `local provider should support ${name} collection`
+  );
 
-provider.setCollection('caixa', { aberto: true, saldoInicial: 50 });
-assert(provider.getCollection('caixa', null).saldoInicial === 50, 'local provider should support caixa');
-
-provider.setItem('activeComanda', { id: 'mesa-1', items: [] });
-assert(provider.getItem('activeComanda', null).id === 'mesa-1', 'local provider should support activeComanda');
+  const itemValue = { collection: name, viaItemApi: true };
+  provider.setItem(name, itemValue);
+  assert(
+    JSON.stringify(provider.getItem(name, null)) === JSON.stringify(itemValue),
+    `local provider should support ${name} item`
+  );
+}
 
 assertThrows(
   () => provider.setCollection('unknownCollection', []),

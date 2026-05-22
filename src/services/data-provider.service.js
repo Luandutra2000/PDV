@@ -4,18 +4,17 @@ import { createLocalProvider } from './providers/local.provider.js';
 
 let activeProvider = null;
 
+const PROVIDER_FACTORIES = {
+  [DATA_PROVIDER_MODES.local]: createLocalProvider,
+  [DATA_PROVIDER_MODES.supabase]: createLocalProvider
+};
+
 export function getDataProvider() {
   if (activeProvider) {
     return activeProvider;
   }
 
-  const mode = getDataProviderMode();
-  activeProvider = createLocalProvider();
-
-  if (mode === DATA_PROVIDER_MODES.supabase) {
-    activeProvider = createLocalProvider();
-  }
-
+  activeProvider = PROVIDER_FACTORIES[getDataProviderMode()]();
   return activeProvider;
 }
 
