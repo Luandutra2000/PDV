@@ -1,7 +1,6 @@
-import { STORAGE_KEYS } from '../database/schema.js';
 import { getCategories, getProductById, getProducts, updateProduct } from './product.service.js';
 import { getTransactions } from './transaction.service.js';
-import { getItem, setItem } from './storage.service.js';
+import { getDataProvider } from './data-provider.service.js';
 
 export function createStockLaunch({ produtoId, quantidade }) {
   const product = getProductById(produtoId);
@@ -38,7 +37,7 @@ export function createStockLaunch({ produtoId, quantidade }) {
 
   const launches = getStockLaunches();
   launches.unshift(launch);
-  setItem(STORAGE_KEYS.stockLaunches, launches);
+  getDataProvider().setCollection('stockLaunches', launches);
   showStockComparisonProduct(product.id);
   updateProductStock(product.id, normalizedQuantity);
 
@@ -76,7 +75,7 @@ export function updateStockLaunch(launchId, data) {
     };
   });
 
-  setItem(STORAGE_KEYS.stockLaunches, launches);
+  getDataProvider().setCollection('stockLaunches', launches);
 
   if (currentLaunch?.status === 'ativo') {
     const nextQuantity = Number(data.quantidade ?? currentLaunch.quantidade) || 0;
@@ -99,7 +98,7 @@ export function cancelStockLaunch(launchId) {
     };
   });
 
-  setItem(STORAGE_KEYS.stockLaunches, launches);
+  getDataProvider().setCollection('stockLaunches', launches);
 
   if (currentLaunch?.status === 'ativo') {
     updateProductStock(currentLaunch.produtoId, -currentLaunch.quantidade);
@@ -155,15 +154,15 @@ export function createShowcaseWriteOff({ productId, quantity, reason, note = '' 
     status: 'ativa'
   };
 
-  const writeOffs = getItem(STORAGE_KEYS.showcaseWriteOffs, []);
+  const writeOffs = getDataProvider().getCollection('showcaseWriteOffs', []);
   writeOffs.unshift(writeOff);
-  setItem(STORAGE_KEYS.showcaseWriteOffs, writeOffs);
+  getDataProvider().setCollection('showcaseWriteOffs', writeOffs);
 
   return writeOff;
 }
 
 export function getShowcaseWriteOffs(filters = {}) {
-  return getItem(STORAGE_KEYS.showcaseWriteOffs, []).filter((writeOff) => {
+  return getDataProvider().getCollection('showcaseWriteOffs', []).filter((writeOff) => {
     const matchesStatus = writeOff.status !== 'cancelada';
     const matchesPeriod = isInPeriod(writeOff.createdAt, filters.period || 'today', filters);
     const productFilter = new Set(filters.productIds || []);
@@ -195,7 +194,7 @@ export function getShowcaseWriteOffSummary(filters = {}) {
 }
 
 export function getStockLaunches(filters = {}) {
-  const launches = getItem(STORAGE_KEYS.stockLaunches, []);
+  const launches = getDataProvider().getCollection('stockLaunches', []);
   return applyStockFilters(launches, filters);
 }
 
@@ -368,16 +367,16 @@ function updateProductStock(productId, quantityDelta) {
 }
 
 function getHiddenStockComparisonProducts() {
-  return getItem(STORAGE_KEYS.hiddenStockComparisons, []);
+  return getDataProvider().getCollection('hiddenStockComparisons', []);
 }
 
 function hideStockComparisonProduct(productId) {
   const hiddenProducts = new Set(getHiddenStockComparisonProducts());
   hiddenProducts.add(productId);
-  setItem(STORAGE_KEYS.hiddenStockComparisons, Array.from(hiddenProducts));
+  getDataProvider().setCollection('hiddenStockComparisons', Array.from(hiddenProducts));
 }
 
 function showStockComparisonProduct(productId) {
   const nextHiddenProducts = getHiddenStockComparisonProducts().filter((id) => id !== productId);
-  setItem(STORAGE_KEYS.hiddenStockComparisons, nextHiddenProducts);
+  getDataProvider().setCollection('hiddenStockComparisons', nextHiddenProducts);
 }

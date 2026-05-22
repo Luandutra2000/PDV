@@ -1,6 +1,5 @@
-import { STORAGE_KEYS } from '../database/schema.js';
 import { getProductionSalesComparison } from './estoque.service.js';
-import { getItem, setItem } from './storage.service.js';
+import { getDataProvider } from './data-provider.service.js';
 import { getTransactions } from './transaction.service.js';
 
 export function buildClosingSummary(input = {}) {
@@ -100,12 +99,12 @@ export function saveClosingDraft(input = {}) {
     updatedAt: new Date().toISOString()
   };
 
-  setItem(STORAGE_KEYS.cashClosingDraft, draft);
+  getDataProvider().setItem('cashClosingDraft', draft);
   return draft;
 }
 
 export function getCurrentClosingDraft() {
-  return getItem(STORAGE_KEYS.cashClosingDraft, null);
+  return getDataProvider().getItem('cashClosingDraft', null);
 }
 
 export function confirmClosing(draft) {
@@ -163,14 +162,14 @@ export function confirmClosing(draft) {
 
   const closings = getCashClosings();
   closings.unshift(closing);
-  setItem(STORAGE_KEYS.cashClosings, closings);
-  setItem(STORAGE_KEYS.cashClosingDraft, null);
+  getDataProvider().setCollection('cashClosings', closings);
+  getDataProvider().setItem('cashClosingDraft', null);
 
   return closing;
 }
 
 export function getCashClosings() {
-  return getItem(STORAGE_KEYS.cashClosings, []);
+  return getDataProvider().getCollection('cashClosings', []);
 }
 
 export function getCashClosingById(closingId) {
