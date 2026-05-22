@@ -254,14 +254,19 @@ drop policy if exists "authenticated all stock items" on public.stock_items;
 drop policy if exists "authenticated insert audit logs" on public.audit_logs;
 drop policy if exists "authenticated read audit logs" on public.audit_logs;
 drop policy if exists "active users read profiles" on public.profiles;
+drop policy if exists "active users read own profile" on public.profiles;
+drop policy if exists "user managers read profiles" on public.profiles;
 drop policy if exists "user managers insert profiles" on public.profiles;
 drop policy if exists "user managers update profiles" on public.profiles;
 drop policy if exists "user managers delete profiles" on public.profiles;
 drop policy if exists "active users read roles" on public.roles;
+drop policy if exists "user managers read roles" on public.roles;
 drop policy if exists "user managers write roles" on public.roles;
 drop policy if exists "active users read permissions" on public.permissions;
+drop policy if exists "user managers read permissions" on public.permissions;
 drop policy if exists "user managers write permissions" on public.permissions;
 drop policy if exists "active users read role permissions" on public.role_permissions;
+drop policy if exists "user managers read role permissions" on public.role_permissions;
 drop policy if exists "user managers write role permissions" on public.role_permissions;
 drop policy if exists "product viewers read categories" on public.categories;
 drop policy if exists "product managers insert categories" on public.categories;
@@ -292,8 +297,10 @@ drop policy if exists "stock creators update stock items" on public.stock_items;
 drop policy if exists "active users insert own audit logs" on public.audit_logs;
 drop policy if exists "audit viewers read audit logs" on public.audit_logs;
 
-create policy "active users read profiles" on public.profiles
-  for select to authenticated using (private.current_profile_is_active());
+create policy "active users read own profile" on public.profiles
+  for select to authenticated using (id = auth.uid() and is_active = true);
+create policy "user managers read profiles" on public.profiles
+  for select to authenticated using (private.current_profile_has_permission('users.manage'));
 create policy "user managers insert profiles" on public.profiles
   for insert to authenticated with check (private.current_profile_has_permission('users.manage'));
 create policy "user managers update profiles" on public.profiles
@@ -301,18 +308,18 @@ create policy "user managers update profiles" on public.profiles
 create policy "user managers delete profiles" on public.profiles
   for delete to authenticated using (private.current_profile_has_permission('users.manage'));
 
-create policy "active users read roles" on public.roles
-  for select to authenticated using (private.current_profile_is_active());
+create policy "user managers read roles" on public.roles
+  for select to authenticated using (private.current_profile_has_permission('users.manage'));
 create policy "user managers write roles" on public.roles
   for all to authenticated using (private.current_profile_has_permission('users.manage')) with check (private.current_profile_has_permission('users.manage'));
 
-create policy "active users read permissions" on public.permissions
-  for select to authenticated using (private.current_profile_is_active());
+create policy "user managers read permissions" on public.permissions
+  for select to authenticated using (private.current_profile_has_permission('users.manage'));
 create policy "user managers write permissions" on public.permissions
   for all to authenticated using (private.current_profile_has_permission('users.manage')) with check (private.current_profile_has_permission('users.manage'));
 
-create policy "active users read role permissions" on public.role_permissions
-  for select to authenticated using (private.current_profile_is_active());
+create policy "user managers read role permissions" on public.role_permissions
+  for select to authenticated using (private.current_profile_has_permission('users.manage'));
 create policy "user managers write role permissions" on public.role_permissions
   for all to authenticated using (private.current_profile_has_permission('users.manage')) with check (private.current_profile_has_permission('users.manage'));
 
