@@ -14,9 +14,25 @@ Configurar o banco online do piloto do PDV usando Supabase.
 6. Definir `profiles.role` como `admin` ou `operador` para cada usuario.
 7. Configurar Auth URL para o dominio do Netlify quando o deploy existir.
 
+## Bootstrap do primeiro admin
+
+Depois de criar o primeiro usuario em Authentication, copie o UUID dele e rode no SQL Editor:
+
+```sql
+insert into public.profiles (id, name, role, is_active)
+values ('UUID_DO_USUARIO_AUTH', 'Administrador', 'admin', true)
+on conflict (id) do update
+set name = excluded.name,
+    role = excluded.role,
+    is_active = excluded.is_active,
+    updated_at = now();
+```
+
+Use o UUID real do usuario Auth no lugar de `UUID_DO_USUARIO_AUTH`. Esse passo deve ser feito manualmente no SQL Editor para liberar o primeiro acesso administrativo.
+
 ## Chaves usadas no frontend
 
-Hoje o app le `src/config/runtime-config.js`, que expõe:
+Hoje o app le `src/config/runtime-config.js`, que expoe:
 
 - `dataProvider: 'supabase'`
 - `supabaseUrl`
@@ -38,3 +54,15 @@ O frontend usara apenas:
 - `SUPABASE_ANON_KEY`
 
 Nunca colocar `service_role` no frontend.
+
+## Smoke test do piloto
+
+1. Fazer login com usuario Auth que tenha linha ativa em `profiles`.
+2. Ler o proprio profile.
+3. Ler `products`.
+4. Inserir uma venda em `sales`.
+5. Inserir um registro em `audit_logs` com `user_id` igual ao UUID do usuario logado.
+
+## Caixa no piloto inicial
+
+`cash_sessions` nao entra nesta primeira migration. No piloto inicial, o fluxo de caixa usa `cash_movements` e `cash_closings`.

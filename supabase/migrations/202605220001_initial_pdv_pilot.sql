@@ -59,7 +59,7 @@ create table if not exists public.sales (
   payment_method text not null,
   received_amount numeric(12,2) not null default 0,
   change_amount numeric(12,2) not null default 0,
-  created_by uuid references public.profiles(id),
+  created_by uuid not null default auth.uid() references public.profiles(id),
   created_at timestamptz not null default now(),
   canceled_at timestamptz
 );
@@ -82,7 +82,7 @@ create table if not exists public.cash_movements (
   category text not null default 'sem-categoria',
   description text not null default '',
   user_name text not null default 'Local',
-  created_by uuid references public.profiles(id),
+  created_by uuid not null default auth.uid() references public.profiles(id),
   created_at timestamptz not null default now(),
   canceled_at timestamptz
 );
@@ -95,7 +95,7 @@ create table if not exists public.cash_closings (
   showcase jsonb not null default '[]'::jsonb,
   differences jsonb not null default '[]'::jsonb,
   input jsonb not null default '{}'::jsonb,
-  created_by uuid references public.profiles(id),
+  created_by uuid not null default auth.uid() references public.profiles(id),
   created_at timestamptz not null default now(),
   closed_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -111,7 +111,7 @@ create table if not exists public.stock_production (
   unit_value numeric(12,2) not null,
   total_value numeric(12,2) not null,
   status text not null default 'ativo',
-  created_by uuid references public.profiles(id),
+  created_by uuid not null default auth.uid() references public.profiles(id),
   created_at timestamptz not null default now(),
   canceled_at timestamptz
 );
@@ -128,7 +128,7 @@ create table if not exists public.stock_items (
   reason text not null,
   note text not null default '',
   status text not null default 'ativa',
-  created_by uuid references public.profiles(id),
+  created_by uuid not null default auth.uid() references public.profiles(id),
   created_at timestamptz not null default now()
 );
 
@@ -142,6 +142,26 @@ create table if not exists public.audit_logs (
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
+
+alter table public.sales
+  alter column created_by set default auth.uid(),
+  alter column created_by set not null;
+
+alter table public.cash_movements
+  alter column created_by set default auth.uid(),
+  alter column created_by set not null;
+
+alter table public.cash_closings
+  alter column created_by set default auth.uid(),
+  alter column created_by set not null;
+
+alter table public.stock_production
+  alter column created_by set default auth.uid(),
+  alter column created_by set not null;
+
+alter table public.stock_items
+  alter column created_by set default auth.uid(),
+  alter column created_by set not null;
 
 insert into public.roles (id, name) values
   ('admin', 'Administrador'),
@@ -194,7 +214,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public, auth
+set search_path = ''
 as $$
   select exists (
     select 1
@@ -209,7 +229,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public, auth
+set search_path = ''
 as $$
   select exists (
     select 1
@@ -224,6 +244,21 @@ $$;
 grant usage on schema private to authenticated;
 grant execute on function private.current_profile_is_active() to authenticated;
 grant execute on function private.current_profile_has_permission(text) to authenticated;
+
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.profiles to authenticated;
+grant select, insert, update, delete on public.roles to authenticated;
+grant select, insert, update, delete on public.permissions to authenticated;
+grant select, insert, update, delete on public.role_permissions to authenticated;
+grant select, insert, update, delete on public.categories to authenticated;
+grant select, insert, update, delete on public.products to authenticated;
+grant select, insert, update on public.sales to authenticated;
+grant select, insert, update on public.sale_items to authenticated;
+grant select, insert, update on public.cash_movements to authenticated;
+grant select, insert, update on public.cash_closings to authenticated;
+grant select, insert, update on public.stock_production to authenticated;
+grant select, insert, update on public.stock_items to authenticated;
+grant select, insert on public.audit_logs to authenticated;
 
 alter table public.profiles enable row level security;
 alter table public.roles enable row level security;
@@ -279,6 +314,7 @@ drop policy if exists "product managers delete products" on public.products;
 drop policy if exists "cashier or dashboard read sales" on public.sales;
 drop policy if exists "sale creators insert sales" on public.sales;
 drop policy if exists "sale creators update sales" on public.sales;
+drop policy if exists "sale cancelers update own sales" on public.sales;
 drop policy if exists "cashier or dashboard read sale items" on public.sale_items;
 drop policy if exists "sale creators insert sale items" on public.sale_items;
 drop policy if exists "sale creators update sale items" on public.sale_items;
@@ -344,44 +380,68 @@ create policy "product managers delete products" on public.products
 create policy "cashier or dashboard read sales" on public.sales
   for select to authenticated using (private.current_profile_has_permission('dashboard.view') or private.current_profile_has_permission('cashier.access'));
 create policy "sale creators insert sales" on public.sales
-  for insert to authenticated with check (private.current_profile_has_permission('sale.create'));
-create policy "sale creators update sales" on public.sales
-  for update to authenticated using (private.current_profile_has_permission('sale.create')) with check (private.current_profile_has_permission('sale.create'));
+  for insert to authenticated with check (private.current_profile_has_permission('sale.create') and created_by = auth.uid());
+create policy "sale cancelers update own sales" on public.sales
+  for update to authenticated using (private.current_profile_has_permission('sale.cancel') and created_by = auth.uid()) with check (private.current_profile_has_permission('sale.cancel') and created_by = auth.uid());
 
 create policy "cashier or dashboard read sale items" on public.sale_items
   for select to authenticated using (private.current_profile_has_permission('dashboard.view') or private.current_profile_has_permission('cashier.access'));
 create policy "sale creators insert sale items" on public.sale_items
-  for insert to authenticated with check (private.current_profile_has_permission('sale.create'));
+  for insert to authenticated with check (
+    private.current_profile_has_permission('sale.create')
+    and exists (
+      select 1
+      from public.sales s
+      where s.id = sale_id
+        and s.created_by = auth.uid()
+    )
+  );
 create policy "sale creators update sale items" on public.sale_items
-  for update to authenticated using (private.current_profile_has_permission('sale.create')) with check (private.current_profile_has_permission('sale.create'));
+  for update to authenticated using (
+    private.current_profile_has_permission('sale.create')
+    and exists (
+      select 1
+      from public.sales s
+      where s.id = sale_id
+        and s.created_by = auth.uid()
+    )
+  ) with check (
+    private.current_profile_has_permission('sale.create')
+    and exists (
+      select 1
+      from public.sales s
+      where s.id = sale_id
+        and s.created_by = auth.uid()
+    )
+  );
 
 create policy "cashier or dashboard read cash movements" on public.cash_movements
   for select to authenticated using (private.current_profile_has_permission('dashboard.view') or private.current_profile_has_permission('cashier.access'));
 create policy "cash movement creators insert cash movements" on public.cash_movements
-  for insert to authenticated with check (private.current_profile_has_permission('cash.movement.create'));
+  for insert to authenticated with check (private.current_profile_has_permission('cash.movement.create') and created_by = auth.uid());
 create policy "cash movement creators update cash movements" on public.cash_movements
-  for update to authenticated using (private.current_profile_has_permission('cash.movement.create')) with check (private.current_profile_has_permission('cash.movement.create'));
+  for update to authenticated using (private.current_profile_has_permission('cash.movement.create') and created_by = auth.uid()) with check (private.current_profile_has_permission('cash.movement.create') and created_by = auth.uid());
 
 create policy "cash closers or dashboard read cash closings" on public.cash_closings
   for select to authenticated using (private.current_profile_has_permission('dashboard.view') or private.current_profile_has_permission('cash.close'));
 create policy "cash closers insert cash closings" on public.cash_closings
-  for insert to authenticated with check (private.current_profile_has_permission('cash.close'));
+  for insert to authenticated with check (private.current_profile_has_permission('cash.close') and created_by = auth.uid());
 create policy "cash closers update cash closings" on public.cash_closings
-  for update to authenticated using (private.current_profile_has_permission('cash.close')) with check (private.current_profile_has_permission('cash.close'));
+  for update to authenticated using (private.current_profile_has_permission('cash.close') and created_by = auth.uid()) with check (private.current_profile_has_permission('cash.close') and created_by = auth.uid());
 
 create policy "stock viewers read stock production" on public.stock_production
   for select to authenticated using (private.current_profile_has_permission('stock.view'));
 create policy "stock creators insert stock production" on public.stock_production
-  for insert to authenticated with check (private.current_profile_has_permission('stock.create'));
+  for insert to authenticated with check (private.current_profile_has_permission('stock.create') and created_by = auth.uid());
 create policy "stock creators update stock production" on public.stock_production
-  for update to authenticated using (private.current_profile_has_permission('stock.create')) with check (private.current_profile_has_permission('stock.create'));
+  for update to authenticated using (private.current_profile_has_permission('stock.create') and created_by = auth.uid()) with check (private.current_profile_has_permission('stock.create') and created_by = auth.uid());
 
 create policy "stock viewers read stock items" on public.stock_items
   for select to authenticated using (private.current_profile_has_permission('stock.view'));
 create policy "stock creators insert stock items" on public.stock_items
-  for insert to authenticated with check (private.current_profile_has_permission('stock.create'));
+  for insert to authenticated with check (private.current_profile_has_permission('stock.create') and created_by = auth.uid());
 create policy "stock creators update stock items" on public.stock_items
-  for update to authenticated using (private.current_profile_has_permission('stock.create')) with check (private.current_profile_has_permission('stock.create'));
+  for update to authenticated using (private.current_profile_has_permission('stock.create') and created_by = auth.uid()) with check (private.current_profile_has_permission('stock.create') and created_by = auth.uid());
 
 create policy "active users insert own audit logs" on public.audit_logs
   for insert to authenticated with check (private.current_profile_is_active() and user_id = auth.uid());
