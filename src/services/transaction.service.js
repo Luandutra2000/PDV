@@ -1,8 +1,8 @@
-import { STORAGE_KEYS, SYNC_EVENTS } from '../database/schema.js';
+import { SYNC_EVENTS } from '../database/schema.js';
 import { emit } from './event-bus.service.js';
 import { getActiveComanda, getSubtotal, startNewComanda } from './comanda.service.js';
 import { getProductById } from './product.service.js';
-import { getItem, setItem } from './storage.service.js';
+import { getDataProvider } from './data-provider.service.js';
 
 export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
   const comanda = getActiveComanda();
@@ -83,16 +83,16 @@ export function registerCashMovement({
 }
 
 export function getTransactions() {
-  return getItem(STORAGE_KEYS.transactions, []);
+  return getDataProvider().getCollection('transactions', []);
 }
 
 export function getClosedComandas() {
-  return getItem(STORAGE_KEYS.closedComandas, []);
+  return getDataProvider().getCollection('closedComandas', []);
 }
 
 export function clearTransactionHistory() {
-  setItem(STORAGE_KEYS.transactions, []);
-  setItem(STORAGE_KEYS.closedComandas, []);
+  getDataProvider().setCollection('transactions', []);
+  getDataProvider().setCollection('closedComandas', []);
 }
 
 export function cancelClosedComanda(comandaId) {
@@ -119,8 +119,8 @@ export function cancelClosedComanda(comandaId) {
     };
   });
 
-  setItem(STORAGE_KEYS.transactions, transactions);
-  setItem(STORAGE_KEYS.closedComandas, comandas);
+  getDataProvider().setCollection('transactions', transactions);
+  getDataProvider().setCollection('closedComandas', comandas);
 }
 
 export function cancelTransaction(transactionId) {
@@ -142,7 +142,7 @@ export function cancelTransaction(transactionId) {
     };
   });
 
-  setItem(STORAGE_KEYS.transactions, transactions);
+  getDataProvider().setCollection('transactions', transactions);
 
   if (!canceledSaleComandaId) {
     return;
@@ -160,7 +160,7 @@ export function cancelTransaction(transactionId) {
     };
   });
 
-  setItem(STORAGE_KEYS.closedComandas, comandas);
+  getDataProvider().setCollection('closedComandas', comandas);
 }
 
 export function getActiveTransactions() {
@@ -260,13 +260,13 @@ export function getBestSellingProducts({
 function appendTransaction(transaction) {
   const transactions = getTransactions();
   transactions.unshift(transaction);
-  setItem(STORAGE_KEYS.transactions, transactions);
+  getDataProvider().setCollection('transactions', transactions);
 }
 
 function appendClosedComanda(comanda) {
   const comandas = getClosedComandas();
   comandas.unshift(comanda);
-  setItem(STORAGE_KEYS.closedComandas, comandas);
+  getDataProvider().setCollection('closedComandas', comandas);
 }
 
 function sumByType(transactions, type) {

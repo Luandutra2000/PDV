@@ -27,6 +27,23 @@ const products = await import('../src/services/product.service.js');
 
 storage.ensureSeedData();
 
+const createdCategory = products.createCategory('Bebidas Frias', { showInShowcase: true });
+assert(createdCategory.id === 'bebidas-frias', 'category should keep slug id');
+
+const createdProduct = products.createProduct({
+  name: 'Suco Natural',
+  categoryId: createdCategory.id,
+  price: 8,
+  cost: 3,
+  stock: 5,
+  active: true,
+  aliases: ['suco'],
+  favorite: true
+});
+
+assert(createdProduct.id.startsWith('suco-natural'), 'product should keep slug id prefix');
+assert(products.getProductById(createdProduct.id).name === 'Suco Natural', 'product should be readable after create');
+
 const created = products.createProduct({
   name: 'Teste Produto',
   categoryId: 'lanches',

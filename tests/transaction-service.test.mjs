@@ -195,4 +195,15 @@ assert(categorizedOutput.userName === 'Administrador', 'cash output should store
 const uncategorized = transactions.getTransactions().find((transaction) => transaction.id === entrada.id);
 assert((uncategorized.category || 'sem-categoria') === 'sem-categoria', 'old movements should remain compatible without category');
 
+const movement = transactions.registerCashMovement({
+  type: 'entrada',
+  amount: 15,
+  category: 'reforco-caixa',
+  description: 'Reforco para troco',
+  userName: 'Operador'
+});
+
+assert(movement.category === 'reforco-caixa', 'movement should keep category');
+assert(transactions.getTransactions()[0].id === movement.id, 'movement should be persisted');
+
 console.log('transaction service ok');

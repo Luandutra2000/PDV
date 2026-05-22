@@ -1,8 +1,7 @@
-import { STORAGE_KEYS } from '../database/schema.js';
-import { getItem, setItem } from './storage.service.js';
+import { getDataProvider } from './data-provider.service.js';
 
 export function getProducts() {
-  return getItem(STORAGE_KEYS.products, []);
+  return getDataProvider().getCollection('products', []);
 }
 
 export function getActiveProducts() {
@@ -10,7 +9,7 @@ export function getActiveProducts() {
 }
 
 export function getCategories() {
-  return getItem(STORAGE_KEYS.categories, []).map(normalizeCategory);
+  return getDataProvider().getCollection('categories', []).map(normalizeCategory);
 }
 
 export function getShowcaseCategories() {
@@ -31,7 +30,7 @@ export function createCategory(name, options = {}) {
   });
 
   categories.push(category);
-  setItem(STORAGE_KEYS.categories, categories);
+  getDataProvider().setCollection('categories', categories);
 
   return category;
 }
@@ -53,7 +52,7 @@ export function updateCategory(categoryId, data = {}) {
     })
   };
 
-  setItem(STORAGE_KEYS.categories, categories);
+  getDataProvider().setCollection('categories', categories);
 
   return categories[index];
 }
@@ -66,7 +65,7 @@ export function deleteCategory(categoryId) {
   const categories = getCategories().filter((category) => category.id !== categoryId);
   const products = getProducts().filter((product) => product.categoryId !== categoryId);
 
-  setItem(STORAGE_KEYS.categories, categories);
+  getDataProvider().setCollection('categories', categories);
   saveProducts(products);
 }
 
@@ -135,7 +134,7 @@ export function deleteProduct(productId) {
 }
 
 function saveProducts(products) {
-  setItem(STORAGE_KEYS.products, products);
+  getDataProvider().setCollection('products', products);
 }
 
 function normalizeProduct(product) {
