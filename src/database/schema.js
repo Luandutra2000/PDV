@@ -13,6 +13,11 @@ export const STORAGE_KEYS = {
   syncQueue: 'pdv.syncQueue'
 };
 
+export const DATA_PROVIDER_MODES = {
+  local: 'local',
+  supabase: 'supabase'
+};
+
 export const SYNC_EVENTS = {
   comandaItemAdded: 'COMANDA_ITEM_ADDED',
   comandaItemRemoved: 'COMANDA_ITEM_REMOVED',
