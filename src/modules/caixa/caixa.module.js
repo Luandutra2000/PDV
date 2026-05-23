@@ -217,17 +217,78 @@ function getClosingDifferences() {
     checkedCredit: caixaState.checkedCredit
   });
 
-  if (!summary.payments.generalDifference) {
-    return [];
-  }
-
-  return [{
-    scope: 'payment',
-    referenceId: 'geral',
+  return buildDifferences(summary).map((difference) => ({
+    scope: difference.scope,
+    referenceId: difference.referenceId,
     reason: 'fechamento-crm',
     note: caixaState.note,
-    amount: summary.payments.generalDifference
-  }];
+    quantity: difference.quantity,
+    amount: difference.amount
+  }));
+}
+
+export function buildDifferences(summary) {
+  const differences = [];
+  const paymentDifferences = [
+    {
+      key: 'payment:dinheiro',
+      referenceId: 'dinheiro',
+      label: 'Dinheiro',
+      amount: summary.payments.cashDifference
+    },
+    {
+      key: 'payment:pix',
+      referenceId: 'pix',
+      label: 'Pix',
+      amount: summary.payments.pixDifference
+    },
+    {
+      key: 'payment:debito',
+      referenceId: 'debito',
+      label: 'Debito',
+      amount: summary.payments.debitDifference
+    },
+    {
+      key: 'payment:credito',
+      referenceId: 'credito',
+      label: 'Credito',
+      amount: summary.payments.creditDifference
+    }
+  ];
+
+  paymentDifferences.forEach((payment) => {
+    if (!payment.amount) {
+      return;
+    }
+
+    differences.push({
+      key: payment.key,
+      scope: 'payment',
+      referenceId: payment.referenceId,
+      label: payment.label,
+      description: `Diferenca de ${formatCurrency(payment.amount)} entre esperado e conferido.`,
+      quantity: null,
+      amount: payment.amount
+    });
+  });
+
+  summary.showcase.forEach((item) => {
+    if (!item.differenceQuantity) {
+      return;
+    }
+
+    differences.push({
+      key: `showcase:${item.productId}`,
+      scope: 'showcase',
+      referenceId: item.productId,
+      label: item.productName,
+      description: `Diferenca de ${item.differenceQuantity} unidade(s), estimada em ${formatCurrency(item.estimatedDifferenceValue || 0)}.`,
+      quantity: item.differenceQuantity,
+      amount: item.estimatedDifferenceValue || 0
+    });
+  });
+
+  return differences;
 }
 
 function resetClosingFields() {
