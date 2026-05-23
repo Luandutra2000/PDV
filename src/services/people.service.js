@@ -1,6 +1,5 @@
 import { isSupabaseEnabled } from './app-config.service.js';
 import { getCurrentSession } from './auth.service.js';
-import { getSupabaseClient } from './supabase-client.service.js';
 
 let peopleFetchForTests = null;
 
@@ -13,17 +12,25 @@ export async function listPeople() {
     return [];
   }
 
-  const client = await getSupabaseClient();
-  const { data, error } = await client
-    .from('profiles')
-    .select('id,name,role,is_active,created_at,updated_at')
-    .order('name');
+  const session = await getCurrentSession();
 
-  if (error) {
-    throw new Error(error.message || 'Falha ao listar pessoas.');
+  if (!session?.access_token) {
+    throw new Error('Sessao expirada. Entre novamente.');
   }
 
-  return data.map(mapProfile);
+  const response = await getPeopleFetch()('/.netlify/functions/list-users', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`
+    }
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Nao foi possivel listar usuarios.');
+  }
+
+  return (data.people || []).map(mapProfile);
 }
 
 export async function createPersonUser(input = {}) {

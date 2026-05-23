@@ -26,8 +26,10 @@ auth.setAuthClientForTests({
 });
 
 let request = null;
+let requests = [];
 people.setPeopleFetchForTests(async (url, options) => {
   request = { url, options };
+  requests.push(request);
   return {
     ok: true,
     async json() {
@@ -85,5 +87,27 @@ try {
 }
 
 assert(rejected, 'service should surface function errors');
+
+people.setPeopleFetchForTests(async (url, options) => {
+  requests.push({ url, options });
+  return {
+    ok: true,
+    async json() {
+      return {
+        people: [
+          { id: 'admin-1', name: 'Admin', role: 'admin', is_active: true },
+          { id: 'user-1', name: 'Operador', role: 'operador', is_active: true }
+        ]
+      };
+    }
+  };
+});
+
+requests = [];
+const listedPeople = await people.listPeople();
+assert(requests[0].url === '/.netlify/functions/list-users', 'listPeople should call secure Netlify function');
+assert(requests[0].options.headers.Authorization === 'Bearer session-token', 'listPeople should send session token');
+assert(listedPeople.length === 2, 'listPeople should return users from function');
+assert(listedPeople[0].active === true, 'listPeople should map active status');
 
 console.log('people service ok');
