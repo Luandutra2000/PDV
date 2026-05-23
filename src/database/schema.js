@@ -21,3 +21,7 @@ export const SYNC_EVENTS = {
   saleFinished: 'SALE_FINISHED',
   cashMovementRegistered: 'CASH_MOVEMENT_REGISTERED'
 };
+
+export const UI_EVENTS = {
+  cashSummaryChanged: 'CASH_SUMMARY_CHANGED'
+};

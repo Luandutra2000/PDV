@@ -11,6 +11,8 @@ import { formatCurrency } from './utils/currency.js';
 import { initNotificationService } from './services/notification.service.js';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js';
 import { getDailyMoneySummary } from './services/transaction.service.js';
+import { on } from './services/event-bus.service.js';
+import { UI_EVENTS } from './database/schema.js';
 
 const routes = {
   'frente-caixa': initVendasModule,
@@ -27,22 +29,13 @@ function bootstrap() {
 
   const app = document.getElementById('app');
   initNotificationService(document.querySelector('.toast-root'));
-  const caixa = getCaixaSummary();
-  const moneySummary = getDailyMoneySummary();
-  const estimatedCash = moneySummary.expectedCash;
-  const currentCash = Number(caixa.currentAmount || 0);
 
   app.innerHTML = `
     <div class="pdv-layout">
       ${renderSidebar()}
       <section class="workspace">
         <header class="topbar">
-          <div class="cash-strip" aria-label="Resumo do caixa">
-            ${renderCashMetric('Caixa atual', currentCash, true)}
-            ${renderCashMetric('Caixa estimado', estimatedCash, false, 'money-warning')}
-            ${renderCashMetric('Entradas', moneySummary.entriesTotal, false, 'money-positive')}
-            ${renderCashMetric('Saidas', moneySummary.outputsTotal, false, 'money-negative')}
-          </div>
+          <div class="cash-strip" aria-label="Resumo do caixa" data-cash-strip></div>
           <div class="header-actions">
             <button class="button button--ghost" type="button" data-action="toggle-theme">${getThemeLabel()}</button>
             <button class="button button--ghost" type="button" data-action="refresh">Atualizar</button>
@@ -54,8 +47,30 @@ function bootstrap() {
   `;
 
   const workspace = app.querySelector('[data-workspace-body]');
+  renderCashStrip(app);
   initVendasModule(workspace);
   bindNavigation(app, workspace);
+  bindCashUpdates(app);
+}
+
+function renderCashStrip(root = document) {
+  const target = root.querySelector('[data-cash-strip]');
+
+  if (!target) {
+    return;
+  }
+
+  const caixa = getCaixaSummary();
+  const moneySummary = getDailyMoneySummary();
+  const estimatedCash = moneySummary.expectedCash;
+  const currentCash = Number(caixa.currentAmount || 0);
+
+  target.innerHTML = `
+    ${renderCashMetric('Caixa atual', currentCash, true)}
+    ${renderCashMetric('Caixa estimado', estimatedCash, false, 'money-warning')}
+    ${renderCashMetric('Entradas', moneySummary.entriesTotal, false, 'money-positive')}
+    ${renderCashMetric('Saidas', moneySummary.outputsTotal, false, 'money-negative')}
+  `;
 }
 
 function renderCashMetric(label, value, signed = false, fixedClass = '') {
@@ -70,6 +85,10 @@ function renderCashMetric(label, value, signed = false, fixedClass = '') {
   `;
 }
 
+function bindCashUpdates(app) {
+  on(UI_EVENTS.cashSummaryChanged, () => renderCashStrip(app));
+}
+
 bootstrap();
 
 function bindNavigation(app, workspace) {
@@ -79,6 +98,11 @@ function bindNavigation(app, workspace) {
     if (themeButton) {
       toggleTheme();
       themeButton.textContent = getThemeLabel();
+      return;
+    }
+
+    if (event.target.closest('[data-action="refresh"]')) {
+      renderCashStrip(app);
       return;
     }
 
