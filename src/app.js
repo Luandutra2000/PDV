@@ -14,6 +14,7 @@ import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.
 import { getDailyMoneySummary } from './services/transaction.service.js';
 import { getDataProviderMode } from './services/app-config.service.js';
 import { getCurrentUser, logout } from './services/auth.service.js';
+import { syncProductsFromOnlineDatabase } from './services/product.service.js';
 import { renderLoginModule } from './modules/auth/login.module.js';
 
 const routes = {
@@ -39,6 +40,8 @@ async function bootstrap() {
       renderLoginModule(app, () => bootstrap());
       return;
     }
+
+    await syncProductsFromOnlineDatabase();
   }
 
   renderAppShell(app);

@@ -1,4 +1,46 @@
 import { getDataProvider } from './data-provider.service.js';
+import { isSupabaseEnabled } from './app-config.service.js';
+import { getSupabaseClient } from './supabase-client.service.js';
+
+let productCatalogClientForTests = null;
+
+export function setProductCatalogClientForTests(client) {
+  productCatalogClientForTests = client;
+}
+
+export async function syncProductsFromOnlineDatabase() {
+  if (!isSupabaseEnabled()) {
+    return {
+      categories: getCategories(),
+      products: getProducts()
+    };
+  }
+
+  const client = await getProductCatalogClient();
+  const [{ data: categories, error: categoriesError }, { data: products, error: productsError }] = await Promise.all([
+    client.from('categories').select('*').order('name'),
+    client.from('products').select('*').order('name')
+  ]);
+
+  if (categoriesError) {
+    throw new Error(categoriesError.message || 'Falha ao carregar categorias do banco.');
+  }
+
+  if (productsError) {
+    throw new Error(productsError.message || 'Falha ao carregar produtos do banco.');
+  }
+
+  const mappedCategories = categories.map(mapCategoryFromSupabase);
+  const mappedProducts = products.map(mapProductFromSupabase);
+
+  getDataProvider().setCollection('categories', mappedCategories);
+  getDataProvider().setCollection('products', mappedProducts);
+
+  return {
+    categories: mappedCategories,
+    products: mappedProducts
+  };
+}
 
 export function getProducts() {
   return getDataProvider().getCollection('products', []);
@@ -35,6 +77,13 @@ export function createCategory(name, options = {}) {
   return category;
 }
 
+export async function createCategoryOnline(name, options = {}) {
+  const category = createCategory(name, options);
+  await saveCategoryToOnlineDatabase(category);
+  await syncProductsFromOnlineDatabase();
+  return category;
+}
+
 export function updateCategory(categoryId, data = {}) {
   const categories = getCategories();
   const index = categories.findIndex((category) => category.id === categoryId);
@@ -57,6 +106,18 @@ export function updateCategory(categoryId, data = {}) {
   return categories[index];
 }
 
+export async function updateCategoryOnline(categoryId, data = {}) {
+  const category = updateCategory(categoryId, data);
+
+  if (!category) {
+    return null;
+  }
+
+  await saveCategoryToOnlineDatabase(category);
+  await syncProductsFromOnlineDatabase();
+  return category;
+}
+
 export function deleteCategory(categoryId) {
   if (categoryId === 'todos') {
     return;
@@ -67,6 +128,27 @@ export function deleteCategory(categoryId) {
 
   getDataProvider().setCollection('categories', categories);
   saveProducts(products);
+}
+
+export async function deleteCategoryOnline(categoryId) {
+  deleteCategory(categoryId);
+
+  if (isSupabaseEnabled()) {
+    const client = await getProductCatalogClient();
+    const { error: productsError } = await client.from('products').delete().eq('category_id', categoryId);
+
+    if (productsError) {
+      throw new Error(productsError.message || 'Falha ao apagar produtos da categoria no banco.');
+    }
+
+    const { error } = await client.from('categories').delete().eq('id', categoryId);
+
+    if (error) {
+      throw new Error(error.message || 'Falha ao apagar categoria no banco.');
+    }
+
+    await syncProductsFromOnlineDatabase();
+  }
 }
 
 export function getProductById(productId) {
@@ -109,6 +191,13 @@ export function createProduct(productData) {
   return product;
 }
 
+export async function createProductOnline(productData) {
+  const product = createProduct(productData);
+  await saveProductToOnlineDatabase(product);
+  await syncProductsFromOnlineDatabase();
+  return product;
+}
+
 export function updateProduct(productId, productData) {
   const products = getProducts();
   const index = products.findIndex((product) => product.id === productId);
@@ -128,13 +217,66 @@ export function updateProduct(productId, productData) {
   return products[index];
 }
 
+export async function updateProductOnline(productId, productData) {
+  const product = updateProduct(productId, productData);
+
+  if (!product) {
+    return null;
+  }
+
+  await saveProductToOnlineDatabase(product);
+  await syncProductsFromOnlineDatabase();
+  return product;
+}
+
 export function deleteProduct(productId) {
   const products = getProducts().filter((product) => product.id !== productId);
   saveProducts(products);
 }
 
+export async function deleteProductOnline(productId) {
+  deleteProduct(productId);
+
+  if (isSupabaseEnabled()) {
+    const client = await getProductCatalogClient();
+    const { error } = await client.from('products').delete().eq('id', productId);
+
+    if (error) {
+      throw new Error(error.message || 'Falha ao apagar produto no banco.');
+    }
+
+    await syncProductsFromOnlineDatabase();
+  }
+}
+
 function saveProducts(products) {
   getDataProvider().setCollection('products', products);
+}
+
+async function saveProductToOnlineDatabase(product) {
+  if (!isSupabaseEnabled()) {
+    return;
+  }
+
+  const client = await getProductCatalogClient();
+  const { error } = await client.from('products').upsert(mapProductToSupabase(product));
+
+  if (error) {
+    throw new Error(error.message || 'Falha ao salvar produto no banco.');
+  }
+}
+
+async function saveCategoryToOnlineDatabase(category) {
+  if (!isSupabaseEnabled()) {
+    return;
+  }
+
+  const client = await getProductCatalogClient();
+  const { error } = await client.from('categories').upsert(mapCategoryToSupabase(category));
+
+  if (error) {
+    throw new Error(error.message || 'Falha ao salvar categoria no banco.');
+  }
 }
 
 function normalizeProduct(product) {
@@ -159,6 +301,54 @@ function normalizeCategory(category) {
     name: normalizeCategoryName(category.name, category.id),
     showInShowcase: category.id === 'todos' ? false : category.showInShowcase !== false
   };
+}
+
+function mapProductToSupabase(product) {
+  return {
+    id: product.id,
+    name: product.name,
+    category_id: product.categoryId,
+    price: product.price,
+    cost: product.cost,
+    stock: product.stock,
+    active: product.active,
+    aliases: product.aliases || [],
+    favorite: product.favorite
+  };
+}
+
+function mapProductFromSupabase(row) {
+  return normalizeProduct({
+    id: row.id,
+    name: row.name,
+    categoryId: row.category_id,
+    price: row.price,
+    cost: row.cost,
+    stock: row.stock,
+    active: row.active,
+    aliases: row.aliases,
+    favorite: row.favorite
+  });
+}
+
+function mapCategoryToSupabase(category) {
+  return {
+    id: category.id,
+    name: category.name,
+    show_in_showcase: category.showInShowcase
+  };
+}
+
+function mapCategoryFromSupabase(row) {
+  return normalizeCategory({
+    id: row.id,
+    name: row.name,
+    showInShowcase: row.show_in_showcase
+  });
+}
+
+async function getProductCatalogClient() {
+  return productCatalogClientForTests || getSupabaseClient();
 }
 
 function normalizeCategoryName(value, categoryId) {

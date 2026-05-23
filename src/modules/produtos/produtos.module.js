@@ -1,16 +1,23 @@
 import {
   createCategory,
+  createCategoryOnline,
   createProduct,
+  createProductOnline,
   deleteCategory,
+  deleteCategoryOnline,
   deleteProduct,
+  deleteProductOnline,
   getCategories,
   getProducts,
   updateCategory,
-  updateProduct
+  updateCategoryOnline,
+  updateProduct,
+  updateProductOnline
 } from '../../services/product.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { showNotification } from '../../services/notification.service.js';
 import { getBestSellingProducts } from '../../services/transaction.service.js';
+import { isSupabaseEnabled } from '../../services/app-config.service.js';
 
 const productState = {
   modal: null,
@@ -151,21 +158,21 @@ function bindProdutosEvents(container) {
     }
   });
 
-  container.addEventListener('submit', (event) => {
+  container.addEventListener('submit', async (event) => {
     if (event.target.matches('[data-product-form]')) {
       event.preventDefault();
-      saveProductFromForm(event.target);
+      await saveProductFromForm(event.target);
       renderProdutosScreen(container);
     }
 
     if (event.target.matches('[data-category-form]')) {
       event.preventDefault();
-      saveCategoryFromForm(event.target);
+      await saveCategoryFromForm(event.target);
       renderProdutosScreen(container);
     }
   });
 
-  container.addEventListener('click', (event) => {
+  container.addEventListener('click', async (event) => {
     const actionButton = event.target.closest('[data-action]');
 
     if (!actionButton) {
@@ -177,14 +184,14 @@ function bindProdutosEvents(container) {
     if (action === 'new-product') openProductModal(container);
     if (action === 'edit-product') openProductModal(container, actionButton.dataset.productId);
     if (action === 'delete-product') {
-      deleteProduct(actionButton.dataset.productId);
+      await removeProduct(actionButton.dataset.productId);
       renderProdutosScreen(container);
     }
 
     if (action === 'new-category') openCategoryModal(container);
     if (action === 'edit-category') openCategoryModal(container, actionButton.dataset.categoryId);
     if (action === 'delete-category') {
-      deleteCategory(actionButton.dataset.categoryId);
+      await removeCategory(actionButton.dataset.categoryId);
       renderProdutosScreen(container);
     }
 
@@ -214,7 +221,7 @@ function closeModal() {
   productState.editingCategoryId = null;
 }
 
-function saveProductFromForm(form) {
+async function saveProductFromForm(form) {
   const formData = new FormData(form);
   const selectedCategory = formData.get('categoryId');
   const newCategoryName = String(formData.get('newCategoryName') || '').trim();
@@ -229,7 +236,7 @@ function saveProductFromForm(form) {
   }
 
   const categoryId = selectedCategory === '__new__'
-    ? createCategory(newCategoryName).id
+    ? (await saveCategory(newCategoryName, { showInShowcase: true })).id
     : selectedCategory;
   const productData = {
     name: formData.get('name'),
@@ -240,16 +247,24 @@ function saveProductFromForm(form) {
     active: true
   };
 
-  if (productState.editingProductId) {
-    updateProduct(productState.editingProductId, productData);
-  } else {
-    createProduct(productData);
-  }
+  try {
+    if (productState.editingProductId) {
+      await saveProduct(productState.editingProductId, productData);
+    } else {
+      await saveProduct(null, productData);
+    }
 
-  closeModal();
+    closeModal();
+  } catch (error) {
+    showNotification({
+      title: 'Nao foi possivel salvar',
+      message: error.message || 'Produto nao foi salvo no banco.',
+      type: 'danger'
+    });
+  }
 }
 
-function saveCategoryFromForm(form) {
+async function saveCategoryFromForm(form) {
   const formData = new FormData(form);
   const name = String(formData.get('name') || '').trim();
   const showInShowcase = formData.get('showInShowcase') === 'on';
@@ -263,13 +278,59 @@ function saveCategoryFromForm(form) {
     return;
   }
 
-  if (productState.editingCategoryId) {
-    updateCategory(productState.editingCategoryId, { name, showInShowcase });
-  } else {
-    createCategory(name, { showInShowcase });
+  try {
+    if (productState.editingCategoryId) {
+      await saveCategory(name, { id: productState.editingCategoryId, showInShowcase });
+    } else {
+      await saveCategory(name, { showInShowcase });
+    }
+
+    closeModal();
+  } catch (error) {
+    showNotification({
+      title: 'Nao foi possivel salvar',
+      message: error.message || 'Categoria nao foi salva no banco.',
+      type: 'danger'
+    });
+  }
+}
+
+async function saveProduct(productId, productData) {
+  if (!isSupabaseEnabled()) {
+    return productId ? updateProduct(productId, productData) : createProduct(productData);
   }
 
-  closeModal();
+  return productId ? updateProductOnline(productId, productData) : createProductOnline(productData);
+}
+
+async function saveCategory(name, options = {}) {
+  if (!isSupabaseEnabled()) {
+    return options.id
+      ? updateCategory(options.id, { name, showInShowcase: options.showInShowcase })
+      : createCategory(name, { showInShowcase: options.showInShowcase });
+  }
+
+  return options.id
+    ? updateCategoryOnline(options.id, { name, showInShowcase: options.showInShowcase })
+    : createCategoryOnline(name, { showInShowcase: options.showInShowcase });
+}
+
+async function removeProduct(productId) {
+  if (isSupabaseEnabled()) {
+    await deleteProductOnline(productId);
+    return;
+  }
+
+  deleteProduct(productId);
+}
+
+async function removeCategory(categoryId) {
+  if (isSupabaseEnabled()) {
+    await deleteCategoryOnline(categoryId);
+    return;
+  }
+
+  deleteCategory(categoryId);
 }
 
 function renderCategoryRows() {
