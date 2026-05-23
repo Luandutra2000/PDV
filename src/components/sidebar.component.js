@@ -58,7 +58,7 @@ export function renderSidebar() {
       <div class="sidebar__content">${groups}</div>
       <footer class="sidebar__footer">
         <div class="sidebar__store">Lanchonete</div>
-        <button class="sidebar__exit" type="button">Sair</button>
+        <button class="sidebar__exit" type="button" data-action="logout">Sair</button>
       </footer>
     </aside>
   `;

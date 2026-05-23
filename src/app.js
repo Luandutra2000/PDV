@@ -13,7 +13,7 @@ import { initNotificationService } from './services/notification.service.js';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js';
 import { getDailyMoneySummary } from './services/transaction.service.js';
 import { getDataProviderMode } from './services/app-config.service.js';
-import { getCurrentUser } from './services/auth.service.js';
+import { getCurrentUser, logout } from './services/auth.service.js';
 import { renderLoginModule } from './modules/auth/login.module.js';
 
 const routes = {
@@ -101,6 +101,13 @@ function bindNavigation(app, workspace) {
       return;
     }
 
+    const logoutButton = event.target.closest('[data-action="logout"]');
+
+    if (logoutButton) {
+      handleLogout(app);
+      return;
+    }
+
     const menuButton = event.target.closest('[data-menu-id]');
 
     if (!menuButton) {
@@ -119,6 +126,14 @@ function bindNavigation(app, workspace) {
 
     renderModulePlaceholder(workspace, menuButton.querySelector('.sidebar__label').textContent);
   });
+}
+
+async function handleLogout(app) {
+  try {
+    await logout();
+  } finally {
+    bootstrap();
+  }
 }
 
 function renderModulePlaceholder(workspace, label) {
