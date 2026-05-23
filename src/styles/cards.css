@@ -77,3 +77,45 @@
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
+
+.people-list {
+  display: grid;
+  gap: 10px;
+}
+
+.people-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 64px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  padding: 12px 14px;
+}
+
+.people-row strong,
+.people-row span {
+  display: block;
+}
+
+.people-row span {
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.people-status {
+  min-width: 68px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  text-align: center;
+}
+
+.people-status.is-active {
+  border-color: rgba(31, 185, 129, 0.35);
+  color: var(--color-success);
+}

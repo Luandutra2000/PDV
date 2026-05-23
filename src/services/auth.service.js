@@ -27,6 +27,11 @@ export async function logout() {
 }
 
 export async function getCurrentUser() {
+  const session = await getCurrentSession();
+  return session?.user || null;
+}
+
+export async function getCurrentSession() {
   const client = await getAuthClient();
   const { data, error } = await client.getSession();
 
@@ -34,7 +39,7 @@ export async function getCurrentUser() {
     throw new Error(error.message || 'Falha ao ler sessao.');
   }
 
-  return data.session?.user || null;
+  return data.session || null;
 }
 
 async function getAuthClient() {

@@ -9,10 +9,10 @@ Configurar o banco online do piloto do PDV usando Supabase.
 1. Criar um projeto Supabase.
 2. Abrir SQL Editor.
 3. Rodar o conteudo de `supabase/migrations/202605220001_initial_pdv_pilot.sql`.
-4. Criar usuarios em Authentication.
-5. Criar linha em `profiles` para cada usuario usando o mesmo `id` do Auth.
-6. Definir `profiles.role` como `admin` ou `operador` para cada usuario.
-7. Configurar Auth URL para o dominio do Netlify quando o deploy existir.
+4. Criar o primeiro usuario admin em Authentication.
+5. Criar linha em `profiles` para esse admin usando o mesmo `id` do Auth.
+6. Configurar Auth URL para o dominio do Netlify quando o deploy existir.
+7. Depois do primeiro admin, criar operadores pela aba Pessoas do PDV.
 
 ## Bootstrap do primeiro admin
 
@@ -54,6 +54,12 @@ O frontend usara apenas:
 - `SUPABASE_ANON_KEY`
 
 Nunca colocar `service_role` no frontend.
+
+## Chave service role
+
+A aba Pessoas usa uma Netlify Function para criar usuarios no Auth. Para isso, configure `SUPABASE_SERVICE_ROLE_KEY` no Netlify como variavel secreta.
+
+Essa chave deve ficar somente no Netlify. Nunca coloque `SUPABASE_SERVICE_ROLE_KEY` em `src/config/runtime-config.js`, no navegador, em commits ou em prints publicos.
 
 ## Smoke test do piloto
 
