@@ -2,21 +2,23 @@ import { login } from '../../services/auth.service.js';
 
 export function renderLoginModule(container, onSuccess) {
   container.innerHTML = `
-    <section class="module-screen">
-      <header class="module-header">
-        <h1 class="pdv-title">Entrar no PDV</h1>
-      </header>
-      <form class="form-grid" data-login-form>
-        <label class="field-group">
+    <section class="login-screen">
+      <form class="login-card" data-login-form>
+        <div class="login-mark" aria-hidden="true">PDV</div>
+        <header class="login-header">
+          <span>Zelo Lanchonete</span>
+          <h1>Entrar no PDV</h1>
+        </header>
+        <label class="login-field">
           <span>Email</span>
-          <input class="field" type="email" name="email" required autocomplete="username">
+          <input class="field" type="email" name="email" required autocomplete="username" placeholder="seu@email.com">
         </label>
-        <label class="field-group">
+        <label class="login-field">
           <span>Senha</span>
-          <input class="field" type="password" name="password" required autocomplete="current-password">
+          <input class="field" type="password" name="password" required autocomplete="current-password" placeholder="Sua senha">
         </label>
-        <button class="button" type="submit">Entrar</button>
-        <p class="form-error" data-login-error hidden></p>
+        <button class="button login-button" type="submit">Entrar</button>
+        <p class="form-error login-error" data-login-error hidden></p>
       </form>
     </section>
   `;
