@@ -25,6 +25,7 @@ const productState = {
   editingCategoryId: null,
   query: '',
   categoryFilter: 'todos',
+  lastProductCategoryId: '',
   bestSellerPeriod: 'today',
   bestSellerCustomStart: '',
   bestSellerCustomEnd: '',
@@ -225,6 +226,7 @@ async function saveProductFromForm(form) {
   const formData = new FormData(form);
   const selectedCategory = formData.get('categoryId');
   const newCategoryName = String(formData.get('newCategoryName') || '').trim();
+  const isEditing = Boolean(productState.editingProductId);
 
   if (selectedCategory === '__new__' && !newCategoryName) {
     showNotification({
@@ -235,26 +237,33 @@ async function saveProductFromForm(form) {
     return;
   }
 
-  const categoryId = selectedCategory === '__new__'
-    ? (await saveCategory(newCategoryName, { showInShowcase: true })).id
-    : selectedCategory;
-  const productData = {
-    name: formData.get('name'),
-    categoryId,
-    price: formData.get('price'),
-    cost: 0,
-    stock: 0,
-    active: true
-  };
-
   try {
-    if (productState.editingProductId) {
+    const categoryId = selectedCategory === '__new__'
+      ? (await saveCategory(newCategoryName, { showInShowcase: true })).id
+      : selectedCategory;
+    const productData = {
+      name: formData.get('name'),
+      categoryId,
+      price: formData.get('price'),
+      cost: 0,
+      stock: 0,
+      active: true
+    };
+
+    if (isEditing) {
       await saveProduct(productState.editingProductId, productData);
+      closeModal();
     } else {
       await saveProduct(null, productData);
+      productState.lastProductCategoryId = categoryId;
+      productState.modal = 'product';
+      productState.editingProductId = null;
+      showNotification({
+        title: 'Produto salvo',
+        message: 'Pode cadastrar o proximo produto.',
+        type: 'success'
+      });
     }
-
-    closeModal();
   } catch (error) {
     showNotification({
       title: 'Nao foi possivel salvar',
@@ -268,6 +277,7 @@ async function saveCategoryFromForm(form) {
   const formData = new FormData(form);
   const name = String(formData.get('name') || '').trim();
   const showInShowcase = formData.get('showInShowcase') === 'on';
+  const isEditing = Boolean(productState.editingCategoryId);
 
   if (!name) {
     showNotification({
@@ -279,13 +289,19 @@ async function saveCategoryFromForm(form) {
   }
 
   try {
-    if (productState.editingCategoryId) {
+    if (isEditing) {
       await saveCategory(name, { id: productState.editingCategoryId, showInShowcase });
+      closeModal();
     } else {
       await saveCategory(name, { showInShowcase });
+      productState.modal = 'category';
+      productState.editingCategoryId = null;
+      showNotification({
+        title: 'Categoria salva',
+        message: 'Pode cadastrar a proxima categoria.',
+        type: 'success'
+      });
     }
-
-    closeModal();
   } catch (error) {
     showNotification({
       title: 'Nao foi possivel salvar',
@@ -388,7 +404,7 @@ function renderProductModal() {
     ? getProducts().find((item) => item.id === productState.editingProductId)
     : null;
   const title = product ? 'Editar Produto' : 'Novo Produto';
-  const selectedCategory = product ? product.categoryId : '__new__';
+  const selectedCategory = product ? product.categoryId : productState.lastProductCategoryId || '__new__';
 
   return `
     <div class="modal-backdrop is-open">
