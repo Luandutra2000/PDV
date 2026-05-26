@@ -22,19 +22,7 @@ export async function syncProductsFromOnlineDatabase() {
     };
   }
 
-  const client = await getProductCatalogClient();
-  const [{ data: categories, error: categoriesError }, { data: products, error: productsError }] = await Promise.all([
-    client.from('categories').select('*').order('name'),
-    client.from('products').select('*').order('name')
-  ]);
-
-  if (categoriesError) {
-    throw new Error(categoriesError.message || 'Falha ao carregar categorias do banco.');
-  }
-
-  if (productsError) {
-    throw new Error(productsError.message || 'Falha ao carregar produtos do banco.');
-  }
+  const { categories, products } = await loadCatalogFromOnlineDatabase();
 
   const mappedCategories = categories.map(mapCategoryFromSupabase);
   const mappedProducts = products.map(mapProductFromSupabase);
@@ -45,6 +33,48 @@ export async function syncProductsFromOnlineDatabase() {
   return {
     categories: mappedCategories,
     products: mappedProducts
+  };
+}
+
+async function loadCatalogFromOnlineDatabase() {
+  if (productCatalogClientForTests) {
+    const [{ data: categories, error: categoriesError }, { data: products, error: productsError }] = await Promise.all([
+      productCatalogClientForTests.from('categories').select('*').order('name'),
+      productCatalogClientForTests.from('products').select('*').order('name')
+    ]);
+
+    if (categoriesError) {
+      throw new Error(categoriesError.message || 'Falha ao carregar categorias do banco.');
+    }
+
+    if (productsError) {
+      throw new Error(productsError.message || 'Falha ao carregar produtos do banco.');
+    }
+
+    return { categories, products };
+  }
+
+  const session = await getCurrentSession();
+
+  if (!session?.access_token) {
+    throw new Error('Sessao expirada. Entre novamente.');
+  }
+
+  const response = await getProductCatalogFetch()('/.netlify/functions/catalog-read', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`
+    }
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Nao foi possivel carregar catalogo.');
+  }
+
+  return {
+    categories: data.categories || [],
+    products: data.products || []
   };
 }
 
