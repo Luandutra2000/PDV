@@ -6,7 +6,8 @@ const pessoasState = {
   loading: false,
   submitting: false,
   people: [],
-  error: ''
+  error: '',
+  loadId: 0
 };
 const boundContainers = new WeakSet();
 
@@ -136,6 +137,8 @@ async function loadPeople(container) {
     return;
   }
 
+  const loadId = pessoasState.loadId + 1;
+  pessoasState.loadId = loadId;
   pessoasState.loading = true;
   pessoasState.error = '';
   renderPessoas(container);
@@ -145,6 +148,10 @@ async function loadPeople(container) {
   } catch (error) {
     pessoasState.error = error.message || 'Nao foi possivel carregar usuarios.';
   } finally {
+    if (pessoasState.loadId !== loadId || !container.querySelector?.('[data-pessoas-screen]')) {
+      return;
+    }
+
     pessoasState.loading = false;
     renderPessoas(container);
   }

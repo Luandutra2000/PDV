@@ -27,10 +27,25 @@ const assert = (condition, message) => {
 
 const productService = await import('../src/services/product.service.js');
 const dataProvider = await import('../src/services/data-provider.service.js');
+const auth = await import('../src/services/auth.service.js');
 
 dataProvider.resetDataProviderForTests();
+auth.setAuthClientForTests({
+  async getSession() {
+    return {
+      data: {
+        session: {
+          access_token: 'admin-token',
+          user: { id: 'admin-1' }
+        }
+      },
+      error: null
+    };
+  }
+});
 
 const calls = [];
+const functionCalls = [];
 productService.setProductCatalogClientForTests({
   from(table) {
     return {
@@ -63,20 +78,17 @@ productService.setProductCatalogClientForTests({
           }
         };
       },
-      upsert(rows) {
-        calls.push({ type: 'upsert', table, rows });
-        return { error: null };
-      },
-      delete() {
-        return {
-          eq(column, value) {
-            calls.push({ type: 'delete', table, column, value });
-            return { error: null };
-          }
-        };
-      }
     };
   }
+});
+productService.setProductCatalogFetchForTests(async (url, options) => {
+  functionCalls.push({ url, options, body: JSON.parse(options.body) });
+  return {
+    ok: true,
+    async json() {
+      return { result: {} };
+    }
+  };
 });
 
 await productService.syncProductsFromOnlineDatabase();
@@ -93,13 +105,13 @@ const created = await productService.createProductOnline({
   active: true
 });
 assert(created.id === 'suco', 'online create should return normalized product');
-assert(calls.some((call) => call.type === 'upsert' && call.table === 'products'), 'online create should upsert products table');
+assert(functionCalls.some((call) => call.body.resource === 'products' && call.body.action === 'upsert'), 'online create should call secure product write function');
 
 const category = await productService.createCategoryOnline('Salgados', { showInShowcase: true });
 assert(category.id === 'salgados', 'online category create should return normalized category');
-assert(calls.some((call) => call.type === 'upsert' && call.table === 'categories'), 'online category create should upsert categories table');
+assert(functionCalls.some((call) => call.body.resource === 'categories' && call.body.action === 'upsert'), 'online category create should call secure category write function');
 
 await productService.deleteProductOnline('suco');
-assert(calls.some((call) => call.type === 'delete' && call.table === 'products' && call.value === 'suco'), 'online product delete should delete from products table');
+assert(functionCalls.some((call) => call.body.resource === 'products' && call.body.action === 'delete' && call.body.id === 'suco'), 'online product delete should call secure product delete function');
 
 console.log('product online sync ok');

@@ -1,11 +1,17 @@
 import { getDataProvider } from './data-provider.service.js';
 import { isSupabaseEnabled } from './app-config.service.js';
+import { getCurrentSession } from './auth.service.js';
 import { getSupabaseClient } from './supabase-client.service.js';
 
 let productCatalogClientForTests = null;
+let productCatalogFetchForTests = null;
 
 export function setProductCatalogClientForTests(client) {
   productCatalogClientForTests = client;
+}
+
+export function setProductCatalogFetchForTests(fetcher) {
+  productCatalogFetchForTests = fetcher;
 }
 
 export async function syncProductsFromOnlineDatabase() {
@@ -134,18 +140,11 @@ export async function deleteCategoryOnline(categoryId) {
   deleteCategory(categoryId);
 
   if (isSupabaseEnabled()) {
-    const client = await getProductCatalogClient();
-    const { error: productsError } = await client.from('products').delete().eq('category_id', categoryId);
-
-    if (productsError) {
-      throw new Error(productsError.message || 'Falha ao apagar produtos da categoria no banco.');
-    }
-
-    const { error } = await client.from('categories').delete().eq('id', categoryId);
-
-    if (error) {
-      throw new Error(error.message || 'Falha ao apagar categoria no banco.');
-    }
+    await callCatalogWriteFunction({
+      resource: 'categories',
+      action: 'delete',
+      id: categoryId
+    });
 
     await syncProductsFromOnlineDatabase();
   }
@@ -238,12 +237,11 @@ export async function deleteProductOnline(productId) {
   deleteProduct(productId);
 
   if (isSupabaseEnabled()) {
-    const client = await getProductCatalogClient();
-    const { error } = await client.from('products').delete().eq('id', productId);
-
-    if (error) {
-      throw new Error(error.message || 'Falha ao apagar produto no banco.');
-    }
+    await callCatalogWriteFunction({
+      resource: 'products',
+      action: 'delete',
+      id: productId
+    });
 
     await syncProductsFromOnlineDatabase();
   }
@@ -258,12 +256,11 @@ async function saveProductToOnlineDatabase(product) {
     return;
   }
 
-  const client = await getProductCatalogClient();
-  const { error } = await client.from('products').upsert(mapProductToSupabase(product));
-
-  if (error) {
-    throw new Error(error.message || 'Falha ao salvar produto no banco.');
-  }
+  await callCatalogWriteFunction({
+    resource: 'products',
+    action: 'upsert',
+    record: mapProductToSupabase(product)
+  });
 }
 
 async function saveCategoryToOnlineDatabase(category) {
@@ -271,12 +268,35 @@ async function saveCategoryToOnlineDatabase(category) {
     return;
   }
 
-  const client = await getProductCatalogClient();
-  const { error } = await client.from('categories').upsert(mapCategoryToSupabase(category));
+  await callCatalogWriteFunction({
+    resource: 'categories',
+    action: 'upsert',
+    record: mapCategoryToSupabase(category)
+  });
+}
 
-  if (error) {
-    throw new Error(error.message || 'Falha ao salvar categoria no banco.');
+async function callCatalogWriteFunction(payload) {
+  const session = await getCurrentSession();
+
+  if (!session?.access_token) {
+    throw new Error('Sessao expirada. Entre novamente.');
   }
+
+  const response = await getProductCatalogFetch()('/.netlify/functions/catalog-write', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`
+    },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Nao foi possivel salvar no banco.');
+  }
+
+  return data;
 }
 
 function normalizeProduct(product) {
@@ -349,6 +369,10 @@ function mapCategoryFromSupabase(row) {
 
 async function getProductCatalogClient() {
   return productCatalogClientForTests || getSupabaseClient();
+}
+
+function getProductCatalogFetch() {
+  return productCatalogFetchForTests || fetch;
 }
 
 function normalizeCategoryName(value, categoryId) {
