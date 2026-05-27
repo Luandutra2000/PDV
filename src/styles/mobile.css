@@ -503,8 +503,22 @@
 }
 
 @media (max-width: 760px) {
+  .app-shell:has(.mobile-shell) {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 0;
+    background: var(--mobile-bg, #f8f2ec);
+  }
+
   .pdv-layout:has(.mobile-shell) {
     display: block;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: var(--mobile-bg, #f8f2ec);
+    box-shadow: none;
   }
 
   .pdv-layout:has(.mobile-shell) .sidebar,
@@ -514,14 +528,19 @@
 
   .pdv-layout:has(.mobile-shell) .workspace {
     min-height: 100vh;
+    min-height: 100dvh;
+    display: block;
   }
 
   .pdv-layout:has(.mobile-shell) .workspace-body {
     min-height: 100vh;
+    min-height: 100dvh;
+    overflow: visible;
   }
 
   .mobile-shell {
     min-height: 100vh;
+    min-height: 100dvh;
     padding: 0;
     background: var(--mobile-bg, var(--color-bg));
   }
