@@ -22,6 +22,7 @@ const routes = {
   produtos: initProdutosModule,
   estoque: initEstoqueModule,
   'fechar-caixa': initCaixaModule,
+  relatorios: renderRelatoriosModule,
   mobile: initMobileDashboardModule
 };
 
@@ -41,7 +42,6 @@ function bootstrap() {
         <header class="topbar">
           <div class="cash-strip" aria-label="Resumo do caixa" data-cash-strip></div>
           <div class="header-actions">
-            <button class="button" type="button" data-action="open-mobile">App do Dono</button>
             <button class="button button--ghost" type="button" data-action="toggle-theme">${getThemeLabel()}</button>
             <button class="button button--ghost" type="button" data-action="refresh">Atualizar</button>
           </div>
@@ -54,9 +54,9 @@ function bootstrap() {
   const workspace = app.querySelector('[data-workspace-body]');
   const initialView = new URLSearchParams(window.location.search).get('view');
   renderCashStrip(app);
-  if (initialView === 'mobile') {
-    initMobileDashboardModule(workspace);
-    setActiveMenu(app, 'mobile');
+  if (routes[initialView]) {
+    routes[initialView](workspace);
+    setActiveMenu(app, initialView);
   } else {
     initVendasModule(workspace);
   }
@@ -112,12 +112,6 @@ function bindNavigation(app, workspace) {
       return;
     }
 
-    if (event.target.closest('[data-action="open-mobile"]')) {
-      setActiveMenu(app, 'mobile');
-      initMobileDashboardModule(workspace);
-      return;
-    }
-
     if (event.target.closest('[data-action="refresh"]')) {
       renderCashStrip(app);
       return;
@@ -154,6 +148,28 @@ function renderModulePlaceholder(workspace, label) {
         <h1 class="pdv-title">${label}</h1>
       </header>
       <div class="empty-products">Modulo preparado para a proxima etapa.</div>
+    </section>
+  `;
+}
+
+function renderRelatoriosModule(workspace) {
+  workspace.innerHTML = `
+    <section class="module-screen">
+      <header class="module-header">
+        <div>
+          <h1 class="pdv-title">Relatorios</h1>
+          <p class="module-subtitle">Acompanhe a operacao e abra o painel mobile do dono.</p>
+        </div>
+      </header>
+      <div class="report-actions">
+        <button class="report-action-card" type="button" data-menu-id="mobile">
+          <span class="report-action-card__icon">AD</span>
+          <span>
+            <strong>App do Dono</strong>
+            <small>Dashboard mobile com vendas, caixa, vitrine, CRM e feed ao vivo.</small>
+          </span>
+        </button>
+      </div>
     </section>
   `;
 }

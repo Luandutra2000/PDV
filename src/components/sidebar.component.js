@@ -3,7 +3,6 @@ const menuGroups = [
     title: 'Vendas',
     items: [
       { id: 'frente-caixa', label: 'Frente de Caixa', icon: 'FC', active: true },
-      { id: 'mobile', label: 'App do Dono', icon: 'AD' },
       { id: 'estoque', label: 'Vitrine', icon: 'VT' },
       { id: 'dashboard', label: 'Historico de Transacoes', icon: 'HT' }
     ]
@@ -26,7 +25,8 @@ const menuGroups = [
   {
     title: 'Outros',
     items: [
-      { id: 'relatorios', label: 'Relatorios', icon: 'RE' }
+      { id: 'relatorios', label: 'Relatorios', icon: 'RE' },
+      { id: 'mobile', label: 'App do Dono', icon: 'AD' }
     ]
   },
   {
