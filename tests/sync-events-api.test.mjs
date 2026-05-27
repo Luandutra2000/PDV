@@ -11,6 +11,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
 
 const calls = [];
 let salesAttempts = 0;
+let notificationBackupCalled = false;
 globalThis.fetch = async (url, options = {}) => {
   calls.push({ url, options });
 
@@ -29,6 +30,14 @@ globalThis.fetch = async (url, options = {}) => {
     }
 
     assert(!('payload' in body[0]), 'API should retry sales without payload when schema rejects it');
+    return jsonResponse({ message: 'legacy sales table rejected row' }, false, 400);
+  }
+
+  if (url.endsWith('/rest/v1/notifications')) {
+    notificationBackupCalled = true;
+    const body = JSON.parse(options.body);
+    assert(body[0].type === 'sale_backup', 'sync events API should backup failed sales as notifications');
+    assert(body[0].payload.id === 'sale-api-1', 'sale backup should keep original sale id');
     return jsonResponse({});
   }
 
@@ -65,7 +74,8 @@ await syncEventsHandler({
 
 assert(response.statusCode === 200, 'sync events API should return 200');
 assert(calls.filter((call) => call.url.endsWith('/rest/v1/sales')).length === 2, 'sync events API should retry sales without payload');
-assert(calls.some((call) => call.url.endsWith('/rest/v1/sale_items')), 'sync events API should try to upsert sale items');
+assert(!calls.some((call) => call.url.endsWith('/rest/v1/sale_items')), 'sync events API should skip sale items when sale row falls back to backup');
+assert(notificationBackupCalled, 'sync events API should use notification backup when sales table rejects the row');
 const saleCall = calls.find((call) => call.url.endsWith('/rest/v1/sales'));
 assert(JSON.parse(saleCall.options.body)[0].payment_method === 'dinheiro', 'sync events API should normalize missing payment method');
 

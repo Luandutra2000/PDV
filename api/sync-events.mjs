@@ -98,6 +98,8 @@ async function syncEvent({ supabaseUrl, serviceRoleKey, event, fetch }) {
 }
 
 async function syncSale({ supabaseUrl, serviceRoleKey, sale, fetch }) {
+  let saleSynced = false;
+
   try {
     await upsertRows({
       supabaseUrl,
@@ -106,14 +108,25 @@ async function syncSale({ supabaseUrl, serviceRoleKey, sale, fetch }) {
       rows: [mapSaleToRow(sale)],
       fetch
     });
+    saleSynced = true;
   } catch (error) {
-    await upsertRows({
-      supabaseUrl,
-      serviceRoleKey,
-      table: 'sales',
-      rows: [mapSaleToRow(sale, { includePayload: false })],
-      fetch
-    });
+    try {
+      await upsertRows({
+        supabaseUrl,
+        serviceRoleKey,
+        table: 'sales',
+        rows: [mapSaleToRow(sale, { includePayload: false })],
+        fetch
+      });
+      saleSynced = true;
+    } catch (fallbackError) {
+      await upsertNotificationBackup({
+        supabaseUrl,
+        serviceRoleKey,
+        notification: mapSaleToNotification(sale, fallbackError.message || error.message),
+        fetch
+      });
+    }
   }
 
   const items = (sale.items || []).map((item) => ({
@@ -130,6 +143,10 @@ async function syncSale({ supabaseUrl, serviceRoleKey, sale, fetch }) {
     return;
   }
 
+  if (!saleSynced) {
+    return;
+  }
+
   try {
     await upsertRows({
       supabaseUrl,
@@ -140,6 +157,20 @@ async function syncSale({ supabaseUrl, serviceRoleKey, sale, fetch }) {
     });
   } catch {
     // A venda ja fica completa em sales.payload mesmo quando itens normalizados falham.
+  }
+}
+
+async function upsertNotificationBackup({ supabaseUrl, serviceRoleKey, notification, fetch }) {
+  try {
+    await upsertRows({
+      supabaseUrl,
+      serviceRoleKey,
+      table: 'notifications',
+      rows: [notification],
+      fetch
+    });
+  } catch {
+    // Se o backup tambem falhar, nao derruba o caixa: a fila local continua preservada no cliente.
   }
 }
 
@@ -185,6 +216,31 @@ function mapSaleToRow(sale, { includePayload = true } = {}) {
       ...sale,
       paymentMethod
     }
+  };
+}
+
+function mapSaleToNotification(sale, errorMessage = '') {
+  return {
+    id: `sale-backup-${sale.id}`,
+    type: 'sale_backup',
+    level: 'success',
+    title: 'Venda realizada',
+    message: `Venda registrada no backup${errorMessage ? `: ${errorMessage}` : ''}`,
+    payload: {
+      id: sale.id,
+      type: 'venda',
+      status: sale.status || 'ativa',
+      comandaId: sale.comandaId || null,
+      comandaNumber: sale.comandaNumber || null,
+      items: Array.isArray(sale.items) ? sale.items : [],
+      total: Number(sale.total) || 0,
+      paymentMethod: normalizePaymentMethod(sale.paymentMethod),
+      receivedAmount: Number(sale.receivedAmount) || 0,
+      change: Number(sale.change) || 0,
+      createdAt: sale.createdAt || new Date().toISOString(),
+      syncBackup: true
+    },
+    created_at: sale.createdAt || new Date().toISOString()
   };
 }
 

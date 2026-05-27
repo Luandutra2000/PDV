@@ -56,6 +56,23 @@ globalThis.fetch = async (url, options = {}) => {
     return jsonResponse([]);
   }
 
+  if (url.includes('/rest/v1/notifications?')) {
+    return jsonResponse([{
+      id: 'sale-backup-2',
+      type: 'sale_backup',
+      payload: {
+        id: 'sale-2',
+        type: 'venda',
+        status: 'ativa',
+        items: [{ productId: 'suco', name: 'Suco', quantity: 1, price: 8, total: 8 }],
+        total: 8,
+        paymentMethod: 'dinheiro',
+        createdAt: '2026-05-27T10:05:00.000Z'
+      },
+      created_at: '2026-05-27T10:05:00.000Z'
+    }]);
+  }
+
   throw new Error(`Unexpected URL: ${url}`);
 };
 
@@ -69,8 +86,9 @@ await syncSnapshotHandler({
 const payload = JSON.parse(response.body);
 
 assert(response.statusCode === 200, 'sync snapshot API should return 200');
-assert(payload.sales.length === 1, 'sync snapshot API should return sales');
+assert(payload.sales.length === 2, 'sync snapshot API should return sales plus backup sales');
 assert(payload.sales[0].payload.items.length === 1, 'sync snapshot API should rebuild sale payload from sale items');
+assert(payload.sales.some((sale) => sale.id === 'sale-2'), 'sync snapshot API should include notification backup sales');
 assert(payload.cash_movements.length === 1, 'sync snapshot API should return cash movements');
 assert(payload.stock_production.length === 1, 'sync snapshot API should return stock production');
 assert(calls.some((call) => call.url.includes('limit=10')), 'sync snapshot API should pass requested limit');

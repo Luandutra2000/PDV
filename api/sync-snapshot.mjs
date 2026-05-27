@@ -11,7 +11,8 @@ const SNAPSHOT_TABLES = [
   'sales',
   'cash_movements',
   'stock_production',
-  'showcase_write_offs'
+  'showcase_write_offs',
+  'notifications'
 ];
 
 export default async function handler(req, res) {
@@ -52,17 +53,47 @@ export default async function handler(req, res) {
 
 async function loadSnapshot({ supabaseUrl, serviceRoleKey, limit, fetch }) {
   const headers = serviceHeaders(serviceRoleKey);
-  const [sales, movements, launches, writeOffs, saleItems] = await Promise.all([
+  const [sales, movements, launches, writeOffs, notifications, saleItems] = await Promise.all([
     ...SNAPSHOT_TABLES.map((table) => selectRows({ supabaseUrl, headers, table, limit, fetch })),
     selectRows({ supabaseUrl, headers, table: 'sale_items', limit: limit * 8, fetch, orderByCreatedAt: false })
   ]);
+  const backupSales = notifications
+    .filter((notification) => notification.type === 'sale_backup' && notification.payload)
+    .map((notification) => ({
+      id: notification.payload.id || notification.id,
+      status: notification.payload.status || 'ativa',
+      command_id: notification.payload.comandaId || null,
+      command_number: notification.payload.comandaNumber || null,
+      total: Number(notification.payload.total) || 0,
+      payment_method: notification.payload.paymentMethod || 'dinheiro',
+      received_amount: Number(notification.payload.receivedAmount) || 0,
+      change_amount: Number(notification.payload.change) || 0,
+      created_at: notification.payload.createdAt || notification.created_at,
+      canceled_at: notification.payload.canceledAt || null,
+      payload: notification.payload
+    }));
 
   return {
-    sales: sales.map((sale) => hydrateSalePayload(sale, saleItems)),
+    sales: mergeRowsById([
+      ...sales.map((sale) => hydrateSalePayload(sale, saleItems)),
+      ...backupSales
+    ]),
     cash_movements: movements,
     stock_production: launches,
     showcase_write_offs: writeOffs
   };
+}
+
+function mergeRowsById(rows) {
+  const byId = new Map();
+
+  rows.forEach((row) => {
+    if (row?.id) {
+      byId.set(row.id, row);
+    }
+  });
+
+  return Array.from(byId.values());
 }
 
 async function selectRows({ supabaseUrl, headers, table, limit, fetch, orderByCreatedAt = true }) {
