@@ -41,9 +41,11 @@ const summary = cashFlow.getMobileCashFlowSummary();
 assert(summary.salesTotal === burger.price, 'cash flow should include daily sales total');
 assert(summary.entriesTotal === 100, 'cash flow should include daily entries');
 assert(summary.outputsTotal === 25, 'cash flow should include daily outputs');
+assert(summary.currentCash === burger.price + 100 - 25, 'cash flow current cash should be all daily inflows minus outputs');
 assert(summary.expectedCash === burger.price + 100 - 25, 'cash flow should calculate expected cash');
 assert(summary.estimatedProfit === burger.price + 100 - 25, 'cash flow should calculate estimated profit');
 assert(summary.paymentTotals.dinheiro === burger.price, 'cash flow should include payment totals');
 assert(summary.cards.length === 5, 'cash flow should expose five dashboard cards');
+assert(summary.cards.some((card) => card.id === 'cash' && card.label === 'Caixa atual' && card.value === summary.currentCash), 'cash card should show current cash value');
 
 console.log('mobile cash flow service ok');

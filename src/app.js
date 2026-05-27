@@ -2,7 +2,6 @@ import './config/runtime-config.js';
 import { renderSidebar } from './components/sidebar.component.js?v=20260526-03';
 import { ensureSeedData } from './services/storage.service.js';
 import { initSyncService } from './services/sync.service.js';
-import { getCaixaSummary } from './services/caixa.service.js';
 import { initVendasModule } from './modules/vendas/vendas.module.js';
 import { initProdutosModule } from './modules/produtos/produtos.module.js';
 import { initDashboardModule } from './modules/dashboard/dashboard.module.js';
@@ -120,10 +119,9 @@ function renderCashStrip(root = document) {
     return;
   }
 
-  const caixa = getCaixaSummary();
   const moneySummary = getDailyMoneySummary();
   const estimatedCash = moneySummary.expectedCash;
-  const currentCash = Number(caixa.currentAmount || 0);
+  const currentCash = moneySummary.netTotal;
 
   target.innerHTML = `
     ${renderCashMetric('Caixa atual', currentCash, true)}
