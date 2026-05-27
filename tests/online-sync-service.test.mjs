@@ -35,6 +35,11 @@ const sync = await import('../src/services/online-sync.service.js');
 
 const calls = [];
 const client = {
+  auth: {
+    getSession() {
+      return Promise.resolve({ data: { session: { access_token: 'user-token' } } });
+    }
+  },
   from(table) {
     return {
       upsert(payload) {
@@ -77,6 +82,9 @@ const client = {
 };
 
 sync.setOnlineSyncClientForTests(client);
+sync.setOnlineSyncFetchForTests(async () => {
+  throw new Error('API fallback should not be called while direct sync succeeds');
+});
 storage.setItem(STORAGE_KEYS.syncQueue, [
   {
     id: 'sync-sale-1',
@@ -141,6 +149,53 @@ await sync.flushSyncQueue();
 
 assert(calls.some((call) => call.table === 'cash_movements' && call.payload.id === 'entrada-retry'), 'old errored queue items should retry after fixes');
 assert(storage.getItem(STORAGE_KEYS.syncQueue, []).length === 0, 'retried error item should clear queue after successful sync');
+
+const apiCalls = [];
+const failingClient = {
+  auth: client.auth,
+  from(table) {
+    return {
+      upsert(payload) {
+        calls.push({ type: 'failed-upsert', table, payload });
+        return Promise.resolve({ error: { message: 'new row violates row-level security policy' } });
+      }
+    };
+  }
+};
+
+sync.setOnlineSyncClientForTests(failingClient);
+sync.setOnlineSyncFetchForTests(async (url, options) => {
+  apiCalls.push({ url, options });
+  return {
+    ok: true,
+    async json() {
+      return { ok: true };
+    }
+  };
+});
+storage.setItem(STORAGE_KEYS.syncQueue, [{
+  id: 'sync-api-fallback',
+  type: SYNC_EVENTS.cashMovementRegistered,
+  status: 'pending',
+  payload: {
+    id: 'entrada-api',
+    type: 'entrada',
+    amount: 25,
+    category: 'troco',
+    description: 'Fallback API',
+    createdAt: '2026-05-27T09:15:00.000Z'
+  }
+}]);
+
+await sync.flushSyncQueue();
+
+assert(apiCalls.length === 1, 'server API fallback should be called when direct Supabase write fails');
+assert(apiCalls[0].url === '/api/sync-events', 'server API fallback should target sync-events');
+assert(apiCalls[0].options.headers.Authorization === 'Bearer user-token', 'server API fallback should send the current session token');
+assert(storage.getItem(STORAGE_KEYS.syncQueue, []).length === 0, 'API fallback success should clear queue');
+
+sync.setOnlineSyncClientForTests(client);
+sync.setOnlineSyncFetchForTests(async () => ({ ok: true, json: async () => ({ ok: true }) }));
 
 await sync.loadOnlineSnapshot();
 

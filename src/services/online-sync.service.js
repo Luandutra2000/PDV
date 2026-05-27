@@ -8,9 +8,14 @@ const MAX_ATTEMPTS = 12;
 let initialized = false;
 let flushing = false;
 let clientForTests = null;
+let syncFetchForTests = null;
 
 export function setOnlineSyncClientForTests(client) {
   clientForTests = client;
+}
+
+export function setOnlineSyncFetchForTests(fetcher) {
+  syncFetchForTests = fetcher;
 }
 
 export function initOnlineSyncService() {
@@ -112,23 +117,71 @@ async function getOnlineClient() {
 }
 
 async function syncQueueItem(client, item) {
-  if (item.type === SYNC_EVENTS.saleFinished) {
-    await syncSale(client, item.payload);
-    return;
+  try {
+    if (item.type === SYNC_EVENTS.saleFinished) {
+      await syncSale(client, item.payload);
+      return;
+    }
+
+    if (item.type === SYNC_EVENTS.cashMovementRegistered) {
+      await syncCashMovement(client, item.payload);
+      return;
+    }
+
+    if (item.type === SYNC_EVENTS.stockLaunchCreated) {
+      await upsert(client, 'stock_production', mapStockLaunchToRow(item.payload));
+      return;
+    }
+
+    if (item.type === SYNC_EVENTS.showcaseWriteOffCreated) {
+      await upsert(client, 'showcase_write_offs', mapWriteOffToRow(item.payload));
+    }
+  } catch (error) {
+    await syncQueueItemViaApi(item, error);
+  }
+}
+
+async function syncQueueItemViaApi(item, originalError) {
+  const token = await getAccessToken();
+
+  if (!token) {
+    throw originalError;
   }
 
-  if (item.type === SYNC_EVENTS.cashMovementRegistered) {
-    await syncCashMovement(client, item.payload);
-    return;
-  }
+  const response = await getSyncFetch()('/api/sync-events', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ event: item })
+  });
+  const data = await readResponseJson(response);
 
-  if (item.type === SYNC_EVENTS.stockLaunchCreated) {
-    await upsert(client, 'stock_production', mapStockLaunchToRow(item.payload));
-    return;
+  if (!response.ok) {
+    throw new Error(data.error || originalError.message || 'Falha ao sincronizar pelo servidor.');
   }
+}
 
-  if (item.type === SYNC_EVENTS.showcaseWriteOffCreated) {
-    await upsert(client, 'showcase_write_offs', mapWriteOffToRow(item.payload));
+async function getAccessToken() {
+  try {
+    const client = await getOnlineClient();
+    const { data } = await client.auth.getSession();
+    return data?.session?.access_token || '';
+  } catch {
+    return '';
+  }
+}
+
+function getSyncFetch() {
+  return syncFetchForTests || globalThis.fetch;
+}
+
+async function readResponseJson(response) {
+  try {
+    return await response.json();
+  } catch {
+    return {};
   }
 }
 

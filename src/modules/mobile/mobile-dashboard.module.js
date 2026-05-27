@@ -72,16 +72,24 @@ function bindRealtimeRefresh(workspace) {
     return;
   }
 
-  on(UI_EVENTS.mobileFeedChanged, () => render(workspace));
-  on(UI_EVENTS.cashSummaryChanged, () => render(workspace));
+  on(UI_EVENTS.mobileFeedChanged, () => renderIfMobileIsVisible(workspace));
+  on(UI_EVENTS.cashSummaryChanged, () => renderIfMobileIsVisible(workspace));
   subscriptionsReady = true;
+}
+
+function renderIfMobileIsVisible(workspace) {
+  if (!workspace.querySelector('[data-mobile-dashboard-root]')) {
+    return;
+  }
+
+  render(workspace);
 }
 
 function render(workspace) {
   const cash = getMobileCashFlowSummary();
 
   workspace.innerHTML = `
-    <section class="mobile-shell" data-mobile-theme="${state.theme}">
+    <section class="mobile-shell" data-mobile-dashboard-root data-mobile-theme="${state.theme}">
       <div class="mobile-app">
         <header class="mobile-topbar">
           <div>
