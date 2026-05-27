@@ -12,6 +12,9 @@ const SYNC_EVENTS = {
   saleFinished: 'SALE_FINISHED',
   cashMovementRegistered: 'CASH_MOVEMENT_REGISTERED',
   stockLaunchCreated: 'STOCK_LAUNCH_CREATED',
+  stockLaunchUpdated: 'STOCK_LAUNCH_UPDATED',
+  stockLaunchCanceled: 'STOCK_LAUNCH_CANCELED',
+  showcaseProductCleared: 'SHOWCASE_PRODUCT_CLEARED',
   showcaseWriteOffCreated: 'SHOWCASE_WRITE_OFF_CREATED',
   transactionHistoryCleared: 'TRANSACTION_HISTORY_CLEARED'
 };
@@ -84,6 +87,22 @@ async function syncEvent({ supabaseUrl, serviceRoleKey, event, fetch }) {
     return;
   }
 
+  if (event.type === SYNC_EVENTS.stockLaunchUpdated || event.type === SYNC_EVENTS.stockLaunchCanceled) {
+    await upsertRows({
+      supabaseUrl,
+      serviceRoleKey,
+      table: 'stock_production',
+      rows: [mapStockLaunchToRow(event.payload)],
+      fetch
+    });
+    return;
+  }
+
+  if (event.type === SYNC_EVENTS.showcaseProductCleared) {
+    await clearShowcaseProduct({ supabaseUrl, serviceRoleKey, payload: event.payload, fetch });
+    return;
+  }
+
   if (event.type === SYNC_EVENTS.showcaseWriteOffCreated) {
     await upsertRows({
       supabaseUrl,
@@ -125,6 +144,48 @@ async function clearTransactionHistory({ supabaseUrl, serviceRoleKey, payload = 
     deleteRows({ supabaseUrl, serviceRoleKey, table: 'notifications', query: 'type=eq.sale_backup', fetch })
   ]);
   await deleteRows({ supabaseUrl, serviceRoleKey, table: 'sales', fetch });
+}
+
+async function clearShowcaseProduct({ supabaseUrl, serviceRoleKey, payload = {}, fetch }) {
+  const ids = Array.isArray(payload.launchIds) ? payload.launchIds.filter(Boolean) : [];
+  const canceledAt = payload.clearedAt || new Date().toISOString();
+
+  if (ids.length) {
+    await Promise.all(ids.map((id) => patchRows({
+      supabaseUrl,
+      serviceRoleKey,
+      table: 'stock_production',
+      query: `id=eq.${encodeURIComponent(id)}`,
+      row: {
+        status: 'cancelado',
+        canceled_at: canceledAt
+      },
+      fetch
+    })));
+    return;
+  }
+
+  if (!payload.productId) {
+    return;
+  }
+
+  const query = buildCreatedAtQuery(payload, { product_id: payload.productId });
+
+  if (!query) {
+    return;
+  }
+
+  await patchRows({
+    supabaseUrl,
+    serviceRoleKey,
+    table: 'stock_production',
+    query,
+    row: {
+      status: 'cancelado',
+      canceled_at: canceledAt
+    },
+    fetch
+  });
 }
 
 function buildCreatedAtQuery({ startAt = null, endAt = null } = {}, extraFilters = {}) {
@@ -255,6 +316,23 @@ async function upsertRows({ supabaseUrl, serviceRoleKey, table, rows, fetch }) {
 
   if (!response.ok) {
     throw httpError(response.status, data.message || data.error || `Falha ao salvar ${table}.`);
+  }
+}
+
+async function patchRows({ supabaseUrl, serviceRoleKey, table, query, row, fetch }) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, {
+    method: 'PATCH',
+    headers: {
+      ...serviceHeaders(serviceRoleKey),
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal'
+    },
+    body: JSON.stringify(row)
+  });
+  const data = await readJson(response);
+
+  if (!response.ok) {
+    throw httpError(response.status, data.message || data.error || `Falha ao atualizar ${table}.`);
   }
 }
 

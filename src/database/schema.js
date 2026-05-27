@@ -26,6 +26,9 @@ export const SYNC_EVENTS = {
   saleFinished: 'SALE_FINISHED',
   cashMovementRegistered: 'CASH_MOVEMENT_REGISTERED',
   stockLaunchCreated: 'STOCK_LAUNCH_CREATED',
+  stockLaunchUpdated: 'STOCK_LAUNCH_UPDATED',
+  stockLaunchCanceled: 'STOCK_LAUNCH_CANCELED',
+  showcaseProductCleared: 'SHOWCASE_PRODUCT_CLEARED',
   showcaseWriteOffCreated: 'SHOWCASE_WRITE_OFF_CREATED',
   transactionHistoryCleared: 'TRANSACTION_HISTORY_CLEARED'
 };

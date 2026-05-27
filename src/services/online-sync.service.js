@@ -9,6 +9,9 @@ const SUPPORTED_SYNC_EVENTS = new Set([
   SYNC_EVENTS.saleFinished,
   SYNC_EVENTS.cashMovementRegistered,
   SYNC_EVENTS.stockLaunchCreated,
+  SYNC_EVENTS.stockLaunchUpdated,
+  SYNC_EVENTS.stockLaunchCanceled,
+  SYNC_EVENTS.showcaseProductCleared,
   SYNC_EVENTS.showcaseWriteOffCreated,
   SYNC_EVENTS.transactionHistoryCleared
 ]);
@@ -124,13 +127,17 @@ export async function loadOnlineSnapshot({ limit = 120 } = {}) {
 }
 
 function applyOnlineSnapshot({ sales = [], cash_movements: movements = [], stock_production: launches = [], showcase_write_offs: writeOffs = [] }) {
-  mergeCollection(STORAGE_KEYS.transactions, [
+  replaceOnlineCollection(STORAGE_KEYS.transactions, [
     ...sales.map(mapSaleRowToTransaction),
     ...movements.map(mapCashMovementRowToTransaction)
-  ]);
-  mergeCollection(STORAGE_KEYS.closedComandas, sales.map(mapSaleRowToClosedComanda));
-  mergeCollection(STORAGE_KEYS.stockLaunches, launches.map(mapStockRowToLaunch));
-  mergeCollection(STORAGE_KEYS.showcaseWriteOffs, writeOffs.map(mapWriteOffRowToLocal));
+  ], getPendingPayloadIds([SYNC_EVENTS.saleFinished, SYNC_EVENTS.cashMovementRegistered]));
+  replaceOnlineCollection(STORAGE_KEYS.closedComandas, sales.map(mapSaleRowToClosedComanda), getPendingComandaIds());
+  replaceOnlineCollection(STORAGE_KEYS.stockLaunches, launches.map(mapStockRowToLaunch), getPendingPayloadIds([
+    SYNC_EVENTS.stockLaunchCreated,
+    SYNC_EVENTS.stockLaunchUpdated,
+    SYNC_EVENTS.stockLaunchCanceled
+  ]));
+  replaceOnlineCollection(STORAGE_KEYS.showcaseWriteOffs, writeOffs.map(mapWriteOffRowToLocal), getPendingPayloadIds([SYNC_EVENTS.showcaseWriteOffCreated]));
 
   emit(UI_EVENTS.mobileFeedChanged, { type: 'online-snapshot-loaded' });
   emit(UI_EVENTS.cashSummaryChanged, { type: 'online-snapshot-loaded' });
@@ -190,6 +197,16 @@ async function syncQueueItem(client, item) {
 
     if (item.type === SYNC_EVENTS.stockLaunchCreated) {
       await upsert(client, 'stock_production', mapStockLaunchToRow(item.payload));
+      return;
+    }
+
+    if (item.type === SYNC_EVENTS.stockLaunchUpdated || item.type === SYNC_EVENTS.stockLaunchCanceled) {
+      await upsert(client, 'stock_production', mapStockLaunchToRow(item.payload));
+      return;
+    }
+
+    if (item.type === SYNC_EVENTS.showcaseProductCleared) {
+      await clearOnlineShowcaseProduct(client, item.payload);
       return;
     }
 
@@ -306,6 +323,33 @@ async function clearOnlineTransactionHistory(client, payload = {}) {
   await deleteRows(client, 'sales');
 }
 
+async function clearOnlineShowcaseProduct(client, payload = {}) {
+  const ids = Array.isArray(payload?.launchIds) ? payload.launchIds.filter(Boolean) : [];
+
+  if (ids.length) {
+    await Promise.all(ids.map((id) => updateRows(client, 'stock_production', {
+      column: 'id',
+      value: id,
+      changes: {
+        status: 'cancelado',
+        canceled_at: payload.clearedAt || new Date().toISOString()
+      }
+    })));
+    return;
+  }
+
+  if (payload?.productId) {
+    await updateRowsByCreatedAt(client, 'stock_production', {
+      ...payload,
+      equalityFilter: { column: 'product_id', value: payload.productId },
+      changes: {
+        status: 'cancelado',
+        canceled_at: payload.clearedAt || new Date().toISOString()
+      }
+    });
+  }
+}
+
 async function upsert(client, table, payload) {
   const { error } = await client.from(table).upsert(payload);
 
@@ -347,6 +391,36 @@ async function deleteRowsByCreatedAt(client, table, { startAt = null, endAt = nu
   }
 }
 
+async function updateRowsByCreatedAt(client, table, { startAt = null, endAt = null, equalityFilter = null, changes = {} } = {}) {
+  let query = client.from(table).update(changes);
+
+  if (equalityFilter) {
+    query = query.eq(equalityFilter.column, equalityFilter.value);
+  }
+
+  if (startAt) {
+    query = query.gte('created_at', startAt);
+  }
+
+  if (endAt) {
+    query = query.lt('created_at', endAt);
+  }
+
+  const { error } = await query;
+
+  if (error) {
+    throw new Error(error.message || `Falha ao atualizar ${table}.`);
+  }
+}
+
+async function updateRows(client, table, { column, value, changes = {} }) {
+  const { error } = await client.from(table).update(changes).eq(column, value);
+
+  if (error) {
+    throw new Error(error.message || `Falha ao atualizar ${table}.`);
+  }
+}
+
 async function selectRows(client, table, limit) {
   const { data, error } = await client
     .from(table)
@@ -361,9 +435,10 @@ async function selectRows(client, table, limit) {
   return data || [];
 }
 
-function mergeCollection(storageKey, incomingItems) {
+function replaceOnlineCollection(storageKey, incomingItems, preservedIds = new Set()) {
   const currentItems = getItem(storageKey, []);
-  const byId = new Map(currentItems.map((item) => [item.id, item]));
+  const preservedLocalItems = currentItems.filter((item) => preservedIds.has(item.id));
+  const byId = new Map(preservedLocalItems.map((item) => [item.id, item]));
 
   incomingItems.filter(Boolean).forEach((item) => {
     byId.set(item.id, {
@@ -373,6 +448,21 @@ function mergeCollection(storageKey, incomingItems) {
   });
 
   setItem(storageKey, Array.from(byId.values()).sort(sortNewestFirst));
+}
+
+function getPendingPayloadIds(eventTypes) {
+  const allowedTypes = new Set(eventTypes);
+  return new Set(getPendingSyncQueue()
+    .filter((item) => allowedTypes.has(item.type))
+    .map((item) => item.payload?.id)
+    .filter(Boolean));
+}
+
+function getPendingComandaIds() {
+  return new Set(getPendingSyncQueue()
+    .filter((item) => item.type === SYNC_EVENTS.saleFinished)
+    .map((item) => item.payload?.comandaId || `closed-${item.payload?.id}`)
+    .filter(Boolean));
 }
 
 function sortNewestFirst(a, b) {
@@ -515,7 +605,7 @@ function mapCashMovementRowToTransaction(row) {
 }
 
 function mapStockRowToLaunch(row) {
-  return row.payload || {
+  const launch = row.payload || {
     id: row.id,
     produtoId: row.product_id,
     produtoNome: row.product_name,
@@ -528,10 +618,16 @@ function mapStockRowToLaunch(row) {
     status: row.status,
     canceledAt: row.canceled_at
   };
+
+  return {
+    ...launch,
+    status: row.status || launch.status || 'ativo',
+    canceledAt: row.canceled_at || launch.canceledAt || null
+  };
 }
 
 function mapWriteOffRowToLocal(row) {
-  return row.payload || {
+  const writeOff = row.payload || {
     id: row.id,
     productId: row.product_id,
     productName: row.product_name,
@@ -545,6 +641,12 @@ function mapWriteOffRowToLocal(row) {
     createdAt: row.created_at,
     status: row.status,
     canceledAt: row.canceled_at
+  };
+
+  return {
+    ...writeOff,
+    status: row.status || writeOff.status || 'ativa',
+    canceledAt: row.canceled_at || writeOff.canceledAt || null
   };
 }
 

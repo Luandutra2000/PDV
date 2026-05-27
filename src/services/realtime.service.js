@@ -15,6 +15,9 @@ export function initRealtimeService() {
   on(SYNC_EVENTS.saleFinished, (payload) => emit(UI_EVENTS.mobileFeedChanged, payload));
   on(SYNC_EVENTS.cashMovementRegistered, (payload) => emit(UI_EVENTS.mobileFeedChanged, payload));
   on(SYNC_EVENTS.stockLaunchCreated, (payload) => emit(UI_EVENTS.mobileFeedChanged, payload));
+  on(SYNC_EVENTS.stockLaunchUpdated, (payload) => emit(UI_EVENTS.mobileFeedChanged, payload));
+  on(SYNC_EVENTS.stockLaunchCanceled, (payload) => emit(UI_EVENTS.mobileFeedChanged, payload));
+  on(SYNC_EVENTS.showcaseProductCleared, (payload) => emit(UI_EVENTS.mobileFeedChanged, payload));
   on(SYNC_EVENTS.showcaseWriteOffCreated, (payload) => emit(UI_EVENTS.mobileFeedChanged, payload));
 
   initialized = true;

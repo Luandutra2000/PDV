@@ -231,11 +231,31 @@ sync.setOnlineSyncFetchForTests(async (url, options) => {
   };
 });
 
+storage.setItem(STORAGE_KEYS.transactions, [
+  {
+    id: 'stale-local-sale',
+    type: 'venda',
+    status: 'ativa',
+    total: 999,
+    createdAt: '2026-05-26T10:00:00.000Z'
+  }
+]);
+storage.setItem(STORAGE_KEYS.stockLaunches, [
+  {
+    id: 'stale-local-stock',
+    produtoId: 'coxinha',
+    status: 'ativo',
+    dataHora: '2026-05-26T10:00:00.000Z'
+  }
+]);
+
 await sync.loadOnlineSnapshot();
 
 const transactions = storage.getItem(STORAGE_KEYS.transactions, []);
 assert(transactions.some((item) => item.id === 'sale-remote'), 'remote sales should hydrate local cache');
+assert(!transactions.some((item) => item.id === 'stale-local-sale'), 'online snapshot should remove stale local transactions already deleted remotely');
 const closedComandas = storage.getItem(STORAGE_KEYS.closedComandas, []);
 assert(closedComandas.some((item) => item.id === 'closed-sale-remote'), 'remote sales should hydrate closed command history');
+assert(!storage.getItem(STORAGE_KEYS.stockLaunches, []).some((item) => item.id === 'stale-local-stock'), 'online snapshot should remove stale local showcase rows already deleted remotely');
 
 console.log('online sync service ok');

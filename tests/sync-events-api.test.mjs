@@ -171,6 +171,50 @@ process.env = originalEnv;
 
 console.log('sync events filtered clear api ok');
 
+calls.length = 0;
+process.env.SUPABASE_URL = 'https://example.supabase.co';
+process.env.SUPABASE_ANON_KEY = 'anon-key';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
+
+globalThis.fetch = async (url, options = {}) => {
+  calls.push({ url, options });
+
+  if (url.endsWith('/auth/v1/user')) {
+    return jsonResponse({ id: 'operator-1', email: 'caixa@pdv.local' });
+  }
+
+  if (options.method === 'PATCH') {
+    return jsonResponse({});
+  }
+
+  throw new Error(`Unexpected URL while clearing showcase: ${url}`);
+};
+
+const showcaseClearResponse = createMockResponse();
+await syncEventsHandler({
+  method: 'POST',
+  headers: { authorization: 'Bearer user-token' },
+  body: JSON.stringify({
+    event: {
+      type: 'SHOWCASE_PRODUCT_CLEARED',
+      payload: {
+        id: 'showcase-clear-1',
+        productId: 'coxinha',
+        launchIds: ['stock-1'],
+        clearedAt: '2026-05-27T11:30:00.000Z'
+      }
+    }
+  })
+}, showcaseClearResponse);
+
+assert(showcaseClearResponse.statusCode === 200, 'sync events API should clear showcase product rows');
+assert(calls.some((call) => call.options.method === 'PATCH' && call.url.endsWith('/rest/v1/stock_production?id=eq.stock-1')), 'showcase clear should patch stock rows by launch id');
+assert(JSON.parse(calls.find((call) => call.options.method === 'PATCH').options.body).status === 'cancelado', 'showcase clear should mark stock row canceled');
+
+process.env = originalEnv;
+
+console.log('sync events showcase clear api ok');
+
 function createMockResponse() {
   return {
     headers: {},

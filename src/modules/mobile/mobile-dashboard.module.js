@@ -5,6 +5,7 @@ import { getMobileCashFlowSummary } from '../../services/mobile-cash-flow.servic
 import { getMobileClosingSummary } from '../../services/mobile-closing.service.js';
 import { getMobileFeedEvents, getMobileFeedFilters } from '../../services/mobile-notifications.service.js';
 import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js';
+import { getTransactions } from '../../services/transaction.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 
 const MOBILE_THEME_KEY = 'pdv.mobileTheme';
@@ -13,6 +14,7 @@ const tabs = [
   { id: 'home', label: 'Inicio', icon: 'IN' },
   { id: 'cash', label: 'Caixa', icon: '$' },
   { id: 'showcase', label: 'Vitrine', icon: 'VT' },
+  { id: 'history', label: 'Historico', icon: 'HT' },
   { id: 'crm', label: 'CRM', icon: 'CR' },
   { id: 'closing', label: 'Fechar', icon: 'OK' }
 ];
@@ -100,6 +102,9 @@ function render(workspace) {
             <button class="mobile-theme-toggle" type="button" data-mobile-theme-toggle aria-label="${getMobileThemeAriaLabel()}">
               <span>${state.theme === 'dark' ? 'CL' : 'ES'}</span>
             </button>
+            <button class="mobile-theme-toggle mobile-logout-button" type="button" data-action="logout" aria-label="Sair do app">
+              <span>Sair</span>
+            </button>
             <span>Hoje</span>
           </div>
         </header>
@@ -131,6 +136,10 @@ function renderTabContent(cash) {
 
   if (state.tab === 'crm') {
     return renderCrmTab();
+  }
+
+  if (state.tab === 'history') {
+    return renderHistoryTab();
   }
 
   if (state.tab === 'closing') {
@@ -222,6 +231,42 @@ function renderCrmTab() {
         ${renderTextRow('Produto mais vendido', best ? `${best.name} (${best.quantity})` : 'Sem vendas')}
         ${renderTextRow('Produto menos vendido', slow ? `${slow.name} (${slow.quantity})` : 'Sem vendas')}
       </section>
+    </div>
+  `;
+}
+
+function renderHistoryTab() {
+  const transactions = getTransactions()
+    .slice()
+    .sort((a, b) => new Date(getTransactionDate(b)) - new Date(getTransactionDate(a)))
+    .slice(0, 80);
+
+  return `
+    <div class="mobile-content">
+      <section class="mobile-list-panel">
+        <h2>Historico de transacoes</h2>
+        ${transactions.map(renderHistoryRow).join('') || '<p class="mobile-empty">Nenhuma transacao registrada.</p>'}
+      </section>
+    </div>
+  `;
+}
+
+function renderHistoryRow(transaction) {
+  const isOutput = transaction.type === 'saida';
+  const isCanceled = transaction.status === 'cancelada';
+  const amount = Number(transaction.total || transaction.amount || 0);
+  const title = getTransactionTitle(transaction);
+  const detail = getTransactionDetail(transaction);
+  const valueClass = isCanceled || isOutput ? 'money-negative' : 'money-positive';
+
+  return `
+    <div class="mobile-row mobile-history-row ${isCanceled ? 'is-canceled' : ''}">
+      <div>
+        <span>${title}${isCanceled ? ' - cancelada' : ''}</span>
+        <small>${detail}</small>
+      </div>
+      <strong class="${valueClass}">${isOutput ? '-' : '+'} ${formatCurrency(amount)}</strong>
+      <time>${formatDateTime(getTransactionDate(transaction))}</time>
     </div>
   `;
 }
@@ -339,6 +384,30 @@ function renderBottomNav() {
       `).join('')}
     </nav>
   `;
+}
+
+function getTransactionTitle(transaction) {
+  const labels = {
+    venda: `Venda ${transaction.comandaNumber ? `#${String(transaction.comandaNumber).padStart(4, '0')}` : ''}`,
+    entrada: 'Entrada de caixa',
+    saida: 'Saida de caixa'
+  };
+
+  return labels[transaction.type] || 'Movimento';
+}
+
+function getTransactionDetail(transaction) {
+  if (transaction.type === 'venda') {
+    const quantity = (transaction.items || []).reduce((total, item) => total + (Number(item.quantity) || 0), 0);
+    const firstItem = transaction.items?.[0]?.name || 'Venda registrada';
+    return quantity ? `${quantity} item(ns) - ${firstItem}` : firstItem;
+  }
+
+  return transaction.description || transaction.category || 'Sem descricao';
+}
+
+function getTransactionDate(transaction) {
+  return transaction.createdAt || transaction.closedAt || transaction.updatedAt || 0;
 }
 
 function formatRelativeTime(value) {

@@ -7,6 +7,9 @@ const subscribedEvents = [
   SYNC_EVENTS.saleFinished,
   SYNC_EVENTS.cashMovementRegistered,
   SYNC_EVENTS.stockLaunchCreated,
+  SYNC_EVENTS.stockLaunchUpdated,
+  SYNC_EVENTS.stockLaunchCanceled,
+  SYNC_EVENTS.showcaseProductCleared,
   SYNC_EVENTS.showcaseWriteOffCreated,
   SYNC_EVENTS.transactionHistoryCleared
 ];

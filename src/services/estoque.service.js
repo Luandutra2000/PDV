@@ -53,6 +53,14 @@ export function deleteStockComparisonRow(produtoId, filters = {}) {
 
   activeLaunches.forEach((launch) => cancelStockLaunch(launch.id));
   hideStockComparisonProduct(produtoId);
+  emit(SYNC_EVENTS.showcaseProductCleared, {
+    id: createId('showcase-clear'),
+    productId: produtoId,
+    launchIds: activeLaunches.map((launch) => launch.id),
+    ...getPeriodRange(filters),
+    clearedAt: new Date().toISOString()
+  });
+  emit(UI_EVENTS.mobileFeedChanged, { type: 'vitrine-limpa', productId: produtoId });
 
   return {
     canceledLaunches: activeLaunches.length,
@@ -62,6 +70,7 @@ export function deleteStockComparisonRow(produtoId, filters = {}) {
 
 export function updateStockLaunch(launchId, data) {
   const currentLaunch = getStockLaunches().find((launch) => launch.id === launchId);
+  let updatedLaunch = null;
 
   const launches = getStockLaunches().map((launch) => {
     if (launch.id !== launchId) {
@@ -71,12 +80,14 @@ export function updateStockLaunch(launchId, data) {
     const quantity = Number(data.quantidade ?? launch.quantidade) || 0;
     const unitValue = Number(data.valorUnitario ?? launch.valorUnitario) || 0;
 
-    return {
+    updatedLaunch = {
       ...launch,
       quantidade: quantity,
       valorUnitario: unitValue,
       valorTotal: quantity * unitValue
     };
+
+    return updatedLaunch;
   });
 
   getDataProvider().setCollection('stockLaunches', launches);
@@ -85,27 +96,41 @@ export function updateStockLaunch(launchId, data) {
     const nextQuantity = Number(data.quantidade ?? currentLaunch.quantidade) || 0;
     updateProductStock(currentLaunch.produtoId, nextQuantity - currentLaunch.quantidade);
   }
+
+  if (updatedLaunch) {
+    emit(SYNC_EVENTS.stockLaunchUpdated, updatedLaunch);
+    emit(UI_EVENTS.mobileFeedChanged, updatedLaunch);
+  }
 }
 
 export function cancelStockLaunch(launchId) {
   const currentLaunch = getStockLaunches().find((launch) => launch.id === launchId);
+  const canceledAt = new Date().toISOString();
+  let canceledLaunch = null;
 
   const launches = getStockLaunches().map((launch) => {
     if (launch.id !== launchId) {
       return launch;
     }
 
-    return {
+    canceledLaunch = {
       ...launch,
       status: 'cancelado',
-      canceledAt: new Date().toISOString()
+      canceledAt
     };
+
+    return canceledLaunch;
   });
 
   getDataProvider().setCollection('stockLaunches', launches);
 
   if (currentLaunch?.status === 'ativo') {
     updateProductStock(currentLaunch.produtoId, -currentLaunch.quantidade);
+  }
+
+  if (canceledLaunch) {
+    emit(SYNC_EVENTS.stockLaunchCanceled, canceledLaunch);
+    emit(UI_EVENTS.mobileFeedChanged, canceledLaunch);
   }
 }
 
@@ -342,6 +367,51 @@ function isInPeriod(value, period, filters = {}) {
   }
 
   return date.toDateString() === now.toDateString();
+}
+
+function getPeriodRange({ period = 'today', customStart = '', customEnd = '' } = {}) {
+  if (period === 'all') {
+    return { startAt: null, endAt: null };
+  }
+
+  const now = new Date();
+  let start = startOfDay(now);
+  let end = addDays(start, 1);
+
+  if (period === 'yesterday') {
+    start = addDays(startOfDay(now), -1);
+    end = addDays(start, 1);
+  }
+
+  if (period === 'month') {
+    start = new Date(now.getFullYear(), now.getMonth(), 1);
+    end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  }
+
+  if (period === 'year') {
+    start = new Date(now.getFullYear(), 0, 1);
+    end = new Date(now.getFullYear() + 1, 0, 1);
+  }
+
+  if (period === 'custom') {
+    start = customStart ? new Date(`${customStart}T00:00:00`) : null;
+    end = customEnd ? addDays(new Date(`${customEnd}T00:00:00`), 1) : null;
+  }
+
+  return {
+    startAt: start ? start.toISOString() : null,
+    endAt: end ? end.toISOString() : null
+  };
+}
+
+function startOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function addDays(date, days) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
 }
 
 function getCategoryName(product, launches) {
