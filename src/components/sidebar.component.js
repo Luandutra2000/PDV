@@ -3,6 +3,7 @@ const menuGroups = [
     title: 'Vendas',
     items: [
       { id: 'frente-caixa', label: 'Frente de Caixa', icon: 'FC', active: true },
+      { id: 'mobile', label: 'App do Dono', icon: 'AD' },
       { id: 'estoque', label: 'Vitrine', icon: 'VT' },
       { id: 'dashboard', label: 'Historico de Transacoes', icon: 'HT' }
     ]
@@ -11,8 +12,7 @@ const menuGroups = [
     title: 'Gestao',
     items: [
       { id: 'produtos', label: 'Produtos', icon: 'PR' },
-      { id: 'pessoas', label: 'Pessoas', icon: 'PS' },
-      { id: 'mobile', label: 'App do Dono', icon: 'AD' }
+      { id: 'pessoas', label: 'Pessoas', icon: 'PS' }
     ]
   },
   {

@@ -1,4 +1,4 @@
-import { renderSidebar } from './components/sidebar.component.js';
+import { renderSidebar } from './components/sidebar.component.js?v=20260526-03';
 import { ensureSeedData } from './services/storage.service.js';
 import { initSyncService } from './services/sync.service.js';
 import { getCaixaSummary } from './services/caixa.service.js';
@@ -41,6 +41,7 @@ function bootstrap() {
         <header class="topbar">
           <div class="cash-strip" aria-label="Resumo do caixa" data-cash-strip></div>
           <div class="header-actions">
+            <button class="button" type="button" data-action="open-mobile">App do Dono</button>
             <button class="button button--ghost" type="button" data-action="toggle-theme">${getThemeLabel()}</button>
             <button class="button button--ghost" type="button" data-action="refresh">Atualizar</button>
           </div>
@@ -108,6 +109,12 @@ function bindNavigation(app, workspace) {
     if (themeButton) {
       toggleTheme();
       themeButton.textContent = getThemeLabel();
+      return;
+    }
+
+    if (event.target.closest('[data-action="open-mobile"]')) {
+      setActiveMenu(app, 'mobile');
+      initMobileDashboardModule(workspace);
       return;
     }
 
