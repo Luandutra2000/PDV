@@ -13,7 +13,7 @@ import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.mod
 import { formatCurrency } from './utils/currency.js';
 import { initNotificationService } from './services/notification.service.js';
 import { initOnlineRealtimeService, initRealtimeService } from './services/realtime.service.js';
-import { initOnlineSyncService } from './services/online-sync.service.js';
+import { flushSyncQueue, initOnlineSyncService, loadOnlineSnapshot } from './services/online-sync.service.js';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js';
 import { getDailyMoneySummary } from './services/transaction.service.js';
 import { getDataProviderMode } from './services/app-config.service.js';
@@ -175,6 +175,7 @@ function bindNavigation(app, workspace) {
     }
 
     if (event.target.closest('[data-action="refresh"]')) {
+      refreshOnlineData();
       renderCashStrip(app);
       return;
     }
@@ -196,6 +197,20 @@ function bindNavigation(app, workspace) {
 
     renderModulePlaceholder(workspace, menuButton.querySelector('.sidebar__label').textContent);
   });
+}
+
+async function refreshOnlineData() {
+  if (getDataProviderMode() !== 'supabase') {
+    return;
+  }
+
+  try {
+    await syncProductsFromOnlineDatabase();
+    await flushSyncQueue();
+    await loadOnlineSnapshot();
+  } catch (error) {
+    console.warn('Nao foi possivel atualizar dados online agora.', error);
+  }
 }
 
 async function handleLogout(app) {

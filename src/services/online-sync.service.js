@@ -20,8 +20,11 @@ export function initOnlineSyncService() {
 
   initialized = true;
   globalThis.addEventListener?.('online', () => runSafeFlush());
+  globalThis.addEventListener?.('online', () => runSafeSnapshot());
   globalThis.setInterval?.(() => runSafeFlush(), 30000);
+  globalThis.setInterval?.(() => runSafeSnapshot(), 30000);
   runSafeFlush();
+  runSafeSnapshot();
 }
 
 export function getPendingSyncQueue() {
@@ -74,6 +77,12 @@ function runSafeFlush() {
   });
 }
 
+function runSafeSnapshot() {
+  loadOnlineSnapshot().catch((error) => {
+    console.warn('Snapshot online indisponivel. Mantendo dados locais em cache.', error);
+  });
+}
+
 export async function loadOnlineSnapshot({ limit = 120 } = {}) {
   if (!isSupabaseEnabled()) {
     return;
@@ -103,10 +112,6 @@ async function getOnlineClient() {
 }
 
 async function syncQueueItem(client, item) {
-  if (item.status === 'error') {
-    return;
-  }
-
   if (item.type === SYNC_EVENTS.saleFinished) {
     await syncSale(client, item.payload);
     return;
@@ -201,7 +206,7 @@ function mapSaleToRow(sale) {
   return {
     id: sale.id,
     status: sale.status || 'ativa',
-    command_id: sale.comandaId || null,
+    command_id: null,
     command_number: sale.comandaNumber || null,
     total: Number(sale.total) || 0,
     payment_method: sale.paymentMethod,

@@ -86,6 +86,8 @@ storage.setItem(STORAGE_KEYS.syncQueue, [
       id: 'sale-1',
       type: 'venda',
       status: 'ativa',
+      comandaId: 'local-comanda-nao-existe-no-supabase',
+      comandaNumber: 7,
       items: [{ productId: 'coxinha', name: 'Coxinha', quantity: 2, price: 7, total: 14 }],
       total: 14,
       paymentMethod: 'pix',
@@ -112,9 +114,33 @@ storage.setItem(STORAGE_KEYS.syncQueue, [
 
 await sync.flushSyncQueue();
 
-assert(calls.some((call) => call.table === 'sales' && call.type === 'upsert'), 'sales should be pushed to Supabase');
+const saleUpsert = calls.find((call) => call.table === 'sales' && call.type === 'upsert');
+assert(saleUpsert, 'sales should be pushed to Supabase');
+assert(saleUpsert.payload.command_id === null, 'local comanda ids should not be sent as Supabase command foreign keys');
+assert(saleUpsert.payload.command_number === 7, 'sale should keep the visible comanda number');
 assert(calls.some((call) => call.table === 'cash_movements' && call.type === 'upsert'), 'cash movements should be pushed to Supabase');
 assert(storage.getItem(STORAGE_KEYS.syncQueue, []).length === 0, 'successful sync should clear queue');
+
+calls.length = 0;
+storage.setItem(STORAGE_KEYS.syncQueue, [{
+  id: 'sync-error-retry',
+  type: SYNC_EVENTS.cashMovementRegistered,
+  status: 'error',
+  attempts: 12,
+  payload: {
+    id: 'entrada-retry',
+    type: 'entrada',
+    amount: 50,
+    category: 'troco',
+    description: 'Retry de evento antigo',
+    createdAt: '2026-05-27T09:10:00.000Z'
+  }
+}]);
+
+await sync.flushSyncQueue();
+
+assert(calls.some((call) => call.table === 'cash_movements' && call.payload.id === 'entrada-retry'), 'old errored queue items should retry after fixes');
+assert(storage.getItem(STORAGE_KEYS.syncQueue, []).length === 0, 'retried error item should clear queue after successful sync');
 
 await sync.loadOnlineSnapshot();
 
