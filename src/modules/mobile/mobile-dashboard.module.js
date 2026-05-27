@@ -5,7 +5,8 @@ import { createStockLaunch } from '../../services/estoque.service.js';
 import { getMobileCashFlowSummary } from '../../services/mobile-cash-flow.service.js';
 import { getMobileFeedEvents, getMobileFeedFilters } from '../../services/mobile-notifications.service.js';
 import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js';
-import { getShowcaseProducts } from '../../services/product.service.js';
+import { getShowcaseProducts, syncProductsFromOnlineDatabase } from '../../services/product.service.js';
+import { flushSyncQueue, loadOnlineSnapshot } from '../../services/online-sync.service.js';
 import { showNotification } from '../../services/notification.service.js';
 import { getTransactions } from '../../services/transaction.service.js';
 import { formatCurrency } from '../../utils/currency.js';
@@ -49,6 +50,7 @@ function bindEvents(workspace) {
     const tabButton = event.target.closest('[data-mobile-tab]');
     const filterButton = event.target.closest('[data-feed-filter]');
     const themeButton = event.target.closest('[data-mobile-theme-toggle]');
+    const syncButton = event.target.closest('[data-mobile-sync]');
 
     if (tabButton) {
       state.tab = tabButton.dataset.mobileTab;
@@ -66,6 +68,11 @@ function bindEvents(workspace) {
       state.theme = state.theme === 'dark' ? 'light' : 'dark';
       localStorage.setItem(MOBILE_THEME_KEY, state.theme);
       render(workspace);
+      return;
+    }
+
+    if (syncButton) {
+      syncOwnerApp(workspace);
     }
   });
 
@@ -134,6 +141,9 @@ function render(workspace) {
             <button class="mobile-theme-toggle mobile-logout-button" type="button" data-action="logout" aria-label="Sair do app">
               <span>Sair</span>
             </button>
+            <button class="mobile-theme-toggle mobile-sync-button" type="button" data-mobile-sync aria-label="Sincronizar app">
+              <span>Sync</span>
+            </button>
             <span>Hoje</span>
           </div>
         </header>
@@ -152,6 +162,62 @@ function getSavedMobileTheme() {
 
 function getMobileThemeAriaLabel() {
   return state.theme === 'dark' ? 'Ativar modo claro no app' : 'Ativar modo escuro no app';
+}
+
+async function syncOwnerApp(workspace) {
+  showNotification({
+    title: 'Sincronizando',
+    message: 'Buscando dados e atualizacao do app.',
+    type: 'success'
+  });
+
+  try {
+    await Promise.allSettled([
+      flushSyncQueue(),
+      syncProductsFromOnlineDatabase(),
+      loadOnlineSnapshot({ limit: 500 }),
+      refreshServiceWorker()
+    ]);
+    render(workspace);
+    showNotification({
+      title: 'App atualizado',
+      message: 'Dados sincronizados. A tela vai recarregar para aplicar a versao mais nova.',
+      type: 'success'
+    });
+    globalThis.setTimeout?.(() => globalThis.location?.reload(), 650);
+  } catch (error) {
+    showNotification({
+      title: 'Falha ao sincronizar',
+      message: error.message || 'Tente novamente em alguns segundos.',
+      type: 'danger'
+    });
+  }
+}
+
+async function refreshServiceWorker() {
+  if (!('serviceWorker' in navigator)) {
+    await clearBrowserCaches();
+    return;
+  }
+
+  const registration = await navigator.serviceWorker.getRegistration();
+
+  if (registration) {
+    await registration.update();
+    const worker = registration.waiting || registration.installing || registration.active;
+    worker?.postMessage?.({ type: 'PDV_CLEAR_CACHE' });
+  }
+
+  await clearBrowserCaches();
+}
+
+async function clearBrowserCaches() {
+  if (!globalThis.caches?.keys) {
+    return;
+  }
+
+  const keys = await caches.keys();
+  await Promise.all(keys.map((key) => caches.delete(key)));
 }
 
 function renderTabContent(cash) {

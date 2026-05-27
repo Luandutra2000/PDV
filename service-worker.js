@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdv-lanchonete-v22';
+const CACHE_NAME = 'pdv-lanchonete-v23';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -34,6 +34,18 @@ self.addEventListener('activate', (event) => {
           .map((key) => caches.delete(key))
       ))
       .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type !== 'PDV_CLEAR_CACHE') {
+    return;
+  }
+
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+      .then(() => self.skipWaiting())
   );
 });
 
