@@ -72,11 +72,12 @@ Depois, configurar na Vercel:
 ```text
 SUPABASE_URL=https://seu-projeto.supabase.co
 SUPABASE_ANON_KEY=chave-publica-anon
+SUPABASE_SERVICE_ROLE_KEY=chave-service-role
 ```
 
 O script de build detecta essas variaveis e gera `dataProvider: "supabase"`. Sem elas, o sistema continua em modo local para teste.
 
-Nunca colocar `service_role` no frontend ou na Vercel como variavel exposta para o navegador.
+`SUPABASE_SERVICE_ROLE_KEY` e usada apenas nas funcoes `/api/create-user` e `/api/list-users` da Vercel para a tela Pessoas. Nunca colocar `service_role` no frontend, no `runtime-config.js` ou em variavel publica.
 
 ## Rotas importantes
 

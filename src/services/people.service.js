@@ -18,7 +18,7 @@ export async function listPeople() {
     throw new Error('Sessao expirada. Entre novamente.');
   }
 
-  const response = await getPeopleFetch()('/.netlify/functions/list-users', {
+  const response = await getPeopleFetch()('/api/list-users', {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${session.access_token}`
@@ -41,7 +41,7 @@ export async function createPersonUser(input = {}) {
     throw new Error('Sessao expirada. Entre novamente.');
   }
 
-  const response = await getPeopleFetch()('/.netlify/functions/create-user', {
+  const response = await getPeopleFetch()('/api/create-user', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -63,7 +63,7 @@ function normalizePayload(input) {
     name: String(input.name || '').trim(),
     email: String(input.email || '').trim().toLowerCase(),
     password: String(input.password || ''),
-    role: ['admin', 'operador'].includes(input.role) ? input.role : 'operador'
+    role: ['admin', 'dono', 'operador'].includes(input.role) ? input.role : 'operador'
   };
 }
 

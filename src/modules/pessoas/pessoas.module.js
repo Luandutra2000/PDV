@@ -60,6 +60,7 @@ function renderOnlinePeople() {
           <label>
             Perfil
             <select class="field" name="role">
+              <option value="dono">Dono</option>
               <option value="operador">Operador</option>
               <option value="admin">Administrador</option>
             </select>
@@ -102,13 +103,25 @@ function renderPeopleList() {
         <article class="people-row">
           <div>
             <strong>${person.name}</strong>
-            <span>${person.role === 'admin' ? 'Administrador' : 'Operador'}</span>
+            <span>${getRoleLabel(person.role)}</span>
           </div>
           <span class="people-status ${person.active ? 'is-active' : ''}">${person.active ? 'Ativo' : 'Inativo'}</span>
         </article>
       `).join('')}
     </div>
   `;
+}
+
+function getRoleLabel(role) {
+  if (role === 'admin') {
+    return 'Administrador';
+  }
+
+  if (role === 'dono') {
+    return 'Dono';
+  }
+
+  return 'Operador';
 }
 
 function renderLocalWarning() {

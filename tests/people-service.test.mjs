@@ -56,7 +56,7 @@ const result = await people.createPersonUser({
   role: 'operador'
 });
 
-assert(request.url === '/.netlify/functions/create-user', 'service should call Netlify function');
+assert(request.url === '/api/create-user', 'service should call Vercel create user endpoint');
 assert(request.options.method === 'POST', 'service should use POST');
 assert(request.options.headers.Authorization === 'Bearer session-token', 'service should send session token');
 
@@ -105,7 +105,7 @@ people.setPeopleFetchForTests(async (url, options) => {
 
 requests = [];
 const listedPeople = await people.listPeople();
-assert(requests[0].url === '/.netlify/functions/list-users', 'listPeople should call secure Netlify function');
+assert(requests[0].url === '/api/list-users', 'listPeople should call secure Vercel list users endpoint');
 assert(requests[0].options.headers.Authorization === 'Bearer session-token', 'listPeople should send session token');
 assert(listedPeople.length === 2, 'listPeople should return users from function');
 assert(listedPeople[0].active === true, 'listPeople should map active status');
