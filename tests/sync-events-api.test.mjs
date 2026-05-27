@@ -10,6 +10,7 @@ process.env.SUPABASE_ANON_KEY = 'anon-key';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
 
 const calls = [];
+let salesAttempts = 0;
 globalThis.fetch = async (url, options = {}) => {
   calls.push({ url, options });
 
@@ -18,9 +19,16 @@ globalThis.fetch = async (url, options = {}) => {
   }
 
   if (url.endsWith('/rest/v1/sales')) {
+    salesAttempts += 1;
     const body = JSON.parse(options.body);
     assert(body[0].command_id === null, 'API should not persist local command ids as Supabase foreign keys');
-    assert(body[0].payload.items.length === 1, 'API should keep full sale payload');
+
+    if (salesAttempts === 1) {
+      assert(body[0].payload.items.length === 1, 'API should keep full sale payload on first attempt');
+      return jsonResponse({ message: "Could not find the 'payload' column of 'sales'" }, false, 400);
+    }
+
+    assert(!('payload' in body[0]), 'API should retry sales without payload when schema rejects it');
     return jsonResponse({});
   }
 
@@ -56,7 +64,7 @@ await syncEventsHandler({
 }, response);
 
 assert(response.statusCode === 200, 'sync events API should return 200');
-assert(calls.some((call) => call.url.endsWith('/rest/v1/sales')), 'sync events API should upsert sales');
+assert(calls.filter((call) => call.url.endsWith('/rest/v1/sales')).length === 2, 'sync events API should retry sales without payload');
 assert(calls.some((call) => call.url.endsWith('/rest/v1/sale_items')), 'sync events API should try to upsert sale items');
 const saleCall = calls.find((call) => call.url.endsWith('/rest/v1/sales'));
 assert(JSON.parse(saleCall.options.body)[0].payment_method === 'dinheiro', 'sync events API should normalize missing payment method');

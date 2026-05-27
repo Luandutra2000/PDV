@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
   try {
     const requestFetch = fetch;
-    const body = normalizeBody(req.body);
+    const body = await readRequestBody(req);
     await getCurrentUser({ ...config.value, accessToken, fetch: requestFetch });
     const snapshot = await loadSnapshot({ ...config.value, limit: normalizeLimit(body?.limit), fetch: requestFetch });
     sendJson(res, 200, snapshot);
@@ -52,12 +52,13 @@ export default async function handler(req, res) {
 
 async function loadSnapshot({ supabaseUrl, serviceRoleKey, limit, fetch }) {
   const headers = serviceHeaders(serviceRoleKey);
-  const [sales, movements, launches, writeOffs] = await Promise.all(
-    SNAPSHOT_TABLES.map((table) => selectRows({ supabaseUrl, headers, table, limit, fetch }))
-  );
+  const [sales, movements, launches, writeOffs, saleItems] = await Promise.all([
+    ...SNAPSHOT_TABLES.map((table) => selectRows({ supabaseUrl, headers, table, limit, fetch })),
+    selectRows({ supabaseUrl, headers, table: 'sale_items', limit: limit * 8, fetch })
+  ]);
 
   return {
-    sales,
+    sales: sales.map((sale) => hydrateSalePayload(sale, saleItems)),
     cash_movements: movements,
     stock_production: launches,
     showcase_write_offs: writeOffs
@@ -87,13 +88,66 @@ function normalizeLimit(value) {
   return Math.min(Math.max(limit, 1), 500);
 }
 
-function normalizeBody(body) {
-  if (typeof body !== 'string') {
-    return body || {};
+function hydrateSalePayload(sale, saleItems) {
+  if (sale.payload) {
+    return sale;
   }
 
+  const items = saleItems
+    .filter((item) => item.sale_id === sale.id)
+    .map((item) => ({
+      productId: item.product_id,
+      name: item.name,
+      quantity: Number(item.quantity) || 0,
+      price: Number(item.unit_price) || 0,
+      unitPrice: Number(item.unit_price) || 0,
+      total: Number(item.total) || 0
+    }));
+
+  return {
+    ...sale,
+    payload: {
+      id: sale.id,
+      type: 'venda',
+      status: sale.status,
+      comandaId: sale.command_id,
+      comandaNumber: sale.command_number,
+      items,
+      total: Number(sale.total) || 0,
+      paymentMethod: sale.payment_method,
+      receivedAmount: Number(sale.received_amount) || 0,
+      change: Number(sale.change_amount) || 0,
+      createdAt: sale.created_at,
+      canceledAt: sale.canceled_at
+    }
+  };
+}
+
+async function readRequestBody(req) {
+  if (req.body && typeof req.body !== 'string') {
+    return req.body;
+  }
+
+  if (typeof req.body === 'string') {
+    return parseJson(req.body);
+  }
+
+  if (!req[Symbol.asyncIterator]) {
+    return {};
+  }
+
+  let raw = '';
+
+  for await (const chunk of req) {
+    raw += chunk;
+  }
+
+  return parseJson(raw);
+}
+
+function parseJson(raw) {
   try {
-    return JSON.parse(body);
+    return JSON.parse(raw || '{}');
   } catch {
     return {};
   }

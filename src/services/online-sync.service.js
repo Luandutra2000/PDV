@@ -197,8 +197,10 @@ async function syncQueueItemViaApi(item) {
     return false;
   }
 
+  let response;
+
   try {
-    const response = await getSyncFetch()('/api/sync-events', {
+    response = await getSyncFetch()('/api/sync-events', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -206,11 +208,16 @@ async function syncQueueItemViaApi(item) {
       },
       body: JSON.stringify({ event: item })
     });
-
-    return response.ok;
   } catch {
     return false;
   }
+
+  if (response.ok) {
+    return true;
+  }
+
+  const data = await readResponseJson(response);
+  throw new Error(data.error || `API de sincronizacao retornou ${response.status}.`);
 }
 
 async function getAccessToken() {

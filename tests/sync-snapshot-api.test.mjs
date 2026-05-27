@@ -18,7 +18,29 @@ globalThis.fetch = async (url, options = {}) => {
   }
 
   if (url.includes('/rest/v1/sales?')) {
-    return jsonResponse([{ id: 'sale-1', payload: { id: 'sale-1', type: 'venda', total: 12 } }]);
+    return jsonResponse([{
+      id: 'sale-1',
+      status: 'ativa',
+      command_id: null,
+      command_number: 4,
+      total: 12,
+      payment_method: 'pix',
+      received_amount: 12,
+      change_amount: 0,
+      created_at: '2026-05-27T10:00:00.000Z'
+    }]);
+  }
+
+  if (url.includes('/rest/v1/sale_items?')) {
+    return jsonResponse([{
+      id: 'sale-1-coxinha',
+      sale_id: 'sale-1',
+      product_id: 'coxinha',
+      name: 'Coxinha',
+      quantity: 2,
+      unit_price: 6,
+      total: 12
+    }]);
   }
 
   if (url.includes('/rest/v1/cash_movements?')) {
@@ -47,6 +69,7 @@ const payload = JSON.parse(response.body);
 
 assert(response.statusCode === 200, 'sync snapshot API should return 200');
 assert(payload.sales.length === 1, 'sync snapshot API should return sales');
+assert(payload.sales[0].payload.items.length === 1, 'sync snapshot API should rebuild sale payload from sale items');
 assert(payload.cash_movements.length === 1, 'sync snapshot API should return cash movements');
 assert(payload.stock_production.length === 1, 'sync snapshot API should return stock production');
 assert(calls.some((call) => call.url.includes('limit=10')), 'sync snapshot API should pass requested limit');

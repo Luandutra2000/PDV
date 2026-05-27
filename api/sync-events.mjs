@@ -42,24 +42,12 @@ export default async function handler(req, res) {
 
   try {
     const requestFetch = fetch;
-    const body = normalizeBody(req.body);
+    const body = await readRequestBody(req);
     await getCurrentUser({ ...config.value, accessToken, fetch: requestFetch });
     await syncEvent({ ...config.value, event: body?.event, fetch: requestFetch });
     sendJson(res, 200, { ok: true });
   } catch (error) {
     sendJson(res, error.statusCode || 500, { error: error.message || 'Nao foi possivel sincronizar evento.' });
-  }
-}
-
-function normalizeBody(body) {
-  if (typeof body !== 'string') {
-    return body || {};
-  }
-
-  try {
-    return JSON.parse(body);
-  } catch {
-    return {};
   }
 }
 
@@ -110,13 +98,23 @@ async function syncEvent({ supabaseUrl, serviceRoleKey, event, fetch }) {
 }
 
 async function syncSale({ supabaseUrl, serviceRoleKey, sale, fetch }) {
-  await upsertRows({
-    supabaseUrl,
-    serviceRoleKey,
-    table: 'sales',
-    rows: [mapSaleToRow(sale)],
-    fetch
-  });
+  try {
+    await upsertRows({
+      supabaseUrl,
+      serviceRoleKey,
+      table: 'sales',
+      rows: [mapSaleToRow(sale)],
+      fetch
+    });
+  } catch (error) {
+    await upsertRows({
+      supabaseUrl,
+      serviceRoleKey,
+      table: 'sales',
+      rows: [mapSaleToRow(sale, { includePayload: false })],
+      fetch
+    });
+  }
 
   const items = (sale.items || []).map((item) => ({
     id: `${sale.id}-${item.productId}`,
@@ -162,10 +160,9 @@ async function upsertRows({ supabaseUrl, serviceRoleKey, table, rows, fetch }) {
   }
 }
 
-function mapSaleToRow(sale) {
+function mapSaleToRow(sale, { includePayload = true } = {}) {
   const paymentMethod = normalizePaymentMethod(sale.paymentMethod);
-
-  return {
+  const row = {
     id: sale.id,
     status: sale.status || 'ativa',
     command_id: null,
@@ -175,7 +172,15 @@ function mapSaleToRow(sale) {
     received_amount: Number(sale.receivedAmount) || 0,
     change_amount: Number(sale.change) || 0,
     created_at: sale.createdAt || new Date().toISOString(),
-    canceled_at: sale.canceledAt || null,
+    canceled_at: sale.canceledAt || null
+  };
+
+  if (!includePayload) {
+    return row;
+  }
+
+  return {
+    ...row,
     payload: {
       ...sale,
       paymentMethod
@@ -237,4 +242,34 @@ function mapWriteOffToRow(writeOff) {
 function normalizePaymentMethod(value) {
   const method = String(value || '').trim().toLowerCase();
   return ['dinheiro', 'pix', 'debito', 'credito'].includes(method) ? method : 'dinheiro';
+}
+
+async function readRequestBody(req) {
+  if (req.body && typeof req.body !== 'string') {
+    return req.body;
+  }
+
+  if (typeof req.body === 'string') {
+    return parseJson(req.body);
+  }
+
+  if (!req[Symbol.asyncIterator]) {
+    return {};
+  }
+
+  let raw = '';
+
+  for await (const chunk of req) {
+    raw += chunk;
+  }
+
+  return parseJson(raw);
+}
+
+function parseJson(raw) {
+  try {
+    return JSON.parse(raw || '{}');
+  } catch {
+    return {};
+  }
 }
