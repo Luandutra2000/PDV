@@ -5,6 +5,10 @@ import { getClosedComandas, getTransactions } from './transaction.service.js';
 export function createPeriodFilter(period = 'today', customStart = '', customEnd = '') {
   const now = new Date();
 
+  if (period === 'all') {
+    return { period, start: null, end: null };
+  }
+
   if (period === 'custom') {
     return {
       period,
@@ -31,6 +35,11 @@ export function createPeriodFilter(period = 'today', customStart = '', customEnd
 
   if (period === 'month') {
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    return { period, start, end: now };
+  }
+
+  if (period === 'year') {
+    const start = new Date(now.getFullYear(), 0, 1);
     return { period, start, end: now };
   }
 

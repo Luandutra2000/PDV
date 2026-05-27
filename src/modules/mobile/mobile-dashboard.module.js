@@ -1,7 +1,7 @@
 import { UI_EVENTS } from '../../database/schema.js';
 import { on } from '../../services/event-bus.service.js';
-import { getCategoryRanking, getCrmSummary, getProductRanking, getSalesSeries } from '../../services/crm-dashboard.service.js';
-import { createStockLaunch } from '../../services/estoque.service.js';
+import { createPeriodFilter, getCategoryRanking, getCrmSummary, getProductRanking, getSalesSeries } from '../../services/crm-dashboard.service.js';
+import { createStockLaunch, deleteStockComparisonRow } from '../../services/estoque.service.js';
 import { getMobileCashFlowSummary } from '../../services/mobile-cash-flow.service.js';
 import { getMobileFeedEvents, getMobileFeedFilters } from '../../services/mobile-notifications.service.js';
 import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js';
@@ -24,7 +24,11 @@ const tabs = [
 let state = {
   tab: 'home',
   filter: 'all',
-  theme: getSavedMobileTheme()
+  theme: getSavedMobileTheme(),
+  period: 'today',
+  customStart: '',
+  customEnd: '',
+  selectedShowcaseIds: []
 };
 
 let subscriptionsReady = false;
@@ -33,7 +37,11 @@ export function initMobileDashboardModule(workspace) {
   state = {
     tab: 'home',
     filter: 'all',
-    theme: getSavedMobileTheme()
+    theme: getSavedMobileTheme(),
+    period: 'today',
+    customStart: '',
+    customEnd: '',
+    selectedShowcaseIds: []
   };
 
   render(workspace);
@@ -51,6 +59,8 @@ function bindEvents(workspace) {
     const filterButton = event.target.closest('[data-feed-filter]');
     const themeButton = event.target.closest('[data-mobile-theme-toggle]');
     const syncButton = event.target.closest('[data-mobile-sync]');
+    const clearShowcaseButton = event.target.closest('[data-clear-mobile-showcase]');
+    const selectAllShowcaseButton = event.target.closest('[data-select-all-showcase]');
 
     if (tabButton) {
       state.tab = tabButton.dataset.mobileTab;
@@ -73,6 +83,49 @@ function bindEvents(workspace) {
 
     if (syncButton) {
       syncOwnerApp(workspace);
+      return;
+    }
+
+    if (selectAllShowcaseButton) {
+      const summary = getMobileShowcaseSummary(getMobileFilters());
+      state.selectedShowcaseIds = summary.rows.map((row) => row.produtoId);
+      render(workspace);
+      return;
+    }
+
+    if (clearShowcaseButton) {
+      clearSelectedShowcaseRows(workspace);
+    }
+  });
+
+  workspace.addEventListener('change', (event) => {
+    if (event.target.matches('[data-mobile-period]')) {
+      state.period = event.target.value;
+      state.selectedShowcaseIds = [];
+      render(workspace);
+      return;
+    }
+
+    if (event.target.matches('[data-mobile-custom-start]')) {
+      state.customStart = event.target.value;
+      render(workspace);
+      return;
+    }
+
+    if (event.target.matches('[data-mobile-custom-end]')) {
+      state.customEnd = event.target.value;
+      render(workspace);
+      return;
+    }
+
+    if (event.target.matches('[data-showcase-select]')) {
+      const ids = new Set(state.selectedShowcaseIds);
+      if (event.target.checked) {
+        ids.add(event.target.value);
+      } else {
+        ids.delete(event.target.value);
+      }
+      state.selectedShowcaseIds = Array.from(ids);
     }
   });
 
@@ -124,7 +177,8 @@ function renderIfMobileIsVisible(workspace) {
 }
 
 function render(workspace) {
-  const cash = getMobileCashFlowSummary();
+  const filters = getMobileFilters();
+  const cash = getMobileCashFlowSummary(filters);
 
   workspace.innerHTML = `
     <section class="mobile-shell" data-mobile-dashboard-root data-mobile-theme="${state.theme}">
@@ -144,9 +198,10 @@ function render(workspace) {
             <button class="mobile-theme-toggle mobile-sync-button" type="button" data-mobile-sync aria-label="Sincronizar app">
               <span>Sync</span>
             </button>
-            <span>Hoje</span>
+            <span>${getPeriodLabel(state.period)}</span>
           </div>
         </header>
+        ${renderMobilePeriodFilters()}
         ${renderTabContent(cash)}
         ${renderBottomNav()}
       </div>
@@ -154,6 +209,52 @@ function render(workspace) {
   `;
 
   bindEvents(workspace);
+}
+
+function getMobileFilters() {
+  return {
+    period: state.period,
+    customStart: state.customStart,
+    customEnd: state.customEnd
+  };
+}
+
+function renderMobilePeriodFilters() {
+  return `
+    <div class="mobile-period-bar">
+      <select class="field" data-mobile-period aria-label="Periodo do app">
+        ${[
+          ['today', 'Hoje'],
+          ['yesterday', 'Ontem'],
+          ['week', '7 dias'],
+          ['month', 'Este mes'],
+          ['year', 'Este ano'],
+          ['all', 'Tudo'],
+          ['custom', 'Periodo']
+        ].map(([value, label]) => `
+          <option value="${value}" ${state.period === value ? 'selected' : ''}>${label}</option>
+        `).join('')}
+      </select>
+      ${state.period === 'custom' ? `
+        <input class="field" type="date" value="${state.customStart}" data-mobile-custom-start aria-label="Inicio">
+        <input class="field" type="date" value="${state.customEnd}" data-mobile-custom-end aria-label="Fim">
+      ` : ''}
+    </div>
+  `;
+}
+
+function getPeriodLabel(period) {
+  const labels = {
+    today: 'Hoje',
+    yesterday: 'Ontem',
+    week: '7 dias',
+    month: 'Mes',
+    year: 'Ano',
+    all: 'Tudo',
+    custom: 'Periodo'
+  };
+
+  return labels[period] || 'Hoje';
 }
 
 function getSavedMobileTheme() {
@@ -274,7 +375,7 @@ function renderCashTab(cash) {
 }
 
 function renderShowcaseTab() {
-  const summary = getMobileShowcaseSummary();
+  const summary = getMobileShowcaseSummary(getMobileFilters());
   const products = getShowcaseProducts();
   const cards = [
     { label: 'Produzidos', value: summary.producedUnits, tone: 'info', isCurrency: false },
@@ -308,23 +409,34 @@ function renderShowcaseTab() {
         </form>
       </section>
       <section class="mobile-list-panel">
-        <h2>Produtos na vitrine</h2>
+        <div class="mobile-panel-header">
+          <h2>Produtos na vitrine</h2>
+          <span>${state.selectedShowcaseIds.length} selecionado(s)</span>
+        </div>
+        ${summary.rows.length ? `
+          <div class="mobile-row-actions">
+            <button class="button button--ghost" type="button" data-select-all-showcase>Selecionar todos</button>
+            <button class="button button--danger" type="button" data-clear-mobile-showcase ${state.selectedShowcaseIds.length ? '' : 'disabled'}>Limpar selecionados</button>
+          </div>
+        ` : ''}
         ${summary.rows.map((row) => `
-          <div class="mobile-row">
+          <label class="mobile-row mobile-select-row">
+            <input type="checkbox" value="${row.produtoId}" data-showcase-select ${state.selectedShowcaseIds.includes(row.produtoId) ? 'checked' : ''}>
             <span>${row.produtoNome}</span>
             <strong>${row.sobraQuantidade} restantes</strong>
-          </div>
-        `).join('') || '<p class="mobile-empty">Nenhum produto na vitrine hoje.</p>'}
+          </label>
+        `).join('') || `<p class="mobile-empty">Nenhum produto na vitrine em ${getPeriodLabel(state.period).toLowerCase()}.</p>`}
       </section>
     </div>
   `;
 }
 
 function renderCrmTab() {
-  const crm = getCrmSummary();
-  const ranking = getProductRanking();
-  const categories = getCategoryRanking();
-  const salesSeries = getSalesSeries();
+  const filter = createPeriodFilter(state.period, state.customStart, state.customEnd);
+  const crm = getCrmSummary(filter);
+  const ranking = getProductRanking(filter);
+  const categories = getCategoryRanking(filter);
+  const salesSeries = getSalesSeries(filter);
   const best = ranking.byQuantity[0];
   const slow = ranking.byQuantity[ranking.byQuantity.length - 1];
   const cards = [
@@ -384,7 +496,9 @@ function renderCrmTab() {
 }
 
 function renderHistoryTab() {
+  const filter = createPeriodFilter(state.period, state.customStart, state.customEnd);
   const transactions = getTransactions()
+    .filter((transaction) => isInMobileFilter(transaction.createdAt, filter))
     .slice()
     .sort((a, b) => new Date(getTransactionDate(b)) - new Date(getTransactionDate(a)))
     .slice(0, 80);
@@ -397,6 +511,43 @@ function renderHistoryTab() {
       </section>
     </div>
   `;
+}
+
+function clearSelectedShowcaseRows(workspace) {
+  if (!state.selectedShowcaseIds.length) {
+    return;
+  }
+
+  const confirmed = globalThis.confirm?.(`Limpar ${state.selectedShowcaseIds.length} produto(s) da vitrine neste periodo? Isso tambem sincroniza no banco.`) ?? true;
+
+  if (!confirmed) {
+    return;
+  }
+
+  const filters = getMobileFilters();
+  state.selectedShowcaseIds.forEach((productId) => deleteStockComparisonRow(productId, filters));
+  showNotification({
+    title: 'Vitrine limpa',
+    message: 'Produtos selecionados foram removidos da vitrine e enviados para sincronizacao.',
+    type: 'danger'
+  });
+  state.selectedShowcaseIds = [];
+  render(workspace);
+}
+
+function isInMobileFilter(value, filter) {
+  if (!value) {
+    return false;
+  }
+
+  if (filter.period === 'all') {
+    return true;
+  }
+
+  const date = new Date(value);
+  if (filter.start && date < filter.start) return false;
+  if (filter.end && date > filter.end) return false;
+  return true;
 }
 
 function renderHistoryRow(transaction) {

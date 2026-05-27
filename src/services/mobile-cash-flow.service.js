@@ -1,7 +1,11 @@
-import { getDailyMoneySummary } from './transaction.service.js';
+import { getMoneySummary } from './transaction.service.js';
 
-export function getMobileCashFlowSummary() {
-  const summary = getDailyMoneySummary();
+export function getMobileCashFlowSummary(filters = {}) {
+  const summary = getMoneySummary({
+    period: filters.period || 'today',
+    customStart: filters.customStart || '',
+    customEnd: filters.customEnd || ''
+  });
   const estimatedProfit = summary.salesTotal + summary.entriesTotal - summary.outputsTotal;
   const currentCash = estimatedProfit;
 

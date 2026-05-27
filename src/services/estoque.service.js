@@ -356,6 +356,13 @@ function isInPeriod(value, period, filters = {}) {
     return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
   }
 
+  if (period === 'week') {
+    const start = new Date(now);
+    start.setDate(now.getDate() - 6);
+    start.setHours(0, 0, 0, 0);
+    return date >= start && date <= now;
+  }
+
   if (period === 'yesterday') {
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
@@ -386,6 +393,11 @@ function getPeriodRange({ period = 'today', customStart = '', customEnd = '' } =
   if (period === 'month') {
     start = new Date(now.getFullYear(), now.getMonth(), 1);
     end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  }
+
+  if (period === 'week') {
+    start = addDays(startOfDay(now), -6);
+    end = addDays(startOfDay(now), 1);
   }
 
   if (period === 'year') {

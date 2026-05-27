@@ -1,8 +1,13 @@
 import { getProductionSalesComparison, getStockSummary } from './estoque.service.js';
 
-export function getMobileShowcaseSummary() {
-  const summary = getStockSummary({ period: 'today' });
-  const rows = getProductionSalesComparison({ period: 'today' });
+export function getMobileShowcaseSummary(filters = {}) {
+  const periodFilters = {
+    period: filters.period || 'today',
+    customStart: filters.customStart || '',
+    customEnd: filters.customEnd || ''
+  };
+  const summary = getStockSummary(periodFilters);
+  const rows = getProductionSalesComparison(periodFilters);
   const bestSellers = [...rows].sort((a, b) => b.quantidadeVendida - a.quantidadeVendida);
   const slowSellers = [...rows].sort((a, b) => a.percentualVendido - b.percentualVendido);
 
