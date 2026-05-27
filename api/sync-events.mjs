@@ -245,6 +245,10 @@ function normalizePaymentMethod(value) {
 }
 
 async function readRequestBody(req) {
+  if (isBufferLike(req.body)) {
+    return parseJson(Buffer.from(req.body).toString('utf8'));
+  }
+
   if (req.body && typeof req.body !== 'string') {
     return req.body;
   }
@@ -272,4 +276,12 @@ function parseJson(raw) {
   } catch {
     return {};
   }
+}
+
+function isBufferLike(value) {
+  return value && (
+    Buffer.isBuffer(value)
+      || value instanceof Uint8Array
+      || value?.type === 'Buffer'
+  );
 }

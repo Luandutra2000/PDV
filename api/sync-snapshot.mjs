@@ -54,7 +54,7 @@ async function loadSnapshot({ supabaseUrl, serviceRoleKey, limit, fetch }) {
   const headers = serviceHeaders(serviceRoleKey);
   const [sales, movements, launches, writeOffs, saleItems] = await Promise.all([
     ...SNAPSHOT_TABLES.map((table) => selectRows({ supabaseUrl, headers, table, limit, fetch })),
-    selectRows({ supabaseUrl, headers, table: 'sale_items', limit: limit * 8, fetch })
+    selectRows({ supabaseUrl, headers, table: 'sale_items', limit: limit * 8, fetch, orderByCreatedAt: false })
   ]);
 
   return {
@@ -65,12 +65,15 @@ async function loadSnapshot({ supabaseUrl, serviceRoleKey, limit, fetch }) {
   };
 }
 
-async function selectRows({ supabaseUrl, headers, table, limit, fetch }) {
+async function selectRows({ supabaseUrl, headers, table, limit, fetch, orderByCreatedAt = true }) {
   const query = new URLSearchParams({
     select: '*',
-    order: 'created_at.desc',
     limit: String(limit)
   });
+
+  if (orderByCreatedAt) {
+    query.set('order', 'created_at.desc');
+  }
 
   try {
     return await requestJson(`${supabaseUrl}/rest/v1/${table}?${query}`, headers, fetch);
@@ -124,6 +127,10 @@ function hydrateSalePayload(sale, saleItems) {
 }
 
 async function readRequestBody(req) {
+  if (isBufferLike(req.body)) {
+    return parseJson(Buffer.from(req.body).toString('utf8'));
+  }
+
   if (req.body && typeof req.body !== 'string') {
     return req.body;
   }
@@ -151,4 +158,12 @@ function parseJson(raw) {
   } catch {
     return {};
   }
+}
+
+function isBufferLike(value) {
+  return value && (
+    Buffer.isBuffer(value)
+      || value instanceof Uint8Array
+      || value?.type === 'Buffer'
+  );
 }

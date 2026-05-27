@@ -32,6 +32,7 @@ globalThis.fetch = async (url, options = {}) => {
   }
 
   if (url.includes('/rest/v1/sale_items?')) {
+    assert(!url.includes('created_at.desc'), 'sale_items snapshot should not order by created_at because older schemas do not have it');
     return jsonResponse([{
       id: 'sale-1-coxinha',
       sale_id: 'sale-1',
@@ -62,7 +63,7 @@ const response = createMockResponse();
 await syncSnapshotHandler({
   method: 'POST',
   headers: { authorization: 'Bearer user-token' },
-  body: JSON.stringify({ limit: 10 })
+  body: Buffer.from(JSON.stringify({ limit: 10 }))
 }, response);
 
 const payload = JSON.parse(response.body);
