@@ -3,7 +3,13 @@ import { on } from './event-bus.service.js';
 import { getItem, setItem } from './storage.service.js';
 import { flushSyncQueue } from './online-sync.service.js';
 
-const subscribedEvents = Object.values(SYNC_EVENTS);
+const subscribedEvents = [
+  SYNC_EVENTS.saleFinished,
+  SYNC_EVENTS.cashMovementRegistered,
+  SYNC_EVENTS.stockLaunchCreated,
+  SYNC_EVENTS.showcaseWriteOffCreated,
+  SYNC_EVENTS.transactionHistoryCleared
+];
 let initialized = false;
 
 export function initSyncService() {

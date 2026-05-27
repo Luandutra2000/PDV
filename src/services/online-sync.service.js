@@ -5,6 +5,13 @@ import { getSupabaseClient } from './supabase-client.service.js';
 import { getItem, setItem } from './storage.service.js';
 
 const MAX_ATTEMPTS = 12;
+const SUPPORTED_SYNC_EVENTS = new Set([
+  SYNC_EVENTS.saleFinished,
+  SYNC_EVENTS.cashMovementRegistered,
+  SYNC_EVENTS.stockLaunchCreated,
+  SYNC_EVENTS.showcaseWriteOffCreated,
+  SYNC_EVENTS.transactionHistoryCleared
+]);
 let initialized = false;
 let flushing = false;
 let clientForTests = null;
@@ -162,6 +169,10 @@ async function getOnlineClient() {
 }
 
 async function syncQueueItem(client, item) {
+  if (!SUPPORTED_SYNC_EVENTS.has(item.type)) {
+    return;
+  }
+
   if (await syncQueueItemViaApi(item)) {
     return;
   }

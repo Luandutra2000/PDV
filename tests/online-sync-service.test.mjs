@@ -87,6 +87,15 @@ sync.setOnlineSyncFetchForTests(async () => {
 });
 storage.setItem(STORAGE_KEYS.syncQueue, [
   {
+    id: 'sync-comanda-ignored',
+    type: SYNC_EVENTS.comandaItemAdded,
+    status: 'pending',
+    payload: {
+      id: 'comanda-local',
+      productId: 'coxinha'
+    }
+  },
+  {
     id: 'sync-sale-1',
     type: SYNC_EVENTS.saleFinished,
     status: 'pending',
@@ -127,7 +136,7 @@ assert(saleUpsert, 'sales should be pushed to Supabase');
 assert(saleUpsert.payload.command_id === null, 'local comanda ids should not be sent as Supabase command foreign keys');
 assert(saleUpsert.payload.command_number === 7, 'sale should keep the visible comanda number');
 assert(calls.some((call) => call.table === 'cash_movements' && call.type === 'upsert'), 'cash movements should be pushed to Supabase');
-assert(storage.getItem(STORAGE_KEYS.syncQueue, []).length === 0, 'successful sync should clear queue');
+assert(storage.getItem(STORAGE_KEYS.syncQueue, []).length === 0, 'successful sync should clear queue and discard unsupported local comanda events');
 
 calls.length = 0;
 storage.setItem(STORAGE_KEYS.syncQueue, [{
