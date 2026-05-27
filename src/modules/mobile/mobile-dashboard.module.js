@@ -7,6 +7,8 @@ import { getMobileFeedEvents, getMobileFeedFilters } from '../../services/mobile
 import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 
+const MOBILE_THEME_KEY = 'pdv.mobileTheme';
+
 const tabs = [
   { id: 'home', label: 'Inicio', icon: 'IN' },
   { id: 'cash', label: 'Caixa', icon: '$' },
@@ -17,7 +19,8 @@ const tabs = [
 
 let state = {
   tab: 'home',
-  filter: 'all'
+  filter: 'all',
+  theme: getSavedMobileTheme()
 };
 
 let subscriptionsReady = false;
@@ -25,7 +28,8 @@ let subscriptionsReady = false;
 export function initMobileDashboardModule(workspace) {
   state = {
     tab: 'home',
-    filter: 'all'
+    filter: 'all',
+    theme: getSavedMobileTheme()
   };
 
   render(workspace);
@@ -41,6 +45,7 @@ function bindEvents(workspace) {
   workspace.addEventListener('click', (event) => {
     const tabButton = event.target.closest('[data-mobile-tab]');
     const filterButton = event.target.closest('[data-feed-filter]');
+    const themeButton = event.target.closest('[data-mobile-theme-toggle]');
 
     if (tabButton) {
       state.tab = tabButton.dataset.mobileTab;
@@ -50,6 +55,13 @@ function bindEvents(workspace) {
 
     if (filterButton) {
       state.filter = filterButton.dataset.feedFilter;
+      render(workspace);
+      return;
+    }
+
+    if (themeButton) {
+      state.theme = state.theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem(MOBILE_THEME_KEY, state.theme);
       render(workspace);
     }
   });
@@ -69,14 +81,19 @@ function render(workspace) {
   const cash = getMobileCashFlowSummary();
 
   workspace.innerHTML = `
-    <section class="mobile-shell">
+    <section class="mobile-shell" data-mobile-theme="${state.theme}">
       <div class="mobile-app">
         <header class="mobile-topbar">
           <div>
             <h1>PDV Lanchonete</h1>
             <p>Painel do dono</p>
           </div>
-          <span>Hoje</span>
+          <div class="mobile-topbar-actions">
+            <button class="mobile-theme-toggle" type="button" data-mobile-theme-toggle aria-label="${getMobileThemeAriaLabel()}">
+              <span>${state.theme === 'dark' ? 'CL' : 'ES'}</span>
+            </button>
+            <span>Hoje</span>
+          </div>
         </header>
         ${renderTabContent(cash)}
         ${renderBottomNav()}
@@ -85,6 +102,14 @@ function render(workspace) {
   `;
 
   bindEvents(workspace);
+}
+
+function getSavedMobileTheme() {
+  return globalThis.localStorage?.getItem(MOBILE_THEME_KEY) || 'light';
+}
+
+function getMobileThemeAriaLabel() {
+  return state.theme === 'dark' ? 'Ativar modo claro no app' : 'Ativar modo escuro no app';
 }
 
 function renderTabContent(cash) {
