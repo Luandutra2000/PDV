@@ -82,6 +82,7 @@ function renderDashboard(container) {
 
       ${dashboardState.modal === 'entrada' || dashboardState.modal === 'saida' ? renderCashMovementModal(dashboardState.modal) : ''}
       ${dashboardState.modal === 'cancel-comanda' ? renderCancelComandaModal() : ''}
+      ${dashboardState.modal === 'clear-history' ? renderClearHistoryModal() : ''}
     </section>
   `;
 }
@@ -115,12 +116,18 @@ function bindDashboardEvents(container) {
     }
 
     if (button.dataset.action === 'clear-history') {
+      dashboardState.modal = 'clear-history';
+      renderDashboard(container);
+    }
+
+    if (button.dataset.action === 'confirm-clear-history') {
       clearTransactionHistory();
       showNotification({
         title: 'Historico limpo',
         message: 'Comandas e movimentos foram removidos.',
         type: 'danger'
       });
+      dashboardState.modal = null;
       renderDashboard(container);
     }
 
@@ -353,6 +360,28 @@ function renderCancelComandaModal() {
           <div class="form-actions">
             <button class="button button--ghost" type="button" data-action="close-modal">Voltar</button>
             <button class="button button--danger" type="button" data-action="confirm-cancel-comanda">Cancelar comanda</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+export function renderClearHistoryModal() {
+  return `
+    <div class="modal-backdrop is-open">
+      <div class="modal modal--small" role="dialog" aria-modal="true">
+        <header class="modal__header">
+          <h2>Limpar historico?</h2>
+          <button class="icon-button" type="button" data-action="close-modal">X</button>
+        </header>
+        <div class="product-form">
+          <p class="modal-text">
+            Esta acao remove comandas, vendas, entradas e saidas do historico deste sistema e sincroniza a limpeza no banco.
+          </p>
+          <div class="form-actions">
+            <button class="button button--ghost" type="button" data-action="close-modal">Cancelar</button>
+            <button class="button button--danger" type="button" data-action="confirm-clear-history">Limpar historico</button>
           </div>
         </div>
       </div>
