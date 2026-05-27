@@ -15,9 +15,11 @@ A Vercel hospeda a aplicacao. O banco de dados deve ser conectado separadamente.
 
 O arquivo `vercel.json` define:
 
+- Build command para gerar `src/config/runtime-config.js`.
 - URLs limpas.
 - Fallback para `index.html`.
 - Cache controlado para `manifest.json` e `service-worker.js`.
+- Cache sem travar para `src/config/runtime-config.js`.
 - Cache longo para arquivos estaticos em `src/`.
 
 ## Deploy manual pela CLI
@@ -50,22 +52,31 @@ vercel --prod
 
 1. Subir o projeto para um repositorio no GitHub.
 2. Importar o repositorio na Vercel.
-3. Configurar o projeto como estatico, sem build command.
+3. Manter o build command do `vercel.json`: `node scripts/generate-runtime-config.mjs`.
 4. Definir output/root como a raiz do repositorio.
 5. Cada push gera um preview.
 6. Push na branch principal gera deploy de producao, conforme configuracao da Vercel.
 
-## Variaveis futuras para Supabase
+## Supabase
 
-Quando a integracao com banco online for feita, configurar na Vercel:
+Antes do deploy final, rode a migration:
+
+```text
+supabase/migrations/202605270001_initial_pdv_system.sql
+```
+
+Ela cria as tabelas principais do sistema, ativa RLS, concede acesso ao papel `authenticated` e prepara perfis/permissoes para dono, administrador e operador.
+
+Depois, configurar na Vercel:
 
 ```text
 SUPABASE_URL=https://seu-projeto.supabase.co
 SUPABASE_ANON_KEY=chave-publica-anon
-APP_DATA_PROVIDER=supabase
 ```
 
-Essas variaveis devem ser publicas apenas quando forem seguras para frontend. Nunca colocar `service_role` no frontend ou na Vercel como variavel exposta para o navegador.
+O script de build detecta essas variaveis e gera `dataProvider: "supabase"`. Sem elas, o sistema continua em modo local para teste.
+
+Nunca colocar `service_role` no frontend ou na Vercel como variavel exposta para o navegador.
 
 ## Rotas importantes
 

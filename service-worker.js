@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdv-lanchonete-v5';
+const CACHE_NAME = 'pdv-lanchonete-v7';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const STATIC_ASSETS = [
   './src/styles/modal.css',
   './src/styles/pdv.css',
   './src/styles/mobile.css',
+  './src/config/runtime-config.js',
   './src/app.js'
 ];
 

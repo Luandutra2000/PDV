@@ -1,8 +1,19 @@
 {
   "version": 2,
+  "buildCommand": "node scripts/generate-runtime-config.mjs",
+  "outputDirectory": ".",
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [
+    {
+      "source": "/src/config/runtime-config.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
     {
       "source": "/service-worker.js",
       "headers": [

@@ -1,3 +1,4 @@
+import './config/runtime-config.js';
 import { renderSidebar } from './components/sidebar.component.js?v=20260526-03';
 import { ensureSeedData } from './services/storage.service.js';
 import { initSyncService } from './services/sync.service.js';
