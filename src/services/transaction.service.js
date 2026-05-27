@@ -92,14 +92,38 @@ export function getClosedComandas() {
   return getDataProvider().getCollection('closedComandas', []);
 }
 
-export function clearTransactionHistory() {
-  getDataProvider().setCollection('transactions', []);
-  getDataProvider().setCollection('closedComandas', []);
+export function clearTransactionHistory({ period = 'all', customStart = '', customEnd = '' } = {}) {
+  const filters = { customStart, customEnd };
+  const range = getPeriodRange({ period, customStart, customEnd });
+
+  if (period === 'custom' && !customStart && !customEnd) {
+    return;
+  }
+
+  if (period === 'all') {
+    getDataProvider().setCollection('transactions', []);
+    getDataProvider().setCollection('closedComandas', []);
+  } else {
+    getDataProvider().setCollection(
+      'transactions',
+      getTransactions().filter((transaction) => !isInPeriod(transaction.createdAt, period, filters))
+    );
+    getDataProvider().setCollection(
+      'closedComandas',
+      getClosedComandas().filter((comanda) => !isInPeriod(comanda.closedAt, period, filters))
+    );
+  }
+
   emit(SYNC_EVENTS.transactionHistoryCleared, {
     id: createId('history-clear'),
+    period,
+    customStart,
+    customEnd,
+    startAt: range.startAt,
+    endAt: range.endAt,
     clearedAt: new Date().toISOString()
   });
-  emit(UI_EVENTS.cashSummaryChanged, { type: 'historico-limpo' });
+  emit(UI_EVENTS.cashSummaryChanged, { type: 'historico-limpo', period });
 }
 
 export function cancelClosedComanda(comandaId) {
@@ -329,4 +353,49 @@ function isInPeriod(value, period, filters = {}) {
   }
 
   return date.toDateString() === now.toDateString();
+}
+
+function getPeriodRange({ period, customStart = '', customEnd = '' } = {}) {
+  if (period === 'all') {
+    return { startAt: null, endAt: null };
+  }
+
+  const now = new Date();
+  let start = startOfDay(now);
+  let end = addDays(start, 1);
+
+  if (period === 'yesterday') {
+    start = addDays(startOfDay(now), -1);
+    end = addDays(start, 1);
+  }
+
+  if (period === 'month') {
+    start = new Date(now.getFullYear(), now.getMonth(), 1);
+    end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  }
+
+  if (period === 'year') {
+    start = new Date(now.getFullYear(), 0, 1);
+    end = new Date(now.getFullYear() + 1, 0, 1);
+  }
+
+  if (period === 'custom') {
+    start = customStart ? new Date(`${customStart}T00:00:00`) : null;
+    end = customEnd ? addDays(new Date(`${customEnd}T00:00:00`), 1) : null;
+  }
+
+  return {
+    startAt: start ? start.toISOString() : null,
+    endAt: end ? end.toISOString() : null
+  };
+}
+
+function startOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function addDays(date, days) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
 }

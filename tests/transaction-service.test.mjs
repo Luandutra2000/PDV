@@ -214,4 +214,9 @@ const movement = transactions.registerCashMovement({
 assert(movement.category === 'reforco-caixa', 'movement should keep category');
 assert(transactions.getTransactions()[0].id === movement.id, 'movement should be persisted');
 
+transactions.clearTransactionHistory({ period: 'today' });
+assert(transactions.getTransactions().some((transaction) => transaction.id === 'sale-yesterday'), 'filtered clear should keep previous-day transactions');
+assert(!transactions.getTransactions().some((transaction) => transaction.id === movement.id), 'filtered clear should remove current-day transactions');
+assert(transactions.getClosedComandas().some((comanda) => comanda.id === 'closed-yesterday'), 'filtered clear should keep previous-day comandas');
+
 console.log('transaction service ok');

@@ -199,7 +199,7 @@ async function syncQueueItem(client, item) {
     }
 
     if (item.type === SYNC_EVENTS.transactionHistoryCleared) {
-      await clearOnlineTransactionHistory(client);
+      await clearOnlineTransactionHistory(client, item.payload);
     }
   } catch (error) {
     throw error;
@@ -284,7 +284,20 @@ async function syncCashMovement(client, movement) {
   await upsert(client, 'cash_movements', mapCashMovementToRow(movement));
 }
 
-async function clearOnlineTransactionHistory(client) {
+async function clearOnlineTransactionHistory(client, payload = {}) {
+  if (payload?.startAt || payload?.endAt) {
+    await Promise.all([
+      deleteRowsByCreatedAt(client, 'cash_movements', payload),
+      deleteRowsByCreatedAt(client, 'notifications', payload, { column: 'type', value: 'sale_backup' })
+    ]);
+    await deleteRowsByCreatedAt(client, 'sales', payload);
+    return;
+  }
+
+  if (payload?.period && payload.period !== 'all') {
+    return;
+  }
+
   await Promise.all([
     deleteRows(client, 'sale_items'),
     deleteRows(client, 'cash_movements'),
@@ -306,6 +319,28 @@ async function deleteRows(client, table, column = 'id', value = null) {
   const { error } = value === null
     ? await query.not(column, 'is', null)
     : await query.eq(column, value);
+
+  if (error) {
+    throw new Error(error.message || `Falha ao limpar ${table}.`);
+  }
+}
+
+async function deleteRowsByCreatedAt(client, table, { startAt = null, endAt = null } = {}, equalityFilter = null) {
+  let query = client.from(table).delete();
+
+  if (equalityFilter) {
+    query = query.eq(equalityFilter.column, equalityFilter.value);
+  }
+
+  if (startAt) {
+    query = query.gte('created_at', startAt);
+  }
+
+  if (endAt) {
+    query = query.lt('created_at', endAt);
+  }
+
+  const { error } = await query;
 
   if (error) {
     throw new Error(error.message || `Falha ao limpar ${table}.`);

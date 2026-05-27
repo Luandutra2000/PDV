@@ -96,20 +96,57 @@ async function syncEvent({ supabaseUrl, serviceRoleKey, event, fetch }) {
   }
 
   if (event.type === SYNC_EVENTS.transactionHistoryCleared) {
-    await clearTransactionHistory({ supabaseUrl, serviceRoleKey, fetch });
+    await clearTransactionHistory({ supabaseUrl, serviceRoleKey, payload: event.payload, fetch });
     return;
   }
 
   throw httpError(400, 'Tipo de evento de sincronizacao invalido.');
 }
 
-async function clearTransactionHistory({ supabaseUrl, serviceRoleKey, fetch }) {
+async function clearTransactionHistory({ supabaseUrl, serviceRoleKey, payload = {}, fetch }) {
+  const rangeQuery = buildCreatedAtQuery(payload);
+
+  if (rangeQuery) {
+    await Promise.all([
+      deleteRows({ supabaseUrl, serviceRoleKey, table: 'cash_movements', query: rangeQuery, fetch }),
+      deleteRows({ supabaseUrl, serviceRoleKey, table: 'notifications', query: buildCreatedAtQuery(payload, { type: 'sale_backup' }), fetch })
+    ]);
+    await deleteRows({ supabaseUrl, serviceRoleKey, table: 'sales', query: rangeQuery, fetch });
+    return;
+  }
+
+  if (payload?.period && payload.period !== 'all') {
+    return;
+  }
+
   await Promise.all([
     deleteRows({ supabaseUrl, serviceRoleKey, table: 'sale_items', fetch }),
     deleteRows({ supabaseUrl, serviceRoleKey, table: 'cash_movements', fetch }),
     deleteRows({ supabaseUrl, serviceRoleKey, table: 'notifications', query: 'type=eq.sale_backup', fetch })
   ]);
   await deleteRows({ supabaseUrl, serviceRoleKey, table: 'sales', fetch });
+}
+
+function buildCreatedAtQuery({ startAt = null, endAt = null } = {}, extraFilters = {}) {
+  if (!startAt && !endAt) {
+    return '';
+  }
+
+  const query = new URLSearchParams();
+
+  Object.entries(extraFilters).forEach(([key, value]) => {
+    query.append(key, `eq.${value}`);
+  });
+
+  if (startAt) {
+    query.append('created_at', `gte.${startAt}`);
+  }
+
+  if (endAt) {
+    query.append('created_at', `lt.${endAt}`);
+  }
+
+  return query.toString();
 }
 
 async function syncSale({ supabaseUrl, serviceRoleKey, sale, fetch }) {

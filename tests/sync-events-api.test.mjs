@@ -124,6 +124,53 @@ process.env = originalEnv;
 
 console.log('sync events clear api ok');
 
+calls.length = 0;
+process.env.SUPABASE_URL = 'https://example.supabase.co';
+process.env.SUPABASE_ANON_KEY = 'anon-key';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
+
+globalThis.fetch = async (url, options = {}) => {
+  calls.push({ url, options });
+
+  if (url.endsWith('/auth/v1/user')) {
+    return jsonResponse({ id: 'operator-1', email: 'caixa@pdv.local' });
+  }
+
+  if (options.method === 'DELETE') {
+    return jsonResponse({});
+  }
+
+  throw new Error(`Unexpected URL while filtered clearing: ${url}`);
+};
+
+const filteredClearResponse = createMockResponse();
+await syncEventsHandler({
+  method: 'POST',
+  headers: { authorization: 'Bearer user-token' },
+  body: JSON.stringify({
+    event: {
+      type: 'TRANSACTION_HISTORY_CLEARED',
+      payload: {
+        id: 'history-clear-2',
+        period: 'today',
+        startAt: '2026-05-27T03:00:00.000Z',
+        endAt: '2026-05-28T03:00:00.000Z',
+        clearedAt: '2026-05-27T11:00:00.000Z'
+      }
+    }
+  })
+}, filteredClearResponse);
+
+assert(filteredClearResponse.statusCode === 200, 'sync events API should clear filtered transaction history');
+assert(!calls.some((call) => call.url.includes('/rest/v1/sale_items?')), 'filtered clear should not delete all sale items');
+assert(calls.some((call) => decodeURIComponent(call.url).includes('/rest/v1/sales?created_at=gte.2026-05-27T03:00:00.000Z&created_at=lt.2026-05-28T03:00:00.000Z')), 'filtered clear should delete sales by date range');
+assert(calls.some((call) => decodeURIComponent(call.url).includes('/rest/v1/cash_movements?created_at=gte.2026-05-27T03:00:00.000Z&created_at=lt.2026-05-28T03:00:00.000Z')), 'filtered clear should delete cash movements by date range');
+assert(calls.some((call) => decodeURIComponent(call.url).includes('/rest/v1/notifications?type=eq.sale_backup&created_at=gte.2026-05-27T03:00:00.000Z')), 'filtered clear should delete sale backups by date range');
+
+process.env = originalEnv;
+
+console.log('sync events filtered clear api ok');
+
 function createMockResponse() {
   return {
     headers: {},

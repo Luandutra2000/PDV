@@ -13,13 +13,19 @@ import { showNotification } from '../../services/notification.service.js';
 const dashboardState = {
   modal: null,
   pendingCancelComandaId: null,
-  period: 'today'
+  period: 'today',
+  clearScope: 'today',
+  clearCustomStart: '',
+  clearCustomEnd: ''
 };
 const boundContainers = new WeakSet();
 
 export function initDashboardModule(container) {
   dashboardState.modal = null;
   dashboardState.pendingCancelComandaId = null;
+  dashboardState.clearScope = 'today';
+  dashboardState.clearCustomStart = '';
+  dashboardState.clearCustomEnd = '';
   renderDashboard(container);
 
   if (!boundContainers.has(container)) {
@@ -82,7 +88,12 @@ function renderDashboard(container) {
 
       ${dashboardState.modal === 'entrada' || dashboardState.modal === 'saida' ? renderCashMovementModal(dashboardState.modal) : ''}
       ${dashboardState.modal === 'cancel-comanda' ? renderCancelComandaModal() : ''}
-      ${dashboardState.modal === 'clear-history' ? renderClearHistoryModal() : ''}
+      ${dashboardState.modal === 'clear-history' ? renderClearHistoryModal({
+        selectedScope: dashboardState.clearScope,
+        currentPeriod: dashboardState.period,
+        customStart: dashboardState.clearCustomStart,
+        customEnd: dashboardState.clearCustomEnd
+      }) : ''}
     </section>
   `;
 }
@@ -117,14 +128,27 @@ function bindDashboardEvents(container) {
 
     if (button.dataset.action === 'clear-history') {
       dashboardState.modal = 'clear-history';
+      dashboardState.clearScope = dashboardState.period === 'all' ? 'today' : 'current';
+      dashboardState.clearCustomStart = '';
+      dashboardState.clearCustomEnd = '';
       renderDashboard(container);
     }
 
     if (button.dataset.action === 'confirm-clear-history') {
-      clearTransactionHistory();
+      const clearFilters = getClearHistoryFilters();
+      if (clearFilters.period === 'custom' && !clearFilters.customStart && !clearFilters.customEnd) {
+        showNotification({
+          title: 'Informe o periodo',
+          message: 'Escolha pelo menos uma data de inicio ou fim para limpar um periodo personalizado.',
+          type: 'warning'
+        });
+        return;
+      }
+
+      clearTransactionHistory(clearFilters);
       showNotification({
         title: 'Historico limpo',
-        message: 'Comandas e movimentos foram removidos.',
+        message: `Comandas e movimentos removidos: ${getClearScopeLabel(dashboardState.clearScope, dashboardState.period)}.`,
         type: 'danger'
       });
       dashboardState.modal = null;
@@ -168,6 +192,19 @@ function bindDashboardEvents(container) {
     if (event.target.matches('[data-dashboard-period]')) {
       dashboardState.period = event.target.value;
       renderDashboard(container);
+    }
+
+    if (event.target.matches('[data-clear-scope]')) {
+      dashboardState.clearScope = event.target.value;
+      renderDashboard(container);
+    }
+
+    if (event.target.matches('[data-clear-start]')) {
+      dashboardState.clearCustomStart = event.target.value;
+    }
+
+    if (event.target.matches('[data-clear-end]')) {
+      dashboardState.clearCustomEnd = event.target.value;
     }
   });
 
@@ -367,7 +404,14 @@ function renderCancelComandaModal() {
   `;
 }
 
-export function renderClearHistoryModal() {
+export function renderClearHistoryModal({
+  selectedScope = 'current',
+  currentPeriod = 'today',
+  customStart = '',
+  customEnd = ''
+} = {}) {
+  const showCustomFields = selectedScope === 'custom';
+
   return `
     <div class="modal-backdrop is-open">
       <div class="modal modal--small" role="dialog" aria-modal="true">
@@ -377,8 +421,26 @@ export function renderClearHistoryModal() {
         </header>
         <div class="product-form">
           <p class="modal-text">
-            Esta acao remove comandas, vendas, entradas e saidas do historico deste sistema e sincroniza a limpeza no banco.
+            Escolha o periodo que deseja limpar. A limpeza remove comandas, vendas, entradas e saidas apenas desse filtro e sincroniza no banco.
           </p>
+          <label class="stacked-label">
+            Periodo para limpar
+            <select class="field" data-clear-scope>
+              ${renderClearScopeOptions(selectedScope, currentPeriod)}
+            </select>
+          </label>
+          ${showCustomFields ? `
+            <div class="form-grid">
+              <label class="stacked-label">
+                Inicio
+                <input class="field" type="date" value="${customStart}" data-clear-start>
+              </label>
+              <label class="stacked-label">
+                Fim
+                <input class="field" type="date" value="${customEnd}" data-clear-end>
+              </label>
+            </div>
+          ` : ''}
           <div class="form-actions">
             <button class="button button--ghost" type="button" data-action="close-modal">Cancelar</button>
             <button class="button button--danger" type="button" data-action="confirm-clear-history">Limpar historico</button>
@@ -387,6 +449,55 @@ export function renderClearHistoryModal() {
       </div>
     </div>
   `;
+}
+
+function getClearHistoryFilters() {
+  const period = dashboardState.clearScope === 'current'
+    ? dashboardState.period
+    : dashboardState.clearScope;
+
+  return {
+    period,
+    customStart: dashboardState.clearCustomStart,
+    customEnd: dashboardState.clearCustomEnd
+  };
+}
+
+function renderClearScopeOptions(selectedScope, currentPeriod) {
+  const options = [
+    ['current', `Periodo atual (${getPeriodLabel(currentPeriod)})`],
+    ['today', 'Hoje'],
+    ['yesterday', 'Ontem'],
+    ['month', 'Este mes'],
+    ['year', 'Este ano'],
+    ['custom', 'Periodo personalizado'],
+    ['all', 'Todo historico (apagar tudo)']
+  ];
+
+  return options.map(([value, label]) => `
+    <option value="${value}" ${selectedScope === value ? 'selected' : ''}>${label}</option>
+  `).join('');
+}
+
+function getClearScopeLabel(scope, currentPeriod) {
+  if (scope === 'current') {
+    return getPeriodLabel(currentPeriod);
+  }
+
+  return getPeriodLabel(scope);
+}
+
+function getPeriodLabel(period) {
+  const labels = {
+    today: 'hoje',
+    yesterday: 'ontem',
+    month: 'este mes',
+    year: 'este ano',
+    custom: 'periodo personalizado',
+    all: 'todo historico'
+  };
+
+  return labels[period] || 'periodo selecionado';
 }
 
 function getTransactionLabel(type) {
