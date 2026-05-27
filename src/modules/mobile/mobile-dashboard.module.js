@@ -1,10 +1,12 @@
 import { UI_EVENTS } from '../../database/schema.js';
 import { on } from '../../services/event-bus.service.js';
-import { getCrmSummary, getProductRanking } from '../../services/crm-dashboard.service.js';
+import { getCategoryRanking, getCrmSummary, getProductRanking, getSalesSeries } from '../../services/crm-dashboard.service.js';
+import { createStockLaunch } from '../../services/estoque.service.js';
 import { getMobileCashFlowSummary } from '../../services/mobile-cash-flow.service.js';
-import { getMobileClosingSummary } from '../../services/mobile-closing.service.js';
 import { getMobileFeedEvents, getMobileFeedFilters } from '../../services/mobile-notifications.service.js';
 import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js';
+import { getShowcaseProducts } from '../../services/product.service.js';
+import { showNotification } from '../../services/notification.service.js';
 import { getTransactions } from '../../services/transaction.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 
@@ -15,8 +17,7 @@ const tabs = [
   { id: 'cash', label: 'Caixa', icon: '$' },
   { id: 'showcase', label: 'Vitrine', icon: 'VT' },
   { id: 'history', label: 'Historico', icon: 'HT' },
-  { id: 'crm', label: 'CRM', icon: 'CR' },
-  { id: 'closing', label: 'Fechar', icon: 'OK' }
+  { id: 'crm', label: 'CRM', icon: 'CR' }
 ];
 
 let state = {
@@ -65,6 +66,34 @@ function bindEvents(workspace) {
       state.theme = state.theme === 'dark' ? 'light' : 'dark';
       localStorage.setItem(MOBILE_THEME_KEY, state.theme);
       render(workspace);
+    }
+  });
+
+  workspace.addEventListener('submit', (event) => {
+    if (!event.target.matches('[data-mobile-showcase-form]')) {
+      return;
+    }
+
+    event.preventDefault();
+    const formData = new FormData(event.target);
+
+    try {
+      createStockLaunch({
+        produtoId: formData.get('productId'),
+        quantidade: formData.get('quantity')
+      });
+      showNotification({
+        title: 'Vitrine lancada',
+        message: 'Produto entrou na vitrine e sera sincronizado.',
+        type: 'success'
+      });
+      render(workspace);
+    } catch (error) {
+      showNotification({
+        title: 'Nao foi possivel lancar',
+        message: error.message || 'Confira produto e quantidade.',
+        type: 'danger'
+      });
     }
   });
 }
@@ -142,10 +171,6 @@ function renderTabContent(cash) {
     return renderHistoryTab();
   }
 
-  if (state.tab === 'closing') {
-    return renderClosingTab();
-  }
-
   return renderHomeTab(cash);
 }
 
@@ -184,6 +209,7 @@ function renderCashTab(cash) {
 
 function renderShowcaseTab() {
   const summary = getMobileShowcaseSummary();
+  const products = getShowcaseProducts();
   const cards = [
     { label: 'Produzidos', value: summary.producedUnits, tone: 'info', isCurrency: false },
     { label: 'Vendidos', value: summary.soldUnits, tone: 'success', isCurrency: false },
@@ -196,6 +222,25 @@ function renderShowcaseTab() {
       <div class="mobile-metrics">
         ${cards.map(renderMetricCard).join('')}
       </div>
+      <section class="mobile-list-panel">
+        <h2>Lancar na vitrine</h2>
+        <form class="mobile-showcase-form" data-mobile-showcase-form>
+          <label>
+            Produto
+            <select class="field" name="productId" required>
+              <option value="">Selecione</option>
+              ${products.map((product) => `
+                <option value="${product.id}">${product.name}</option>
+              `).join('')}
+            </select>
+          </label>
+          <label>
+            Quantidade
+            <input class="field" name="quantity" type="number" min="1" step="1" placeholder="0" required>
+          </label>
+          <button class="button" type="submit">Lancar</button>
+        </form>
+      </section>
       <section class="mobile-list-panel">
         <h2>Produtos na vitrine</h2>
         ${summary.rows.map((row) => `
@@ -212,6 +257,8 @@ function renderShowcaseTab() {
 function renderCrmTab() {
   const crm = getCrmSummary();
   const ranking = getProductRanking();
+  const categories = getCategoryRanking();
+  const salesSeries = getSalesSeries();
   const best = ranking.byQuantity[0];
   const slow = ranking.byQuantity[ranking.byQuantity.length - 1];
   const cards = [
@@ -230,6 +277,41 @@ function renderCrmTab() {
         <h2>Resumo CRM</h2>
         ${renderTextRow('Produto mais vendido', best ? `${best.name} (${best.quantity})` : 'Sem vendas')}
         ${renderTextRow('Produto menos vendido', slow ? `${slow.name} (${slow.quantity})` : 'Sem vendas')}
+        ${renderTextRow('Total vendido', formatCurrency(crm.salesTotal))}
+        ${renderTextRow('Entradas / saidas', `${formatCurrency(crm.entriesTotal)} / ${formatCurrency(crm.outputsTotal)}`)}
+      </section>
+      <section class="mobile-list-panel">
+        <h2>Formas de pagamento</h2>
+        ${renderMiniBars([
+          { label: 'Dinheiro', value: crm.paymentTotals.dinheiro },
+          { label: 'Pix', value: crm.paymentTotals.pix },
+          { label: 'Debito', value: crm.paymentTotals.debito },
+          { label: 'Credito', value: crm.paymentTotals.credito }
+        ], true)}
+      </section>
+      <section class="mobile-list-panel">
+        <h2>Produtos mais vendidos</h2>
+        ${renderMiniBars(ranking.byRevenue.slice(0, 5).map((item) => ({
+          label: item.name,
+          value: item.revenue,
+          detail: `${item.quantity} un.`
+        })), true)}
+      </section>
+      <section class="mobile-list-panel">
+        <h2>Categorias</h2>
+        ${renderMiniBars(categories.slice(0, 5).map((item) => ({
+          label: item.name,
+          value: item.revenue,
+          detail: `${item.quantity} un.`
+        })), true)}
+      </section>
+      <section class="mobile-list-panel">
+        <h2>Movimento por dia</h2>
+        ${renderMiniBars(salesSeries.slice(-7).map((item) => ({
+          label: formatShortDate(item.label),
+          value: item.sales + item.entries - item.outputs,
+          detail: formatCurrency(item.sales)
+        })), true)}
       </section>
     </div>
   `;
@@ -267,33 +349,6 @@ function renderHistoryRow(transaction) {
       </div>
       <strong class="${valueClass}">${isOutput ? '-' : '+'} ${formatCurrency(amount)}</strong>
       <time>${formatDateTime(getTransactionDate(transaction))}</time>
-    </div>
-  `;
-}
-
-function renderClosingTab() {
-  const closing = getMobileClosingSummary();
-  const cards = [
-    { label: 'Dinheiro esperado', value: closing.expectedCash, tone: 'primary' },
-    { label: 'Pix esperado', value: closing.expectedPix, tone: 'success' },
-    { label: 'Cartao esperado', value: closing.expectedDebit + closing.expectedCredit, tone: 'info' },
-    { label: 'Diferenca', value: closing.generalDifference, tone: closing.generalDifference ? 'danger' : 'success' }
-  ];
-
-  return `
-    <div class="mobile-content">
-      <div class="mobile-metrics">
-        ${cards.map(renderMetricCard).join('')}
-      </div>
-      <section class="mobile-list-panel">
-        <h2>Historico de fechamentos</h2>
-        ${closing.history.map((item) => `
-          <div class="mobile-row">
-            <span>${formatDateTime(item.closedAt || item.generatedAt)}</span>
-            <strong>${formatCurrency(item.totals?.sales || 0)}</strong>
-          </div>
-        `).join('') || '<p class="mobile-empty">Nenhum fechamento registrado.</p>'}
-      </section>
     </div>
   `;
 }
@@ -386,6 +441,35 @@ function renderBottomNav() {
   `;
 }
 
+function renderMiniBars(items, isCurrency = false) {
+  if (!items.length) {
+    return '<p class="mobile-empty">Sem dados ainda.</p>';
+  }
+
+  const maxValue = Math.max(...items.map((item) => Math.abs(Number(item.value || 0))), 1);
+
+  return `
+    <div class="mobile-chart-list">
+      ${items.map((item) => {
+        const value = Number(item.value || 0);
+        const percent = Math.max((Math.abs(value) / maxValue) * 100, value ? 8 : 0);
+        return `
+          <div class="mobile-chart-row">
+            <div class="mobile-chart-row__top">
+              <span>${item.label}</span>
+              <strong>${isCurrency ? formatCurrency(value) : value}</strong>
+            </div>
+            <div class="mobile-chart-bar">
+              <span style="width: ${percent}%"></span>
+            </div>
+            ${item.detail ? `<small>${item.detail}</small>` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
 function getTransactionTitle(transaction) {
   const labels = {
     venda: `Venda ${transaction.comandaNumber ? `#${String(transaction.comandaNumber).padStart(4, '0')}` : ''}`,
@@ -435,5 +519,12 @@ function formatDateTime(value) {
     month: '2-digit',
     hour: '2-digit',
     minute: '2-digit'
+  }).format(new Date(value));
+}
+
+function formatShortDate(value) {
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit'
   }).format(new Date(value));
 }
