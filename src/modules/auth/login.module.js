@@ -1,6 +1,6 @@
 import { login } from '../../services/auth.service.js';
 
-export function renderLoginModule(container, onSuccess) {
+export function renderLoginModule(container, onSuccess, options = {}) {
   container.innerHTML = `
     <section class="login-screen">
       <form class="login-card" data-login-form>
@@ -18,7 +18,7 @@ export function renderLoginModule(container, onSuccess) {
           <input class="field" type="password" name="password" required autocomplete="current-password" placeholder="Sua senha">
         </label>
         <button class="button login-button" type="submit">Entrar</button>
-        <p class="form-error login-error" data-login-error hidden></p>
+        <p class="form-error login-error" data-login-error ${options.message ? '' : 'hidden'}>${options.message || ''}</p>
       </form>
     </section>
   `;

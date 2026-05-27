@@ -42,14 +42,21 @@ async function bootstrap() {
   const app = document.getElementById('app');
 
   if (getDataProviderMode() === 'supabase') {
-    const user = await getCurrentUser();
+    try {
+      const user = await getCurrentUser();
 
-    if (!user) {
-      renderLoginModule(app, () => bootstrap());
+      if (!user) {
+        renderLoginModule(app, () => bootstrap());
+        return;
+      }
+
+      await syncProductsFromOnlineDatabase();
+    } catch (error) {
+      renderLoginModule(app, () => bootstrap(), {
+        message: error.message || 'Nao foi possivel conectar ao Supabase. Tente entrar novamente.'
+      });
       return;
     }
-
-    await syncProductsFromOnlineDatabase();
   }
 
   renderAppShell(app);
