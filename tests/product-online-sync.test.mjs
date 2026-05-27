@@ -45,7 +45,6 @@ auth.setAuthClientForTests({
 });
 
 const calls = [];
-const functionCalls = [];
 productService.setProductCatalogClientForTests({
   from(table) {
     return {
@@ -78,17 +77,20 @@ productService.setProductCatalogClientForTests({
           }
         };
       },
+      upsert(record) {
+        calls.push({ type: 'upsert', table, record });
+        return { error: null };
+      },
+      delete() {
+        return {
+          eq(column, value) {
+            calls.push({ type: 'delete', table, column, value });
+            return { error: null };
+          }
+        };
+      }
     };
   }
-});
-productService.setProductCatalogFetchForTests(async (url, options) => {
-  functionCalls.push({ url, options, body: JSON.parse(options.body) });
-  return {
-    ok: true,
-    async json() {
-      return { result: {} };
-    }
-  };
 });
 
 await productService.syncProductsFromOnlineDatabase();
@@ -105,13 +107,13 @@ const created = await productService.createProductOnline({
   active: true
 });
 assert(created.id === 'suco', 'online create should return normalized product');
-assert(functionCalls.some((call) => call.body.resource === 'products' && call.body.action === 'upsert'), 'online create should call secure product write function');
+assert(calls.some((call) => call.type === 'upsert' && call.table === 'products'), 'online create should upsert product in Supabase');
 
 const category = await productService.createCategoryOnline('Salgados', { showInShowcase: true });
 assert(category.id === 'salgados', 'online category create should return normalized category');
-assert(functionCalls.some((call) => call.body.resource === 'categories' && call.body.action === 'upsert'), 'online category create should call secure category write function');
+assert(calls.some((call) => call.type === 'upsert' && call.table === 'categories'), 'online category create should upsert category in Supabase');
 
 await productService.deleteProductOnline('suco');
-assert(functionCalls.some((call) => call.body.resource === 'products' && call.body.action === 'delete' && call.body.id === 'suco'), 'online product delete should call secure product delete function');
+assert(calls.some((call) => call.type === 'delete' && call.table === 'products' && call.value === 'suco'), 'online product delete should delete product in Supabase');
 
 console.log('product online sync ok');

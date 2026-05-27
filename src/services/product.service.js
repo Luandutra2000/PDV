@@ -1,17 +1,15 @@
 import { getDataProvider } from './data-provider.service.js';
 import { isSupabaseEnabled } from './app-config.service.js';
-import { getCurrentSession } from './auth.service.js';
 import { getSupabaseClient } from './supabase-client.service.js';
 
 let productCatalogClientForTests = null;
-let productCatalogFetchForTests = null;
 
 export function setProductCatalogClientForTests(client) {
   productCatalogClientForTests = client;
 }
 
 export function setProductCatalogFetchForTests(fetcher) {
-  productCatalogFetchForTests = fetcher;
+  void fetcher;
 }
 
 export async function syncProductsFromOnlineDatabase() {
@@ -37,45 +35,21 @@ export async function syncProductsFromOnlineDatabase() {
 }
 
 async function loadCatalogFromOnlineDatabase() {
-  if (productCatalogClientForTests) {
-    const [{ data: categories, error: categoriesError }, { data: products, error: productsError }] = await Promise.all([
-      productCatalogClientForTests.from('categories').select('*').order('name'),
-      productCatalogClientForTests.from('products').select('*').order('name')
-    ]);
+  const client = await getProductCatalogClient();
+  const [{ data: categories, error: categoriesError }, { data: products, error: productsError }] = await Promise.all([
+    client.from('categories').select('*').order('name'),
+    client.from('products').select('*').order('name')
+  ]);
 
-    if (categoriesError) {
-      throw new Error(categoriesError.message || 'Falha ao carregar categorias do banco.');
-    }
-
-    if (productsError) {
-      throw new Error(productsError.message || 'Falha ao carregar produtos do banco.');
-    }
-
-    return { categories, products };
+  if (categoriesError) {
+    throw new Error(categoriesError.message || 'Falha ao carregar categorias do banco.');
   }
 
-  const session = await getCurrentSession();
-
-  if (!session?.access_token) {
-    throw new Error('Sessao expirada. Entre novamente.');
+  if (productsError) {
+    throw new Error(productsError.message || 'Falha ao carregar produtos do banco.');
   }
 
-  const response = await getProductCatalogFetch()('/.netlify/functions/catalog-read', {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${session.access_token}`
-    }
-  });
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Nao foi possivel carregar catalogo.');
-  }
-
-  return {
-    categories: data.categories || [],
-    products: data.products || []
-  };
+  return { categories, products };
 }
 
 export function getProducts() {
@@ -306,27 +280,34 @@ async function saveCategoryToOnlineDatabase(category) {
 }
 
 async function callCatalogWriteFunction(payload) {
-  const session = await getCurrentSession();
+  const client = await getProductCatalogClient();
+  const table = payload.resource;
 
-  if (!session?.access_token) {
-    throw new Error('Sessao expirada. Entre novamente.');
+  if (!['categories', 'products'].includes(table)) {
+    throw new Error('Recurso de catalogo invalido.');
   }
 
-  const response = await getProductCatalogFetch()('/.netlify/functions/catalog-write', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${session.access_token}`
-    },
-    body: JSON.stringify(payload)
-  });
-  const data = await response.json().catch(() => ({}));
+  if (payload.action === 'delete') {
+    const { error } = await client.from(table).delete().eq('id', payload.id);
 
-  if (!response.ok) {
-    throw new Error(data.error || 'Nao foi possivel salvar no banco.');
+    if (error) {
+      throw new Error(error.message || 'Nao foi possivel salvar no banco.');
+    }
+
+    return { ok: true };
   }
 
-  return data;
+  if (payload.action === 'upsert') {
+    const { error } = await client.from(table).upsert(payload.record);
+
+    if (error) {
+      throw new Error(error.message || 'Nao foi possivel salvar no banco.');
+    }
+
+    return { ok: true };
+  }
+
+  throw new Error('Acao de catalogo invalida.');
 }
 
 function normalizeProduct(product) {
@@ -399,10 +380,6 @@ function mapCategoryFromSupabase(row) {
 
 async function getProductCatalogClient() {
   return productCatalogClientForTests || getSupabaseClient();
-}
-
-function getProductCatalogFetch() {
-  return productCatalogFetchForTests || fetch;
 }
 
 function normalizeCategoryName(value, categoryId) {
