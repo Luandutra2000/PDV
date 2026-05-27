@@ -1,6 +1,7 @@
 import { STORAGE_KEYS, SYNC_EVENTS } from '../database/schema.js';
 import { on } from './event-bus.service.js';
 import { getItem, setItem } from './storage.service.js';
+import { flushSyncQueue } from './online-sync.service.js';
 
 const subscribedEvents = Object.values(SYNC_EVENTS);
 let initialized = false;
@@ -33,4 +34,5 @@ function appendSyncEvent(type, payload) {
 
   queue.push(syncEvent);
   setItem(STORAGE_KEYS.syncQueue, queue);
+  flushSyncQueue();
 }

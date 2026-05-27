@@ -1,6 +1,8 @@
 import { getCategories, getProductById, getProducts, updateProduct } from './product.service.js';
 import { getTransactions } from './transaction.service.js';
 import { getDataProvider } from './data-provider.service.js';
+import { SYNC_EVENTS, UI_EVENTS } from '../database/schema.js';
+import { emit } from './event-bus.service.js';
 
 export function createStockLaunch({ produtoId, quantidade }) {
   const product = getProductById(produtoId);
@@ -40,6 +42,8 @@ export function createStockLaunch({ produtoId, quantidade }) {
   getDataProvider().setCollection('stockLaunches', launches);
   showStockComparisonProduct(product.id);
   updateProductStock(product.id, normalizedQuantity);
+  emit(SYNC_EVENTS.stockLaunchCreated, launch);
+  emit(UI_EVENTS.mobileFeedChanged, launch);
 
   return launch;
 }
@@ -157,6 +161,8 @@ export function createShowcaseWriteOff({ productId, quantity, reason, note = '' 
   const writeOffs = getDataProvider().getCollection('showcaseWriteOffs', []);
   writeOffs.unshift(writeOff);
   getDataProvider().setCollection('showcaseWriteOffs', writeOffs);
+  emit(SYNC_EVENTS.showcaseWriteOffCreated, writeOff);
+  emit(UI_EVENTS.mobileFeedChanged, writeOff);
 
   return writeOff;
 }

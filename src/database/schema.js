@@ -24,7 +24,9 @@ export const SYNC_EVENTS = {
   comandaQuantityChanged: 'COMANDA_QUANTITY_CHANGED',
   comandaCleared: 'COMANDA_CLEARED',
   saleFinished: 'SALE_FINISHED',
-  cashMovementRegistered: 'CASH_MOVEMENT_REGISTERED'
+  cashMovementRegistered: 'CASH_MOVEMENT_REGISTERED',
+  stockLaunchCreated: 'STOCK_LAUNCH_CREATED',
+  showcaseWriteOffCreated: 'SHOWCASE_WRITE_OFF_CREATED'
 };
 
 export const UI_EVENTS = {

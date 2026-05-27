@@ -12,7 +12,8 @@ import { initPessoasModule } from './modules/pessoas/pessoas.module.js';
 import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js';
 import { formatCurrency } from './utils/currency.js';
 import { initNotificationService } from './services/notification.service.js';
-import { initRealtimeService } from './services/realtime.service.js';
+import { initOnlineRealtimeService, initRealtimeService } from './services/realtime.service.js';
+import { initOnlineSyncService } from './services/online-sync.service.js';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js';
 import { getDailyMoneySummary } from './services/transaction.service.js';
 import { getDataProviderMode } from './services/app-config.service.js';
@@ -51,6 +52,10 @@ async function bootstrap() {
       }
 
       await syncProductsFromOnlineDatabase();
+      initOnlineSyncService();
+      initOnlineRealtimeService().catch((realtimeError) => {
+        console.warn('Realtime online indisponivel. O app continua usando cache e sincronizacao periodica.', realtimeError);
+      });
     } catch (error) {
       renderLoginModule(app, () => bootstrap(), {
         message: error.message || 'Nao foi possivel conectar ao Supabase. Tente entrar novamente.'
