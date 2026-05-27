@@ -42,11 +42,24 @@ export default async function handler(req, res) {
 
   try {
     const requestFetch = fetch;
+    const body = normalizeBody(req.body);
     await getCurrentUser({ ...config.value, accessToken, fetch: requestFetch });
-    await syncEvent({ ...config.value, event: req.body?.event, fetch: requestFetch });
+    await syncEvent({ ...config.value, event: body?.event, fetch: requestFetch });
     sendJson(res, 200, { ok: true });
   } catch (error) {
     sendJson(res, error.statusCode || 500, { error: error.message || 'Nao foi possivel sincronizar evento.' });
+  }
+}
+
+function normalizeBody(body) {
+  if (typeof body !== 'string') {
+    return body || {};
+  }
+
+  try {
+    return JSON.parse(body);
+  } catch {
+    return {};
   }
 }
 

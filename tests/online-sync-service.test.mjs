@@ -83,7 +83,7 @@ const client = {
 
 sync.setOnlineSyncClientForTests(client);
 sync.setOnlineSyncFetchForTests(async () => {
-  throw new Error('API fallback should not be called while direct sync succeeds');
+  throw new Error('API unavailable');
 });
 storage.setItem(STORAGE_KEYS.syncQueue, [
   {
@@ -189,13 +189,38 @@ storage.setItem(STORAGE_KEYS.syncQueue, [{
 
 await sync.flushSyncQueue();
 
-assert(apiCalls.length === 1, 'server API fallback should be called when direct Supabase write fails');
+assert(apiCalls.length === 1, 'server API should be called before direct Supabase write');
 assert(apiCalls[0].url === '/api/sync-events', 'server API fallback should target sync-events');
 assert(apiCalls[0].options.headers.Authorization === 'Bearer user-token', 'server API fallback should send the current session token');
 assert(storage.getItem(STORAGE_KEYS.syncQueue, []).length === 0, 'API fallback success should clear queue');
 
 sync.setOnlineSyncClientForTests(client);
-sync.setOnlineSyncFetchForTests(async () => ({ ok: true, json: async () => ({ ok: true }) }));
+sync.setOnlineSyncFetchForTests(async (url, options) => {
+  assert(url === '/api/sync-snapshot', 'snapshot should be loaded through server API first');
+  assert(options.headers.Authorization === 'Bearer user-token', 'snapshot API should send the current session token');
+  return {
+    ok: true,
+    async json() {
+      return {
+        sales: [{
+          id: 'sale-remote',
+          payload: {
+            id: 'sale-remote',
+            type: 'venda',
+            status: 'ativa',
+            items: [],
+            total: 25,
+            paymentMethod: 'pix',
+            createdAt: '2026-05-27T10:00:00.000Z'
+          }
+        }],
+        cash_movements: [],
+        stock_production: [],
+        showcase_write_offs: []
+      };
+    }
+  };
+});
 
 await sync.loadOnlineSnapshot();
 

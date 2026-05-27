@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdv-lanchonete-v8';
+const CACHE_NAME = 'pdv-lanchonete-v9';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -39,6 +39,11 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') {
+    return;
+  }
+
+  if (new URL(event.request.url).pathname.startsWith('/api/')) {
+    event.respondWith(fetch(event.request));
     return;
   }
 

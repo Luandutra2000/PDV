@@ -35,7 +35,7 @@ const response = createMockResponse();
 await syncEventsHandler({
   method: 'POST',
   headers: { authorization: 'Bearer user-token' },
-  body: {
+  body: JSON.stringify({
     event: {
       type: 'SALE_FINISHED',
       payload: {
@@ -52,7 +52,7 @@ await syncEventsHandler({
         createdAt: '2026-05-27T10:00:00.000Z'
       }
     }
-  }
+  })
 }, response);
 
 assert(response.statusCode === 200, 'sync events API should return 200');

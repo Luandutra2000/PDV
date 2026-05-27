@@ -93,6 +93,13 @@ export async function loadOnlineSnapshot({ limit = 120 } = {}) {
     return;
   }
 
+  const apiSnapshot = await loadOnlineSnapshotViaApi(limit);
+
+  if (apiSnapshot) {
+    applyOnlineSnapshot(apiSnapshot);
+    return;
+  }
+
   const client = await getOnlineClient();
   const [sales, movements, launches, writeOffs] = await Promise.all([
     selectRows(client, 'sales', limit),
@@ -101,6 +108,15 @@ export async function loadOnlineSnapshot({ limit = 120 } = {}) {
     selectRows(client, 'showcase_write_offs', limit)
   ]);
 
+  applyOnlineSnapshot({
+    sales,
+    cash_movements: movements,
+    stock_production: launches,
+    showcase_write_offs: writeOffs
+  });
+}
+
+function applyOnlineSnapshot({ sales = [], cash_movements: movements = [], stock_production: launches = [], showcase_write_offs: writeOffs = [] }) {
   mergeCollection(STORAGE_KEYS.transactions, [
     ...sales.map(mapSaleRowToTransaction),
     ...movements.map(mapCashMovementRowToTransaction)
@@ -112,11 +128,43 @@ export async function loadOnlineSnapshot({ limit = 120 } = {}) {
   emit(UI_EVENTS.cashSummaryChanged, { type: 'online-snapshot-loaded' });
 }
 
+async function loadOnlineSnapshotViaApi(limit) {
+  const token = await getAccessToken();
+
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const response = await getSyncFetch()('/api/sync-snapshot', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ limit })
+    });
+    const data = await readResponseJson(response);
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 async function getOnlineClient() {
   return clientForTests || getSupabaseClient();
 }
 
 async function syncQueueItem(client, item) {
+  if (await syncQueueItemViaApi(item)) {
+    return;
+  }
+
   try {
     if (item.type === SYNC_EVENTS.saleFinished) {
       await syncSale(client, item.payload);
@@ -137,29 +185,30 @@ async function syncQueueItem(client, item) {
       await upsert(client, 'showcase_write_offs', mapWriteOffToRow(item.payload));
     }
   } catch (error) {
-    await syncQueueItemViaApi(item, error);
+    throw error;
   }
 }
 
-async function syncQueueItemViaApi(item, originalError) {
+async function syncQueueItemViaApi(item) {
   const token = await getAccessToken();
 
   if (!token) {
-    throw originalError;
+    return false;
   }
 
-  const response = await getSyncFetch()('/api/sync-events', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({ event: item })
-  });
-  const data = await readResponseJson(response);
+  try {
+    const response = await getSyncFetch()('/api/sync-events', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ event: item })
+    });
 
-  if (!response.ok) {
-    throw new Error(data.error || originalError.message || 'Falha ao sincronizar pelo servidor.');
+    return response.ok;
+  } catch {
+    return false;
   }
 }
 
