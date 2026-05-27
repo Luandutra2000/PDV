@@ -1,4 +1,4 @@
-import { SYNC_EVENTS } from '../database/schema.js';
+import { SYNC_EVENTS, UI_EVENTS } from '../database/schema.js';
 import { emit } from './event-bus.service.js';
 import { getActiveComanda, getSubtotal, startNewComanda } from './comanda.service.js';
 import { getProductById } from './product.service.js';
@@ -44,6 +44,7 @@ export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
   });
   startNewComanda(comanda.number + 1);
   emit(SYNC_EVENTS.saleFinished, sale);
+  emit(UI_EVENTS.cashSummaryChanged, sale);
 
   return sale;
 }
@@ -78,6 +79,7 @@ export function registerCashMovement({
 
   appendTransaction(movement);
   emit(SYNC_EVENTS.cashMovementRegistered, movement);
+  emit(UI_EVENTS.cashSummaryChanged, movement);
 
   return movement;
 }
@@ -93,6 +95,7 @@ export function getClosedComandas() {
 export function clearTransactionHistory() {
   getDataProvider().setCollection('transactions', []);
   getDataProvider().setCollection('closedComandas', []);
+  emit(UI_EVENTS.cashSummaryChanged, { type: 'historico-limpo' });
 }
 
 export function cancelClosedComanda(comandaId) {
@@ -121,6 +124,7 @@ export function cancelClosedComanda(comandaId) {
 
   getDataProvider().setCollection('transactions', transactions);
   getDataProvider().setCollection('closedComandas', comandas);
+  emit(UI_EVENTS.cashSummaryChanged, { type: 'comanda-cancelada', comandaId });
 }
 
 export function cancelTransaction(transactionId) {
@@ -145,6 +149,7 @@ export function cancelTransaction(transactionId) {
   getDataProvider().setCollection('transactions', transactions);
 
   if (!canceledSaleComandaId) {
+    emit(UI_EVENTS.cashSummaryChanged, { type: 'movimentacao-cancelada', transactionId });
     return;
   }
 
@@ -161,6 +166,7 @@ export function cancelTransaction(transactionId) {
   });
 
   getDataProvider().setCollection('closedComandas', comandas);
+  emit(UI_EVENTS.cashSummaryChanged, { type: 'movimentacao-cancelada', transactionId });
 }
 
 export function getActiveTransactions() {
@@ -179,12 +185,17 @@ export function getPaymentMethodTotals(transactions = getActiveTransactions()) {
 }
 
 export function getDailyMoneySummary() {
-  const activeTransactions = getActiveTransactions().filter((transaction) => isInPeriod(transaction.createdAt, 'today'));
+  return getMoneySummary({ period: 'today' });
+}
+
+export function getMoneySummary({ period = 'today', customStart = '', customEnd = '' } = {}) {
+  const filters = { customStart, customEnd };
+  const activeTransactions = getActiveTransactions().filter((transaction) => isInPeriod(transaction.createdAt, period, filters));
   const entriesTotal = sumByType(activeTransactions, 'entrada');
   const salesTotal = sumByType(activeTransactions, 'venda');
   const outputsTotal = sumByType(activeTransactions, 'saida');
   const paymentTotals = getPaymentMethodTotals(activeTransactions);
-  const closedComandas = getClosedComandas().filter((comanda) => comanda.closedAt && isInPeriod(comanda.closedAt, 'today'));
+  const closedComandas = getClosedComandas().filter((comanda) => comanda.closedAt && isInPeriod(comanda.closedAt, period, filters));
 
   return {
     salesTotal,

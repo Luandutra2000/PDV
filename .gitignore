@@ -1,5 +1,6 @@
 .superpowers/
 .local-server*.pid
+.local-server*.log
 .worktrees/
 .env
 .env.*

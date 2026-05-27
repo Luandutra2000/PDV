@@ -217,78 +217,7 @@ function getClosingDifferences() {
     checkedCredit: caixaState.checkedCredit
   });
 
-  return buildDifferences(summary).map((difference) => ({
-    scope: difference.scope,
-    referenceId: difference.referenceId,
-    reason: 'fechamento-crm',
-    note: caixaState.note,
-    quantity: difference.quantity,
-    amount: difference.amount
-  }));
-}
-
-export function buildDifferences(summary) {
-  const differences = [];
-  const paymentDifferences = [
-    {
-      key: 'payment:dinheiro',
-      referenceId: 'dinheiro',
-      label: 'Dinheiro',
-      amount: summary.payments.cashDifference
-    },
-    {
-      key: 'payment:pix',
-      referenceId: 'pix',
-      label: 'Pix',
-      amount: summary.payments.pixDifference
-    },
-    {
-      key: 'payment:debito',
-      referenceId: 'debito',
-      label: 'Debito',
-      amount: summary.payments.debitDifference
-    },
-    {
-      key: 'payment:credito',
-      referenceId: 'credito',
-      label: 'Credito',
-      amount: summary.payments.creditDifference
-    }
-  ];
-
-  paymentDifferences.forEach((payment) => {
-    if (!payment.amount) {
-      return;
-    }
-
-    differences.push({
-      key: payment.key,
-      scope: 'payment',
-      referenceId: payment.referenceId,
-      label: payment.label,
-      description: `Diferenca de ${formatCurrency(payment.amount)} entre esperado e conferido.`,
-      quantity: null,
-      amount: payment.amount
-    });
-  });
-
-  summary.showcase.forEach((item) => {
-    if (!item.differenceQuantity) {
-      return;
-    }
-
-    differences.push({
-      key: `showcase:${item.productId}`,
-      scope: 'showcase',
-      referenceId: item.productId,
-      label: item.productName,
-      description: `Diferenca de ${item.differenceQuantity} unidade(s), estimada em ${formatCurrency(item.estimatedDifferenceValue || 0)}.`,
-      quantity: item.differenceQuantity,
-      amount: item.estimatedDifferenceValue || 0
-    });
-  });
-
-  return differences;
+  return buildDifferences(summary, caixaState.note);
 }
 
 function resetClosingFields() {
@@ -297,4 +226,35 @@ function resetClosingFields() {
   caixaState.checkedDebit = '';
   caixaState.checkedCredit = '';
   caixaState.note = '';
+}
+
+export function buildDifferences(summary, note = '') {
+  const paymentDifferences = [
+    ['dinheiro', summary.payments.cashDifference],
+    ['pix', summary.payments.pixDifference],
+    ['debito', summary.payments.debitDifference],
+    ['credito', summary.payments.creditDifference]
+  ].filter(([, amount]) => amount !== null && Number(amount || 0) !== 0)
+    .map(([referenceId, amount]) => ({
+      key: `payment:${referenceId}`,
+      scope: 'payment',
+      referenceId,
+      reason: 'fechamento-crm',
+      note,
+      amount
+    }));
+
+  const showcaseDifferences = (summary.showcase || [])
+    .filter((item) => item.differenceQuantity !== null && Number(item.differenceQuantity || 0) !== 0)
+    .map((item) => ({
+      key: `showcase:${item.productId}`,
+      scope: 'showcase',
+      referenceId: item.productId,
+      reason: 'fechamento-crm',
+      note,
+      amount: item.estimatedDifferenceValue || 0,
+      quantity: item.differenceQuantity
+    }));
+
+  return [...paymentDifferences, ...showcaseDifferences];
 }

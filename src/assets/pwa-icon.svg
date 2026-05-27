@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="PDV Dono">
+  <rect width="512" height="512" rx="96" fill="#ff6b1a"/>
+  <rect x="76" y="92" width="360" height="328" rx="44" fill="#fff7ef"/>
+  <path d="M126 162h260v54H126z" fill="#2e2a27"/>
+  <path d="M126 248h112v92H126z" fill="#17824f"/>
+  <path d="M274 248h112v92H274z" fill="#17b7c8"/>
+  <path d="M126 370h260v28H126z" fill="#ff6b1a"/>
+</svg>

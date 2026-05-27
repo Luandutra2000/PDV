@@ -3,7 +3,7 @@ import {
   cancelClosedComanda,
   cancelTransaction,
   getClosedComandas,
-  getDailyMoneySummary,
+  getMoneySummary,
   getTransactions,
   registerCashMovement
 } from '../../services/transaction.service.js';
@@ -12,7 +12,8 @@ import { showNotification } from '../../services/notification.service.js';
 
 const dashboardState = {
   modal: null,
-  pendingCancelComandaId: null
+  pendingCancelComandaId: null,
+  period: 'today'
 };
 const boundContainers = new WeakSet();
 
@@ -28,7 +29,7 @@ export function initDashboardModule(container) {
 }
 
 function renderDashboard(container) {
-  const moneySummary = getDailyMoneySummary();
+  const moneySummary = getMoneySummary({ period: dashboardState.period });
 
   container.innerHTML = `
     <section class="module-screen products-module" data-dashboard-screen>
@@ -38,7 +39,9 @@ function renderDashboard(container) {
           <p class="module-subtitle">Comandas finalizadas, entradas, saidas e movimentos do dinheiro.</p>
         </div>
         <div class="header-actions">
-          <select class="field compact-select"><option>Hoje</option></select>
+          <select class="field compact-select" data-dashboard-period aria-label="Periodo">
+            ${renderPeriodOptions()}
+          </select>
           <button class="button button--success" type="button" data-action="open-entry">+ Entrada</button>
           <button class="button button--danger" type="button" data-action="open-output">- Saida</button>
         </div>
@@ -150,6 +153,17 @@ function bindDashboardEvents(container) {
     }
   });
 
+  container.addEventListener('change', (event) => {
+    if (!event.target.closest('[data-dashboard-screen]')) {
+      return;
+    }
+
+    if (event.target.matches('[data-dashboard-period]')) {
+      dashboardState.period = event.target.value;
+      renderDashboard(container);
+    }
+  });
+
   container.addEventListener('submit', (event) => {
     if (!event.target.closest('[data-dashboard-screen]')) {
       return;
@@ -181,7 +195,7 @@ function renderSummaryCard(label, value) {
 }
 
 function renderClosedComandas() {
-  const comandas = getClosedComandas();
+  const comandas = getFilteredClosedComandas();
 
   if (!comandas.length) {
     return '<div class="empty-products product-empty-large">NENHUMA COMANDA FINALIZADA</div>';
@@ -216,7 +230,7 @@ function renderClosedComandas() {
 }
 
 function renderTransactions() {
-  const transactions = getTransactions();
+  const transactions = getFilteredTransactions();
 
   if (!transactions.length) {
     return '<div class="empty-products product-empty-large">NENHUM MOVIMENTO REGISTRADO</div>';
@@ -239,6 +253,53 @@ function renderTransactions() {
       </div>
     </article>
   `).join('');
+}
+
+function getFilteredTransactions() {
+  return getTransactions().filter((transaction) => isInSelectedPeriod(transaction.createdAt));
+}
+
+function getFilteredClosedComandas() {
+  return getClosedComandas().filter((comanda) => isInSelectedPeriod(comanda.closedAt));
+}
+
+function renderPeriodOptions() {
+  const options = [
+    ['today', 'Hoje'],
+    ['yesterday', 'Ontem'],
+    ['month', 'Este mes'],
+    ['year', 'Este ano'],
+    ['all', 'Todo periodo']
+  ];
+
+  return options.map(([value, label]) => `
+    <option value="${value}" ${dashboardState.period === value ? 'selected' : ''}>${label}</option>
+  `).join('');
+}
+
+function isInSelectedPeriod(value) {
+  if (!value || dashboardState.period === 'all') {
+    return true;
+  }
+
+  const date = new Date(value);
+  const now = new Date();
+
+  if (dashboardState.period === 'yesterday') {
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    return date.toDateString() === yesterday.toDateString();
+  }
+
+  if (dashboardState.period === 'month') {
+    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+  }
+
+  if (dashboardState.period === 'year') {
+    return date.getFullYear() === now.getFullYear();
+  }
+
+  return date.toDateString() === now.toDateString();
 }
 
 function renderCashMovementModal(type) {

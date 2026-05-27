@@ -25,7 +25,8 @@ const menuGroups = [
   {
     title: 'Outros',
     items: [
-      { id: 'relatorios', label: 'Relatorios', icon: 'RE' }
+      { id: 'relatorios', label: 'Relatorios', icon: 'RE' },
+      { id: 'mobile', label: 'App do Dono', icon: 'AD' }
     ]
   },
   {

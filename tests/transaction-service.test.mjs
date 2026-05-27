@@ -158,6 +158,14 @@ assert(dailyMoney.netTotal === 51, 'net total should be sales plus entries minus
 assert(dailyMoney.closedComandas === 1, 'daily money should ignore previous-day closed comandas');
 assert(dailyMoney.canceledComandas === 1, 'daily money should count canceled comandas');
 
+const allPeriodMoney = transactions.getMoneySummary({ period: 'all' });
+assert(allPeriodMoney.salesTotal === 144, 'all period money should include previous-day sales');
+assert(allPeriodMoney.entriesTotal === 30, 'all period money should include previous-day entries');
+assert(allPeriodMoney.outputsTotal === 7, 'all period money should include previous-day outputs');
+assert(allPeriodMoney.expectedCash === 123, 'all period expected cash should include previous-day cash movement');
+assert(allPeriodMoney.closedComandas === 2, 'all period money should include previous-day closed comandas');
+assert(allPeriodMoney.canceledComandas === 2, 'all period money should include previous-day canceled comandas');
+
 const transactionCanceledSale = transactions.finalizeComandaPayment({
   paymentMethod: 'pix'
 });
