@@ -42,8 +42,8 @@
   min-height: calc(100vh - 110px);
   position: relative;
   overflow: hidden;
-  border: 10px solid #211c19;
-  border-radius: 34px;
+  border: 0;
+  border-radius: 28px;
   background: linear-gradient(180deg, var(--mobile-bg-soft) 0%, var(--mobile-bg) 42%, var(--mobile-bg-bottom) 100%);
   box-shadow: 0 28px 80px rgba(46, 42, 39, 0.22);
 }
@@ -53,7 +53,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 24px 18px 12px;
+  padding: 24px 20px 12px;
 }
 
 .mobile-topbar h1 {
@@ -111,7 +111,7 @@
   height: calc(100vh - 220px);
   min-height: 600px;
   overflow-y: auto;
-  padding: 8px 18px 96px;
+  padding: 8px 20px 96px;
 }
 
 .mobile-content::-webkit-scrollbar {
@@ -122,7 +122,7 @@
 .mobile-metric,
 .mobile-list-panel,
 .mobile-feed-event {
-  border-radius: 8px;
+  border-radius: 18px;
 }
 
 .mobile-hero-card {
@@ -299,7 +299,7 @@
   height: 40px;
   display: grid;
   place-items: center;
-  border-radius: 8px;
+  border-radius: 14px;
   background: #fff0e6;
   color: var(--color-primary);
   font-size: 13px;
@@ -383,7 +383,7 @@
   margin: 0;
   padding: 18px;
   border: 1px dashed var(--mobile-border);
-  border-radius: 8px;
+  border-radius: 18px;
   color: var(--mobile-muted);
   text-align: center;
 }
@@ -398,7 +398,7 @@
   gap: 2px;
   border-top: 1px solid var(--mobile-border);
   background: var(--mobile-surface-strong);
-  padding: 9px 8px 12px;
+  padding: 9px 12px 12px;
 }
 
 .mobile-bottom-nav button {
@@ -408,7 +408,7 @@
   place-items: center;
   gap: 4px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 16px;
   background: transparent;
   color: var(--mobile-muted);
   font-size: 10px;
@@ -440,7 +440,7 @@
   align-items: center;
   gap: 14px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 18px;
   background: var(--color-surface);
   color: var(--color-text);
   padding: 16px;
@@ -460,7 +460,7 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  border-radius: 8px;
+  border-radius: 14px;
   background: #fff0e6;
   color: var(--color-primary);
   font-size: 13px;
@@ -523,17 +523,32 @@
   .mobile-shell {
     min-height: 100vh;
     padding: 0;
+    background: var(--mobile-bg, var(--color-bg));
   }
 
   .mobile-app {
     width: 100%;
     min-height: 100vh;
+    min-height: 100dvh;
     border: 0;
     border-radius: 0;
+    box-shadow: none;
+  }
+
+  .mobile-topbar {
+    padding-top: max(22px, env(safe-area-inset-top));
   }
 
   .mobile-content {
     height: calc(100vh - 106px);
+    height: calc(100dvh - 106px);
     min-height: 0;
+    padding-right: 16px;
+    padding-left: 16px;
+    padding-bottom: calc(98px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-bottom-nav {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
   }
 }
