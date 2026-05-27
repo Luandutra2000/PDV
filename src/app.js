@@ -7,8 +7,10 @@ import { initProdutosModule } from './modules/produtos/produtos.module.js';
 import { initDashboardModule } from './modules/dashboard/dashboard.module.js';
 import { initEstoqueModule } from './modules/estoque/estoque.module.js';
 import { initCaixaModule } from './modules/caixa/caixa.module.js';
+import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js';
 import { formatCurrency } from './utils/currency.js';
 import { initNotificationService } from './services/notification.service.js';
+import { initRealtimeService } from './services/realtime.service.js';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js';
 import { getDailyMoneySummary } from './services/transaction.service.js';
 import { on } from './services/event-bus.service.js';
@@ -19,12 +21,14 @@ const routes = {
   dashboard: initDashboardModule,
   produtos: initProdutosModule,
   estoque: initEstoqueModule,
-  'fechar-caixa': initCaixaModule
+  'fechar-caixa': initCaixaModule,
+  mobile: initMobileDashboardModule
 };
 
 function bootstrap() {
   ensureSeedData();
   initSyncService();
+  initRealtimeService();
   initTheme();
 
   const app = document.getElementById('app');
@@ -47,8 +51,14 @@ function bootstrap() {
   `;
 
   const workspace = app.querySelector('[data-workspace-body]');
+  const initialView = new URLSearchParams(window.location.search).get('view');
   renderCashStrip(app);
-  initVendasModule(workspace);
+  if (initialView === 'mobile') {
+    initMobileDashboardModule(workspace);
+    setActiveMenu(app, 'mobile');
+  } else {
+    initVendasModule(workspace);
+  }
   bindNavigation(app, workspace);
   bindCashUpdates(app);
 }
@@ -114,8 +124,7 @@ function bindNavigation(app, workspace) {
 
     const route = routes[menuButton.dataset.menuId];
 
-    app.querySelectorAll('[data-menu-id]').forEach((item) => item.classList.remove('is-active'));
-    menuButton.classList.add('is-active');
+    setActiveMenu(app, menuButton.dataset.menuId);
 
     if (route) {
       route(workspace);
@@ -124,6 +133,11 @@ function bindNavigation(app, workspace) {
 
     renderModulePlaceholder(workspace, menuButton.querySelector('.sidebar__label').textContent);
   });
+}
+
+function setActiveMenu(app, menuId) {
+  app.querySelectorAll('[data-menu-id]').forEach((item) => item.classList.remove('is-active'));
+  app.querySelector(`[data-menu-id="${menuId}"]`)?.classList.add('is-active');
 }
 
 function renderModulePlaceholder(workspace, label) {

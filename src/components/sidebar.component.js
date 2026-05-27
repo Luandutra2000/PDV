@@ -11,7 +11,8 @@ const menuGroups = [
     title: 'Gestao',
     items: [
       { id: 'produtos', label: 'Produtos', icon: 'PR' },
-      { id: 'pessoas', label: 'Pessoas', icon: 'PS' }
+      { id: 'pessoas', label: 'Pessoas', icon: 'PS' },
+      { id: 'mobile', label: 'App do Dono', icon: 'AD' }
     ]
   },
   {
