@@ -42,6 +42,7 @@ function bootstrap() {
         <header class="topbar">
           <div class="cash-strip" aria-label="Resumo do caixa" data-cash-strip></div>
           <div class="header-actions">
+            <button class="button" type="button" data-action="open-mobile">App do Dono</button>
             <button class="button button--ghost" type="button" data-action="toggle-theme">${getThemeLabel()}</button>
             <button class="button button--ghost" type="button" data-action="refresh">Atualizar</button>
           </div>
@@ -119,6 +120,12 @@ function bindNavigation(app, workspace) {
     if (themeButton) {
       toggleTheme();
       themeButton.textContent = getThemeLabel();
+      return;
+    }
+
+    if (event.target.closest('[data-action="open-mobile"]')) {
+      setActiveMenu(app, 'mobile');
+      initMobileDashboardModule(workspace);
       return;
     }
 
