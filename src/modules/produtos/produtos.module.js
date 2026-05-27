@@ -247,7 +247,7 @@ async function saveProductFromForm(form) {
       price: formData.get('price'),
       cost: 0,
       stock: 0,
-      active: true
+      active: formData.get('active') === 'on'
     };
 
     if (isEditing) {
@@ -385,10 +385,13 @@ function renderProductRows() {
     const category = getCategories().find((item) => item.id === product.categoryId);
 
     return `
-      <article class="manager-row">
+      <article class="manager-row ${product.active ? '' : 'manager-row--hidden-product'}">
         <div>
           <strong>${product.name}</strong>
-          <span>${category ? category.name : 'Sem categoria'} - ${formatCurrency(product.price)} - Estoque: ${product.stock}</span>
+          <span>
+            ${category ? category.name : 'Sem categoria'} - ${formatCurrency(product.price)} - Estoque: ${product.stock}
+            ${product.active ? '' : ' - Fora da frente de caixa'}
+          </span>
         </div>
         <div class="row-actions">
           <button class="button button--ghost" type="button" data-action="edit-product" data-product-id="${product.id}">Editar</button>
@@ -437,6 +440,11 @@ function renderProductModal() {
           <label class="stacked-label">
             Preco de venda
             <input class="field" name="price" type="number" min="0" step="0.01" required placeholder="0,00" value="${product ? product.price : ''}">
+          </label>
+
+          <label class="checkbox-field category-visibility-toggle">
+            <input type="checkbox" name="active" ${product?.active !== false ? 'checked' : ''}>
+            Mostrar na Frente de Caixa
           </label>
 
           <div class="form-actions">

@@ -59,12 +59,15 @@ assert(products.getProductById(created.id).name === 'Teste Produto', 'created pr
 const updated = products.updateProduct(created.id, {
   name: 'Teste Produto Editado',
   price: 15,
-  stock: 9
+  stock: 9,
+  active: false
 });
 
 assert(updated.name === 'Teste Produto Editado', 'updated product should return new name');
 assert(products.getProductById(created.id).price === 15, 'updated product should persist price');
 assert(products.getProductById(created.id).stock === 9, 'updated product should persist stock');
+assert(products.getProductById(created.id).active === false, 'updated product should persist cash register visibility');
+assert(!products.searchProducts({ query: 'Teste Produto Editado' }).some((product) => product.id === created.id), 'hidden product should not appear in cash register search');
 
 products.deleteProduct(created.id);
 

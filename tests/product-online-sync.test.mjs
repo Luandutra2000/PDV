@@ -68,7 +68,7 @@ productService.setProductCatalogClientForTests({
                 price: 4,
                 cost: 0,
                 stock: 0,
-                active: true,
+                active: false,
                 aliases: [],
                 favorite: true
               }],
@@ -97,6 +97,7 @@ await productService.syncProductsFromOnlineDatabase();
 
 assert(productService.getCategories().some((category) => category.id === 'bebidas'), 'online categories should populate local catalog');
 assert(productService.getProducts().some((product) => product.id === 'cafe'), 'online products should populate local catalog');
+assert(productService.getProductById('cafe').active === false, 'online catalog should keep hidden-from-cash-register flag');
 
 const created = await productService.createProductOnline({
   name: 'Suco',
@@ -108,6 +109,7 @@ const created = await productService.createProductOnline({
 });
 assert(created.id === 'suco', 'online create should return normalized product');
 assert(calls.some((call) => call.type === 'upsert' && call.table === 'products'), 'online create should upsert product in Supabase');
+assert(calls.some((call) => call.type === 'upsert' && call.table === 'products' && call.record.active === true), 'online upsert should send cash register visibility flag');
 
 const category = await productService.createCategoryOnline('Salgados', { showInShowcase: true });
 assert(category.id === 'salgados', 'online category create should return normalized category');

@@ -682,6 +682,20 @@ select.compact-select[multiple] {
   background: #fff1f1;
 }
 
+.manager-row--hidden-product {
+  border-color: rgba(194, 65, 59, 0.75);
+  background: #fff1f1;
+}
+
+.manager-row--hidden-product strong {
+  color: var(--color-danger);
+}
+
+.manager-row--hidden-product span {
+  color: #9f2f2a;
+  font-weight: 800;
+}
+
 .history-comanda,
 .money-row {
   padding: 12px;
