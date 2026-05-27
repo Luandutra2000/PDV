@@ -139,7 +139,7 @@ function renderCashMetric(label, value, signed = false, fixedClass = '') {
 
   return `
     <div class="cash-pill ${stateClass}">
-      <span>${label}:</span>
+      <span>${label}</span>
       <strong>${formatCurrency(amount)}</strong>
     </div>
   `;
