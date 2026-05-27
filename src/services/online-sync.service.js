@@ -184,6 +184,11 @@ async function syncQueueItem(client, item) {
 
     if (item.type === SYNC_EVENTS.showcaseWriteOffCreated) {
       await upsert(client, 'showcase_write_offs', mapWriteOffToRow(item.payload));
+      return;
+    }
+
+    if (item.type === SYNC_EVENTS.transactionHistoryCleared) {
+      await clearOnlineTransactionHistory(client);
     }
   } catch (error) {
     throw error;
@@ -268,11 +273,31 @@ async function syncCashMovement(client, movement) {
   await upsert(client, 'cash_movements', mapCashMovementToRow(movement));
 }
 
+async function clearOnlineTransactionHistory(client) {
+  await Promise.all([
+    deleteRows(client, 'sale_items'),
+    deleteRows(client, 'cash_movements'),
+    deleteRows(client, 'notifications', 'type', 'sale_backup')
+  ]);
+  await deleteRows(client, 'sales');
+}
+
 async function upsert(client, table, payload) {
   const { error } = await client.from(table).upsert(payload);
 
   if (error) {
     throw new Error(error.message || `Falha ao sincronizar ${table}.`);
+  }
+}
+
+async function deleteRows(client, table, column = 'id', value = null) {
+  const query = client.from(table).delete();
+  const { error } = value === null
+    ? await query.not(column, 'is', null)
+    : await query.eq(column, value);
+
+  if (error) {
+    throw new Error(error.message || `Falha ao limpar ${table}.`);
   }
 }
 

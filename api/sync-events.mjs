@@ -12,7 +12,8 @@ const SYNC_EVENTS = {
   saleFinished: 'SALE_FINISHED',
   cashMovementRegistered: 'CASH_MOVEMENT_REGISTERED',
   stockLaunchCreated: 'STOCK_LAUNCH_CREATED',
-  showcaseWriteOffCreated: 'SHOWCASE_WRITE_OFF_CREATED'
+  showcaseWriteOffCreated: 'SHOWCASE_WRITE_OFF_CREATED',
+  transactionHistoryCleared: 'TRANSACTION_HISTORY_CLEARED'
 };
 
 export default async function handler(req, res) {
@@ -94,7 +95,21 @@ async function syncEvent({ supabaseUrl, serviceRoleKey, event, fetch }) {
     return;
   }
 
+  if (event.type === SYNC_EVENTS.transactionHistoryCleared) {
+    await clearTransactionHistory({ supabaseUrl, serviceRoleKey, fetch });
+    return;
+  }
+
   throw httpError(400, 'Tipo de evento de sincronizacao invalido.');
+}
+
+async function clearTransactionHistory({ supabaseUrl, serviceRoleKey, fetch }) {
+  await Promise.all([
+    deleteRows({ supabaseUrl, serviceRoleKey, table: 'sale_items', fetch }),
+    deleteRows({ supabaseUrl, serviceRoleKey, table: 'cash_movements', fetch }),
+    deleteRows({ supabaseUrl, serviceRoleKey, table: 'notifications', query: 'type=eq.sale_backup', fetch })
+  ]);
+  await deleteRows({ supabaseUrl, serviceRoleKey, table: 'sales', fetch });
 }
 
 async function syncSale({ supabaseUrl, serviceRoleKey, sale, fetch }) {
@@ -171,6 +186,21 @@ async function upsertNotificationBackup({ supabaseUrl, serviceRoleKey, notificat
     });
   } catch {
     // Se o backup tambem falhar, nao derruba o caixa: a fila local continua preservada no cliente.
+  }
+}
+
+async function deleteRows({ supabaseUrl, serviceRoleKey, table, fetch, query = 'id=not.is.null' }) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, {
+    method: 'DELETE',
+    headers: {
+      ...serviceHeaders(serviceRoleKey),
+      Prefer: 'return=minimal'
+    }
+  });
+  const data = await readJson(response);
+
+  if (!response.ok) {
+    throw httpError(response.status, data.message || data.error || `Falha ao limpar ${table}.`);
   }
 }
 

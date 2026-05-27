@@ -83,6 +83,47 @@ process.env = originalEnv;
 
 console.log('sync events api ok');
 
+calls.length = 0;
+process.env.SUPABASE_URL = 'https://example.supabase.co';
+process.env.SUPABASE_ANON_KEY = 'anon-key';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
+
+globalThis.fetch = async (url, options = {}) => {
+  calls.push({ url, options });
+
+  if (url.endsWith('/auth/v1/user')) {
+    return jsonResponse({ id: 'operator-1', email: 'caixa@pdv.local' });
+  }
+
+  if (options.method === 'DELETE') {
+    return jsonResponse({});
+  }
+
+  throw new Error(`Unexpected URL while clearing: ${url}`);
+};
+
+const clearResponse = createMockResponse();
+await syncEventsHandler({
+  method: 'POST',
+  headers: { authorization: 'Bearer user-token' },
+  body: JSON.stringify({
+    event: {
+      type: 'TRANSACTION_HISTORY_CLEARED',
+      payload: { id: 'history-clear-1', clearedAt: '2026-05-27T11:00:00.000Z' }
+    }
+  })
+}, clearResponse);
+
+assert(clearResponse.statusCode === 200, 'sync events API should clear transaction history');
+assert(calls.some((call) => call.url.endsWith('/rest/v1/sale_items?id=not.is.null')), 'clear should delete sale items');
+assert(calls.some((call) => call.url.endsWith('/rest/v1/sales?id=not.is.null')), 'clear should delete sales');
+assert(calls.some((call) => call.url.endsWith('/rest/v1/cash_movements?id=not.is.null')), 'clear should delete cash movements');
+assert(calls.some((call) => call.url.endsWith('/rest/v1/notifications?type=eq.sale_backup')), 'clear should delete sale backups');
+
+process.env = originalEnv;
+
+console.log('sync events clear api ok');
+
 function createMockResponse() {
   return {
     headers: {},

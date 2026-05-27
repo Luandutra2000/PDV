@@ -95,6 +95,10 @@ export function getClosedComandas() {
 export function clearTransactionHistory() {
   getDataProvider().setCollection('transactions', []);
   getDataProvider().setCollection('closedComandas', []);
+  emit(SYNC_EVENTS.transactionHistoryCleared, {
+    id: createId('history-clear'),
+    clearedAt: new Date().toISOString()
+  });
   emit(UI_EVENTS.cashSummaryChanged, { type: 'historico-limpo' });
 }
 

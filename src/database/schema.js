@@ -26,7 +26,8 @@ export const SYNC_EVENTS = {
   saleFinished: 'SALE_FINISHED',
   cashMovementRegistered: 'CASH_MOVEMENT_REGISTERED',
   stockLaunchCreated: 'STOCK_LAUNCH_CREATED',
-  showcaseWriteOffCreated: 'SHOWCASE_WRITE_OFF_CREATED'
+  showcaseWriteOffCreated: 'SHOWCASE_WRITE_OFF_CREATED',
+  transactionHistoryCleared: 'TRANSACTION_HISTORY_CLEARED'
 };
 
 export const UI_EVENTS = {
