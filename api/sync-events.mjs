@@ -163,18 +163,23 @@ async function upsertRows({ supabaseUrl, serviceRoleKey, table, rows, fetch }) {
 }
 
 function mapSaleToRow(sale) {
+  const paymentMethod = normalizePaymentMethod(sale.paymentMethod);
+
   return {
     id: sale.id,
     status: sale.status || 'ativa',
     command_id: null,
     command_number: sale.comandaNumber || null,
     total: Number(sale.total) || 0,
-    payment_method: sale.paymentMethod,
+    payment_method: paymentMethod,
     received_amount: Number(sale.receivedAmount) || 0,
     change_amount: Number(sale.change) || 0,
     created_at: sale.createdAt || new Date().toISOString(),
     canceled_at: sale.canceledAt || null,
-    payload: sale
+    payload: {
+      ...sale,
+      paymentMethod
+    }
   };
 }
 
@@ -227,4 +232,9 @@ function mapWriteOffToRow(writeOff) {
     canceled_at: writeOff.canceledAt || null,
     payload: writeOff
   };
+}
+
+function normalizePaymentMethod(value) {
+  const method = String(value || '').trim().toLowerCase();
+  return ['dinheiro', 'pix', 'debito', 'credito'].includes(method) ? method : 'dinheiro';
 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdv-lanchonete-v9';
+const CACHE_NAME = 'pdv-lanchonete-v10';
 const STATIC_ASSETS = [
   './',
   './index.html',

@@ -226,5 +226,7 @@ await sync.loadOnlineSnapshot();
 
 const transactions = storage.getItem(STORAGE_KEYS.transactions, []);
 assert(transactions.some((item) => item.id === 'sale-remote'), 'remote sales should hydrate local cache');
+const closedComandas = storage.getItem(STORAGE_KEYS.closedComandas, []);
+assert(closedComandas.some((item) => item.id === 'closed-sale-remote'), 'remote sales should hydrate closed command history');
 
 console.log('online sync service ok');

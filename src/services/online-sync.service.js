@@ -121,6 +121,7 @@ function applyOnlineSnapshot({ sales = [], cash_movements: movements = [], stock
     ...sales.map(mapSaleRowToTransaction),
     ...movements.map(mapCashMovementRowToTransaction)
   ]);
+  mergeCollection(STORAGE_KEYS.closedComandas, sales.map(mapSaleRowToClosedComanda));
   mergeCollection(STORAGE_KEYS.stockLaunches, launches.map(mapStockRowToLaunch));
   mergeCollection(STORAGE_KEYS.showcaseWriteOffs, writeOffs.map(mapWriteOffRowToLocal));
 
@@ -305,18 +306,23 @@ function getItemDate(item) {
 }
 
 function mapSaleToRow(sale) {
+  const paymentMethod = normalizePaymentMethod(sale.paymentMethod);
+
   return {
     id: sale.id,
     status: sale.status || 'ativa',
     command_id: null,
     command_number: sale.comandaNumber || null,
     total: Number(sale.total) || 0,
-    payment_method: sale.paymentMethod,
+    payment_method: paymentMethod,
     received_amount: Number(sale.receivedAmount) || 0,
     change_amount: Number(sale.change) || 0,
     created_at: sale.createdAt || new Date().toISOString(),
     canceled_at: sale.canceledAt || null,
-    payload: sale
+    payload: {
+      ...sale,
+      paymentMethod
+    }
   };
 }
 
@@ -372,7 +378,7 @@ function mapWriteOffToRow(writeOff) {
 }
 
 function mapSaleRowToTransaction(row) {
-  return row.payload || {
+  const sale = row.payload || {
     id: row.id,
     type: 'venda',
     status: row.status,
@@ -385,6 +391,34 @@ function mapSaleRowToTransaction(row) {
     change: Number(row.change_amount) || 0,
     createdAt: row.created_at,
     canceledAt: row.canceled_at
+  };
+
+  return {
+    ...sale,
+    type: 'venda',
+    status: sale.status || row.status || 'ativa',
+    items: Array.isArray(sale.items) ? sale.items : [],
+    total: Number(sale.total || row.total) || 0,
+    paymentMethod: normalizePaymentMethod(sale.paymentMethod || row.payment_method),
+    createdAt: sale.createdAt || row.created_at
+  };
+}
+
+function mapSaleRowToClosedComanda(row) {
+  const sale = mapSaleRowToTransaction(row);
+  const comandaId = sale.comandaId || `closed-${sale.id}`;
+
+  return {
+    id: comandaId,
+    number: sale.comandaNumber || row.command_number || 0,
+    status: sale.status === 'cancelada' ? 'cancelada' : 'fechada',
+    items: sale.items,
+    total: Number(sale.total) || 0,
+    paymentMethod: normalizePaymentMethod(sale.paymentMethod),
+    receivedAmount: Number(sale.receivedAmount) || 0,
+    change: Number(sale.change) || 0,
+    closedAt: sale.createdAt || row.created_at,
+    canceledAt: sale.canceledAt || row.canceled_at
   };
 }
 
@@ -434,4 +468,9 @@ function mapWriteOffRowToLocal(row) {
     status: row.status,
     canceledAt: row.canceled_at
   };
+}
+
+function normalizePaymentMethod(value) {
+  const method = String(value || '').trim().toLowerCase();
+  return ['dinheiro', 'pix', 'debito', 'credito'].includes(method) ? method : 'dinheiro';
 }

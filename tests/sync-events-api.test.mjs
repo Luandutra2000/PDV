@@ -46,7 +46,7 @@ await syncEventsHandler({
         comandaNumber: 3,
         items: [{ productId: 'coxinha', name: 'Coxinha', quantity: 1, price: 9, total: 9 }],
         total: 9,
-        paymentMethod: 'pix',
+        paymentMethod: '',
         receivedAmount: 9,
         change: 0,
         createdAt: '2026-05-27T10:00:00.000Z'
@@ -58,6 +58,8 @@ await syncEventsHandler({
 assert(response.statusCode === 200, 'sync events API should return 200');
 assert(calls.some((call) => call.url.endsWith('/rest/v1/sales')), 'sync events API should upsert sales');
 assert(calls.some((call) => call.url.endsWith('/rest/v1/sale_items')), 'sync events API should try to upsert sale items');
+const saleCall = calls.find((call) => call.url.endsWith('/rest/v1/sales'));
+assert(JSON.parse(saleCall.options.body)[0].payment_method === 'dinheiro', 'sync events API should normalize missing payment method');
 
 process.env = originalEnv;
 
