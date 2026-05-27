@@ -52,7 +52,7 @@ function bootstrap() {
   `;
 
   const workspace = app.querySelector('[data-workspace-body]');
-  const initialView = new URLSearchParams(window.location.search).get('view');
+  const initialView = getInitialView();
   renderCashStrip(app);
   if (routes[initialView]) {
     routes[initialView](workspace);
@@ -62,6 +62,16 @@ function bootstrap() {
   }
   bindNavigation(app, workspace);
   bindCashUpdates(app);
+}
+
+function getInitialView() {
+  const requestedView = new URLSearchParams(window.location.search).get('view');
+
+  if (requestedView) {
+    return requestedView;
+  }
+
+  return window.matchMedia('(max-width: 760px)').matches ? 'mobile' : '';
 }
 
 function renderCashStrip(root = document) {
