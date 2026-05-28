@@ -253,7 +253,30 @@ sync.setOnlineSyncFetchForTests(async (url, options) => {
             amount: 12
           }
         }],
-        stock_production: [],
+        stock_production: [{
+          id: 'remote-stock-active',
+          product_id: 'coxinha',
+          product_name: 'Coxinha',
+          category_id: 'salgados',
+          category_name: 'Salgados',
+          quantity: 10,
+          unit_value: 6,
+          total_value: 60,
+          status: 'ativo',
+          created_at: '2026-05-27T10:01:00.000Z',
+          payload: {
+            id: 'remote-stock-active',
+            produtoId: 'coxinha',
+            produtoNome: 'Coxinha',
+            categoriaId: 'salgados',
+            categoriaNome: 'Salgados',
+            quantidade: 10,
+            valorUnitario: 6,
+            valorTotal: 60,
+            dataHora: '2026-05-27T10:01:00.000Z',
+            status: 'ativo'
+          }
+        }],
         showcase_write_offs: []
       };
     }
@@ -277,6 +300,7 @@ storage.setItem(STORAGE_KEYS.stockLaunches, [
     dataHora: '2026-05-26T10:00:00.000Z'
   }
 ]);
+storage.setItem(STORAGE_KEYS.hiddenStockComparisons, ['coxinha']);
 
 await sync.loadOnlineSnapshot();
 
@@ -290,5 +314,7 @@ assert(!transactions.some((item) => item.id === 'stale-local-sale'), 'online sna
 const closedComandas = storage.getItem(STORAGE_KEYS.closedComandas, []);
 assert(closedComandas.some((item) => item.id === 'closed-sale-remote'), 'remote sales should hydrate closed command history');
 assert(!storage.getItem(STORAGE_KEYS.stockLaunches, []).some((item) => item.id === 'stale-local-stock'), 'online snapshot should remove stale local showcase rows already deleted remotely');
+assert(storage.getItem(STORAGE_KEYS.stockLaunches, []).some((item) => item.id === 'remote-stock-active'), 'online snapshot should hydrate remote showcase rows');
+assert(!storage.getItem(STORAGE_KEYS.hiddenStockComparisons, []).includes('coxinha'), 'online snapshot should show products with active remote showcase launches');
 
 console.log('online sync service ok');

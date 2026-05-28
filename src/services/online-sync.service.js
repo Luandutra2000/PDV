@@ -137,10 +137,31 @@ function applyOnlineSnapshot({ sales = [], cash_movements: movements = [], stock
     SYNC_EVENTS.stockLaunchUpdated,
     SYNC_EVENTS.stockLaunchCanceled
   ]));
+  restoreVisibleShowcaseRows(launches);
   replaceOnlineCollection(STORAGE_KEYS.showcaseWriteOffs, writeOffs.map(mapWriteOffRowToLocal), getPendingPayloadIds([SYNC_EVENTS.showcaseWriteOffCreated]));
 
   emit(UI_EVENTS.mobileFeedChanged, { type: 'online-snapshot-loaded' });
   emit(UI_EVENTS.cashSummaryChanged, { type: 'online-snapshot-loaded' });
+}
+
+function restoreVisibleShowcaseRows(launches = []) {
+  const activeProductIds = new Set(
+    launches
+      .map(mapStockRowToLaunch)
+      .filter((launch) => launch.status === 'ativo' && launch.produtoId)
+      .map((launch) => launch.produtoId)
+  );
+
+  if (!activeProductIds.size) {
+    return;
+  }
+
+  const hiddenRows = getItem(STORAGE_KEYS.hiddenStockComparisons, []);
+  const visibleRows = hiddenRows.filter((productId) => !activeProductIds.has(productId));
+
+  if (visibleRows.length !== hiddenRows.length) {
+    setItem(STORAGE_KEYS.hiddenStockComparisons, visibleRows);
+  }
 }
 
 async function loadOnlineSnapshotViaApi(limit) {
