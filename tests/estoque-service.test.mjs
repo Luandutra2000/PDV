@@ -104,6 +104,10 @@ estoque.createStockLaunch({
   quantidade: 3
 });
 assert(estoque.getProductionSalesComparison().length === 1, 'new launch should show hidden product in comparison again');
+const clearResult = estoque.clearShowcase();
+assert(clearResult.clearedProducts === 1, 'clear showcase should report cleared products');
+assert(clearResult.canceledLaunches === 1, 'clear showcase should cancel active launches');
+assert(estoque.getProductionSalesComparison().length === 0, 'clear showcase should remove current showcase rows');
 
 storage.resetAppData();
 const writeOffProduct = products.getProductById('x-burger');

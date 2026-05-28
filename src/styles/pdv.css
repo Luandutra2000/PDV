@@ -640,6 +640,14 @@ select.compact-select[multiple] {
   gap: 8px;
 }
 
+.comparison-counters-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .comparison-counters span {
   display: inline-flex;
   align-items: center;

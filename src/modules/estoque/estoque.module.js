@@ -1,6 +1,7 @@
 import { getCategories, getProductById, getShowcaseCategories, getShowcaseProducts } from '../../services/product.service.js';
 import {
   cancelStockLaunch,
+  clearShowcase,
   createStockLaunch,
   deleteStockComparisonRow,
   getProductionSalesComparison,
@@ -10,6 +11,8 @@ import {
 } from '../../services/estoque.service.js';
 import { showNotification } from '../../services/notification.service.js';
 import { formatCurrency } from '../../utils/currency.js';
+import { on } from '../../services/event-bus.service.js';
+import { UI_EVENTS } from '../../database/schema.js';
 
 const estoqueState = {
   period: 'today',
@@ -21,6 +24,7 @@ const estoqueState = {
 };
 
 const boundContainers = new WeakSet();
+const realtimeBoundContainers = new WeakSet();
 
 export function initEstoqueModule(container) {
   renderEstoque(container);
@@ -28,6 +32,11 @@ export function initEstoqueModule(container) {
   if (!boundContainers.has(container)) {
     bindEstoqueEvents(container);
     boundContainers.add(container);
+  }
+
+  if (!realtimeBoundContainers.has(container)) {
+    bindEstoqueRealtime(container);
+    realtimeBoundContainers.add(container);
   }
 }
 
@@ -91,7 +100,10 @@ function renderEstoque(container) {
       <section class="manager-section">
         <header class="manager-section__header">
           <strong>Comparativo producao x vendas ${getPeriodLabel()}</strong>
-          ${renderComparisonCounters(filters)}
+          <div class="comparison-counters-wrap">
+            ${renderComparisonCounters(filters)}
+            ${getProductionSalesComparison(filters).length ? '<button class="button button--danger button--small" type="button" data-action="clear-showcase">Limpar vitrine</button>' : ''}
+          </div>
         </header>
         <div class="comparison-table">
           ${renderComparison(filters)}
@@ -200,6 +212,31 @@ function bindEstoqueEvents(container) {
           : 'A linha foi ocultada do comparativo sem apagar venda do caixa.',
         type: 'danger'
       });
+      renderEstoque(container);
+      return;
+    }
+
+    if (button.dataset.action === 'clear-showcase') {
+      const confirmed = globalThis.confirm?.(`Limpar toda a vitrine ${getPeriodLabel()}? Isso cancela os lancamentos do periodo e sincroniza no banco.`) ?? true;
+
+      if (!confirmed) {
+        return;
+      }
+
+      const result = clearShowcase(getFilters());
+      showNotification({
+        title: 'Vitrine limpa',
+        message: `${result.canceledLaunches} lancamento(s) cancelado(s) em ${result.clearedProducts} produto(s).`,
+        type: 'danger'
+      });
+      renderEstoque(container);
+    }
+  });
+}
+
+function bindEstoqueRealtime(container) {
+  on(UI_EVENTS.mobileFeedChanged, () => {
+    if (container.querySelector('[data-estoque-screen]')) {
       renderEstoque(container);
     }
   });

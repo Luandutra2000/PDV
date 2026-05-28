@@ -416,6 +416,16 @@ function getPeriodRange({ period = 'today', customStart = '', customEnd = '' } =
   };
 }
 
+export function clearShowcase(filters = {}) {
+  const rows = getProductionSalesComparison(filters);
+  const results = rows.map((row) => deleteStockComparisonRow(row.produtoId, filters));
+
+  return {
+    clearedProducts: rows.length,
+    canceledLaunches: results.reduce((total, result) => total + Number(result.canceledLaunches || 0), 0)
+  };
+}
+
 function startOfDay(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
