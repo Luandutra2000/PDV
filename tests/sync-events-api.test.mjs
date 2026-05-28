@@ -119,6 +119,7 @@ assert(calls.some((call) => call.url.endsWith('/rest/v1/sale_items?id=not.is.nul
 assert(calls.some((call) => call.url.endsWith('/rest/v1/sales?id=not.is.null')), 'clear should delete sales');
 assert(calls.some((call) => call.url.endsWith('/rest/v1/cash_movements?id=not.is.null')), 'clear should delete cash movements');
 assert(calls.some((call) => call.url.endsWith('/rest/v1/notifications?type=eq.sale_backup')), 'clear should delete sale backups');
+assert(calls.some((call) => call.url.endsWith('/rest/v1/notifications?type=eq.cash_movement_backup')), 'clear should delete cash movement backups');
 
 process.env = originalEnv;
 
@@ -166,6 +167,7 @@ assert(!calls.some((call) => call.url.includes('/rest/v1/sale_items?')), 'filter
 assert(calls.some((call) => decodeURIComponent(call.url).includes('/rest/v1/sales?created_at=gte.2026-05-27T03:00:00.000Z&created_at=lt.2026-05-28T03:00:00.000Z')), 'filtered clear should delete sales by date range');
 assert(calls.some((call) => decodeURIComponent(call.url).includes('/rest/v1/cash_movements?created_at=gte.2026-05-27T03:00:00.000Z&created_at=lt.2026-05-28T03:00:00.000Z')), 'filtered clear should delete cash movements by date range');
 assert(calls.some((call) => decodeURIComponent(call.url).includes('/rest/v1/notifications?type=eq.sale_backup&created_at=gte.2026-05-27T03:00:00.000Z')), 'filtered clear should delete sale backups by date range');
+assert(calls.some((call) => decodeURIComponent(call.url).includes('/rest/v1/notifications?type=eq.cash_movement_backup&created_at=gte.2026-05-27T03:00:00.000Z')), 'filtered clear should delete cash movement backups by date range');
 
 process.env = originalEnv;
 
@@ -184,6 +186,10 @@ globalThis.fetch = async (url, options = {}) => {
   }
 
   if (options.method === 'PATCH') {
+    return jsonResponse({});
+  }
+
+  if (options.method === 'DELETE' && url.includes('/rest/v1/notifications?')) {
     return jsonResponse({});
   }
 
@@ -210,10 +216,118 @@ await syncEventsHandler({
 assert(showcaseClearResponse.statusCode === 200, 'sync events API should clear showcase product rows');
 assert(calls.some((call) => call.options.method === 'PATCH' && call.url.endsWith('/rest/v1/stock_production?id=eq.stock-1')), 'showcase clear should patch stock rows by launch id');
 assert(JSON.parse(calls.find((call) => call.options.method === 'PATCH').options.body).status === 'cancelado', 'showcase clear should mark stock row canceled');
+assert(calls.some((call) => call.options.method === 'DELETE' && call.url.endsWith('/rest/v1/notifications?id=eq.stock-backup-stock-1')), 'showcase clear should delete stock backup notification by launch id');
 
 process.env = originalEnv;
 
 console.log('sync events showcase clear api ok');
+
+calls.length = 0;
+process.env.SUPABASE_URL = 'https://example.supabase.co';
+process.env.SUPABASE_ANON_KEY = 'anon-key';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
+
+globalThis.fetch = async (url, options = {}) => {
+  calls.push({ url, options });
+
+  if (url.endsWith('/auth/v1/user')) {
+    return jsonResponse({ id: 'operator-1', email: 'caixa@pdv.local' });
+  }
+
+  if (url.endsWith('/rest/v1/cash_movements')) {
+    return jsonResponse({ message: 'cash table rejected row' }, false, 400);
+  }
+
+  if (url.endsWith('/rest/v1/notifications')) {
+    const body = JSON.parse(options.body);
+    assert(body[0].type === 'cash_movement_backup', 'cash movement failure should use notification backup');
+    assert(body[0].payload.type === 'saida', 'cash movement backup should keep movement type');
+    assert(body[0].payload.amount === 35, 'cash movement backup should keep amount');
+    return jsonResponse({});
+  }
+
+  throw new Error(`Unexpected URL while syncing cash movement: ${url}`);
+};
+
+const cashBackupResponse = createMockResponse();
+await syncEventsHandler({
+  method: 'POST',
+  headers: { authorization: 'Bearer user-token' },
+  body: JSON.stringify({
+    event: {
+      type: 'CASH_MOVEMENT_REGISTERED',
+      payload: {
+        id: 'saida-1',
+        type: 'saida',
+        amount: 35,
+        category: 'material',
+        description: 'Compra de material',
+        createdAt: '2026-05-27T12:00:00.000Z'
+      }
+    }
+  })
+}, cashBackupResponse);
+
+assert(cashBackupResponse.statusCode === 200, 'sync events API should backup failed cash movements');
+
+process.env = originalEnv;
+
+console.log('sync events cash backup api ok');
+
+calls.length = 0;
+process.env.SUPABASE_URL = 'https://example.supabase.co';
+process.env.SUPABASE_ANON_KEY = 'anon-key';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
+
+globalThis.fetch = async (url, options = {}) => {
+  calls.push({ url, options });
+
+  if (url.endsWith('/auth/v1/user')) {
+    return jsonResponse({ id: 'operator-1', email: 'caixa@pdv.local' });
+  }
+
+  if (url.endsWith('/rest/v1/stock_production')) {
+    return jsonResponse({ message: 'stock table rejected row' }, false, 400);
+  }
+
+  if (url.endsWith('/rest/v1/notifications')) {
+    const body = JSON.parse(options.body);
+    assert(body[0].type === 'stock_launch_backup', 'stock launch failure should use notification backup');
+    assert(body[0].payload.produtoId === 'coxinha', 'stock launch backup should keep product id');
+    assert(body[0].payload.quantidade === 20, 'stock launch backup should keep quantity');
+    return jsonResponse({});
+  }
+
+  throw new Error(`Unexpected URL while syncing stock launch: ${url}`);
+};
+
+const stockBackupResponse = createMockResponse();
+await syncEventsHandler({
+  method: 'POST',
+  headers: { authorization: 'Bearer user-token' },
+  body: JSON.stringify({
+    event: {
+      type: 'STOCK_LAUNCH_CREATED',
+      payload: {
+        id: 'stock-2',
+        produtoId: 'coxinha',
+        produtoNome: 'Coxinha',
+        categoriaId: 'salgados',
+        categoriaNome: 'Salgados',
+        quantidade: 20,
+        valorUnitario: 6,
+        valorTotal: 120,
+        dataHora: '2026-05-27T12:10:00.000Z'
+      }
+    }
+  })
+}, stockBackupResponse);
+
+assert(stockBackupResponse.statusCode === 200, 'sync events API should backup failed stock launches');
+
+process.env = originalEnv;
+
+console.log('sync events stock backup api ok');
 
 function createMockResponse() {
   return {

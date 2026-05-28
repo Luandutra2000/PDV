@@ -72,14 +72,26 @@ async function loadSnapshot({ supabaseUrl, serviceRoleKey, limit, fetch }) {
       canceled_at: notification.payload.canceledAt || null,
       payload: notification.payload
     }));
+  const backupMovements = notifications
+    .filter((notification) => notification.type === 'cash_movement_backup' && notification.payload)
+    .map((notification) => mapCashMovementBackup(notification));
+  const backupLaunches = notifications
+    .filter((notification) => notification.type === 'stock_launch_backup' && notification.payload)
+    .map((notification) => mapStockLaunchBackup(notification));
 
   return {
     sales: mergeRowsById([
       ...sales.map((sale) => hydrateSalePayload(sale, saleItems)),
       ...backupSales
     ]),
-    cash_movements: movements,
-    stock_production: launches,
+    cash_movements: mergeRowsById([
+      ...movements,
+      ...backupMovements
+    ]),
+    stock_production: mergeRowsById([
+      ...launches,
+      ...backupLaunches
+    ]),
     showcase_write_offs: writeOffs
   };
 }
@@ -154,6 +166,42 @@ function hydrateSalePayload(sale, saleItems) {
       createdAt: sale.created_at,
       canceledAt: sale.canceled_at
     }
+  };
+}
+
+function mapCashMovementBackup(notification) {
+  const movement = notification.payload || {};
+
+  return {
+    id: movement.id || notification.id,
+    type: movement.type || 'entrada',
+    status: movement.status || 'ativa',
+    amount: Number(movement.amount) || 0,
+    category: movement.category || 'sem-categoria',
+    description: movement.description || '',
+    user_name: movement.userName || 'Local',
+    created_at: movement.createdAt || notification.created_at,
+    canceled_at: movement.canceledAt || null,
+    payload: movement
+  };
+}
+
+function mapStockLaunchBackup(notification) {
+  const launch = notification.payload || {};
+
+  return {
+    id: launch.id || notification.id,
+    product_id: launch.produtoId || null,
+    product_name: launch.produtoNome || '',
+    category_id: launch.categoriaId || null,
+    category_name: launch.categoriaNome || '',
+    quantity: Number(launch.quantidade) || 0,
+    unit_value: Number(launch.valorUnitario) || 0,
+    total_value: Number(launch.valorTotal) || 0,
+    status: launch.status || 'ativo',
+    created_at: launch.dataHora || launch.createdAt || notification.created_at,
+    canceled_at: launch.canceledAt || null,
+    payload: launch
   };
 }
 

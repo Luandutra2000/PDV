@@ -57,20 +57,51 @@ globalThis.fetch = async (url, options = {}) => {
   }
 
   if (url.includes('/rest/v1/notifications?')) {
-    return jsonResponse([{
-      id: 'sale-backup-2',
-      type: 'sale_backup',
-      payload: {
-        id: 'sale-2',
-        type: 'venda',
-        status: 'ativa',
-        items: [{ productId: 'suco', name: 'Suco', quantity: 1, price: 8, total: 8 }],
-        total: 8,
-        paymentMethod: 'dinheiro',
-        createdAt: '2026-05-27T10:05:00.000Z'
+    return jsonResponse([
+      {
+        id: 'sale-backup-2',
+        type: 'sale_backup',
+        payload: {
+          id: 'sale-2',
+          type: 'venda',
+          status: 'ativa',
+          items: [{ productId: 'suco', name: 'Suco', quantity: 1, price: 8, total: 8 }],
+          total: 8,
+          paymentMethod: 'dinheiro',
+          createdAt: '2026-05-27T10:05:00.000Z'
+        },
+        created_at: '2026-05-27T10:05:00.000Z'
       },
-      created_at: '2026-05-27T10:05:00.000Z'
-    }]);
+      {
+        id: 'cash-backup-saida-2',
+        type: 'cash_movement_backup',
+        payload: {
+          id: 'saida-2',
+          type: 'saida',
+          amount: 18,
+          category: 'material',
+          description: 'Compra',
+          createdAt: '2026-05-27T10:06:00.000Z'
+        },
+        created_at: '2026-05-27T10:06:00.000Z'
+      },
+      {
+        id: 'stock-backup-launch-2',
+        type: 'stock_launch_backup',
+        payload: {
+          id: 'launch-2',
+          produtoId: 'suco',
+          produtoNome: 'Suco',
+          categoriaId: 'bebidas',
+          categoriaNome: 'Bebidas',
+          quantidade: 10,
+          valorUnitario: 8,
+          valorTotal: 80,
+          dataHora: '2026-05-27T10:07:00.000Z'
+        },
+        created_at: '2026-05-27T10:07:00.000Z'
+      }
+    ]);
   }
 
   throw new Error(`Unexpected URL: ${url}`);
@@ -89,8 +120,10 @@ assert(response.statusCode === 200, 'sync snapshot API should return 200');
 assert(payload.sales.length === 2, 'sync snapshot API should return sales plus backup sales');
 assert(payload.sales[0].payload.items.length === 1, 'sync snapshot API should rebuild sale payload from sale items');
 assert(payload.sales.some((sale) => sale.id === 'sale-2'), 'sync snapshot API should include notification backup sales');
-assert(payload.cash_movements.length === 1, 'sync snapshot API should return cash movements');
-assert(payload.stock_production.length === 1, 'sync snapshot API should return stock production');
+assert(payload.cash_movements.length === 2, 'sync snapshot API should return cash movements plus backups');
+assert(payload.cash_movements.some((movement) => movement.id === 'saida-2' && movement.type === 'saida'), 'sync snapshot API should include cash movement backups');
+assert(payload.stock_production.length === 2, 'sync snapshot API should return stock production plus backups');
+assert(payload.stock_production.some((launch) => launch.id === 'launch-2' && launch.product_id === 'suco'), 'sync snapshot API should include stock launch backups');
 assert(calls.some((call) => call.url.includes('limit=10')), 'sync snapshot API should pass requested limit');
 
 process.env = originalEnv;

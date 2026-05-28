@@ -39,6 +39,7 @@ export async function initOnlineRealtimeService() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_movements' }, handleOnlineChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_production' }, handleOnlineChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'showcase_write_offs' }, handleOnlineChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, handleOnlineChange)
     .subscribe();
 }
 

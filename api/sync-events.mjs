@@ -66,35 +66,17 @@ async function syncEvent({ supabaseUrl, serviceRoleKey, event, fetch }) {
   }
 
   if (event.type === SYNC_EVENTS.cashMovementRegistered) {
-    await upsertRows({
-      supabaseUrl,
-      serviceRoleKey,
-      table: 'cash_movements',
-      rows: [mapCashMovementToRow(event.payload)],
-      fetch
-    });
+    await syncCashMovement({ supabaseUrl, serviceRoleKey, movement: event.payload, fetch });
     return;
   }
 
   if (event.type === SYNC_EVENTS.stockLaunchCreated) {
-    await upsertRows({
-      supabaseUrl,
-      serviceRoleKey,
-      table: 'stock_production',
-      rows: [mapStockLaunchToRow(event.payload)],
-      fetch
-    });
+    await syncStockLaunch({ supabaseUrl, serviceRoleKey, launch: event.payload, fetch });
     return;
   }
 
   if (event.type === SYNC_EVENTS.stockLaunchUpdated || event.type === SYNC_EVENTS.stockLaunchCanceled) {
-    await upsertRows({
-      supabaseUrl,
-      serviceRoleKey,
-      table: 'stock_production',
-      rows: [mapStockLaunchToRow(event.payload)],
-      fetch
-    });
+    await syncStockLaunch({ supabaseUrl, serviceRoleKey, launch: event.payload, fetch });
     return;
   }
 
@@ -128,7 +110,8 @@ async function clearTransactionHistory({ supabaseUrl, serviceRoleKey, payload = 
   if (rangeQuery) {
     await Promise.all([
       deleteRows({ supabaseUrl, serviceRoleKey, table: 'cash_movements', query: rangeQuery, fetch }),
-      deleteRows({ supabaseUrl, serviceRoleKey, table: 'notifications', query: buildCreatedAtQuery(payload, { type: 'sale_backup' }), fetch })
+      deleteRows({ supabaseUrl, serviceRoleKey, table: 'notifications', query: buildCreatedAtQuery(payload, { type: 'sale_backup' }), fetch }),
+      deleteRows({ supabaseUrl, serviceRoleKey, table: 'notifications', query: buildCreatedAtQuery(payload, { type: 'cash_movement_backup' }), fetch })
     ]);
     await deleteRows({ supabaseUrl, serviceRoleKey, table: 'sales', query: rangeQuery, fetch });
     return;
@@ -141,7 +124,8 @@ async function clearTransactionHistory({ supabaseUrl, serviceRoleKey, payload = 
   await Promise.all([
     deleteRows({ supabaseUrl, serviceRoleKey, table: 'sale_items', fetch }),
     deleteRows({ supabaseUrl, serviceRoleKey, table: 'cash_movements', fetch }),
-    deleteRows({ supabaseUrl, serviceRoleKey, table: 'notifications', query: 'type=eq.sale_backup', fetch })
+    deleteRows({ supabaseUrl, serviceRoleKey, table: 'notifications', query: 'type=eq.sale_backup', fetch }),
+    deleteRows({ supabaseUrl, serviceRoleKey, table: 'notifications', query: 'type=eq.cash_movement_backup', fetch })
   ]);
   await deleteRows({ supabaseUrl, serviceRoleKey, table: 'sales', fetch });
 }
@@ -151,15 +135,11 @@ async function clearShowcaseProduct({ supabaseUrl, serviceRoleKey, payload = {},
   const canceledAt = payload.clearedAt || new Date().toISOString();
 
   if (ids.length) {
-    await Promise.all(ids.map((id) => patchRows({
+    await Promise.all(ids.map((id) => clearShowcaseLaunch({
       supabaseUrl,
       serviceRoleKey,
-      table: 'stock_production',
-      query: `id=eq.${encodeURIComponent(id)}`,
-      row: {
-        status: 'cancelado',
-        canceled_at: canceledAt
-      },
+      id,
+      canceledAt,
       fetch
     })));
     return;
@@ -184,6 +164,32 @@ async function clearShowcaseProduct({ supabaseUrl, serviceRoleKey, payload = {},
       status: 'cancelado',
       canceled_at: canceledAt
     },
+    fetch
+  });
+}
+
+async function clearShowcaseLaunch({ supabaseUrl, serviceRoleKey, id, canceledAt, fetch }) {
+  try {
+    await patchRows({
+      supabaseUrl,
+      serviceRoleKey,
+      table: 'stock_production',
+      query: `id=eq.${encodeURIComponent(id)}`,
+      row: {
+        status: 'cancelado',
+        canceled_at: canceledAt
+      },
+      fetch
+    });
+  } catch {
+    // Quando a linha ficou no backup de notificacoes, limpar por id abaixo ainda remove da vitrine online.
+  }
+
+  await deleteRows({
+    supabaseUrl,
+    serviceRoleKey,
+    table: 'notifications',
+    query: `id=eq.${encodeURIComponent(`stock-backup-${id}`)}`,
     fetch
   });
 }
@@ -270,6 +276,44 @@ async function syncSale({ supabaseUrl, serviceRoleKey, sale, fetch }) {
     });
   } catch {
     // A venda ja fica completa em sales.payload mesmo quando itens normalizados falham.
+  }
+}
+
+async function syncCashMovement({ supabaseUrl, serviceRoleKey, movement, fetch }) {
+  try {
+    await upsertRows({
+      supabaseUrl,
+      serviceRoleKey,
+      table: 'cash_movements',
+      rows: [mapCashMovementToRow(movement)],
+      fetch
+    });
+  } catch (error) {
+    await upsertNotificationBackup({
+      supabaseUrl,
+      serviceRoleKey,
+      notification: mapCashMovementToNotification(movement, error.message),
+      fetch
+    });
+  }
+}
+
+async function syncStockLaunch({ supabaseUrl, serviceRoleKey, launch, fetch }) {
+  try {
+    await upsertRows({
+      supabaseUrl,
+      serviceRoleKey,
+      table: 'stock_production',
+      rows: [mapStockLaunchToRow(launch)],
+      fetch
+    });
+  } catch (error) {
+    await upsertNotificationBackup({
+      supabaseUrl,
+      serviceRoleKey,
+      notification: mapStockLaunchToNotification(launch, error.message),
+      fetch
+    });
   }
 }
 
@@ -404,6 +448,33 @@ function mapCashMovementToRow(movement) {
   };
 }
 
+function mapCashMovementToNotification(movement, errorMessage = '') {
+  const type = movement.type === 'saida' ? 'saida' : 'entrada';
+  const amount = Number(movement.amount) || 0;
+  const createdAt = movement.createdAt || new Date().toISOString();
+
+  return {
+    id: `cash-backup-${movement.id}`,
+    type: 'cash_movement_backup',
+    level: type === 'saida' ? 'warning' : 'success',
+    title: type === 'saida' ? 'Saida de caixa' : 'Entrada de caixa',
+    message: `Movimento registrado no backup${errorMessage ? `: ${errorMessage}` : ''}`,
+    payload: {
+      id: movement.id,
+      type,
+      status: movement.status || 'ativa',
+      amount,
+      category: movement.category || 'sem-categoria',
+      description: movement.description || '',
+      userName: movement.userName || 'Local',
+      createdAt,
+      canceledAt: movement.canceledAt || null,
+      syncBackup: true
+    },
+    created_at: createdAt
+  };
+}
+
 function mapStockLaunchToRow(launch) {
   return {
     id: launch.id,
@@ -418,6 +489,33 @@ function mapStockLaunchToRow(launch) {
     created_at: launch.dataHora || launch.createdAt || new Date().toISOString(),
     canceled_at: launch.canceledAt || null,
     payload: launch
+  };
+}
+
+function mapStockLaunchToNotification(launch, errorMessage = '') {
+  const createdAt = launch.dataHora || launch.createdAt || new Date().toISOString();
+
+  return {
+    id: `stock-backup-${launch.id}`,
+    type: 'stock_launch_backup',
+    level: 'info',
+    title: 'Vitrine atualizada',
+    message: `Lancamento de vitrine registrado no backup${errorMessage ? `: ${errorMessage}` : ''}`,
+    payload: {
+      id: launch.id,
+      produtoId: launch.produtoId,
+      produtoNome: launch.produtoNome,
+      categoriaId: launch.categoriaId,
+      categoriaNome: launch.categoriaNome,
+      quantidade: Number(launch.quantidade) || 0,
+      valorUnitario: Number(launch.valorUnitario) || 0,
+      valorTotal: Number(launch.valorTotal) || 0,
+      dataHora: createdAt,
+      status: launch.status || 'ativo',
+      canceledAt: launch.canceledAt || null,
+      syncBackup: true
+    },
+    created_at: createdAt
   };
 }
 
