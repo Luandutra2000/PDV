@@ -591,7 +591,7 @@ function mapSaleRowToClosedComanda(row) {
 }
 
 function mapCashMovementRowToTransaction(row) {
-  return row.payload || {
+  const movement = row.payload || {
     id: row.id,
     type: row.type,
     status: row.status,
@@ -601,6 +601,19 @@ function mapCashMovementRowToTransaction(row) {
     userName: row.user_name,
     createdAt: row.created_at,
     canceledAt: row.canceled_at
+  };
+
+  return {
+    ...movement,
+    id: movement.id || row.id,
+    type: movement.type || row.type,
+    status: row.status || movement.status || 'ativa',
+    amount: Number(movement.amount || row.amount) || 0,
+    category: movement.category || row.category || 'sem-categoria',
+    description: movement.description || row.description || '',
+    userName: movement.userName || row.user_name || 'Local',
+    createdAt: movement.createdAt || row.created_at,
+    canceledAt: row.canceled_at || movement.canceledAt || null
   };
 }
 

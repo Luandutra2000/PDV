@@ -32,6 +32,7 @@ const assert = (condition, message) => {
 const { STORAGE_KEYS, SYNC_EVENTS } = await import('../src/database/schema.js');
 const storage = await import('../src/services/storage.service.js');
 const sync = await import('../src/services/online-sync.service.js');
+const notifications = await import('../src/services/mobile-notifications.service.js');
 
 const calls = [];
 const client = {
@@ -223,7 +224,35 @@ sync.setOnlineSyncFetchForTests(async (url, options) => {
             createdAt: '2026-05-27T10:00:00.000Z'
           }
         }],
-        cash_movements: [],
+        cash_movements: [{
+          id: 'entrada-remote',
+          type: 'entrada',
+          status: 'ativa',
+          amount: 50,
+          category: 'troco',
+          description: 'Entrada remota',
+          user_name: 'Dono',
+          created_at: '2026-05-27T10:02:00.000Z',
+          payload: {
+            id: 'entrada-remote',
+            type: 'entrada',
+            amount: 50
+          }
+        }, {
+          id: 'saida-remote',
+          type: 'saida',
+          status: 'ativa',
+          amount: 12,
+          category: 'compra',
+          description: 'Saida remota',
+          user_name: 'Dono',
+          created_at: '2026-05-27T10:03:00.000Z',
+          payload: {
+            id: 'saida-remote',
+            type: 'saida',
+            amount: 12
+          }
+        }],
         stock_production: [],
         showcase_write_offs: []
       };
@@ -253,6 +282,10 @@ await sync.loadOnlineSnapshot();
 
 const transactions = storage.getItem(STORAGE_KEYS.transactions, []);
 assert(transactions.some((item) => item.id === 'sale-remote'), 'remote sales should hydrate local cache');
+assert(transactions.some((item) => item.id === 'entrada-remote' && item.createdAt === '2026-05-27T10:02:00.000Z'), 'remote cash entries should hydrate local cache with database dates');
+assert(transactions.some((item) => item.id === 'saida-remote' && item.description === 'Saida remota'), 'remote cash outputs should hydrate local cache with database details');
+assert(notifications.getMobileFeedEvents({ now: new Date('2026-05-27T10:04:00.000Z') }).some((event) => event.kind === 'inflow' && event.id === 'inflow-entrada-remote'), 'mobile feed should show remote cash entries');
+assert(notifications.getMobileFeedEvents({ now: new Date('2026-05-27T10:04:00.000Z') }).some((event) => event.kind === 'outflow' && event.id === 'outflow-saida-remote'), 'mobile feed should show remote cash outputs');
 assert(!transactions.some((item) => item.id === 'stale-local-sale'), 'online snapshot should remove stale local transactions already deleted remotely');
 const closedComandas = storage.getItem(STORAGE_KEYS.closedComandas, []);
 assert(closedComandas.some((item) => item.id === 'closed-sale-remote'), 'remote sales should hydrate closed command history');

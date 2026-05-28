@@ -54,8 +54,9 @@ function buildTransactionEvents() {
 }
 
 function buildSaleEvent(sale) {
-  const quantity = sale.items.reduce((total, item) => total + Number(item.quantity || 0), 0);
-  const firstItem = sale.items[0]?.name || 'Venda';
+  const items = Array.isArray(sale.items) ? sale.items : [];
+  const quantity = items.reduce((total, item) => total + Number(item.quantity || 0), 0);
+  const firstItem = items[0]?.name || 'Venda';
 
   return {
     id: `sale-${sale.id}`,
@@ -64,7 +65,7 @@ function buildSaleEvent(sale) {
     title: 'Venda realizada',
     description: `${quantity} item(ns) - ${firstItem}`,
     amount: Number(sale.total || 0),
-    createdAt: sale.createdAt,
+    createdAt: sale.createdAt || new Date().toISOString(),
     icon: 'R$'
   };
 }
@@ -80,7 +81,7 @@ function buildCashEvent(movement, kind) {
     title: isOutput ? 'Saida de caixa' : 'Entrada de caixa',
     description: movement.description || movement.category || 'Movimento de caixa',
     amount,
-    createdAt: movement.createdAt,
+    createdAt: movement.createdAt || new Date().toISOString(),
     icon: isOutput ? '!' : '+'
   };
 }
