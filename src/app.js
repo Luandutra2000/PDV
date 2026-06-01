@@ -30,9 +30,12 @@ const routes = {
   mobile: initMobileDashboardModule
 };
 
+const AUTH_SESSION_VERSION = '20260601-07-login-restore';
+
 async function bootstrap() {
   ensureSeedData();
   initTheme();
+  ensureFreshLoginAfterAuthUpdate();
 
   const app = document.getElementById('app');
 
@@ -131,6 +134,19 @@ function bindCashUpdates(app) {
 }
 
 bootstrap();
+
+function ensureFreshLoginAfterAuthUpdate() {
+  try {
+    if (window.localStorage.getItem('pdv.authSessionVersion') === AUTH_SESSION_VERSION) {
+      return;
+    }
+
+    logout();
+    window.localStorage.setItem('pdv.authSessionVersion', AUTH_SESSION_VERSION);
+  } catch (error) {
+    console.warn('Nao foi possivel renovar a sessao local.', error);
+  }
+}
 
 function bindNavigation(app, workspace) {
   app.addEventListener('click', (event) => {

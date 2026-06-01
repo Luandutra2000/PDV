@@ -20,14 +20,18 @@
   <div id="app" class="app-shell"></div>
   <div class="toast-root" aria-live="polite"></div>
   <script type="module">
+    const LOCAL_CACHE_VERSION = '20260601-07-login-restore';
+
     async function clearLocalDevelopmentCaches() {
       if (!['127.0.0.1', 'localhost'].includes(window.location.hostname)) {
         return;
       }
 
-      if (window.location.search.includes('cache-cleared=1')) {
+      if (window.sessionStorage.getItem('pdv.localCacheVersion') === LOCAL_CACHE_VERSION) {
         return;
       }
+
+      window.sessionStorage.setItem('pdv.localCacheVersion', LOCAL_CACHE_VERSION);
 
       if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
@@ -39,12 +43,12 @@
         await Promise.all(keys.map((key) => caches.delete(key)));
       }
 
-      const separator = window.location.search ? '&' : '?';
-      window.location.replace(`${window.location.href}${separator}cache-cleared=1`);
+      window.location.reload();
+      await new Promise(() => {});
     }
 
     await clearLocalDevelopmentCaches();
-    await import('./src/app.js?v=20260601-06');
+    await import('./src/app.js?v=20260601-07');
   </script>
   <script>
     if ('serviceWorker' in navigator) {
