@@ -1,4 +1,8 @@
 export const STORAGE_KEYS = {
+  users: 'pdv.users',
+  currentSession: 'pdv.currentSession',
+  userPermissionOverrides: 'pdv.userPermissionOverrides',
+  auditLogs: 'pdv.auditLogs',
   products: 'pdv.products',
   categories: 'pdv.categories',
   activeComanda: 'pdv.activeComanda',
