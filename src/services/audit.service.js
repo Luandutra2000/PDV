@@ -11,7 +11,7 @@ export function recordAudit({
   user = getCurrentUser(),
   reason = '',
   metadata = {}
-}) {
+} = {}) {
   const normalizedAction = String(action || '').trim();
   const normalizedEntityType = String(entityType || '').trim();
 

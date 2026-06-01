@@ -22,6 +22,7 @@ const assert = (condition, message) => {
 };
 
 const storage = await import('../src/services/storage.service.js');
+const auth = await import('../src/services/auth.service.js');
 const audit = await import('../src/services/audit.service.js');
 
 storage.ensureSeedData();
@@ -40,6 +41,45 @@ assert(entry.userName === 'Caixa 1', 'audit should store user name');
 assert(entry.reason === 'Cliente desistiu', 'audit should store reason');
 assert(entry.metadata.total === 32, 'audit should store metadata');
 assert(audit.getAuditLogs()[0].action === 'sale.cancel', 'new audit should be first');
+
+auth.login({ username: 'admin', password: 'admin123' });
+
+const currentUserEntry = audit.recordAudit({
+  action: 'cash.open',
+  entityType: 'cash-register'
+});
+
+assert(currentUserEntry.userId === 'user-admin', 'audit should default to current user id');
+assert(currentUserEntry.userName === 'Administrador', 'audit should default to current user name');
+assert(!Object.hasOwn(currentUserEntry, 'password'), 'audit entry should not expose user password');
+assert(!Object.hasOwn(currentUserEntry, 'user'), 'audit entry should not expose raw user');
+assert(!Object.hasOwn(currentUserEntry.metadata, 'password'), 'audit metadata should not expose user password');
+
+auth.logout();
+
+const systemEntry = audit.recordAudit({
+  action: 'system.sync',
+  entityType: 'sync'
+});
+
+assert(systemEntry.userId === '', 'audit should store empty user id without current user');
+assert(systemEntry.userName === 'Sistema', 'audit should fall back to Sistema without current user');
+
+const firstMultiWriteEntry = audit.recordAudit({
+  action: 'sale.update',
+  entityType: 'sale',
+  entityId: 'sale-2'
+});
+
+const secondMultiWriteEntry = audit.recordAudit({
+  action: 'sale.refund',
+  entityType: 'sale',
+  entityId: 'sale-2'
+});
+
+const logsAfterMultipleWrites = audit.getAuditLogs();
+assert(logsAfterMultipleWrites[0].id === secondMultiWriteEntry.id, 'second audit should be first after multiple writes');
+assert(logsAfterMultipleWrites[1].id === firstMultiWriteEntry.id, 'previous audit should move to second after multiple writes');
 
 const metadataFallbackEntry = audit.recordAudit({
   action: 'sale.note',
@@ -60,5 +100,14 @@ try {
 }
 
 assert(requiredFieldsRejected, 'audit should reject empty required fields');
+
+let missingArgumentsRejected = false;
+try {
+  audit.recordAudit();
+} catch (error) {
+  missingArgumentsRejected = error.message === 'Acao e tipo da entidade sao obrigatorios.';
+}
+
+assert(missingArgumentsRejected, 'audit should reject missing arguments with service validation error');
 
 console.log('audit service ok');
