@@ -7,7 +7,7 @@ import {
   getMobileFeedEvents,
   getMobileFeedFilters,
   getMobileFeedPeriodFilters
-} from '../../services/mobile-notifications.service.js?v=20260601-04';
+} from '../../services/mobile-notifications.service.js?v=20260601-05';
 import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js';
 import { getThemeLabel, toggleTheme } from '../../services/theme.service.js';
 import { formatCurrency } from '../../utils/currency.js';

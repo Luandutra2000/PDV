@@ -261,6 +261,11 @@ function bindEvents(container) {
 
 function renderCategories(container) {
   const target = qs('[data-category-tabs]', container);
+
+  if (!target) {
+    return;
+  }
+
   const categories = [
     { id: CATEGORY_ALL, name: 'Todos' },
     { id: CATEGORY_BEST_SELLERS, name: 'Mais vendidos' },
@@ -310,6 +315,11 @@ function renderQuickAccess() {
 
 function renderProducts(container) {
   const target = qs('[data-product-grid]', container);
+
+  if (!target) {
+    return;
+  }
+
   const categories = getCategories();
   const products = getVisibleProducts();
 
@@ -353,6 +363,11 @@ function getActiveBestSellingProducts() {
 
 function renderComanda(container) {
   const target = qs('[data-order-panel]', container);
+
+  if (!target) {
+    return;
+  }
+
   target.innerHTML = renderOrderPanel(getActiveComanda());
 }
 
@@ -428,6 +443,10 @@ function handleOrderAction(actionButton, container) {
 
 function renderModal(container) {
   const target = qs('[data-vendas-modal]', container);
+
+  if (!target) {
+    return;
+  }
 
   if (!state.modal) {
     target.innerHTML = '';
