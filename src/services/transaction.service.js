@@ -3,8 +3,14 @@ import { emit } from './event-bus.service.js';
 import { getActiveComanda, getSubtotal, startNewComanda } from './comanda.service.js';
 import { getProductById } from './product.service.js';
 import { getItem, setItem } from './storage.service.js';
+import { getCurrentUser } from './auth.service.js';
+import { assertPermission } from './permission.service.js';
+import { recordAudit } from './audit.service.js';
 
 export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
+  const user = getCurrentUser();
+  assertPermission(user, 'sales.create');
+
   const comanda = getActiveComanda();
   const total = getSubtotal(comanda);
   const paidAmount = paymentMethod === 'dinheiro' ? Number(receivedAmount) || 0 : total;
@@ -29,6 +35,8 @@ export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
     paymentMethod,
     receivedAmount: paidAmount,
     change,
+    createdBy: user?.id || '',
+    userName: user?.name || 'Sistema',
     createdAt: new Date().toISOString()
   };
 
@@ -45,6 +53,16 @@ export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
   startNewComanda(comanda.number + 1);
   emit(SYNC_EVENTS.saleFinished, sale);
   emit(UI_EVENTS.cashSummaryChanged, sale);
+  recordAudit({
+    action: 'sale.create',
+    entityType: 'sale',
+    entityId: sale.id,
+    user,
+    metadata: {
+      total,
+      paymentMethod
+    }
+  });
 
   return sale;
 }
@@ -56,9 +74,12 @@ export function registerCashMovement({
   description = '',
   userName = 'Local'
 }) {
+  const user = getCurrentUser();
+  assertPermission(user, 'cash.movement');
+
   const normalizedAmount = Number(amount) || 0;
 
-  if (!['entrada', 'saida'].includes(type)) {
+  if (!['entrada', 'saida', 'sangria'].includes(type)) {
     throw new Error('Tipo de movimento invalido.');
   }
 
@@ -73,13 +94,26 @@ export function registerCashMovement({
     amount: normalizedAmount,
     category: String(category || 'sem-categoria').trim() || 'sem-categoria',
     description,
-    userName: String(userName || 'Local').trim() || 'Local',
+    userId: user?.id || '',
+    userName: user?.name || String(userName || 'Local').trim() || 'Local',
     createdAt: new Date().toISOString()
   };
 
   appendTransaction(movement);
   emit(SYNC_EVENTS.cashMovementRegistered, movement);
   emit(UI_EVENTS.cashSummaryChanged, movement);
+  recordAudit({
+    action: 'cash.movement',
+    entityType: 'transaction',
+    entityId: movement.id,
+    user,
+    reason: movement.description,
+    metadata: {
+      type: movement.type,
+      amount: movement.amount,
+      category: movement.category
+    }
+  });
 
   return movement;
 }
@@ -98,7 +132,16 @@ export function clearTransactionHistory() {
   emit(UI_EVENTS.cashSummaryChanged, { type: 'historico-limpo' });
 }
 
-export function cancelClosedComanda(comandaId) {
+export function cancelClosedComanda(comandaId, { reason = '' } = {}) {
+  const cancelReason = String(reason || '').trim();
+  if (!cancelReason) {
+    throw new Error('Informe o motivo do cancelamento.');
+  }
+
+  const user = getCurrentUser();
+  assertPermission(user, 'sales.cancel');
+
+  const canceledAt = new Date().toISOString();
   const transactions = getTransactions().map((transaction) => {
     if (transaction.comandaId !== comandaId) {
       return transaction;
@@ -107,7 +150,10 @@ export function cancelClosedComanda(comandaId) {
     return {
       ...transaction,
       status: 'cancelada',
-      canceledAt: new Date().toISOString()
+      canceledAt,
+      canceledBy: user?.id || '',
+      canceledByName: user?.name || 'Sistema',
+      cancelReason
     };
   });
   const comandas = getClosedComandas().map((comanda) => {
@@ -118,16 +164,34 @@ export function cancelClosedComanda(comandaId) {
     return {
       ...comanda,
       status: 'cancelada',
-      canceledAt: new Date().toISOString()
+      canceledAt,
+      canceledBy: user?.id || '',
+      canceledByName: user?.name || 'Sistema',
+      cancelReason
     };
   });
 
   setItem(STORAGE_KEYS.transactions, transactions);
   setItem(STORAGE_KEYS.closedComandas, comandas);
   emit(UI_EVENTS.cashSummaryChanged, { type: 'comanda-cancelada', comandaId });
+  recordAudit({
+    action: 'comanda.cancel',
+    entityType: 'comanda',
+    entityId: comandaId,
+    user,
+    reason: cancelReason
+  });
 }
 
-export function cancelTransaction(transactionId) {
+export function cancelTransaction(transactionId, { reason = '' } = {}) {
+  const cancelReason = String(reason || '').trim();
+  if (!cancelReason) {
+    throw new Error('Informe o motivo do cancelamento.');
+  }
+
+  const user = getCurrentUser();
+  assertPermission(user, 'sales.cancel');
+
   const canceledAt = new Date().toISOString();
   let canceledSaleComandaId = null;
   const transactions = getTransactions().map((transaction) => {
@@ -142,7 +206,10 @@ export function cancelTransaction(transactionId) {
     return {
       ...transaction,
       status: 'cancelada',
-      canceledAt
+      canceledAt,
+      canceledBy: user?.id || '',
+      canceledByName: user?.name || 'Sistema',
+      cancelReason
     };
   });
 
@@ -150,6 +217,14 @@ export function cancelTransaction(transactionId) {
 
   if (!canceledSaleComandaId) {
     emit(UI_EVENTS.cashSummaryChanged, { type: 'movimentacao-cancelada', transactionId });
+    recordAudit({
+      action: 'transaction.cancel',
+      entityType: 'transaction',
+      entityId: transactionId,
+      user,
+      reason: cancelReason,
+      metadata: {}
+    });
     return;
   }
 
@@ -161,12 +236,25 @@ export function cancelTransaction(transactionId) {
     return {
       ...comanda,
       status: 'cancelada',
-      canceledAt
+      canceledAt,
+      canceledBy: user?.id || '',
+      canceledByName: user?.name || 'Sistema',
+      cancelReason
     };
   });
 
   setItem(STORAGE_KEYS.closedComandas, comandas);
   emit(UI_EVENTS.cashSummaryChanged, { type: 'movimentacao-cancelada', transactionId });
+  recordAudit({
+    action: 'transaction.cancel',
+    entityType: 'transaction',
+    entityId: transactionId,
+    user,
+    reason: cancelReason,
+    metadata: {
+      comandaId: canceledSaleComandaId
+    }
+  });
 }
 
 export function getActiveTransactions() {

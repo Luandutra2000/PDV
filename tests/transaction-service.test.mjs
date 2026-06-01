@@ -25,9 +25,13 @@ const storage = await import('../src/services/storage.service.js');
 const schema = await import('../src/database/schema.js');
 const products = await import('../src/services/product.service.js');
 const comandas = await import('../src/services/comanda.service.js');
+const auth = await import('../src/services/auth.service.js');
+const permissions = await import('../src/services/permission.service.js');
+const audit = await import('../src/services/audit.service.js');
 const transactions = await import('../src/services/transaction.service.js');
 
 storage.ensureSeedData();
+const adminSession = auth.login({ username: 'admin', password: 'admin123' });
 comandas.clearComanda();
 comandas.addItem(products.getProductById('x-burger'));
 comandas.addItem(products.getProductById('x-burger'));
@@ -42,6 +46,8 @@ assert(sale.change === 8, 'cash payment should calculate change');
 assert(sale.paymentMethod === 'dinheiro', 'sale should keep payment method');
 assert(sale.comandaNumber === 1, 'sale should store comanda number');
 assert(sale.items.length === 1, 'sale should store sold items');
+assert(sale.createdBy === adminSession.user.id, 'sale should store logged user id');
+assert(sale.userName === adminSession.user.name, 'sale should store logged user name');
 assert(comandas.getActiveComanda().items.length === 0, 'comanda should be cleared after payment');
 assert(comandas.getActiveComanda().number === 2, 'active comanda should advance after payment');
 
@@ -71,13 +77,21 @@ transactions.registerCashMovement({
 });
 
 const summary = transactions.getTransactionSummary();
+const entryMovement = transactions.getTransactions().find((transaction) => transaction.description === 'Reforco de caixa');
+const entryAudit = audit.getAuditLogs().find((entry) => entry.action === 'cash.movement' && entry.entityId === entryMovement.id);
 
 assert(summary.salesTotal === 76, 'summary should include sales total');
 assert(summary.entriesTotal === 10, 'summary should include entries');
 assert(summary.outputsTotal === 3, 'summary should include outputs');
 assert(summary.closedComandas === 2, 'summary should count closed comandas');
+assert(entryMovement.userId === adminSession.user.id, 'cash movement should store logged user id');
+assert(entryMovement.userName === adminSession.user.name, 'cash movement should prefer logged user name');
+assert(entryAudit.reason === 'Reforco de caixa', 'cash movement audit should store description as reason');
+assert(entryAudit.metadata.type === 'entrada', 'cash movement audit should store type');
+assert(entryAudit.metadata.amount === 10, 'cash movement audit should store amount');
+assert(entryAudit.metadata.category === 'sem-categoria', 'cash movement audit should store category');
 
-transactions.cancelClosedComanda(sale.comandaId);
+transactions.cancelClosedComanda(sale.comandaId, { reason: 'Cliente desistiu' });
 const canceledSummary = transactions.getTransactionSummary();
 const canceledSale = transactions.getTransactions().find((transaction) => transaction.comandaId === sale.comandaId);
 const canceledComanda = transactions.getClosedComandas().find((comanda) => comanda.id === sale.comandaId);
@@ -86,16 +100,30 @@ assert(canceledSummary.salesTotal === 44, 'canceling comanda should remove only 
 assert(canceledSummary.closedComandas === 1, 'canceling comanda should remove closed comanda from active count');
 assert(canceledSale.status === 'cancelada', 'canceling comanda should mark sale as canceled');
 assert(canceledComanda.status === 'cancelada', 'canceling comanda should keep canceled comanda registered');
+assert(canceledSale.cancelReason === 'Cliente desistiu', 'canceling comanda should store sale cancel reason');
+assert(canceledComanda.canceledBy === adminSession.user.id, 'canceling comanda should store canceling user id');
+assert(canceledComanda.canceledByName === adminSession.user.name, 'canceling comanda should store canceling user name');
 
 const entrada = transactions.registerCashMovement({
   type: 'entrada',
   amount: 5,
   description: 'Teste cancelamento'
 });
-transactions.cancelTransaction(entrada.id);
+let missingReasonBlocked = false;
+try {
+  transactions.cancelTransaction(entrada.id);
+} catch (error) {
+  missingReasonBlocked = error.message === 'Informe o motivo do cancelamento.';
+}
+assert(missingReasonBlocked, 'canceling transaction should require reason');
+
+transactions.cancelTransaction(entrada.id, { reason: 'Lancamento duplicado' });
 const canceledMovement = transactions.getTransactions().find((transaction) => transaction.id === entrada.id);
+const cancelAudit = audit.getAuditLogs().find((entry) => entry.action === 'transaction.cancel' && entry.entityId === entrada.id);
 
 assert(canceledMovement.status === 'cancelada', 'canceling movement should mark transaction as canceled');
+assert(canceledMovement.cancelReason === 'Lancamento duplicado', 'canceling movement should store reason');
+assert(cancelAudit.reason === 'Lancamento duplicado', 'cancel audit should store reason');
 
 comandas.clearComanda();
 comandas.addItemQuantity(products.getProductById('refrigerante-lata'), 5);
@@ -169,14 +197,16 @@ assert(allPeriodMoney.canceledComandas === 2, 'all period money should include p
 const transactionCanceledSale = transactions.finalizeComandaPayment({
   paymentMethod: 'pix'
 });
-transactions.cancelTransaction(transactionCanceledSale.id);
+transactions.cancelTransaction(transactionCanceledSale.id, { reason: 'Venda lancada em duplicidade' });
 const canceledByTransaction = transactions.getTransactions().find((transaction) => transaction.id === transactionCanceledSale.id);
 const comandaCanceledByTransaction = transactions.getClosedComandas().find((comanda) => comanda.id === transactionCanceledSale.comandaId);
 const transactionCanceledSummary = transactions.getTransactionSummary();
+const saleCancelAudit = audit.getAuditLogs().find((entry) => entry.action === 'transaction.cancel' && entry.entityId === transactionCanceledSale.id);
 
 assert(canceledByTransaction.status === 'cancelada', 'canceling sale transaction should mark transaction as canceled');
 assert(comandaCanceledByTransaction.status === 'cancelada', 'canceling sale transaction should mark matching closed comanda as canceled');
 assert(transactionCanceledSummary.closedComandas === 2, 'canceling sale transaction should remove matching closed comanda from active count');
+assert(saleCancelAudit.metadata.comandaId === transactionCanceledSale.comandaId, 'sale transaction cancel audit should include comanda id');
 
 const categorizedEntry = transactions.registerCashMovement({
   type: 'entrada',
@@ -199,6 +229,40 @@ const categorizedOutput = transactions.registerCashMovement({
 
 assert(categorizedOutput.category === 'compra-ingredientes', 'cash output should store category');
 assert(categorizedOutput.userName === 'Administrador', 'cash output should store responsible user');
+
+const outputsBeforeSangria = transactions.getTransactionSummary().outputsTotal;
+const sangria = transactions.registerCashMovement({
+  type: 'sangria',
+  amount: 7,
+  category: 'retirada-caixa',
+  description: 'Retirada parcial'
+});
+const sangriaSummary = transactions.getTransactionSummary();
+
+assert(sangria.type === 'sangria', 'sangria should be accepted as movement type');
+assert(sangriaSummary.outputsTotal === outputsBeforeSangria, 'sangria should not change output totals when summaries count only saida');
+
+const saleAudit = audit.getAuditLogs().find((entry) => entry.action === 'sale.create' && entry.entityId === sale.id);
+assert(saleAudit.userId === adminSession.user.id, 'sale audit should store logged user id');
+assert(saleAudit.metadata.total === 32, 'sale audit should store total');
+assert(saleAudit.metadata.paymentMethod === 'dinheiro', 'sale audit should store payment method');
+
+const operator = auth.createUser({
+  name: 'Operador Teste',
+  username: 'operador-teste',
+  password: 'operador123',
+  role: 'operator'
+});
+permissions.setUserPermissionOverride(operator.id, 'sales.cancel', 'deny');
+auth.login({ username: 'operador-teste', password: 'operador123' });
+
+let deniedCancelBlocked = false;
+try {
+  transactions.cancelTransaction(categorizedOutput.id, { reason: 'Sem permissao' });
+} catch (error) {
+  deniedCancelBlocked = error.message === 'Usuario sem permissao para esta acao.';
+}
+assert(deniedCancelBlocked, 'user without sales.cancel should not cancel transaction');
 
 const uncategorized = transactions.getTransactions().find((transaction) => transaction.id === entrada.id);
 assert((uncategorized.category || 'sem-categoria') === 'sem-categoria', 'old movements should remain compatible without category');
