@@ -71,6 +71,20 @@ try {
 
 assert(blankUsernameRejected, 'whitespace-only username should be rejected');
 
+let blankPasswordRejected = false;
+try {
+  auth.createUser({
+    name: 'Operador',
+    username: 'blank-password',
+    password: '   ',
+    role: 'operator'
+  });
+} catch (error) {
+  blankPasswordRejected = error.message === 'Preencha nome, usuario, senha e perfil.';
+}
+
+assert(blankPasswordRejected, 'whitespace-only password should be rejected');
+
 auth.logout();
 auth.login({ username: 'caixa', password: '1234' });
 assert(auth.getCurrentUser().role === 'operator', 'operator should log in');

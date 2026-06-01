@@ -49,9 +49,10 @@ export function createUser(input) {
   const users = getUsers();
   const name = String(input.name || '').trim();
   const username = String(input.username || '').trim();
+  const password = String(input.password || '').trim();
   const role = String(input.role || '').trim();
 
-  if (!name || !username || !input.password || !role) {
+  if (!name || !username || !password || !role) {
     throw new Error('Preencha nome, usuario, senha e perfil.');
   }
 
@@ -64,7 +65,7 @@ export function createUser(input) {
     id: createId('user'),
     name,
     username,
-    password: String(input.password),
+    password,
     role,
     active: true,
     createdAt: now,
