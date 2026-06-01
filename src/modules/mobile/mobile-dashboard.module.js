@@ -3,7 +3,11 @@ import { on } from '../../services/event-bus.service.js';
 import { getCrmSummary, getProductRanking } from '../../services/crm-dashboard.service.js';
 import { getMobileCashFlowSummary } from '../../services/mobile-cash-flow.service.js';
 import { getMobileClosingSummary } from '../../services/mobile-closing.service.js';
-import { getMobileFeedEvents, getMobileFeedFilters } from '../../services/mobile-notifications.service.js';
+import {
+  getMobileFeedEvents,
+  getMobileFeedFilters,
+  getMobileFeedPeriodFilters
+} from '../../services/mobile-notifications.service.js';
 import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 
@@ -17,7 +21,8 @@ const tabs = [
 
 let state = {
   tab: 'home',
-  filter: 'all'
+  filter: 'all',
+  feedPeriod: 'today'
 };
 
 let subscriptionsReady = false;
@@ -25,7 +30,8 @@ let subscriptionsReady = false;
 export function initMobileDashboardModule(workspace) {
   state = {
     tab: 'home',
-    filter: 'all'
+    filter: 'all',
+    feedPeriod: 'today'
   };
 
   render(workspace);
@@ -41,6 +47,7 @@ function bindEvents(workspace) {
   workspace.addEventListener('click', (event) => {
     const tabButton = event.target.closest('[data-mobile-tab]');
     const filterButton = event.target.closest('[data-feed-filter]');
+    const periodButton = event.target.closest('[data-feed-period]');
 
     if (tabButton) {
       state.tab = tabButton.dataset.mobileTab;
@@ -50,6 +57,12 @@ function bindEvents(workspace) {
 
     if (filterButton) {
       state.filter = filterButton.dataset.feedFilter;
+      render(workspace);
+      return;
+    }
+
+    if (periodButton) {
+      state.feedPeriod = periodButton.dataset.feedPeriod;
       render(workspace);
     }
   });
@@ -222,13 +235,21 @@ function renderClosingTab() {
 
 function renderLiveFeed() {
   const filters = getMobileFeedFilters();
-  const events = getMobileFeedEvents({ filter: state.filter });
+  const periodFilters = getMobileFeedPeriodFilters();
+  const events = getMobileFeedEvents({ filter: state.filter, period: state.feedPeriod });
 
   return `
     <section class="mobile-feed-panel">
       <div class="mobile-section-title">
         <strong>Ao vivo</strong>
         <span class="mobile-live-dot">recebendo</span>
+      </div>
+      <div class="mobile-feed-filters">
+        ${periodFilters.map((filter) => `
+          <button class="${filter.id === state.feedPeriod ? 'is-active' : ''}" type="button" data-feed-period="${filter.id}">
+            ${filter.label}
+          </button>
+        `).join('')}
       </div>
       <div class="mobile-feed-filters">
         ${filters.map((filter) => `

@@ -53,4 +53,42 @@ const saleEvents = notifications.getMobileFeedEvents({ filter: 'sales' });
 assert(saleEvents.length > 0, 'sales filter should return sale events');
 assert(saleEvents.every((event) => event.kind === 'sale'), 'sales filter should only return sale events');
 
+const today = new Date();
+const yesterday = new Date(today);
+yesterday.setDate(today.getDate() - 1);
+
+storage.setItem((await import('../src/database/schema.js')).STORAGE_KEYS.transactions, [
+  {
+    id: 'sale-yesterday',
+    type: 'venda',
+    status: 'ativa',
+    items: [{ productId: burger.id, name: burger.name, quantity: 1, total: 16 }],
+    total: 16,
+    paymentMethod: 'dinheiro',
+    createdAt: yesterday.toISOString()
+  },
+  {
+    id: 'sale-today',
+    type: 'venda',
+    status: 'ativa',
+    items: [{ productId: soda.id, name: soda.name, quantity: 1, total: 6 }],
+    total: 6,
+    paymentMethod: 'pix',
+    createdAt: today.toISOString()
+  }
+]);
+storage.setItem((await import('../src/database/schema.js')).STORAGE_KEYS.stockLaunches, []);
+
+const liveEvents = notifications.getMobileFeedEvents({ now: today });
+assert(liveEvents.some((event) => event.id === 'sale-sale-today'), 'live feed should include current-day events');
+assert(!liveEvents.some((event) => event.id === 'sale-sale-yesterday'), 'live feed should hide previous-day events');
+
+const yesterdayEvents = notifications.getMobileFeedEvents({ period: 'yesterday', now: today });
+assert(yesterdayEvents.some((event) => event.id === 'sale-sale-yesterday'), 'yesterday filter should show previous-day events');
+assert(!yesterdayEvents.some((event) => event.id === 'sale-sale-today'), 'yesterday filter should hide current-day events');
+
+const historyEvents = notifications.getMobileFeedEvents({ period: 'all', now: today });
+assert(historyEvents.some((event) => event.id === 'sale-sale-yesterday'), 'history filter should keep previous-day events accessible');
+assert(historyEvents.some((event) => event.id === 'sale-sale-today'), 'history filter should include current-day events');
+
 console.log('mobile notifications service ok');

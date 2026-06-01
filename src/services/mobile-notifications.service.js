@@ -13,13 +13,16 @@ const HIGH_SALE_AMOUNT = 100;
 const HIGH_OUTPUT_AMOUNT = 80;
 const LOW_SHOWCASE_QUANTITY = 5;
 
-export function getMobileFeedEvents({ filter = 'all', limit = 30, now = new Date() } = {}) {
+export function getMobileFeedEvents({ filter = 'all', period = 'today', limit = 30, now = new Date() } = {}) {
   const events = [
     ...buildTransactionEvents(),
     ...buildShowcaseAlertEvents(now)
   ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-  return events.filter(FILTERS[filter] || FILTERS.all).slice(0, limit);
+  return events
+    .filter((event) => isInFeedPeriod(event.createdAt, period, now))
+    .filter(FILTERS[filter] || FILTERS.all)
+    .slice(0, limit);
 }
 
 export function getMobileFeedFilters() {
@@ -29,6 +32,14 @@ export function getMobileFeedFilters() {
     { id: 'entries', label: 'Entradas' },
     { id: 'outputs', label: 'Saidas' },
     { id: 'alerts', label: 'Alertas' }
+  ];
+}
+
+export function getMobileFeedPeriodFilters() {
+  return [
+    { id: 'today', label: 'Hoje' },
+    { id: 'yesterday', label: 'Ontem' },
+    { id: 'all', label: 'Historico' }
   ];
 }
 
@@ -98,4 +109,26 @@ function buildShowcaseAlertEvents(now) {
       createdAt: now.toISOString(),
       icon: '!'
     }));
+}
+
+function isInFeedPeriod(value, period, now) {
+  if (!value || period === 'all') {
+    return true;
+  }
+
+  const date = new Date(value);
+
+  if (period === 'yesterday') {
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    return isSameCalendarDay(date, yesterday);
+  }
+
+  return isSameCalendarDay(date, now);
+}
+
+function isSameCalendarDay(left, right) {
+  return left.getFullYear() === right.getFullYear()
+    && left.getMonth() === right.getMonth()
+    && left.getDate() === right.getDate();
 }
