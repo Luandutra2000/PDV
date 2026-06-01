@@ -11,18 +11,11 @@ export function setItem(key, value) {
 }
 
 export function ensureSeedData() {
-  if (!getItem(STORAGE_KEYS.users)) {
-    const now = new Date().toISOString();
-    setItem(STORAGE_KEYS.users, [{
-      id: 'user-admin',
-      name: 'Administrador',
-      username: 'admin',
-      password: 'admin123',
-      role: 'admin',
-      active: true,
-      createdAt: now,
-      updatedAt: now
-    }]);
+  const users = getItem(STORAGE_KEYS.users);
+  if (!users) {
+    setItem(STORAGE_KEYS.users, [createDefaultAdminUser()]);
+  } else if (!users.some((user) => user.role === 'admin')) {
+    setItem(STORAGE_KEYS.users, [...users, createDefaultAdminUser()]);
   }
 
   if (!getItem(STORAGE_KEYS.currentSession)) {
@@ -88,17 +81,7 @@ export function ensureSeedData() {
 
 export function resetAppData() {
   const provider = getDataProvider();
-  const now = new Date().toISOString();
-  provider.write(STORAGE_KEYS.users, [{
-    id: 'user-admin',
-    name: 'Administrador',
-    username: 'admin',
-    password: 'admin123',
-    role: 'admin',
-    active: true,
-    createdAt: now,
-    updatedAt: now
-  }]);
+  provider.write(STORAGE_KEYS.users, [createDefaultAdminUser()]);
   provider.write(STORAGE_KEYS.currentSession, null);
   provider.write(STORAGE_KEYS.userPermissionOverrides, {});
   provider.write(STORAGE_KEYS.auditLogs, []);
@@ -114,4 +97,18 @@ export function resetAppData() {
   provider.write(STORAGE_KEYS.cashClosings, []);
   provider.write(STORAGE_KEYS.cashClosingDraft, null);
   provider.write(STORAGE_KEYS.showcaseWriteOffs, []);
+}
+
+function createDefaultAdminUser() {
+  const now = new Date().toISOString();
+  return {
+    id: 'user-admin',
+    name: 'Administrador',
+    username: 'admin',
+    password: 'admin123',
+    role: 'admin',
+    active: true,
+    createdAt: now,
+    updatedAt: now
+  };
 }

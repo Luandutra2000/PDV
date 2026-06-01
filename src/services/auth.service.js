@@ -1,8 +1,11 @@
 import { STORAGE_KEYS } from '../database/schema.js';
 import { getItem, setItem } from './storage.service.js';
 
+const VALID_ROLES = new Set(['admin', 'operator']);
+const REQUIRED_FIELDS_ERROR = 'Preencha nome, usuario, senha e perfil.';
+
 export function getUsers() {
-  return getItem(STORAGE_KEYS.users, []);
+  return getRawUsers().map(sanitizeUser);
 }
 
 export function getActiveUsers() {
@@ -16,12 +19,12 @@ export function getCurrentUser() {
     return null;
   }
 
-  return getUsers().find((user) => user.id === session.userId) || null;
+  return sanitizeUser(getRawUsers().find((user) => user.id === session.userId));
 }
 
 export function login({ username, password }) {
   const normalizedUsername = String(username || '').trim();
-  const user = getUsers().find((candidate) => candidate.username === normalizedUsername);
+  const user = getRawUsers().find((candidate) => candidate.username === normalizedUsername);
 
   if (!user || user.password !== password) {
     throw new Error('Usuario ou senha invalidos.');
@@ -46,14 +49,14 @@ export function logout() {
 }
 
 export function createUser(input) {
-  const users = getUsers();
+  const users = getRawUsers();
   const name = String(input.name || '').trim();
   const username = String(input.username || '').trim();
   const password = String(input.password || '').trim();
   const role = String(input.role || '').trim();
 
-  if (!name || !username || !password || !role) {
-    throw new Error('Preencha nome, usuario, senha e perfil.');
+  if (!name || !username || !password || !isValidRole(role)) {
+    throw new Error(REQUIRED_FIELDS_ERROR);
   }
 
   if (users.some((user) => user.username === username)) {
@@ -78,26 +81,58 @@ export function createUser(input) {
 }
 
 export function updateUser(userId, patch) {
-  let updatedUser = null;
-  const users = getUsers().map((user) => {
-    if (user.id !== userId) {
-      return user;
-    }
+  const users = getRawUsers();
+  const existingUser = users.find((user) => user.id === userId);
 
-    updatedUser = {
-      ...user,
-      ...patch,
-      updatedAt: new Date().toISOString()
-    };
-
-    return updatedUser;
-  });
-
-  if (!updatedUser) {
+  if (!existingUser) {
     throw new Error('Usuario nao encontrado.');
   }
 
-  setItem(STORAGE_KEYS.users, users);
+  const updatedUser = {
+    ...existingUser,
+    updatedAt: new Date().toISOString()
+  };
+
+  if (Object.hasOwn(patch, 'name')) {
+    const name = String(patch.name || '').trim();
+    if (!name) {
+      throw new Error(REQUIRED_FIELDS_ERROR);
+    }
+    updatedUser.name = name;
+  }
+
+  if (Object.hasOwn(patch, 'username')) {
+    const username = String(patch.username || '').trim();
+    if (!username) {
+      throw new Error(REQUIRED_FIELDS_ERROR);
+    }
+    if (users.some((user) => user.id !== userId && user.username === username)) {
+      throw new Error('Ja existe usuario com este login.');
+    }
+    updatedUser.username = username;
+  }
+
+  if (Object.hasOwn(patch, 'password')) {
+    const password = String(patch.password || '').trim();
+    if (!password) {
+      throw new Error(REQUIRED_FIELDS_ERROR);
+    }
+    updatedUser.password = password;
+  }
+
+  if (Object.hasOwn(patch, 'role')) {
+    const role = String(patch.role || '').trim();
+    if (!isValidRole(role)) {
+      throw new Error(REQUIRED_FIELDS_ERROR);
+    }
+    updatedUser.role = role;
+  }
+
+  if (Object.hasOwn(patch, 'active')) {
+    updatedUser.active = patch.active;
+  }
+
+  setItem(STORAGE_KEYS.users, users.map((user) => (user.id === userId ? updatedUser : user)));
 
   return sanitizeUser(updatedUser);
 }
@@ -109,6 +144,14 @@ export function sanitizeUser(user) {
 
   const { password, ...safeUser } = user;
   return safeUser;
+}
+
+function getRawUsers() {
+  return getItem(STORAGE_KEYS.users, []);
+}
+
+function isValidRole(role) {
+  return VALID_ROLES.has(role);
 }
 
 function createId(prefix) {
