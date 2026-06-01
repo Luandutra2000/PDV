@@ -20,7 +20,7 @@
   <div id="app" class="app-shell"></div>
   <div class="toast-root" aria-live="polite"></div>
   <script type="module">
-    const LOCAL_CACHE_VERSION = '20260601-07-login-restore';
+    const LOCAL_CACHE_VERSION = '20260601-08-admin-recovery';
 
     async function clearLocalDevelopmentCaches() {
       if (!['127.0.0.1', 'localhost'].includes(window.location.hostname)) {
@@ -48,7 +48,7 @@
     }
 
     await clearLocalDevelopmentCaches();
-    await import('./src/app.js?v=20260601-07');
+    await import('./src/app.js?v=20260601-08');
   </script>
   <script>
     if ('serviceWorker' in navigator) {

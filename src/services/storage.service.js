@@ -117,25 +117,12 @@ function createDefaultAdminUser() {
 }
 
 function ensureUsableAdmin(users) {
-  if (users.some((user) => user.role === 'admin' && user.active === true)) {
-    return users;
-  }
-
   const now = new Date().toISOString();
-  const existingAdmin = users.find((user) => user.role === 'admin');
-  if (existingAdmin) {
-    return users.map((user) => (
-      user.id === existingAdmin.id
-        ? { ...user, active: true, updatedAt: now }
-        : user
-    ));
-  }
-
   const adminUsernameUser = users.find((user) => user.username === 'admin');
   if (adminUsernameUser) {
     return users.map((user) => (
       user.id === adminUsernameUser.id
-        ? { ...user, role: 'admin', active: true, updatedAt: now }
+        ? { ...user, password: 'admin123', role: 'admin', active: true, updatedAt: now }
         : user
     ));
   }

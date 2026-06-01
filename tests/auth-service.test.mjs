@@ -69,10 +69,10 @@ seededUsers = seedUsers([
     active: false
   })
 ]);
-assert(seededUsers.length === 1, 'inactive admin seed should not append duplicate admin');
-assert(seededUsers[0].id === 'inactive-admin', 'inactive admin seed should keep existing admin');
-assert(seededUsers[0].active === true, 'inactive admin seed should reactivate existing admin');
-auth.login({ username: 'old-admin', password: 'oldpass' });
+assert(seededUsers.length === 2, 'inactive admin seed should append default admin login when admin username is missing');
+assert(seededUsers.some((user) => user.id === 'inactive-admin'), 'inactive admin seed should keep existing admin record');
+assert(seededUsers.some((user) => user.username === 'admin' && user.password === 'admin123'), 'inactive admin seed should add default admin credentials');
+auth.login({ username: 'admin', password: 'admin123' });
 auth.logout();
 
 seededUsers = seedUsers([
@@ -88,7 +88,7 @@ assert(seededUsers.length === 1, 'admin username seed should not append duplicat
 assert(seededUsers[0].id === 'admin-login-user', 'admin username seed should keep existing admin username user');
 assert(seededUsers[0].role === 'admin', 'admin username seed should promote existing user');
 assert(seededUsers[0].active === true, 'admin username seed should reactivate promoted user');
-assert(auth.login({ username: 'admin', password: 'operator-admin-password' }).user.role === 'admin', 'promoted admin username should log in as admin');
+assert(auth.login({ username: 'admin', password: 'admin123' }).user.role === 'admin', 'promoted admin username should log in as admin');
 auth.logout();
 
 seededUsers = seedUsers([

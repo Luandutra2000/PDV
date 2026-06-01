@@ -30,7 +30,7 @@ const routes = {
   mobile: initMobileDashboardModule
 };
 
-const AUTH_SESSION_VERSION = '20260601-07-login-restore';
+const AUTH_SESSION_VERSION = '20260601-08-admin-recovery';
 
 async function bootstrap() {
   ensureSeedData();
