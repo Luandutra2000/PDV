@@ -1,9 +1,9 @@
 import { getCaixaSummary } from './caixa.service.js';
-import { getDailyMoneySummary } from './transaction.service.js';
+import { getMoneySummary } from './transaction.service.js';
 
-export function getMobileCashFlowSummary() {
+export function getMobileCashFlowSummary({ period = 'today', customStart = '', customEnd = '' } = {}) {
   const caixa = getCaixaSummary();
-  const summary = getDailyMoneySummary();
+  const summary = getMoneySummary({ period, customStart, customEnd });
   const currentCash = Number(caixa.currentAmount || 0);
   const estimatedProfit = summary.salesTotal + summary.entriesTotal - summary.outputsTotal;
 

@@ -46,4 +46,32 @@ assert(summary.estimatedProfit === burger.price + 100 - 25, 'cash flow should ca
 assert(summary.paymentTotals.dinheiro === burger.price, 'cash flow should include payment totals');
 assert(summary.cards.length === 5, 'cash flow should expose five dashboard cards');
 
+const yesterday = new Date();
+yesterday.setDate(yesterday.getDate() - 1);
+
+storage.setItem((await import('../src/database/schema.js')).STORAGE_KEYS.transactions, [
+  ...transactions.getTransactions(),
+  {
+    id: 'sale-yesterday',
+    type: 'venda',
+    status: 'ativa',
+    items: [{ productId: burger.id, name: burger.name, quantity: 1, total: burger.price }],
+    total: burger.price,
+    paymentMethod: 'pix',
+    createdAt: yesterday.toISOString()
+  },
+  {
+    id: 'entry-yesterday',
+    type: 'entrada',
+    status: 'ativa',
+    amount: 40,
+    createdAt: yesterday.toISOString()
+  }
+]);
+
+const yesterdaySummary = cashFlow.getMobileCashFlowSummary({ period: 'yesterday' });
+assert(yesterdaySummary.salesTotal === burger.price, 'cash flow should respect selected period sales');
+assert(yesterdaySummary.entriesTotal === 40, 'cash flow should respect selected period entries');
+assert(yesterdaySummary.outputsTotal === 0, 'cash flow should hide outputs outside selected period');
+
 console.log('mobile cash flow service ok');

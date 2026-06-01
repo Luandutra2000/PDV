@@ -102,6 +102,10 @@
   font-weight: 900;
 }
 
+.mobile-global-period {
+  margin-bottom: 8px;
+}
+
 .mobile-hero-card span {
   color: rgba(255, 255, 255, 0.86);
 }
@@ -242,6 +246,18 @@
   display: grid;
   gap: 10px;
   padding: 2px 2px 14px;
+}
+
+.mobile-load-more {
+  width: 100%;
+  min-height: 40px;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
 }
 
 .mobile-feed-event {

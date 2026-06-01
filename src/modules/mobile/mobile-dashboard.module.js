@@ -7,7 +7,7 @@ import {
   getMobileFeedEvents,
   getMobileFeedFilters,
   getMobileFeedPeriodFilters
-} from '../../services/mobile-notifications.service.js?v=20260601-03';
+} from '../../services/mobile-notifications.service.js?v=20260601-04';
 import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js';
 import { getThemeLabel, toggleTheme } from '../../services/theme.service.js';
 import { formatCurrency } from '../../utils/currency.js';
@@ -25,7 +25,8 @@ let state = {
   filter: 'all',
   feedPeriod: 'today',
   customStart: '',
-  customEnd: ''
+  customEnd: '',
+  feedLimit: 5
 };
 
 let subscriptionsReady = false;
@@ -36,7 +37,8 @@ export function initMobileDashboardModule(workspace) {
     filter: 'all',
     feedPeriod: 'today',
     customStart: '',
-    customEnd: ''
+    customEnd: '',
+    feedLimit: 5
   };
 
   render(workspace);
@@ -53,6 +55,7 @@ function bindEvents(workspace) {
     const tabButton = event.target.closest('[data-mobile-tab]');
     const filterButton = event.target.closest('[data-feed-filter]');
     const periodButton = event.target.closest('[data-feed-period]');
+    const loadMoreButton = event.target.closest('[data-feed-load-more]');
     const themeButton = event.target.closest('[data-mobile-theme]');
     const exitButton = event.target.closest('[data-mobile-exit]');
 
@@ -75,17 +78,25 @@ function bindEvents(workspace) {
 
     if (filterButton) {
       state.filter = filterButton.dataset.feedFilter;
+      state.feedLimit = 5;
       render(workspace);
       return;
     }
 
     if (periodButton) {
       state.feedPeriod = periodButton.dataset.feedPeriod;
+      state.feedLimit = 5;
       if (state.feedPeriod === 'custom' && !state.customStart && !state.customEnd) {
         const today = getDateInputValue(new Date());
         state.customStart = today;
         state.customEnd = today;
       }
+      render(workspace);
+      return;
+    }
+
+    if (loadMoreButton) {
+      state.feedLimit += 5;
       render(workspace);
     }
   });
@@ -94,6 +105,7 @@ function bindEvents(workspace) {
     if (event.target.matches('[data-feed-custom-start]')) {
       state.customStart = event.target.value;
       state.feedPeriod = 'custom';
+      state.feedLimit = 5;
       render(workspace);
       return;
     }
@@ -101,6 +113,7 @@ function bindEvents(workspace) {
     if (event.target.matches('[data-feed-custom-end]')) {
       state.customEnd = event.target.value;
       state.feedPeriod = 'custom';
+      state.feedLimit = 5;
       render(workspace);
     }
   });
@@ -117,7 +130,11 @@ function bindRealtimeRefresh(workspace) {
 }
 
 function render(workspace) {
-  const cash = getMobileCashFlowSummary();
+  const cash = getMobileCashFlowSummary({
+    period: state.feedPeriod,
+    customStart: state.customStart,
+    customEnd: state.customEnd
+  });
 
   workspace.innerHTML = `
     <section class="mobile-shell">
@@ -142,7 +159,6 @@ export function renderMobileTopbar(themeLabel = getThemeLabel()) {
       <div class="mobile-topbar__actions">
         <button class="mobile-topbar__button" type="button" data-mobile-theme>${themeLabel}</button>
         <button class="mobile-topbar__button" type="button" data-mobile-exit>Sair</button>
-        <span>Hoje</span>
       </div>
     </header>
   `;
@@ -171,12 +187,35 @@ function renderTabContent(cash) {
 function renderHomeTab(cash) {
   return `
     <div class="mobile-content">
+      ${renderMobilePeriodControls(state)}
       ${renderHeroCard(cash.cards[0])}
       <div class="mobile-metrics">
         ${cash.cards.slice(1).map(renderMetricCard).join('')}
       </div>
       ${renderLiveFeed()}
     </div>
+  `;
+}
+
+export function renderMobilePeriodControls({ feedPeriod, customStart, customEnd }) {
+  const periodFilters = getMobileFeedPeriodFilters();
+
+  return `
+    <section class="mobile-global-period" aria-label="Periodo do painel">
+      <div class="mobile-feed-filters">
+        ${periodFilters.map((filter) => `
+          <button class="${filter.id === feedPeriod ? 'is-active' : ''}" type="button" data-feed-period="${filter.id}">
+            ${filter.label}
+          </button>
+        `).join('')}
+      </div>
+      ${feedPeriod === 'custom' ? `
+        <div class="mobile-period-range">
+          <input class="field" type="date" data-feed-custom-start value="${customStart}">
+          <input class="field" type="date" data-feed-custom-end value="${customEnd}">
+        </div>
+      ` : ''}
+    </section>
   `;
 }
 
@@ -281,15 +320,24 @@ function renderClosingTab() {
   `;
 }
 
-function renderLiveFeed() {
+export function renderLiveFeed({
+  filter = state.filter,
+  feedPeriod = state.feedPeriod,
+  customStart = state.customStart,
+  customEnd = state.customEnd,
+  feedLimit = state.feedLimit,
+  events = null
+} = {}) {
   const filters = getMobileFeedFilters();
-  const periodFilters = getMobileFeedPeriodFilters();
-  const events = getMobileFeedEvents({
-    filter: state.filter,
-    period: state.feedPeriod,
-    customStart: state.customStart,
-    customEnd: state.customEnd
+  const allEvents = events || getMobileFeedEvents({
+    filter,
+    period: feedPeriod,
+    customStart,
+    customEnd,
+    limit: Number.MAX_SAFE_INTEGER
   });
+  const visibleEvents = allEvents.slice(0, feedLimit);
+  const hasMore = allEvents.length > visibleEvents.length;
 
   return `
     <section class="mobile-feed-panel">
@@ -298,28 +346,16 @@ function renderLiveFeed() {
         <span class="mobile-live-dot">recebendo</span>
       </div>
       <div class="mobile-feed-filters">
-        ${periodFilters.map((filter) => `
-          <button class="${filter.id === state.feedPeriod ? 'is-active' : ''}" type="button" data-feed-period="${filter.id}">
-            ${filter.label}
-          </button>
-        `).join('')}
-      </div>
-      ${state.feedPeriod === 'custom' ? `
-        <div class="mobile-period-range">
-          <input class="field" type="date" data-feed-custom-start value="${state.customStart}">
-          <input class="field" type="date" data-feed-custom-end value="${state.customEnd}">
-        </div>
-      ` : ''}
-      <div class="mobile-feed-filters">
-        ${filters.map((filter) => `
-          <button class="${filter.id === state.filter ? 'is-active' : ''}" type="button" data-feed-filter="${filter.id}">
-            ${filter.label}
+        ${filters.map((item) => `
+          <button class="${item.id === filter ? 'is-active' : ''}" type="button" data-feed-filter="${item.id}">
+            ${item.label}
           </button>
         `).join('')}
       </div>
       <div class="mobile-live-feed">
-        ${events.map(renderFeedEvent).join('') || '<p class="mobile-empty">Nenhum evento neste filtro.</p>'}
+        ${visibleEvents.map(renderFeedEvent).join('') || '<p class="mobile-empty">Nenhum evento neste filtro.</p>'}
       </div>
+      ${hasMore ? '<button class="mobile-load-more" type="button" data-feed-load-more>Carregar mais</button>' : ''}
     </section>
   `;
 }
