@@ -33,7 +33,24 @@ const OPERATOR_PERMISSIONS = new Set([
   'showcase.launch'
 ]);
 
+const PERMISSION_IDS = new Set(PERMISSIONS.map((permission) => permission.id));
+const VALID_OVERRIDE_STATES = new Set(['default', 'allow', 'deny']);
+
+function isKnownPermission(permissionId) {
+  return PERMISSION_IDS.has(permissionId);
+}
+
+function assertKnownPermission(permissionId) {
+  if (!isKnownPermission(permissionId)) {
+    throw new Error('Permissao desconhecida.');
+  }
+}
+
 export function hasPermission(user, permissionId) {
+  if (!isKnownPermission(permissionId)) {
+    return false;
+  }
+
   if (!user || user.active === false) {
     return false;
   }
@@ -62,11 +79,19 @@ export function assertPermission(user, permissionId) {
 }
 
 export function getUserPermissionOverride(userId, permissionId) {
+  assertKnownPermission(permissionId);
+
   const overrides = getItem(STORAGE_KEYS.userPermissionOverrides, {});
   return overrides[userId]?.[permissionId] || 'default';
 }
 
 export function setUserPermissionOverride(userId, permissionId, state) {
+  assertKnownPermission(permissionId);
+
+  if (!VALID_OVERRIDE_STATES.has(state)) {
+    throw new Error('Estado de permissao invalido.');
+  }
+
   const overrides = getItem(STORAGE_KEYS.userPermissionOverrides, {});
   const userOverrides = { ...(overrides[userId] || {}) };
 
@@ -76,10 +101,15 @@ export function setUserPermissionOverride(userId, permissionId, state) {
     userOverrides[permissionId] = state;
   }
 
-  setItem(STORAGE_KEYS.userPermissionOverrides, {
-    ...overrides,
-    [userId]: userOverrides
-  });
+  const nextOverrides = { ...overrides };
+
+  if (Object.keys(userOverrides).length === 0) {
+    delete nextOverrides[userId];
+  } else {
+    nextOverrides[userId] = userOverrides;
+  }
+
+  setItem(STORAGE_KEYS.userPermissionOverrides, nextOverrides);
 }
 
 export function getRolePermissions(role) {
