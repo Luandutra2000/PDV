@@ -7,8 +7,9 @@ import {
   getMobileFeedEvents,
   getMobileFeedFilters,
   getMobileFeedPeriodFilters
-} from '../../services/mobile-notifications.service.js?v=20260601-02';
+} from '../../services/mobile-notifications.service.js?v=20260601-03';
 import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js';
+import { getThemeLabel, toggleTheme } from '../../services/theme.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 
 const tabs = [
@@ -52,6 +53,19 @@ function bindEvents(workspace) {
     const tabButton = event.target.closest('[data-mobile-tab]');
     const filterButton = event.target.closest('[data-feed-filter]');
     const periodButton = event.target.closest('[data-feed-period]');
+    const themeButton = event.target.closest('[data-mobile-theme]');
+    const exitButton = event.target.closest('[data-mobile-exit]');
+
+    if (themeButton) {
+      toggleTheme();
+      themeButton.textContent = getThemeLabel();
+      return;
+    }
+
+    if (exitButton) {
+      window.location.href = window.location.pathname || './';
+      return;
+    }
 
     if (tabButton) {
       state.tab = tabButton.dataset.mobileTab;
@@ -108,13 +122,7 @@ function render(workspace) {
   workspace.innerHTML = `
     <section class="mobile-shell">
       <div class="mobile-app">
-        <header class="mobile-topbar">
-          <div>
-            <h1>PDV Lanchonete</h1>
-            <p>Painel do dono</p>
-          </div>
-          <span>Hoje</span>
-        </header>
+        ${renderMobileTopbar(getThemeLabel())}
         ${renderTabContent(cash)}
         ${renderBottomNav()}
       </div>
@@ -122,6 +130,22 @@ function render(workspace) {
   `;
 
   bindEvents(workspace);
+}
+
+export function renderMobileTopbar(themeLabel = getThemeLabel()) {
+  return `
+    <header class="mobile-topbar">
+      <div>
+        <h1>PDV Lanchonete</h1>
+        <p>Painel do dono</p>
+      </div>
+      <div class="mobile-topbar__actions">
+        <button class="mobile-topbar__button" type="button" data-mobile-theme>${themeLabel}</button>
+        <button class="mobile-topbar__button" type="button" data-mobile-exit>Sair</button>
+        <span>Hoje</span>
+      </div>
+    </header>
+  `;
 }
 
 function renderTabContent(cash) {

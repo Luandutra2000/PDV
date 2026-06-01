@@ -8,7 +8,7 @@ import { initProdutosModule } from './modules/produtos/produtos.module.js';
 import { initDashboardModule } from './modules/dashboard/dashboard.module.js';
 import { initEstoqueModule } from './modules/estoque/estoque.module.js';
 import { initCaixaModule } from './modules/caixa/caixa.module.js';
-import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js?v=20260601-02';
+import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js?v=20260601-03';
 import { formatCurrency } from './utils/currency.js';
 import { initNotificationService } from './services/notification.service.js';
 import { initRealtimeService } from './services/realtime.service.js';
