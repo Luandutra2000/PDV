@@ -11,6 +11,32 @@ export function setItem(key, value) {
 }
 
 export function ensureSeedData() {
+  if (!getItem(STORAGE_KEYS.users)) {
+    const now = new Date().toISOString();
+    setItem(STORAGE_KEYS.users, [{
+      id: 'user-admin',
+      name: 'Administrador',
+      username: 'admin',
+      password: 'admin123',
+      role: 'admin',
+      active: true,
+      createdAt: now,
+      updatedAt: now
+    }]);
+  }
+
+  if (!getItem(STORAGE_KEYS.currentSession)) {
+    setItem(STORAGE_KEYS.currentSession, null);
+  }
+
+  if (!getItem(STORAGE_KEYS.userPermissionOverrides)) {
+    setItem(STORAGE_KEYS.userPermissionOverrides, {});
+  }
+
+  if (!getItem(STORAGE_KEYS.auditLogs)) {
+    setItem(STORAGE_KEYS.auditLogs, []);
+  }
+
   if (!getItem(STORAGE_KEYS.categories)) {
     setItem(STORAGE_KEYS.categories, mockCategories);
   }
@@ -62,6 +88,20 @@ export function ensureSeedData() {
 
 export function resetAppData() {
   const provider = getDataProvider();
+  const now = new Date().toISOString();
+  provider.write(STORAGE_KEYS.users, [{
+    id: 'user-admin',
+    name: 'Administrador',
+    username: 'admin',
+    password: 'admin123',
+    role: 'admin',
+    active: true,
+    createdAt: now,
+    updatedAt: now
+  }]);
+  provider.write(STORAGE_KEYS.currentSession, null);
+  provider.write(STORAGE_KEYS.userPermissionOverrides, {});
+  provider.write(STORAGE_KEYS.auditLogs, []);
   provider.write(STORAGE_KEYS.categories, mockCategories);
   provider.write(STORAGE_KEYS.products, mockProducts);
   provider.write(STORAGE_KEYS.activeComanda, mockActiveComanda);
