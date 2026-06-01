@@ -15,6 +15,8 @@ import { initNotificationService } from './services/notification.service.js';
 import { initRealtimeService } from './services/realtime.service.js';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js';
 import { getDailyMoneySummary } from './services/transaction.service.js';
+import { getCurrentUser, logout } from './services/auth.service.js';
+import { renderLoginModule } from './modules/auth/login.module.js';
 import { on } from './services/event-bus.service.js';
 import { UI_EVENTS } from './database/schema.js';
 
@@ -29,13 +31,27 @@ const routes = {
 };
 
 async function bootstrap() {
-  await hydrateDataProvider();
   ensureSeedData();
-  initSyncService();
-  initRealtimeService();
   initTheme();
 
   const app = document.getElementById('app');
+
+  if (!getCurrentUser()) {
+    renderLoginModule(app, () => bootstrap());
+    return;
+  }
+
+  try {
+    await hydrateDataProvider();
+  } catch (error) {
+    renderLoginModule(app, () => bootstrap(), {
+      message: error.message || 'Nao foi possivel carregar os dados online.'
+    });
+    return;
+  }
+
+  initSyncService();
+  initRealtimeService();
   initNotificationService(document.querySelector('.toast-root'));
 
   app.innerHTML = `
@@ -123,6 +139,12 @@ function bindNavigation(app, workspace) {
     if (themeButton) {
       toggleTheme();
       themeButton.textContent = getThemeLabel();
+      return;
+    }
+
+    if (event.target.closest('[data-action="logout"]')) {
+      logout();
+      bootstrap();
       return;
     }
 
