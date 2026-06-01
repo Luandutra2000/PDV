@@ -14,8 +14,11 @@ export function ensureSeedData() {
   const users = getItem(STORAGE_KEYS.users);
   if (!users) {
     setItem(STORAGE_KEYS.users, [createDefaultAdminUser()]);
-  } else if (!users.some((user) => user.role === 'admin')) {
-    setItem(STORAGE_KEYS.users, [...users, createDefaultAdminUser()]);
+  } else {
+    const seededUsers = ensureUsableAdmin(users);
+    if (seededUsers !== users) {
+      setItem(STORAGE_KEYS.users, seededUsers);
+    }
   }
 
   if (!getItem(STORAGE_KEYS.currentSession)) {
@@ -111,4 +114,31 @@ function createDefaultAdminUser() {
     createdAt: now,
     updatedAt: now
   };
+}
+
+function ensureUsableAdmin(users) {
+  if (users.some((user) => user.role === 'admin' && user.active === true)) {
+    return users;
+  }
+
+  const now = new Date().toISOString();
+  const existingAdmin = users.find((user) => user.role === 'admin');
+  if (existingAdmin) {
+    return users.map((user) => (
+      user.id === existingAdmin.id
+        ? { ...user, active: true, updatedAt: now }
+        : user
+    ));
+  }
+
+  const adminUsernameUser = users.find((user) => user.username === 'admin');
+  if (adminUsernameUser) {
+    return users.map((user) => (
+      user.id === adminUsernameUser.id
+        ? { ...user, role: 'admin', active: true, updatedAt: now }
+        : user
+    ));
+  }
+
+  return [...users, createDefaultAdminUser()];
 }

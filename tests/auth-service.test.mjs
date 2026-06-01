@@ -36,6 +36,78 @@ const assertUsersHaveNoPassword = (usersToCheck, message) => {
   assert(usersToCheck.every((user) => !Object.hasOwn(user, 'password')), message);
 };
 
+const makeUser = (overrides) => ({
+  id: 'user-test',
+  name: 'Usuario Teste',
+  username: 'teste',
+  password: '1234',
+  role: 'operator',
+  active: true,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+  ...overrides
+});
+
+const seedUsers = (usersToSeed) => {
+  storage.setItem(STORAGE_KEYS.users, usersToSeed);
+  storage.setItem(STORAGE_KEYS.currentSession, null);
+  storage.ensureSeedData();
+  return storage.getItem(STORAGE_KEYS.users, []);
+};
+
+let seededUsers = seedUsers([]);
+assert(seededUsers.some((user) => user.role === 'admin' && user.active === true), 'empty seed should create active admin');
+auth.login({ username: 'admin', password: 'admin123' });
+auth.logout();
+
+seededUsers = seedUsers([
+  makeUser({
+    id: 'inactive-admin',
+    username: 'old-admin',
+    password: 'oldpass',
+    role: 'admin',
+    active: false
+  })
+]);
+assert(seededUsers.length === 1, 'inactive admin seed should not append duplicate admin');
+assert(seededUsers[0].id === 'inactive-admin', 'inactive admin seed should keep existing admin');
+assert(seededUsers[0].active === true, 'inactive admin seed should reactivate existing admin');
+auth.login({ username: 'old-admin', password: 'oldpass' });
+auth.logout();
+
+seededUsers = seedUsers([
+  makeUser({
+    id: 'admin-login-user',
+    username: 'admin',
+    password: 'operator-admin-password',
+    role: 'operator',
+    active: false
+  })
+]);
+assert(seededUsers.length === 1, 'admin username seed should not append duplicate username');
+assert(seededUsers[0].id === 'admin-login-user', 'admin username seed should keep existing admin username user');
+assert(seededUsers[0].role === 'admin', 'admin username seed should promote existing user');
+assert(seededUsers[0].active === true, 'admin username seed should reactivate promoted user');
+assert(auth.login({ username: 'admin', password: 'operator-admin-password' }).user.role === 'admin', 'promoted admin username should log in as admin');
+auth.logout();
+
+seededUsers = seedUsers([
+  makeUser({
+    id: 'regular-user',
+    username: 'regular',
+    password: 'regularpass',
+    role: 'operator'
+  })
+]);
+assert(seededUsers.some((user) => user.id === 'regular-user'), 'seed should preserve existing non-admin users');
+assert(seededUsers.some((user) => user.username === 'admin' && user.role === 'admin' && user.active === true), 'seed should append default admin when admin username is free');
+auth.login({ username: 'admin', password: 'admin123' });
+auth.logout();
+
+storage.setItem(STORAGE_KEYS.users, []);
+storage.setItem(STORAGE_KEYS.currentSession, null);
+storage.ensureSeedData();
+
 const users = auth.getUsers();
 assert(users.some((user) => user.role === 'admin'), 'seed should create admin user');
 assertUsersHaveNoPassword(users, 'getUsers should not expose passwords');
@@ -101,6 +173,15 @@ try {
 
 assert(blankPasswordRejected, 'whitespace-only password should be rejected');
 
+let invalidPatchRejected = false;
+try {
+  auth.updateUser(operator.id, null);
+} catch (error) {
+  invalidPatchRejected = error.message === 'Dados do usuario invalidos.';
+}
+
+assert(invalidPatchRejected, 'updateUser should reject null patch');
+
 let updateBlankNameRejected = false;
 try {
   auth.updateUser(operator.id, { name: '   ' });
@@ -127,6 +208,15 @@ try {
 }
 
 assert(updateBlankPasswordRejected, 'updateUser should reject whitespace-only password');
+
+let invalidActiveRejected = false;
+try {
+  auth.updateUser(operator.id, { active: 'false' });
+} catch (error) {
+  invalidActiveRejected = error.message === 'Status do usuario invalido.';
+}
+
+assert(invalidActiveRejected, 'updateUser should reject non-boolean active status');
 
 let duplicateUsernameRejected = false;
 try {

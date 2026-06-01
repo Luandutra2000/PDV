@@ -81,6 +81,10 @@ export function createUser(input) {
 }
 
 export function updateUser(userId, patch) {
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
+    throw new Error('Dados do usuario invalidos.');
+  }
+
   const users = getRawUsers();
   const existingUser = users.find((user) => user.id === userId);
 
@@ -129,6 +133,9 @@ export function updateUser(userId, patch) {
   }
 
   if (Object.hasOwn(patch, 'active')) {
+    if (typeof patch.active !== 'boolean') {
+      throw new Error('Status do usuario invalido.');
+    }
     updatedUser.active = patch.active;
   }
 
