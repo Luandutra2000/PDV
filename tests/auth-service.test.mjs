@@ -182,6 +182,15 @@ try {
 
 assert(invalidPatchRejected, 'updateUser should reject null patch');
 
+let invalidPatchTypeRejected = false;
+try {
+  auth.updateUser(operator.id, 'invalid');
+} catch (error) {
+  invalidPatchTypeRejected = error.message === 'Dados do usuario invalidos.';
+}
+
+assert(invalidPatchTypeRejected, 'updateUser should reject non-object patch');
+
 let updateBlankNameRejected = false;
 try {
   auth.updateUser(operator.id, { name: '   ' });
