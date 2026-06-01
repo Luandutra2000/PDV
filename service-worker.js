@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdv-lanchonete-v8';
+const CACHE_NAME = 'pdv-lanchonete-v9';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -14,7 +14,7 @@ const STATIC_ASSETS = [
   './src/styles/pdv.css',
   './src/styles/mobile.css',
   './src/config/runtime-config.js',
-  './src/app.js?v=20260601-01'
+  './src/app.js?v=20260601-02'
 ];
 
 self.addEventListener('install', (event) => {

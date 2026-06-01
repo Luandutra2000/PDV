@@ -7,7 +7,7 @@ import {
   getMobileFeedEvents,
   getMobileFeedFilters,
   getMobileFeedPeriodFilters
-} from '../../services/mobile-notifications.service.js?v=20260601-01';
+} from '../../services/mobile-notifications.service.js?v=20260601-02';
 import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 
@@ -22,7 +22,9 @@ const tabs = [
 let state = {
   tab: 'home',
   filter: 'all',
-  feedPeriod: 'today'
+  feedPeriod: 'today',
+  customStart: '',
+  customEnd: ''
 };
 
 let subscriptionsReady = false;
@@ -31,7 +33,9 @@ export function initMobileDashboardModule(workspace) {
   state = {
     tab: 'home',
     filter: 'all',
-    feedPeriod: 'today'
+    feedPeriod: 'today',
+    customStart: '',
+    customEnd: ''
   };
 
   render(workspace);
@@ -63,6 +67,26 @@ function bindEvents(workspace) {
 
     if (periodButton) {
       state.feedPeriod = periodButton.dataset.feedPeriod;
+      if (state.feedPeriod === 'custom' && !state.customStart && !state.customEnd) {
+        const today = getDateInputValue(new Date());
+        state.customStart = today;
+        state.customEnd = today;
+      }
+      render(workspace);
+    }
+  });
+
+  workspace.addEventListener('change', (event) => {
+    if (event.target.matches('[data-feed-custom-start]')) {
+      state.customStart = event.target.value;
+      state.feedPeriod = 'custom';
+      render(workspace);
+      return;
+    }
+
+    if (event.target.matches('[data-feed-custom-end]')) {
+      state.customEnd = event.target.value;
+      state.feedPeriod = 'custom';
       render(workspace);
     }
   });
@@ -236,7 +260,12 @@ function renderClosingTab() {
 function renderLiveFeed() {
   const filters = getMobileFeedFilters();
   const periodFilters = getMobileFeedPeriodFilters();
-  const events = getMobileFeedEvents({ filter: state.filter, period: state.feedPeriod });
+  const events = getMobileFeedEvents({
+    filter: state.filter,
+    period: state.feedPeriod,
+    customStart: state.customStart,
+    customEnd: state.customEnd
+  });
 
   return `
     <section class="mobile-feed-panel">
@@ -251,6 +280,12 @@ function renderLiveFeed() {
           </button>
         `).join('')}
       </div>
+      ${state.feedPeriod === 'custom' ? `
+        <div class="mobile-period-range">
+          <input class="field" type="date" data-feed-custom-start value="${state.customStart}">
+          <input class="field" type="date" data-feed-custom-end value="${state.customEnd}">
+        </div>
+      ` : ''}
       <div class="mobile-feed-filters">
         ${filters.map((filter) => `
           <button class="${filter.id === state.filter ? 'is-active' : ''}" type="button" data-feed-filter="${filter.id}">
@@ -263,6 +298,10 @@ function renderLiveFeed() {
       </div>
     </section>
   `;
+}
+
+function getDateInputValue(date) {
+  return date.toISOString().slice(0, 10);
 }
 
 function renderFeedEvent(event) {

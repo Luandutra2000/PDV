@@ -13,14 +13,21 @@ const HIGH_SALE_AMOUNT = 100;
 const HIGH_OUTPUT_AMOUNT = 80;
 const LOW_SHOWCASE_QUANTITY = 5;
 
-export function getMobileFeedEvents({ filter = 'all', period = 'today', limit = 30, now = new Date() } = {}) {
+export function getMobileFeedEvents({
+  filter = 'all',
+  period = 'today',
+  customStart = '',
+  customEnd = '',
+  limit = 30,
+  now = new Date()
+} = {}) {
   const events = [
     ...buildTransactionEvents(),
     ...buildShowcaseAlertEvents(now)
   ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   return events
-    .filter((event) => isInFeedPeriod(event.createdAt, period, now))
+    .filter((event) => isInFeedPeriod(event.createdAt, period, now, { customStart, customEnd }))
     .filter(FILTERS[filter] || FILTERS.all)
     .slice(0, limit);
 }
@@ -39,7 +46,8 @@ export function getMobileFeedPeriodFilters() {
   return [
     { id: 'today', label: 'Hoje' },
     { id: 'yesterday', label: 'Ontem' },
-    { id: 'all', label: 'Historico' }
+    { id: 'month', label: 'Mes' },
+    { id: 'custom', label: 'Periodo' }
   ];
 }
 
@@ -111,12 +119,22 @@ function buildShowcaseAlertEvents(now) {
     }));
 }
 
-function isInFeedPeriod(value, period, now) {
+function isInFeedPeriod(value, period, now, filters = {}) {
   if (!value || period === 'all') {
     return true;
   }
 
   const date = new Date(value);
+
+  if (period === 'custom') {
+    const start = filters.customStart ? new Date(`${filters.customStart}T00:00:00`) : null;
+    const end = filters.customEnd ? new Date(`${filters.customEnd}T23:59:59`) : null;
+    return (!start || date >= start) && (!end || date <= end);
+  }
+
+  if (period === 'month') {
+    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+  }
 
   if (period === 'yesterday') {
     const yesterday = new Date(now);

@@ -213,6 +213,17 @@
   box-shadow: 0 10px 22px rgba(255, 107, 26, 0.24);
 }
 
+.mobile-period-range {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  padding: 0 2px 10px;
+}
+
+.mobile-period-range .field {
+  min-width: 0;
+}
+
 .mobile-live-feed {
   display: grid;
   gap: 10px;

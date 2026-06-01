@@ -91,4 +91,48 @@ const historyEvents = notifications.getMobileFeedEvents({ period: 'all', now: to
 assert(historyEvents.some((event) => event.id === 'sale-sale-yesterday'), 'history filter should keep previous-day events accessible');
 assert(historyEvents.some((event) => event.id === 'sale-sale-today'), 'history filter should include current-day events');
 
+const currentMonthDate = new Date(today);
+currentMonthDate.setDate(Math.max(1, today.getDate() - 2));
+const previousMonthDate = new Date(today);
+previousMonthDate.setMonth(today.getMonth() - 1);
+
+storage.setItem((await import('../src/database/schema.js')).STORAGE_KEYS.transactions, [
+  {
+    id: 'sale-current-month',
+    type: 'venda',
+    status: 'ativa',
+    items: [{ productId: burger.id, name: burger.name, quantity: 1, total: 16 }],
+    total: 16,
+    paymentMethod: 'dinheiro',
+    createdAt: currentMonthDate.toISOString()
+  },
+  {
+    id: 'sale-previous-month',
+    type: 'venda',
+    status: 'ativa',
+    items: [{ productId: soda.id, name: soda.name, quantity: 1, total: 6 }],
+    total: 6,
+    paymentMethod: 'pix',
+    createdAt: previousMonthDate.toISOString()
+  }
+]);
+
+const monthEvents = notifications.getMobileFeedEvents({ period: 'month', now: today });
+assert(monthEvents.some((event) => event.id === 'sale-sale-current-month'), 'month filter should show events from current month');
+assert(!monthEvents.some((event) => event.id === 'sale-sale-previous-month'), 'month filter should hide events from previous months');
+
+const customStart = currentMonthDate.toISOString().slice(0, 10);
+const customEnd = currentMonthDate.toISOString().slice(0, 10);
+const customEvents = notifications.getMobileFeedEvents({
+  period: 'custom',
+  customStart,
+  customEnd,
+  now: today
+});
+assert(customEvents.some((event) => event.id === 'sale-sale-current-month'), 'custom period should show events inside selected dates');
+assert(!customEvents.some((event) => event.id === 'sale-sale-previous-month'), 'custom period should hide events outside selected dates');
+
+const periodFilters = notifications.getMobileFeedPeriodFilters().map((filter) => filter.id).join(',');
+assert(periodFilters === 'today,yesterday,month,custom', 'period filters should be today, yesterday, month, and custom period');
+
 console.log('mobile notifications service ok');
