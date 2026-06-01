@@ -17,6 +17,7 @@ assert(srcHeader, 'vercel config should define cache headers for source modules'
 assert(!cacheControl.includes('immutable'), 'source modules should not be immutable because URLs are not content-hashed');
 assert(cacheControl.includes('max-age=0'), 'source modules should revalidate so fixes appear after deploy');
 assert(indexHtml.includes('./src/app.js?v=20260601-01'), 'app entrypoint should use the latest cache-busting version');
+assert(indexHtml.includes('navigator.serviceWorker.addEventListener(\'controllerchange\''), 'app should reload once when a fresh service worker takes control');
 assert(appJs.includes('./modules/mobile/mobile-dashboard.module.js?v=20260601-01'), 'mobile dashboard import should use the latest cache-busting version');
 assert(mobileDashboardJs.includes('../../services/mobile-notifications.service.js?v=20260601-01'), 'mobile feed service import should use the latest cache-busting version');
 

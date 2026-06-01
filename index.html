@@ -22,8 +22,20 @@
   <script type="module" src="./src/app.js?v=20260601-01"></script>
   <script>
     if ('serviceWorker' in navigator) {
+      let refreshedByServiceWorker = false;
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshedByServiceWorker) {
+          return;
+        }
+
+        refreshedByServiceWorker = true;
+        window.location.reload();
+      });
+
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js');
+        navigator.serviceWorker.register('./service-worker.js')
+          .then((registration) => registration.update());
       });
     }
   </script>
