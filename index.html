@@ -19,7 +19,33 @@
 <body>
   <div id="app" class="app-shell"></div>
   <div class="toast-root" aria-live="polite"></div>
-  <script type="module" src="./src/app.js?v=20260601-01"></script>
+  <script type="module">
+    async function clearLocalDevelopmentCaches() {
+      if (!['127.0.0.1', 'localhost'].includes(window.location.hostname)) {
+        return;
+      }
+
+      if (window.location.search.includes('cache-cleared=1')) {
+        return;
+      }
+
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+      }
+
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+
+      const separator = window.location.search ? '&' : '?';
+      window.location.replace(`${window.location.href}${separator}cache-cleared=1`);
+    }
+
+    await clearLocalDevelopmentCaches();
+    await import('./src/app.js?v=20260601-01');
+  </script>
   <script>
     if ('serviceWorker' in navigator) {
       let refreshedByServiceWorker = false;
