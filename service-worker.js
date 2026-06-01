@@ -14,7 +14,7 @@ const STATIC_ASSETS = [
   './src/styles/pdv.css',
   './src/styles/mobile.css',
   './src/config/runtime-config.js',
-  './src/app.js'
+  './src/app.js?v=20260601-01'
 ];
 
 self.addEventListener('install', (event) => {
