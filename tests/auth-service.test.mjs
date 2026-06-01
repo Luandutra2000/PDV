@@ -43,6 +43,34 @@ const operator = auth.createUser({
 assert(operator.id, 'created user should have id');
 assert(operator.active === true, 'created user should be active');
 
+let blankNameRejected = false;
+try {
+  auth.createUser({
+    name: '   ',
+    username: 'blank-name',
+    password: '1234',
+    role: 'operator'
+  });
+} catch (error) {
+  blankNameRejected = error.message === 'Preencha nome, usuario, senha e perfil.';
+}
+
+assert(blankNameRejected, 'whitespace-only name should be rejected');
+
+let blankUsernameRejected = false;
+try {
+  auth.createUser({
+    name: 'Operador',
+    username: '   ',
+    password: '1234',
+    role: 'operator'
+  });
+} catch (error) {
+  blankUsernameRejected = error.message === 'Preencha nome, usuario, senha e perfil.';
+}
+
+assert(blankUsernameRejected, 'whitespace-only username should be rejected');
+
 auth.logout();
 auth.login({ username: 'caixa', password: '1234' });
 assert(auth.getCurrentUser().role === 'operator', 'operator should log in');
