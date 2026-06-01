@@ -23,6 +23,14 @@ export function getDataProvider() {
   return getLocalProvider();
 }
 
+export async function hydrateDataProvider(keys) {
+  const provider = getDataProvider();
+
+  if (typeof provider.hydrate === 'function') {
+    await provider.hydrate(keys);
+  }
+}
+
 function getLocalProvider() {
   if (!localProvider) {
     localProvider = createLocalProvider();

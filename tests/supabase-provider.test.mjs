@@ -2,6 +2,7 @@ import { STORAGE_KEYS } from '../src/database/schema.js';
 import { createSupabaseProvider } from '../src/services/providers/supabase.provider.js';
 
 const calls = [];
+const reads = [];
 const store = new Map();
 const localProvider = {
   mode: 'local',
@@ -23,6 +24,35 @@ const localProvider = {
 const fakeClient = {
   from(table) {
     return {
+      select(columns) {
+        reads.push({ table, columns });
+
+        if (table === 'categories') {
+          return Promise.resolve({
+            data: [{ id: 'salgados', name: 'Salgados', show_in_showcase: true }],
+            error: null
+          });
+        }
+
+        if (table === 'products') {
+          return Promise.resolve({
+            data: [{
+              id: 'coxinha',
+              name: 'Coxinha',
+              category_id: 'salgados',
+              price: 7,
+              cost: 3,
+              stock: 20,
+              active: true,
+              aliases: ['cox'],
+              favorite: true
+            }],
+            error: null
+          });
+        }
+
+        return Promise.resolve({ data: [], error: null });
+      },
       upsert(rows) {
         calls.push({ table, rows });
         return Promise.resolve({ error: null });
@@ -99,5 +129,13 @@ assert(calls.some((call) => call.table === 'cash_movements'), 'cash movements sh
 
 const productCall = calls.find((call) => call.table === 'products');
 assert(productCall.rows[0].category_id === 'salgados', 'product category should be mapped to snake_case');
+
+localProvider.write(STORAGE_KEYS.products, []);
+localProvider.write(STORAGE_KEYS.categories, []);
+await provider.hydrate([STORAGE_KEYS.categories, STORAGE_KEYS.products]);
+
+assert(reads.some((read) => read.table === 'products'), 'hydrate should read products from Supabase');
+assert(provider.read(STORAGE_KEYS.products, [])[0].name === 'Coxinha', 'hydrate should cache remote products locally');
+assert(provider.read(STORAGE_KEYS.categories, [])[0].showInShowcase === true, 'hydrate should cache remote categories locally');
 
 console.log('supabase provider ok');

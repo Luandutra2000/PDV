@@ -4,14 +4,21 @@ import { createLocalProvider } from './local.provider.js';
 const TABLE_MAPPERS = {
   [STORAGE_KEYS.categories]: {
     table: 'categories',
+    select: 'id,name,show_in_showcase',
     map: (category) => ({
       id: category.id,
       name: category.name,
       show_in_showcase: category.showInShowcase !== false
+    }),
+    unmap: (row) => ({
+      id: row.id,
+      name: row.name,
+      showInShowcase: row.show_in_showcase !== false
     })
   },
   [STORAGE_KEYS.products]: {
     table: 'products',
+    select: 'id,name,category_id,price,cost,stock,active,aliases,favorite',
     map: (product) => ({
       id: product.id,
       name: product.name,
@@ -22,6 +29,17 @@ const TABLE_MAPPERS = {
       active: product.active !== false,
       aliases: product.aliases || [],
       favorite: Boolean(product.favorite)
+    }),
+    unmap: (row) => ({
+      id: row.id,
+      name: row.name,
+      categoryId: row.category_id,
+      price: Number(row.price) || 0,
+      cost: Number(row.cost) || 0,
+      stock: Number(row.stock) || 0,
+      active: row.active !== false,
+      aliases: Array.isArray(row.aliases) ? row.aliases : [],
+      favorite: Boolean(row.favorite)
     })
   },
   [STORAGE_KEYS.closedComandas]: {
@@ -118,10 +136,37 @@ export function createSupabaseProvider({ getClient, localProvider = createLocalP
     clear() {
       localProvider.clear();
     },
+    async hydrate(keys = [STORAGE_KEYS.categories, STORAGE_KEYS.products]) {
+      const client = await getClient();
+
+      if (!client) {
+        return;
+      }
+
+      await Promise.all(keys.map((key) => hydrateCollection(client, localProvider, key)));
+    },
     flush() {
       return syncChain;
     }
   };
+}
+
+async function hydrateCollection(client, localProvider, key) {
+  const mapper = TABLE_MAPPERS[key];
+
+  if (!mapper?.unmap) {
+    return;
+  }
+
+  const { data, error } = await client.from(mapper.table).select(mapper.select || '*');
+
+  if (error) {
+    throw error;
+  }
+
+  if (Array.isArray(data)) {
+    localProvider.write(key, data.map(mapper.unmap));
+  }
 }
 
 async function syncCollection(getClient, key, value) {

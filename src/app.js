@@ -1,6 +1,7 @@
 import './config/runtime-config.js';
 import { renderSidebar } from './components/sidebar.component.js?v=20260526-03';
 import { ensureSeedData } from './services/storage.service.js';
+import { hydrateDataProvider } from './services/data-provider.service.js';
 import { initSyncService } from './services/sync.service.js';
 import { getCaixaSummary } from './services/caixa.service.js';
 import { initVendasModule } from './modules/vendas/vendas.module.js';
@@ -27,7 +28,8 @@ const routes = {
   mobile: initMobileDashboardModule
 };
 
-function bootstrap() {
+async function bootstrap() {
+  await hydrateDataProvider();
   ensureSeedData();
   initSyncService();
   initRealtimeService();
