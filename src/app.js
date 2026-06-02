@@ -16,7 +16,7 @@ import { initNotificationService } from './services/notification.service.js';
 import { initRealtimeService } from './services/realtime.service.js';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js';
 import { getDailyMoneySummary } from './services/transaction.service.js';
-import { getCurrentUser, logout } from './services/auth.service.js';
+import { getCurrentUser, logout, restoreSupabaseSession } from './services/auth.service.js';
 import { hasPermission } from './services/permission.service.js';
 import { renderLoginModule } from './modules/auth/login.module.js';
 import { on } from './services/event-bus.service.js';
@@ -44,7 +44,7 @@ const routePermissions = {
   pessoas: 'users.manage'
 };
 
-const AUTH_SESSION_VERSION = '20260601-08-admin-recovery';
+const AUTH_SESSION_VERSION = '20260601-11-supabase-auth';
 
 async function bootstrap() {
   ensureSeedData();
@@ -53,7 +53,7 @@ async function bootstrap() {
 
   const app = document.getElementById('app');
 
-  const currentUser = getCurrentUser();
+  const currentUser = await restoreSupabaseSession() || getCurrentUser();
 
   if (!currentUser) {
     renderLoginModule(app, () => bootstrap());

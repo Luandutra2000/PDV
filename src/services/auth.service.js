@@ -1,4 +1,6 @@
 import { STORAGE_KEYS } from '../database/schema.js';
+import { isSupabaseEnabled } from './app-config.service.js';
+import { getSupabaseClient } from './supabase-client.service.js';
 import { getItem, setItem } from './storage.service.js';
 
 const VALID_ROLES = new Set(['admin', 'operator']);
@@ -24,6 +26,11 @@ export function getCurrentUser() {
 
 export function login({ username, password }) {
   const normalizedUsername = String(username || '').trim();
+
+  if (isSupabaseEnabled() && normalizedUsername.includes('@')) {
+    return loginWithSupabase({ email: normalizedUsername, password });
+  }
+
   const user = getRawUsers().find((candidate) => candidate.username === normalizedUsername);
 
   if (!user || user.password !== password) {
@@ -46,6 +53,21 @@ export function login({ username, password }) {
 
 export function logout() {
   setItem(STORAGE_KEYS.currentSession, null);
+}
+
+export async function restoreSupabaseSession() {
+  if (!isSupabaseEnabled() || getCurrentUser()) {
+    return getCurrentUser();
+  }
+
+  const client = await getSupabaseClient();
+  const { data, error } = await client.auth.getUser();
+
+  if (error || !data?.user) {
+    return null;
+  }
+
+  return ensureSupabaseLocalSession(data.user);
 }
 
 export function createUser(input) {
@@ -155,6 +177,60 @@ export function sanitizeUser(user) {
 
 function getRawUsers() {
   return getItem(STORAGE_KEYS.users, []);
+}
+
+async function loginWithSupabase({ email, password }) {
+  const client = await getSupabaseClient();
+  const normalizedEmail = normalizeEmail(email);
+  const { data, error } = await client.auth.signInWithPassword({
+    email: normalizedEmail,
+    password: String(password || '')
+  });
+
+  if (error || !data?.user) {
+    throw new Error('Usuario ou senha invalidos.');
+  }
+
+  return {
+    user: ensureSupabaseLocalSession(data.user),
+    session: data.session
+  };
+}
+
+function ensureSupabaseLocalSession(authUser) {
+  const users = getRawUsers();
+  const email = normalizeEmail(authUser.email || '');
+  const existingUser = users.find((user) => user.id === authUser.id || user.username === email);
+  const now = new Date().toISOString();
+  const user = {
+    ...(existingUser || {}),
+    id: authUser.id,
+    name: existingUser?.name || authUser.user_metadata?.name || email || 'Usuario',
+    username: email,
+    password: existingUser?.password || '',
+    role: existingUser?.role || authUser.user_metadata?.role || 'admin',
+    active: true,
+    createdAt: existingUser?.createdAt || now,
+    updatedAt: now
+  };
+
+  setItem(
+    STORAGE_KEYS.users,
+    existingUser
+      ? users.map((candidate) => (candidate.id === existingUser.id ? user : candidate))
+      : [...users, user]
+  );
+
+  setItem(STORAGE_KEYS.currentSession, {
+    userId: user.id,
+    startedAt: now
+  });
+
+  return sanitizeUser(user);
+}
+
+function normalizeEmail(email) {
+  return String(email || '').trim().replace(/,com$/i, '.com');
 }
 
 function isValidRole(role) {

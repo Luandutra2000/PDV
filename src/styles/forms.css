@@ -63,9 +63,7 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  background:
-    linear-gradient(135deg, rgba(255, 107, 26, 0.12), transparent 32%),
-    var(--color-bg);
+  background: linear-gradient(135deg, #546ee3 0%, #b3b4ff 38%, #7fd7e4 68%, #21b99a 100%);
 }
 
 .login-card {

@@ -23,13 +23,13 @@ export function renderLoginModule(container, onSuccess, options = {}) {
     </section>
   `;
 
-  container.querySelector('[data-login-form]').addEventListener('submit', (event) => {
+  container.querySelector('[data-login-form]').addEventListener('submit', async (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const error = container.querySelector('[data-login-error]');
 
     try {
-      login({
+      await login({
         username: form.get('username'),
         password: form.get('password')
       });
