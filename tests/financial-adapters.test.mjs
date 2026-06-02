@@ -74,7 +74,13 @@ const commandItemRows = commandItemAdapter.toRows({
   id: 'comanda-1',
   items: [{ productId: 'x-burger', name: 'X-Burger', quantity: 2, unitPrice: 16, total: 32 }]
 });
-assert(commandItemRows[0].id === 'comanda-1-x-burger-0', 'command item id should be deterministic');
+const commandItemRowsAgain = commandItemAdapter.toRows({
+  id: 'comanda-1',
+  items: [{ productId: 'x-burger', name: 'X-Burger', quantity: 2, unitPrice: 16, total: 32 }]
+});
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+assert(uuidRegex.test(commandItemRows[0].id), 'command item id should be UUID compatible');
+assert(commandItemRows[0].id === commandItemRowsAgain[0].id, 'command item id should be deterministic');
 assert(commandItemAdapter.fromRows(commandItemRows, 'comanda-1')[0].productId === 'x-burger', 'command item rows should map back');
 
 const closingRow = cashClosingAdapter.toRow({
