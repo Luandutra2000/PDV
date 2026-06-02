@@ -43,7 +43,14 @@ const fakeClient = {
         if (shouldFailUpsert || nextRows.some((row) => failedUpsertIds.has(row.id))) {
           return Promise.resolve({ error: new Error('write offline') });
         }
-        rows = nextRows;
+        for (const nextRow of nextRows) {
+          const existingIndex = rows.findIndex((row) => row.id === nextRow.id);
+          if (existingIndex >= 0) {
+            rows[existingIndex] = { ...rows[existingIndex], ...nextRow };
+          } else {
+            rows.push(nextRow);
+          }
+        }
         return Promise.resolve({ error: null });
       },
       delete() {
@@ -122,7 +129,63 @@ await repository.flushQueue();
 const remainingQueue = JSON.parse(localStorage.getItem('test.items.queue'));
 assert(remainingQueue.length === 1, 'partial flush should keep failed operation queued');
 assert(remainingQueue[0].item.id === 'item-4', 'partial flush should keep the failed item queued');
+const partialFlushCache = JSON.parse(localStorage.getItem('test.items'));
+const pendingItem = partialFlushCache.find((item) => item.id === 'item-4');
+assert(pendingItem.syncPending === true, 'partial flush should keep failed upsert in cache as syncPending');
 assert(repository.getSyncStatus().state === 'pending', 'partial flush should keep pending status');
 assert(repository.getSyncStatus().pending === 1, 'partial flush should keep pending count');
+
+localStorage.clear();
+rows = [{ id: 'server-1', name: 'Server Item' }];
+failedUpsertIds = new Set();
+localStorage.setItem('test.items.queue', JSON.stringify([
+  { action: 'upsert', item: { id: 'local-1', name: 'Local Item' }, createdAt: '2026-06-02T00:00:00.000Z' }
+]));
+
+const repositoryWithPendingQueue = createEntitySyncRepository({
+  adapter,
+  getClient: async () => fakeClient,
+  emitChange: () => {}
+});
+
+const listedWithPending = await repositoryWithPendingQueue.list();
+const listedPendingItem = listedWithPending.find((item) => item.id === 'local-1');
+const cacheWithPending = JSON.parse(localStorage.getItem('test.items'));
+const cachePendingItem = cacheWithPending.find((item) => item.id === 'local-1');
+assert(listedPendingItem.syncPending === true, 'list should return queued upsert as syncPending');
+assert(cachePendingItem.syncPending === true, 'list should keep queued upsert in cache as syncPending');
+assert(repositoryWithPendingQueue.getSyncStatus().state === 'pending', 'list with queued operations should keep pending status');
+assert(repositoryWithPendingQueue.getSyncStatus().pending === 1, 'list with queued operations should keep pending count');
+
+localStorage.clear();
+localStorage.setItem('test.items.queue', JSON.stringify([
+  { action: 'upsert', item: { id: 'null-client-item', name: 'Null Client Item' }, createdAt: '2026-06-02T00:00:00.000Z' }
+]));
+
+const nullClientRepository = createEntitySyncRepository({
+  adapter,
+  getClient: async () => null,
+  emitChange: () => {}
+});
+
+await nullClientRepository.flushQueue();
+assert(JSON.parse(localStorage.getItem('test.items.queue')).length === 1, 'null client flush should keep queue unchanged');
+assert(nullClientRepository.getSyncStatus().state === 'pending', 'null client flush should keep pending status');
+assert(nullClientRepository.getSyncStatus().pending === 1, 'null client flush should keep pending count');
+assert(nullClientRepository.getSyncStatus().error, 'null client flush should set error message');
+
+const throwingClientRepository = createEntitySyncRepository({
+  adapter,
+  getClient: async () => {
+    throw new Error('client unavailable');
+  },
+  emitChange: () => {}
+});
+
+await throwingClientRepository.flushQueue();
+assert(JSON.parse(localStorage.getItem('test.items.queue')).length === 1, 'throwing client flush should keep queue unchanged');
+assert(throwingClientRepository.getSyncStatus().state === 'pending', 'throwing client flush should keep pending status');
+assert(throwingClientRepository.getSyncStatus().pending === 1, 'throwing client flush should keep pending count');
+assert(throwingClientRepository.getSyncStatus().error, 'throwing client flush should set error message');
 
 console.log('entity sync repository ok');

@@ -43,6 +43,32 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
     return writeJson(adapter.queueKey, queue);
   }
 
+  function applyQueuedOperations(items, queue = readQueue()) {
+    return queue.reduce((nextItems, operation) => {
+      if (operation.action === 'delete') {
+        return nextItems.filter((item) => item.id !== operation.id);
+      }
+
+      if (operation.action === 'upsert' && operation.item) {
+        const pendingItem = { ...operation.item, syncPending: true };
+        const exists = nextItems.some((item) => item.id === pendingItem.id);
+        return exists
+          ? nextItems.map((item) => (item.id === pendingItem.id ? pendingItem : item))
+          : [...nextItems, pendingItem];
+      }
+
+      return nextItems;
+    }, items);
+  }
+
+  function setStatusFromQueue(queue, error = '') {
+    setStatus({
+      state: queue.length ? 'pending' : 'synced',
+      pending: queue.length,
+      error
+    });
+  }
+
   function setStatus(nextStatus) {
     status = { ...status, ...nextStatus };
     emitChange({ type: 'status', status });
@@ -58,9 +84,10 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
         throw error;
       }
 
-      const items = Array.isArray(data) ? data.map(adapter.fromRow) : [];
+      const queue = readQueue();
+      const items = applyQueuedOperations(Array.isArray(data) ? data.map(adapter.fromRow) : [], queue);
       writeCache(items);
-      setStatus({ state: 'synced', pending: readQueue().length, error: '' });
+      setStatusFromQueue(queue);
       return items;
     } catch (error) {
       const cached = readCache();
@@ -85,12 +112,14 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
         throw error;
       }
 
+      const queue = readQueue();
       const cached = readCache();
       const exists = cached.some((candidate) => candidate.id === nextItem.id);
-      writeCache(exists
+      const nextCache = exists
         ? cached.map((candidate) => (candidate.id === nextItem.id ? nextItem : candidate))
-        : [...cached, nextItem]);
-      setStatus({ state: 'synced', pending: readQueue().length, error: '' });
+        : [...cached, nextItem];
+      writeCache(applyQueuedOperations(nextCache, queue));
+      setStatusFromQueue(queue);
       emitChange({ type: 'saved', item: nextItem });
       return nextItem;
     } catch (error) {
@@ -117,8 +146,9 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
         throw error;
       }
 
-      writeCache(readCache().filter((item) => item.id !== id));
-      setStatus({ state: 'synced', pending: readQueue().length, error: '' });
+      const queue = readQueue();
+      writeCache(applyQueuedOperations(readCache().filter((item) => item.id !== id), queue));
+      setStatusFromQueue(queue);
       emitChange({ type: 'removed', id });
     } catch (error) {
       const queue = [...readQueue(), { action: 'delete', id, createdAt: new Date().toISOString() }];
@@ -138,32 +168,44 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
     }
 
     const remaining = [];
-    const client = await getClient();
 
-    for (const operation of queue) {
-      if (operation.action === 'delete') {
-        const { error } = await client.from(adapter.table).delete().eq('id', operation.id);
+    try {
+      const client = await getClient();
 
-        if (error) {
+      if (!client) {
+        throw new Error('Cliente Supabase indisponivel.');
+      }
+
+      for (const operation of queue) {
+        try {
+          if (operation.action === 'delete') {
+            const { error } = await client.from(adapter.table).delete().eq('id', operation.id);
+
+            if (error) {
+              remaining.push(operation);
+            }
+          }
+
+          if (operation.action === 'upsert') {
+            const { error } = await client.from(adapter.table).upsert([adapter.toRow(operation.item)]);
+
+            if (error) {
+              remaining.push(operation);
+            }
+          }
+        } catch (error) {
           remaining.push(operation);
         }
       }
-
-      if (operation.action === 'upsert') {
-        const { error } = await client.from(adapter.table).upsert([adapter.toRow(operation.item)]);
-
-        if (error) {
-          remaining.push(operation);
-        }
-      }
+    } catch (error) {
+      writeQueue(queue);
+      writeCache(applyQueuedOperations(readCache(), queue));
+      setStatus({ state: 'pending', pending: queue.length, error: error.message || 'Sincronizacao pendente.' });
+      return;
     }
 
     writeQueue(remaining);
-    setStatus({
-      state: remaining.length ? 'pending' : 'synced',
-      pending: remaining.length,
-      error: remaining.length ? 'Algumas alteracoes continuam pendentes.' : ''
-    });
+    setStatusFromQueue(remaining, remaining.length ? 'Algumas alteracoes continuam pendentes.' : '');
 
     await list();
 
