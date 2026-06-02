@@ -16,7 +16,7 @@ import { initNotificationService } from './services/notification.service.js';
 import { initRealtimeService } from './services/realtime.service.js';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js';
 import { getDailyMoneySummary } from './services/transaction.service.js';
-import { getCurrentUser, login, logout, restoreSupabaseSession } from './services/auth.service.js';
+import { getCurrentUser, login, logout } from './services/auth.service.js';
 import { hasPermission } from './services/permission.service.js';
 import { renderLoginModule } from './modules/auth/login.module.js';
 import { on } from './services/event-bus.service.js';
@@ -44,7 +44,7 @@ const routePermissions = {
   pessoas: 'users.manage'
 };
 
-const AUTH_SESSION_VERSION = '20260601-12-supabase-rest-auth';
+const AUTH_SESSION_VERSION = '20260602-01-login-boot';
 
 async function bootstrap() {
   ensureSeedData();
@@ -54,7 +54,7 @@ async function bootstrap() {
   const app = document.getElementById('app');
 
   const queryLoginResult = await loginFromQueryString(app);
-  const currentUser = queryLoginResult?.user || await restoreSupabaseSession() || getCurrentUser();
+  const currentUser = queryLoginResult?.user || getCurrentUser();
 
   if (!currentUser) {
     renderLoginModule(app, () => bootstrap(), queryLoginResult?.error ? { message: queryLoginResult.error } : {});
