@@ -25,10 +25,17 @@ export function renderLoginModule(container, onSuccess, options = {}) {
 
   container.querySelector('[data-login-form]').addEventListener('submit', async (event) => {
     event.preventDefault();
+    const button = event.currentTarget.querySelector('button[type="submit"]');
     const form = new FormData(event.currentTarget);
     const error = container.querySelector('[data-login-error]');
+    const originalLabel = button?.textContent || 'Entrar';
 
     try {
+      if (button) {
+        button.disabled = true;
+        button.textContent = 'Entrando...';
+      }
+      error.hidden = true;
       await login({
         username: form.get('username'),
         password: form.get('password')
@@ -37,6 +44,10 @@ export function renderLoginModule(container, onSuccess, options = {}) {
     } catch (loginError) {
       error.hidden = false;
       error.textContent = loginError.message;
+      if (button) {
+        button.disabled = false;
+        button.textContent = originalLabel;
+      }
     }
   });
 }

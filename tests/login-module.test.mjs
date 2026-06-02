@@ -34,11 +34,21 @@ const errorNode = {
   hidden: true,
   textContent: ''
 };
+const submitButton = {
+  disabled: false,
+  textContent: 'Entrar'
+};
 const formNode = {
   addEventListener(eventName, handler) {
     if (eventName === 'submit') {
       submittedHandler = handler;
     }
+  },
+  querySelector(selector) {
+    if (selector === 'button[type="submit"]') {
+      return submitButton;
+    }
+    return null;
   }
 };
 const container = {
@@ -82,6 +92,7 @@ await submittedHandler({
 assert(successCalled, 'login should call success callback with valid admin credentials');
 assert(storage.getItem(STORAGE_KEYS.currentSession, null)?.userId === 'user-admin', 'login should persist current session');
 assert(errorNode.hidden === true, 'login error should stay hidden after successful login');
+assert(submitButton.textContent === 'Entrando...', 'login button should show loading feedback after submit');
 
 globalThis.FormData = originalFormData;
 
