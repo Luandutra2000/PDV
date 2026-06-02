@@ -1,32 +1,34 @@
+import { hasPermission } from '../services/permission.service.js';
+
 const menuGroups = [
   {
     title: 'Vendas',
     items: [
-      { id: 'frente-caixa', label: 'Frente de Caixa', icon: 'FC', active: true },
-      { id: 'estoque', label: 'Vitrine', icon: 'VT' },
-      { id: 'dashboard', label: 'Historico de Transacoes', icon: 'HT' }
+      { id: 'frente-caixa', label: 'Frente de Caixa', icon: 'FC', permission: 'sales.access' },
+      { id: 'estoque', label: 'Vitrine', icon: 'VT', permission: 'showcase.access' },
+      { id: 'dashboard', label: 'Historico de Transacoes', icon: 'HT', permission: 'reports.view' }
     ]
   },
   {
     title: 'Gestao',
     items: [
-      { id: 'produtos', label: 'Produtos', icon: 'PR' },
-      { id: 'pessoas', label: 'Pessoas', icon: 'PS' }
+      { id: 'produtos', label: 'Produtos', icon: 'PR', permission: 'products.manage' },
+      { id: 'pessoas', label: 'Pessoas', icon: 'PS', permission: 'users.manage' }
     ]
   },
   {
     title: 'Financeiro',
     items: [
-      { id: 'fechar-caixa', label: 'Fechar Caixa / CRM', icon: 'CX' },
-      { id: 'fichario-fiado', label: 'Fichario / Fiado', icon: 'FI' },
-      { id: 'despesas', label: 'Despesas', icon: 'DE' }
+      { id: 'fechar-caixa', label: 'Fechar Caixa / CRM', icon: 'CX', permission: 'cash.close' },
+      { id: 'fichario-fiado', label: 'Fichario / Fiado', icon: 'FI', permission: 'reports.view' },
+      { id: 'despesas', label: 'Despesas', icon: 'DE', permission: 'reports.view' }
     ]
   },
   {
     title: 'Outros',
     items: [
-      { id: 'relatorios', label: 'Relatorios', icon: 'RE' },
-      { id: 'mobile', label: 'App do Dono', icon: 'AD' }
+      { id: 'relatorios', label: 'Relatorios', icon: 'RE', permission: 'reports.view' },
+      { id: 'mobile', label: 'App do Dono', icon: 'AD', permission: 'owner_app.view' }
     ]
   },
   {
@@ -37,12 +39,17 @@ const menuGroups = [
   }
 ];
 
-export function renderSidebar() {
-  const groups = menuGroups.map((group) => `
+export function renderSidebar(currentUser) {
+  const visibleGroups = menuGroups.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.permission || hasPermission(currentUser, item.permission))
+  })).filter((group) => group.items.length);
+
+  const groups = visibleGroups.map((group) => `
     <section class="sidebar__section">
       <div class="sidebar__title">${group.title}</div>
       ${group.items.map((item) => `
-        <button class="sidebar__item ${item.active ? 'is-active' : ''}" type="button" data-menu-id="${item.id}">
+        <button class="sidebar__item" type="button" data-menu-id="${item.id}">
           <span class="sidebar__icon" aria-hidden="true">${item.icon}</span>
           <span class="sidebar__label">${item.label}</span>
         </button>

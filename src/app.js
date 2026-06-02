@@ -10,12 +10,14 @@ import { initDashboardModule } from './modules/dashboard/dashboard.module.js';
 import { initEstoqueModule } from './modules/estoque/estoque.module.js';
 import { initCaixaModule } from './modules/caixa/caixa.module.js';
 import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js?v=20260601-05';
+import { initPessoasModule } from './modules/pessoas/pessoas.module.js';
 import { formatCurrency } from './utils/currency.js';
 import { initNotificationService } from './services/notification.service.js';
 import { initRealtimeService } from './services/realtime.service.js';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js';
 import { getDailyMoneySummary } from './services/transaction.service.js';
 import { getCurrentUser, logout } from './services/auth.service.js';
+import { hasPermission } from './services/permission.service.js';
 import { renderLoginModule } from './modules/auth/login.module.js';
 import { on } from './services/event-bus.service.js';
 import { UI_EVENTS } from './database/schema.js';
@@ -27,7 +29,19 @@ const routes = {
   estoque: initEstoqueModule,
   'fechar-caixa': initCaixaModule,
   relatorios: renderRelatoriosModule,
-  mobile: initMobileDashboardModule
+  mobile: initMobileDashboardModule,
+  pessoas: initPessoasModule
+};
+
+const routePermissions = {
+  'frente-caixa': 'sales.access',
+  dashboard: 'reports.view',
+  produtos: 'products.manage',
+  estoque: 'showcase.access',
+  'fechar-caixa': 'cash.close',
+  relatorios: 'reports.view',
+  mobile: 'owner_app.view',
+  pessoas: 'users.manage'
 };
 
 const AUTH_SESSION_VERSION = '20260601-08-admin-recovery';
@@ -39,7 +53,9 @@ async function bootstrap() {
 
   const app = document.getElementById('app');
 
-  if (!getCurrentUser()) {
+  const currentUser = getCurrentUser();
+
+  if (!currentUser) {
     renderLoginModule(app, () => bootstrap());
     return;
   }
@@ -59,12 +75,13 @@ async function bootstrap() {
 
   app.innerHTML = `
     <div class="pdv-layout">
-      ${renderSidebar()}
+      ${renderSidebar(currentUser)}
       <section class="workspace">
         <header class="topbar">
           <div class="cash-strip" aria-label="Resumo do caixa" data-cash-strip></div>
           <div class="header-actions">
-            <button class="button" type="button" data-action="open-mobile">App do Dono</button>
+            <span class="current-user">${currentUser.name}</span>
+            ${hasPermission(currentUser, 'owner_app.view') ? '<button class="button" type="button" data-action="open-mobile">App do Dono</button>' : ''}
             <button class="button button--ghost" type="button" data-action="toggle-theme">${getThemeLabel()}</button>
             <button class="button button--ghost" type="button" data-action="refresh">Atualizar</button>
           </div>
@@ -75,14 +92,10 @@ async function bootstrap() {
   `;
 
   const workspace = app.querySelector('[data-workspace-body]');
-  const initialView = getInitialView();
+  const initialView = getAuthorizedInitialView(currentUser);
   renderCashStrip(app);
-  if (routes[initialView]) {
-    routes[initialView](workspace);
-    setActiveMenu(app, initialView);
-  } else {
-    initVendasModule(workspace);
-  }
+  routes[initialView](workspace);
+  setActiveMenu(app, initialView);
   bindNavigation(app, workspace);
   bindCashUpdates(app);
 }
@@ -95,6 +108,21 @@ function getInitialView() {
   }
 
   return window.matchMedia('(max-width: 760px)').matches ? 'mobile' : '';
+}
+
+function getAuthorizedInitialView(currentUser) {
+  const requestedView = getInitialView();
+
+  if (routes[requestedView] && canAccessRoute(currentUser, requestedView)) {
+    return requestedView;
+  }
+
+  return Object.keys(routes).find((routeId) => canAccessRoute(currentUser, routeId)) || 'frente-caixa';
+}
+
+function canAccessRoute(currentUser, routeId) {
+  const permission = routePermissions[routeId];
+  return !permission || hasPermission(currentUser, permission);
 }
 
 function renderCashStrip(root = document) {
@@ -165,6 +193,11 @@ function bindNavigation(app, workspace) {
     }
 
     if (event.target.closest('[data-action="open-mobile"]')) {
+      if (!canAccessRoute(getCurrentUser(), 'mobile')) {
+        renderPermissionDenied(workspace);
+        return;
+      }
+
       setActiveMenu(app, 'mobile');
       initMobileDashboardModule(workspace);
       return;
@@ -183,6 +216,11 @@ function bindNavigation(app, workspace) {
 
     const route = routes[menuButton.dataset.menuId];
 
+    if (!canAccessRoute(getCurrentUser(), menuButton.dataset.menuId)) {
+      renderPermissionDenied(workspace);
+      return;
+    }
+
     setActiveMenu(app, menuButton.dataset.menuId);
 
     if (route) {
@@ -192,6 +230,17 @@ function bindNavigation(app, workspace) {
 
     renderModulePlaceholder(workspace, menuButton.querySelector('.sidebar__label').textContent);
   });
+}
+
+function renderPermissionDenied(workspace) {
+  workspace.innerHTML = `
+    <section class="module-screen">
+      <header class="module-header">
+        <h1 class="pdv-title">Acesso bloqueado</h1>
+      </header>
+      <div class="empty-products">Usuario sem permissao para acessar esta area.</div>
+    </section>
+  `;
 }
 
 function setActiveMenu(app, menuId) {
