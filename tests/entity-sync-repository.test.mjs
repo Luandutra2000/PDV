@@ -26,6 +26,7 @@ const { createEntitySyncRepository } = await import('../src/services/repositorie
 let rows = [{ id: 'item-1', name: 'Item 1' }];
 let shouldFailSelect = false;
 let shouldFailUpsert = false;
+let shouldFailDelete = false;
 let failedUpsertIds = new Set();
 let upsertedRows = [];
 let realtimeCallback = null;
@@ -58,6 +59,9 @@ const fakeClient = {
       delete() {
         return {
           eq(column, value) {
+            if (shouldFailDelete) {
+              return Promise.resolve({ error: new Error('delete offline') });
+            }
             rows = rows.filter((row) => row[column] !== value);
             return Promise.resolve({ error: null });
           }
@@ -108,10 +112,37 @@ assert(listed.length === 1, 'list should return Supabase rows');
 assert(JSON.parse(localStorage.getItem('test.items')).length === 1, 'list should update cache');
 assert(repository.getSyncStatus().state === 'synced', 'successful list should mark synced');
 
+await repository.remove('item-1');
+assert(!JSON.parse(localStorage.getItem('test.items')).some((item) => item.id === 'item-1'), 'successful remove should delete item from cache');
+assert(repository.getSyncStatus().state === 'synced', 'successful remove should mark synced when queue is empty');
+assert(repository.getSyncStatus().pending === 0, 'successful remove should keep pending count empty');
+
+rows = [{ id: 'item-1', name: 'Item 1' }];
+await repository.list();
+
 shouldFailSelect = true;
 const cached = await repository.list();
 assert(cached.length === 1, 'failed list should return cache');
 assert(repository.getSyncStatus().state === 'cache', 'failed list should mark cache state');
+
+shouldFailSelect = false;
+shouldFailDelete = true;
+await repository.remove('item-1');
+const failedDeleteQueue = JSON.parse(localStorage.getItem('test.items.queue'));
+assert(failedDeleteQueue.length === 1, 'failed remove should queue delete operation');
+assert(failedDeleteQueue[0].action === 'delete', 'failed remove should queue delete action');
+assert(failedDeleteQueue[0].id === 'item-1', 'failed remove should queue deleted id');
+assert(failedDeleteQueue[0].createdAt, 'failed remove should queue createdAt timestamp');
+assert(!JSON.parse(localStorage.getItem('test.items')).some((item) => item.id === 'item-1'), 'failed remove should remove item from cache');
+assert(repository.getSyncStatus().state === 'pending', 'failed remove should set pending status');
+assert(repository.getSyncStatus().pending === 1, 'failed remove should update pending count');
+
+rows = [{ id: 'item-1', name: 'Item 1' }];
+shouldFailDelete = false;
+await repository.list();
+assert(!JSON.parse(localStorage.getItem('test.items')).some((item) => item.id === 'item-1'), 'queued delete should remain absent after list overlay');
+
+localStorage.removeItem('test.items.queue');
 
 shouldFailUpsert = true;
 const queuedItem = await repository.save({ id: 'item-2', name: 'Item 2' });
@@ -121,6 +152,7 @@ assert(repository.getSyncStatus().pending === 1, 'failed save should update pend
 
 shouldFailSelect = false;
 shouldFailUpsert = false;
+shouldFailDelete = false;
 await repository.flushQueue();
 assert(upsertedRows[0].id === 'item-2', 'flush should upsert queued row');
 assert(JSON.parse(localStorage.getItem('test.items.queue')).length === 0, 'flush should clear queue');
@@ -268,11 +300,14 @@ rows = [{ id: 'realtime-before', name: 'Realtime Before' }];
 shouldFailSelect = false;
 realtimeCallback = null;
 removedChannels = [];
+const realtimeEvents = [];
 
 const subscribeRepository = createEntitySyncRepository({
   adapter,
   getClient: async () => fakeClient,
-  emitChange: () => {}
+  emitChange: (event) => {
+    realtimeEvents.push(event);
+  }
 });
 
 const subscribedChannel = await subscribeRepository.subscribe();
@@ -283,6 +318,7 @@ rows = [{ id: 'realtime-after', name: 'Realtime After' }];
 await realtimeCallback();
 const realtimeCache = JSON.parse(localStorage.getItem('test.items'));
 assert(realtimeCache.some((item) => item.id === 'realtime-after'), 'realtime callback should refresh cache');
+assert(realtimeEvents.some((event) => event.type === 'realtime'), 'realtime callback should emit realtime event');
 
 await subscribeRepository.unsubscribe();
 assert(removedChannels.length === 1, 'unsubscribe should remove subscribed channel');
