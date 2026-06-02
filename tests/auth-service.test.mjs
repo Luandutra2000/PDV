@@ -258,4 +258,37 @@ try {
 
 assert(blocked, 'inactive user should not log in');
 
+const originalFetch = globalThis.fetch;
+globalThis.__PDV_RUNTIME_CONFIG__ = {
+  dataProvider: 'supabase',
+  supabaseUrl: 'https://example.supabase.co',
+  supabaseAnonKey: 'anon-key'
+};
+
+let supabaseLoginBody = null;
+globalThis.fetch = async (url, options) => {
+  supabaseLoginBody = JSON.parse(options.body);
+  return {
+    ok: true,
+    async json() {
+      return {
+        user: {
+          id: 'supabase-user',
+          email: 'luandutra27@gmail.com',
+          user_metadata: { name: 'Luan Dutra' }
+        },
+        session: { access_token: 'token' }
+      };
+    }
+  };
+};
+
+const supabaseSession = await auth.login({ username: 'luandutra27@gmail,com', password: '84276331' });
+assert(supabaseLoginBody.email === 'luandutra27@gmail.com', 'supabase login should normalize comma email typo');
+assert(supabaseSession.user.username === 'luandutra27@gmail.com', 'supabase login should create local session user');
+assert(auth.getCurrentUser().id === 'supabase-user', 'supabase login should persist local current session');
+
+globalThis.fetch = originalFetch;
+globalThis.__PDV_RUNTIME_CONFIG__ = null;
+
 console.log('auth service ok');

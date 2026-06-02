@@ -170,13 +170,13 @@ async function hydrateCollection(client, localProvider, key) {
 }
 
 async function syncCollection(getClient, key, value) {
-  const client = await getClient();
-
-  if (!client) {
-    return;
-  }
-
   if (key === STORAGE_KEYS.transactions) {
+    const client = await getClient();
+
+    if (!client) {
+      return;
+    }
+
     await syncTransactions(client, value);
     return;
   }
@@ -184,6 +184,12 @@ async function syncCollection(getClient, key, value) {
   const mapper = TABLE_MAPPERS[key];
 
   if (!mapper || !Array.isArray(value)) {
+    return;
+  }
+
+  const client = await getClient();
+
+  if (!client) {
     return;
   }
 

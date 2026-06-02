@@ -16,7 +16,7 @@ import { initNotificationService } from './services/notification.service.js';
 import { initRealtimeService } from './services/realtime.service.js';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js';
 import { getDailyMoneySummary } from './services/transaction.service.js';
-import { getCurrentUser, logout, restoreSupabaseSession } from './services/auth.service.js';
+import { getCurrentUser, login, logout, restoreSupabaseSession } from './services/auth.service.js';
 import { hasPermission } from './services/permission.service.js';
 import { renderLoginModule } from './modules/auth/login.module.js';
 import { on } from './services/event-bus.service.js';
@@ -44,7 +44,7 @@ const routePermissions = {
   pessoas: 'users.manage'
 };
 
-const AUTH_SESSION_VERSION = '20260601-11-supabase-auth';
+const AUTH_SESSION_VERSION = '20260601-12-supabase-rest-auth';
 
 async function bootstrap() {
   ensureSeedData();
@@ -53,10 +53,11 @@ async function bootstrap() {
 
   const app = document.getElementById('app');
 
-  const currentUser = await restoreSupabaseSession() || getCurrentUser();
+  const queryLoginResult = await loginFromQueryString(app);
+  const currentUser = queryLoginResult?.user || await restoreSupabaseSession() || getCurrentUser();
 
   if (!currentUser) {
-    renderLoginModule(app, () => bootstrap());
+    renderLoginModule(app, () => bootstrap(), queryLoginResult?.error ? { message: queryLoginResult.error } : {});
     return;
   }
 
@@ -162,6 +163,28 @@ function bindCashUpdates(app) {
 }
 
 bootstrap();
+
+async function loginFromQueryString(app) {
+  const params = new URLSearchParams(window.location.search);
+  const username = params.get('username');
+  const password = params.get('password');
+
+  if (!username && !password) {
+    return null;
+  }
+
+  window.history.replaceState(null, '', window.location.pathname);
+
+  if (!username || !password) {
+    return { error: 'Informe usuario e senha.' };
+  }
+
+  try {
+    return await login({ username, password });
+  } catch (error) {
+    return { error: error.message || 'Usuario ou senha invalidos.' };
+  }
+}
 
 function ensureFreshLoginAfterAuthUpdate() {
   try {

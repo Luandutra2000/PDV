@@ -19,7 +19,7 @@
 <body>
   <div id="app" class="app-shell">
     <section class="login-screen">
-      <form class="login-card" aria-label="Login do PDV">
+      <form class="login-card" aria-label="Login do PDV" onsubmit="return false">
         <div>
           <p class="module-subtitle">PDV</p>
           <h1 class="pdv-title">Entrar no PDV</h1>
@@ -38,7 +38,7 @@
   </div>
   <div class="toast-root" aria-live="polite"></div>
   <script type="module">
-    const LOCAL_CACHE_VERSION = '20260601-11-supabase-auth';
+    const LOCAL_CACHE_VERSION = '20260601-12-supabase-rest-auth';
 
     async function clearLocalDevelopmentCaches() {
       if (!['127.0.0.1', 'localhost'].includes(window.location.hostname)) {
@@ -65,7 +65,7 @@
     }
 
     await clearLocalDevelopmentCaches();
-    await import('./src/app.js?v=20260601-11');
+    await import('./src/app.js?v=20260601-12');
   </script>
   <script>
     if ('serviceWorker' in navigator) {

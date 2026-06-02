@@ -1,5 +1,5 @@
 import { STORAGE_KEYS } from '../database/schema.js';
-import { isSupabaseEnabled } from './app-config.service.js';
+import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js';
 import { getSupabaseClient } from './supabase-client.service.js';
 import { getItem, setItem } from './storage.service.js';
 
@@ -60,14 +60,18 @@ export async function restoreSupabaseSession() {
     return getCurrentUser();
   }
 
-  const client = await getSupabaseClient();
-  const { data, error } = await client.auth.getUser();
+  try {
+    const client = await getSupabaseClient();
+    const { data, error } = await client.auth.getUser();
 
-  if (error || !data?.user) {
+    if (error || !data?.user) {
+      return null;
+    }
+
+    return ensureSupabaseLocalSession(data.user);
+  } catch (error) {
     return null;
   }
-
-  return ensureSupabaseLocalSession(data.user);
 }
 
 export function createUser(input) {
@@ -180,14 +184,27 @@ function getRawUsers() {
 }
 
 async function loginWithSupabase({ email, password }) {
-  const client = await getSupabaseClient();
+  const config = getRuntimeConfig();
   const normalizedEmail = normalizeEmail(email);
-  const { data, error } = await client.auth.signInWithPassword({
-    email: normalizedEmail,
-    password: String(password || '')
+  const response = await fetch(`${config.supabaseUrl}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: {
+      apikey: config.supabaseAnonKey,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      email: normalizedEmail,
+      password: String(password || '')
+    })
   });
 
-  if (error || !data?.user) {
+  if (!response.ok) {
+    throw new Error('Usuario ou senha invalidos.');
+  }
+
+  const data = await response.json();
+
+  if (!data?.user) {
     throw new Error('Usuario ou senha invalidos.');
   }
 
