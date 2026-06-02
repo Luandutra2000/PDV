@@ -131,25 +131,54 @@ function bindDashboardEvents(container) {
     }
 
     if (button.dataset.action === 'confirm-cancel-comanda') {
-      cancelClosedComanda(dashboardState.pendingCancelComandaId);
-      showNotification({
-        title: 'Comanda cancelada',
-        message: 'A comanda ficou registrada como cancelada.',
-        type: 'danger'
-      });
-      dashboardState.modal = null;
-      dashboardState.pendingCancelComandaId = null;
-      renderDashboard(container);
+      const reason = container.querySelector('[data-cancel-comanda-reason]')?.value || '';
+
+      try {
+        cancelClosedComanda(dashboardState.pendingCancelComandaId, { reason });
+        showNotification({
+          title: 'Comanda cancelada',
+          message: 'A comanda ficou registrada como cancelada.',
+          type: 'danger'
+        });
+        dashboardState.modal = null;
+        dashboardState.pendingCancelComandaId = null;
+        renderDashboard(container);
+      } catch (error) {
+        showNotification({
+          title: 'Nao foi possivel cancelar',
+          message: error.message || 'Informe o motivo do cancelamento.',
+          type: 'danger'
+        });
+      }
     }
 
     if (button.dataset.action === 'cancel-transaction') {
-      cancelTransaction(button.dataset.transactionId);
-      showNotification({
-        title: 'Movimentacao cancelada',
-        message: 'O lancamento foi mantido no historico em vermelho.',
-        type: 'danger'
-      });
-      renderDashboard(container);
+      const reason = window.prompt('Informe o motivo do cancelamento:') || '';
+
+      if (!reason.trim()) {
+        showNotification({
+          title: 'Motivo obrigatorio',
+          message: 'Informe o motivo para cancelar a movimentacao.',
+          type: 'danger'
+        });
+        return;
+      }
+
+      try {
+        cancelTransaction(button.dataset.transactionId, { reason });
+        showNotification({
+          title: 'Movimentacao cancelada',
+          message: 'O lancamento foi mantido no historico em vermelho.',
+          type: 'danger'
+        });
+        renderDashboard(container);
+      } catch (error) {
+        showNotification({
+          title: 'Nao foi possivel cancelar',
+          message: error.message || 'Confira sua permissao e tente novamente.',
+          type: 'danger'
+        });
+      }
     }
   });
 
@@ -350,6 +379,10 @@ function renderCancelComandaModal() {
           <p class="modal-text">
             Deseja cancelar esta comanda? Ela ficara registrada como cancelada e o valor sera removido dos totais.
           </p>
+          <label class="stacked-label">
+            Motivo do cancelamento
+            <input class="field" data-cancel-comanda-reason placeholder="Ex: Cliente desistiu" required>
+          </label>
           <div class="form-actions">
             <button class="button button--ghost" type="button" data-action="close-modal">Voltar</button>
             <button class="button button--danger" type="button" data-action="confirm-cancel-comanda">Cancelar comanda</button>
