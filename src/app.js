@@ -49,10 +49,12 @@ const routePermissions = {
 
 const AUTH_SESSION_VERSION = '20260602-01-login-boot';
 
-async function bootstrap() {
+async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   ensureSeedData();
   initTheme();
-  ensureFreshLoginAfterAuthUpdate();
+  if (!skipFreshLoginCheck) {
+    ensureFreshLoginAfterAuthUpdate();
+  }
 
   const app = document.getElementById('app');
 
@@ -60,7 +62,7 @@ async function bootstrap() {
   const currentUser = queryLoginResult?.user || getCurrentUser();
 
   if (!currentUser) {
-    renderLoginModule(app, () => bootstrap(), queryLoginResult?.error ? { message: queryLoginResult.error } : {});
+    renderLoginModule(app, () => bootstrap({ skipFreshLoginCheck: true }), queryLoginResult?.error ? { message: queryLoginResult.error } : {});
     return;
   }
 
@@ -73,7 +75,7 @@ async function bootstrap() {
     }
     await hydrateDataProvider();
   } catch (error) {
-    renderLoginModule(app, () => bootstrap(), {
+    renderLoginModule(app, () => bootstrap({ skipFreshLoginCheck: true }), {
       message: error.message || 'Nao foi possivel carregar os dados online.'
     });
     return;

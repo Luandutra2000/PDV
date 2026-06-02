@@ -38,7 +38,7 @@
   </div>
   <div class="toast-root" aria-live="polite"></div>
   <script type="module">
-    const LOCAL_CACHE_VERSION = '20260602-03-financial-supabase';
+    const LOCAL_CACHE_VERSION = '20260602-04-login-session';
 
     async function clearLocalDevelopmentCaches() {
       if (!['127.0.0.1', 'localhost'].includes(window.location.hostname)) {
@@ -65,7 +65,7 @@
     }
 
     await clearLocalDevelopmentCaches();
-    await import('./src/app.js?v=20260602-03');
+    await import('./src/app.js?v=20260602-04');
   </script>
   <script>
     if ('serviceWorker' in navigator) {
