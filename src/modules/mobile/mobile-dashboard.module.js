@@ -129,6 +129,12 @@ function bindEvents(workspace) {
     }
   });
 
+  workspace.addEventListener('input', (event) => {
+    if (event.target.matches('[data-decimal-input]')) {
+      event.target.value = normalizeDecimalInput(event.target.value);
+    }
+  });
+
   workspace.addEventListener('submit', (event) => {
     if (!event.target.matches('[data-mobile-showcase-form]')) {
       return;
@@ -140,7 +146,7 @@ function bindEvents(workspace) {
     try {
       createStockLaunch({
         produtoId: formData.get('productId'),
-        quantidade: formData.get('quantity')
+        quantidade: normalizeDecimalForNumber(formData.get('quantity'))
       });
       showNotification({
         title: 'Vitrine lancada',
@@ -403,7 +409,7 @@ function renderShowcaseTab() {
           </label>
           <label>
             Quantidade
-            <input class="field" name="quantity" type="number" min="1" step="1" placeholder="0" required>
+            <input class="field" name="quantity" type="text" inputmode="decimal" pattern="[0-9.,]*" placeholder="0" data-decimal-input required>
           </label>
           <button class="button" type="submit">Lancar</button>
         </form>
@@ -685,6 +691,25 @@ function renderMiniBars(items, isCurrency = false) {
       }).join('')}
     </div>
   `;
+}
+
+function normalizeDecimalInput(value) {
+  const cleaned = String(value || '').replace(/[^0-9.,]/g, '');
+  const separatorIndex = cleaned.search(/[.,]/);
+
+  if (separatorIndex < 0) {
+    return cleaned;
+  }
+
+  const before = cleaned.slice(0, separatorIndex);
+  const separator = cleaned.charAt(separatorIndex);
+  const after = cleaned.slice(separatorIndex + 1).replace(/[.,]/g, '');
+
+  return `${before}${separator}${after}`;
+}
+
+function normalizeDecimalForNumber(value) {
+  return normalizeDecimalInput(value).replace(',', '.');
 }
 
 function getTransactionTitle(transaction) {

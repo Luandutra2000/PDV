@@ -25,18 +25,32 @@ export function renderLoginModule(container, onSuccess, options = {}) {
 
   container.querySelector('[data-login-form]').addEventListener('submit', async (event) => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const loginForm = event.currentTarget;
+    const form = new FormData(loginForm);
     const error = container.querySelector('[data-login-error]');
+    const button = loginForm.querySelector?.('[type="submit"]');
+    const originalButtonText = button?.textContent || 'Entrar';
+
+    error.hidden = true;
+    error.textContent = '';
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Entrando...';
+    }
 
     try {
       await login({
         email: form.get('email'),
         password: form.get('password')
       });
-      onSuccess();
+      await onSuccess();
     } catch (loginError) {
       error.hidden = false;
       error.textContent = loginError.message;
+      if (button) {
+        button.disabled = false;
+        button.textContent = originalButtonText;
+      }
     }
   });
 }

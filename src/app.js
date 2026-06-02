@@ -50,7 +50,7 @@ async function bootstrap() {
         return;
       }
 
-      await syncProductsFromOnlineDatabase();
+      await syncCatalogWithoutBlockingApp();
       initOnlineSyncService();
       initOnlineRealtimeService().catch((realtimeError) => {
         console.warn('Realtime online indisponivel. O app continua usando cache e sincronizacao periodica.', realtimeError);
@@ -64,6 +64,23 @@ async function bootstrap() {
   }
 
   renderAppShell(app);
+}
+
+async function syncCatalogWithoutBlockingApp() {
+  try {
+    await withTimeout(syncProductsFromOnlineDatabase(), 8000);
+  } catch (error) {
+    console.warn('Catalogo online indisponivel no inicio. O sistema vai abrir com o cache local.', error);
+  }
+}
+
+function withTimeout(promise, timeoutMs) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      globalThis.setTimeout?.(() => reject(new Error('Tempo limite ao carregar catalogo.')), timeoutMs);
+    })
+  ]);
 }
 
 function renderAppShell(app) {
