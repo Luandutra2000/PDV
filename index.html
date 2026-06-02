@@ -17,10 +17,28 @@
   <link rel="stylesheet" href="./src/styles/mobile.css">
 </head>
 <body>
-  <div id="app" class="app-shell"></div>
+  <div id="app" class="app-shell">
+    <section class="login-screen">
+      <form class="login-card" aria-label="Login do PDV">
+        <div>
+          <p class="module-subtitle">PDV</p>
+          <h1 class="pdv-title">Entrar no PDV</h1>
+        </div>
+        <label class="field-group">
+          <span>Usuario</span>
+          <input class="field" type="text" name="username" autocomplete="username">
+        </label>
+        <label class="field-group">
+          <span>Senha</span>
+          <input class="field" type="password" name="password" autocomplete="current-password">
+        </label>
+        <button class="button" type="submit">Entrar</button>
+      </form>
+    </section>
+  </div>
   <div class="toast-root" aria-live="polite"></div>
   <script type="module">
-    const LOCAL_CACHE_VERSION = '20260601-09-login-load';
+    const LOCAL_CACHE_VERSION = '20260601-10-login-fallback';
 
     async function clearLocalDevelopmentCaches() {
       if (!['127.0.0.1', 'localhost'].includes(window.location.hostname)) {
@@ -47,10 +65,16 @@
     }
 
     await clearLocalDevelopmentCaches();
-    await import('./src/app.js?v=20260601-09');
+    await import('./src/app.js?v=20260601-10');
   </script>
   <script>
     if ('serviceWorker' in navigator) {
+      const isLocalDevelopment = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
+
+      if (isLocalDevelopment) {
+        navigator.serviceWorker.getRegistrations()
+          .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())));
+      } else {
       let refreshedByServiceWorker = false;
 
       navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -66,6 +90,7 @@
         navigator.serviceWorker.register('./service-worker.js')
           .then((registration) => registration.update());
       });
+      }
     }
   </script>
 </body>

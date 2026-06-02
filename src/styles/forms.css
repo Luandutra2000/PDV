@@ -65,7 +65,7 @@
   padding: 24px;
   background:
     linear-gradient(135deg, rgba(255, 107, 26, 0.12), transparent 32%),
-    var(--color-background);
+    var(--color-bg);
 }
 
 .login-card {
