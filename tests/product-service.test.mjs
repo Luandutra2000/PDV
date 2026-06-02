@@ -173,6 +173,44 @@ const loadedProducts = await supabaseProductService.loadProducts();
 assert(Array.isArray(loadedCategories), 'loadCategories should return an array');
 assert(Array.isArray(loadedProducts), 'loadProducts should return an array');
 
+localStorage.setItem('pdv.syncQueue.categories', JSON.stringify([]));
+localStorage.setItem('pdv.syncQueue.products', JSON.stringify([]));
+
+await supabaseProductService.saveCategory({ name: 'Categoria Supabase', showInShowcase: true });
+
+const queuedCategoriesAfterSave = JSON.parse(localStorage.getItem('pdv.syncQueue.categories'));
+assert(queuedCategoriesAfterSave.some((operation) => (
+  operation.action === 'upsert'
+    && operation.item.id === 'categoria-supabase'
+)), 'supabase saveCategory should use the Supabase sync queue when offline');
+
+localStorage.setItem(STORAGE_KEYS.categories, JSON.stringify([
+  { id: 'supabase-cat', name: 'Supabase Cat', showInShowcase: true }
+]));
+localStorage.setItem(STORAGE_KEYS.products, JSON.stringify([
+  {
+    id: 'supabase-prod',
+    name: 'Produto Supabase',
+    categoryId: 'supabase-cat',
+    price: 10,
+    cost: 4,
+    stock: 2,
+    active: true,
+    aliases: [],
+    favorite: false
+  }
+]));
+localStorage.setItem('pdv.syncQueue.categories', JSON.stringify([]));
+localStorage.setItem('pdv.syncQueue.products', JSON.stringify([]));
+
+await supabaseProductService.removeCategory('supabase-cat');
+
+const queuedProductsAfterCategoryDelete = JSON.parse(localStorage.getItem('pdv.syncQueue.products'));
+assert(queuedProductsAfterCategoryDelete.some((operation) => (
+  operation.action === 'delete'
+    && operation.id === 'supabase-prod'
+)), 'supabase removeCategory should delete products from the removed category');
+
 globalThis.__PDV_RUNTIME_CONFIG__ = null;
 
 console.log('product service crud ok');

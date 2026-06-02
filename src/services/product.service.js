@@ -117,7 +117,13 @@ export function removeCategory(categoryId) {
     return deleteCategory(categoryId);
   }
 
-  return deleteCategoryFromSupabase(categoryId);
+  return loadProductsFromSupabase()
+    .then((products) => Promise.all(
+      products
+        .filter((product) => product.categoryId === categoryId)
+        .map((product) => deleteProductFromSupabase(product.id))
+    ))
+    .then(() => deleteCategoryFromSupabase(categoryId));
 }
 
 export function getProductById(productId) {
