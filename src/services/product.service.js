@@ -34,7 +34,7 @@ export function getShowcaseProducts() {
   return getProducts().filter((product) => product.active && showcaseCategoryIds.has(product.categoryId));
 }
 
-export async function loadCategories() {
+export function loadCategories() {
   if (!isSupabaseEnabled()) {
     return getCategories();
   }
@@ -42,7 +42,7 @@ export async function loadCategories() {
   return loadCategoriesFromSupabase();
 }
 
-export async function loadProducts() {
+export function loadProducts() {
   if (!isSupabaseEnabled()) {
     return getProducts();
   }
@@ -86,7 +86,7 @@ export function updateCategory(categoryId, data = {}) {
   return categories[index];
 }
 
-export async function saveCategory(categoryData) {
+export function saveCategory(categoryData) {
   if (!isSupabaseEnabled()) {
     return categoryData.id
       ? updateCategory(categoryData.id, categoryData)
@@ -112,13 +112,12 @@ export function deleteCategory(categoryId) {
   saveProducts(products);
 }
 
-export async function removeCategory(categoryId) {
+export function removeCategory(categoryId) {
   if (!isSupabaseEnabled()) {
-    deleteCategory(categoryId);
-    return;
+    return deleteCategory(categoryId);
   }
 
-  await deleteCategoryFromSupabase(categoryId);
+  return deleteCategoryFromSupabase(categoryId);
 }
 
 export function getProductById(productId) {
@@ -180,7 +179,7 @@ export function updateProduct(productId, productData) {
   return products[index];
 }
 
-export async function saveProduct(productData) {
+export function saveProduct(productData) {
   if (!isSupabaseEnabled()) {
     return productData.id
       ? updateProduct(productData.id, productData)
@@ -199,13 +198,12 @@ export function deleteProduct(productId) {
   saveProducts(products);
 }
 
-export async function removeProduct(productId) {
+export function removeProduct(productId) {
   if (!isSupabaseEnabled()) {
-    deleteProduct(productId);
-    return;
+    return deleteProduct(productId);
   }
 
-  await deleteProductFromSupabase(productId);
+  return deleteProductFromSupabase(productId);
 }
 
 export function getCatalogSyncStatus() {

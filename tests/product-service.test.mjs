@@ -21,11 +21,34 @@ const assert = (condition, message) => {
   }
 };
 
+const isPromise = (value) => Boolean(value && typeof value.then === 'function');
+
 const storage = await import('../src/services/storage.service.js');
 const { STORAGE_KEYS } = await import('../src/database/schema.js');
 const products = await import('../src/services/product.service.js');
 
 storage.ensureSeedData();
+
+const localLoadedCategories = products.loadCategories();
+const localLoadedProducts = products.loadProducts();
+const localSavedCategory = products.saveCategory({ name: 'Facade Local', showInShowcase: true });
+const localSavedProduct = products.saveProduct({
+  name: 'Produto Facade Local',
+  categoryId: localSavedCategory.id,
+  price: 13,
+  cost: 4,
+  stock: 5,
+  active: true
+});
+
+assert(Array.isArray(localLoadedCategories), 'local loadCategories should return an array synchronously');
+assert(!isPromise(localLoadedCategories), 'local loadCategories should not return a promise');
+assert(Array.isArray(localLoadedProducts), 'local loadProducts should return an array synchronously');
+assert(!isPromise(localLoadedProducts), 'local loadProducts should not return a promise');
+assert(localSavedCategory.id === 'facade-local', 'local saveCategory should return the created category synchronously');
+assert(!isPromise(localSavedCategory), 'local saveCategory should not return a promise');
+assert(localSavedProduct.id === 'produto-facade-local', 'local saveProduct should return the created product synchronously');
+assert(!isPromise(localSavedProduct), 'local saveProduct should not return a promise');
 
 const created = products.createProduct({
   name: 'Teste Produto',
