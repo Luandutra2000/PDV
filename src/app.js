@@ -3,6 +3,8 @@ import { renderSidebar } from './components/sidebar.component.js?v=20260526-03';
 import { ensureSeedData } from './services/storage.service.js';
 import { hydrateDataProvider } from './services/data-provider.service.js';
 import { loadCategories, loadProducts, startCatalogRealtime } from './services/product.service.js';
+import { hydrateFinancialData, startFinancialRealtime } from './services/financial-sync.service.js';
+import { isSupabaseEnabled } from './services/app-config.service.js';
 import { initSyncService } from './services/sync.service.js';
 import { getCaixaSummary } from './services/caixa.service.js';
 import { initVendasModule } from './modules/vendas/vendas.module.js';
@@ -65,6 +67,10 @@ async function bootstrap() {
   try {
     await Promise.all([loadCategories(), loadProducts()]);
     await startCatalogRealtime();
+    if (isSupabaseEnabled()) {
+      await hydrateFinancialData();
+      await startFinancialRealtime();
+    }
     await hydrateDataProvider();
   } catch (error) {
     renderLoginModule(app, () => bootstrap(), {

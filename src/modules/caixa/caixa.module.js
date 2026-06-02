@@ -14,6 +14,9 @@ import { renderEntradasSaidas } from '../../components/entradas-saidas.component
 import { renderHistoricoFechamentos } from '../../components/historico-fechamentos.component.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { showNotification } from '../../services/notification.service.js';
+import { getTransactionSyncStatus } from '../../services/transaction.service.js';
+import { UI_EVENTS } from '../../database/schema.js';
+import { on } from '../../services/event-bus.service.js';
 
 const caixaState = {
   period: 'today',
@@ -32,6 +35,11 @@ export function initCaixaModule(container) {
 
   if (!boundContainers.has(container)) {
     bindCaixaEvents(container);
+    on(UI_EVENTS.financialSyncStatusChanged, () => {
+      if (container.querySelector('[data-caixa-screen]')) {
+        renderCaixa(container);
+      }
+    });
     boundContainers.add(container);
   }
 }
@@ -61,6 +69,7 @@ function renderCaixa(container) {
         ${renderPeriodFilters()}
       </header>
 
+      ${renderFinancialSyncStatus()}
       ${renderDashboardResumo(summary)}
       ${renderGraficosFinanceiros({ summary, series })}
       ${renderAnaliseProdutos({ productRanking, categoryRanking })}
@@ -71,6 +80,21 @@ function renderCaixa(container) {
       ${renderHistoricoFechamentos(closings, getSalesAfterClosing)}
     </section>
   `;
+}
+
+function renderFinancialSyncStatus() {
+  const status = getTransactionSyncStatus();
+  const label = status.state === 'pending'
+    ? `${status.pending || 0} alteracao(oes) financeira(s) pendente(s)`
+    : status.state === 'local'
+      ? 'Modo local'
+      : status.state === 'error'
+        ? 'Sincronizacao financeira com erro'
+        : status.state === 'cache'
+          ? 'Usando dados financeiros em cache'
+          : 'Financeiro sincronizado';
+
+  return `<div class="sync-status" data-sync-state="${status.state}"><span>${label}</span></div>`;
 }
 
 function bindCaixaEvents(container) {

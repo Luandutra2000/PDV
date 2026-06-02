@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdv-v21';
+const CACHE_NAME = 'pdv-v22';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -15,7 +15,7 @@ const STATIC_ASSETS = [
   './src/styles/mobile.css',
   './src/config/runtime-config.js',
   './src/modules/auth/login.module.js',
-  './src/app.js?v=20260602-02'
+  './src/app.js?v=20260602-03'
 ];
 
 self.addEventListener('install', (event) => {
