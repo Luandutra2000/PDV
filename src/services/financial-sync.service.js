@@ -71,9 +71,9 @@ export async function hydrateFinancialData() {
     const closings = closingRows.map(cashClosingAdapter.fromRow);
 
     writeFinancialCaches({
-      transactions: applyQueueToTransactions([...sales, ...movements]),
-      commands: applyQueueToCommands(commands),
-      closings: applyQueueToClosings(closings)
+      transactions: sortNewestFirst(applyQueueToTransactions([...sales, ...movements])),
+      commands: sortNewestFirst(applyQueueToCommands(commands)),
+      closings: sortNewestFirst(applyQueueToClosings(closings))
     });
     setStatusFromQueue(readQueue());
 
@@ -436,13 +436,13 @@ function applyQueueToClosings(closings) {
 }
 
 function markSaleCanceledInCache(operation) {
-  writeJson(STORAGE_KEYS.transactions, markSaleCanceled(readJson(STORAGE_KEYS.transactions, []), operation));
-  writeJson(STORAGE_KEYS.closedComandas, markCommandCanceled(readJson(STORAGE_KEYS.closedComandas, []), operation));
+  writeJson(STORAGE_KEYS.transactions, sortNewestFirst(markSaleCanceled(readJson(STORAGE_KEYS.transactions, []), operation)));
+  writeJson(STORAGE_KEYS.closedComandas, sortNewestFirst(markCommandCanceled(readJson(STORAGE_KEYS.closedComandas, []), operation)));
   emitFinancialDataChanged(operation);
 }
 
 function markMovementCanceledInCache(operation) {
-  writeJson(STORAGE_KEYS.transactions, markMovementCanceled(readJson(STORAGE_KEYS.transactions, []), operation));
+  writeJson(STORAGE_KEYS.transactions, sortNewestFirst(markMovementCanceled(readJson(STORAGE_KEYS.transactions, []), operation)));
   emitFinancialDataChanged(operation);
 }
 
@@ -494,10 +494,43 @@ function upsertClosingCache(item) {
 
 function upsertInList(items, item) {
   const exists = items.some((candidate) => candidate.id === item.id);
-
-  return exists
+  const nextItems = exists
     ? items.map((candidate) => (candidate.id === item.id ? item : candidate))
-    : [...items, item];
+    : [item, ...items];
+
+  return sortNewestFirst(nextItems);
+}
+
+function sortNewestFirst(items) {
+  return items
+    .map((item, index) => ({ item, index, timestamp: getSortTimestamp(item) }))
+    .sort((left, right) => {
+      if (left.timestamp !== null && right.timestamp !== null && left.timestamp !== right.timestamp) {
+        return right.timestamp - left.timestamp;
+      }
+
+      if (left.timestamp !== null && right.timestamp === null) {
+        return -1;
+      }
+
+      if (left.timestamp === null && right.timestamp !== null) {
+        return 1;
+      }
+
+      return left.index - right.index;
+    })
+    .map(({ item }) => item);
+}
+
+function getSortTimestamp(item) {
+  const dateValue = item.closedAt || item.createdAt || item.updatedAt;
+
+  if (!dateValue) {
+    return null;
+  }
+
+  const timestamp = Date.parse(dateValue);
+  return Number.isNaN(timestamp) ? null : timestamp;
 }
 
 function enqueueOperation(operation) {

@@ -84,6 +84,10 @@ function mergeRows(currentRows, nextRows) {
   return Array.from(byId.values());
 }
 
+function countRowsById(table, id) {
+  return rows[table].filter((row) => row.id === id).length;
+}
+
 financial.configureFinancialSyncForTests({ getClient: async () => fakeClient });
 
 const sale = {
@@ -121,13 +125,22 @@ assert(calls.find((call) => call.table === 'sale_items'), 'sale save should writ
 assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))[0].id === 'sale-1', 'sale save should update transaction cache');
 
 failTable = 'sale_items';
-await financial.saveSaleToSupabase({ sale: { ...sale, id: 'sale-queued' }, command: { ...command, id: 'comanda-queued' } });
+await financial.saveSaleToSupabase({
+  sale: { ...sale, id: 'sale-queued', comandaId: 'comanda-queued', createdAt: '2026-06-02T10:30:00.000Z' },
+  command: { ...command, id: 'comanda-queued', closedAt: '2026-06-02T10:30:00.000Z', updatedAt: '2026-06-02T10:30:00.000Z' }
+});
 assert(financial.getFinancialSyncStatus().state === 'pending', 'failed composed sale should set pending status');
 assert(JSON.parse(localStorage.getItem('pdv.syncQueue.financial')).length === 1, 'failed composed sale should queue operation');
+assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))[0].id === 'sale-queued', 'pending sale should be newest-first in transaction cache');
+assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.closedComandas))[0].id === 'comanda-queued', 'pending command should be newest-first in command cache');
 
 failTable = '';
 await financial.flushFinancialQueue();
 assert(financial.getFinancialSyncStatus().pending === 0, 'flush should clear successful financial queue');
+assert(countRowsById('commands', 'comanda-queued') === 1, 'flush retry should keep one command row after partial failure');
+assert(countRowsById('command_items', rows.command_items.find((row) => row.command_id === 'comanda-queued').id) === 1, 'flush retry should keep one command item row after partial failure');
+assert(countRowsById('sales', 'sale-queued') === 1, 'flush retry should keep one sale row after partial failure');
+assert(countRowsById('sale_items', 'sale-queued-x-burger-0') === 1, 'flush retry should keep one sale item row after partial failure');
 
 await financial.saveCashMovementToSupabase({
   id: 'entrada-1',
@@ -139,9 +152,12 @@ await financial.saveCashMovementToSupabase({
   createdAt: '2026-06-02T11:00:00.000Z'
 });
 assert(calls.find((call) => call.table === 'cash_movements'), 'cash movement should write cash_movements');
+assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))[0].id === 'entrada-1', 'new cash movement should be newest-first in transaction cache');
 
 await financial.hydrateFinancialData();
 assert(Array.isArray(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))), 'hydrate should write transaction cache');
+assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))[0].id === 'entrada-1', 'hydrate should sort transactions newest-first');
+assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.closedComandas))[0].id === 'comanda-queued', 'hydrate should sort closed comandas newest-first');
 
 await financial.startFinancialRealtime();
 rows.cash_movements.push({
@@ -156,5 +172,6 @@ rows.cash_movements.push({
 });
 await realtimeCallback();
 assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions)).some((item) => item.id === 'entrada-2'), 'realtime should refresh financial cache');
+assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))[0].id === 'entrada-2', 'realtime refresh should keep newest transaction first');
 
 console.log('financial sync service ok');
