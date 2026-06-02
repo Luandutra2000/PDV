@@ -188,4 +188,39 @@ assert(throwingClientRepository.getSyncStatus().state === 'pending', 'throwing c
 assert(throwingClientRepository.getSyncStatus().pending === 1, 'throwing client flush should keep pending count');
 assert(throwingClientRepository.getSyncStatus().error, 'throwing client flush should set error message');
 
+localStorage.clear();
+rows = [{ id: 'server-before-refresh-failure', name: 'Server Before Refresh Failure' }];
+shouldFailSelect = false;
+failedUpsertIds = new Set();
+localStorage.setItem('test.items.queue', JSON.stringify([
+  { action: 'upsert', item: { id: 'flush-success-refresh-fail', name: 'Flush Success Refresh Fail' }, createdAt: '2026-06-02T00:00:00.000Z' }
+]));
+
+const flushRefreshFailureRepository = createEntitySyncRepository({
+  adapter,
+  getClient: async () => fakeClient,
+  emitChange: () => {}
+});
+
+shouldFailSelect = true;
+await flushRefreshFailureRepository.flushQueue();
+assert(JSON.parse(localStorage.getItem('test.items.queue')).length === 0, 'flush with refresh failure should clear successful operations');
+assert(flushRefreshFailureRepository.getSyncStatus().state === 'synced', 'flush with all operations cleared should finish synced even if refresh fails');
+assert(flushRefreshFailureRepository.getSyncStatus().pending === 0, 'flush with all operations cleared should finish with no pending count');
+
+localStorage.clear();
+localStorage.setItem('test.items', '{invalid json');
+shouldFailSelect = true;
+
+const invalidJsonRepository = createEntitySyncRepository({
+  adapter,
+  getClient: async () => fakeClient,
+  emitChange: () => {}
+});
+
+const invalidJsonFallback = await invalidJsonRepository.list();
+assert(Array.isArray(invalidJsonFallback), 'invalid cache JSON list fallback should be an array');
+assert(invalidJsonFallback.length === 0, 'invalid cache JSON list fallback should be empty');
+assert(invalidJsonRepository.getSyncStatus().state === 'error', 'invalid cache JSON failed list should mark error state');
+
 console.log('entity sync repository ok');

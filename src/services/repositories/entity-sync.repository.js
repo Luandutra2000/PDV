@@ -209,13 +209,7 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
 
     await list();
 
-    if (remaining.length) {
-      setStatus({
-        state: 'pending',
-        pending: remaining.length,
-        error: 'Algumas alteracoes continuam pendentes.'
-      });
-    }
+    setStatusFromQueue(remaining, remaining.length ? 'Algumas alteracoes continuam pendentes.' : '');
   }
 
   function subscribe() {
