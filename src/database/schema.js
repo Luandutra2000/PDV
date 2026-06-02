@@ -28,5 +28,7 @@ export const SYNC_EVENTS = {
 
 export const UI_EVENTS = {
   cashSummaryChanged: 'CASH_SUMMARY_CHANGED',
-  mobileFeedChanged: 'MOBILE_FEED_CHANGED'
+  mobileFeedChanged: 'MOBILE_FEED_CHANGED',
+  productCatalogChanged: 'PRODUCT_CATALOG_CHANGED',
+  productSyncStatusChanged: 'PRODUCT_SYNC_STATUS_CHANGED'
 };
