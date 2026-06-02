@@ -25,6 +25,7 @@ function createStatus(state = 'idle', pending = 0, error = '') {
 export function createEntitySyncRepository({ adapter, getClient, emitChange = () => {} }) {
   let status = createStatus('idle', readQueue().length);
   let channel = null;
+  let subscriptionPromise = null;
 
   function readCache() {
     return readJson(adapter.cacheKey, []);
@@ -55,6 +56,25 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
         return exists
           ? nextItems.map((item) => (item.id === pendingItem.id ? pendingItem : item))
           : [...nextItems, pendingItem];
+      }
+
+      return nextItems;
+    }, items);
+  }
+
+  function applyCompletedOperations(items, operations) {
+    return operations.reduce((nextItems, operation) => {
+      if (operation.action === 'delete') {
+        return nextItems.filter((item) => item.id !== operation.id);
+      }
+
+      if (operation.action === 'upsert' && operation.item) {
+        const completedItem = { ...operation.item };
+        delete completedItem.syncPending;
+        const exists = nextItems.some((item) => item.id === completedItem.id);
+        return exists
+          ? nextItems.map((item) => (item.id === completedItem.id ? completedItem : item))
+          : [...nextItems, completedItem];
       }
 
       return nextItems;
@@ -205,6 +225,8 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
     }
 
     writeQueue(remaining);
+    const completed = queue.filter((operation) => !remaining.includes(operation));
+    writeCache(applyQueuedOperations(applyCompletedOperations(readCache(), completed), remaining));
     setStatusFromQueue(remaining, remaining.length ? 'Algumas alteracoes continuam pendentes.' : '');
 
     await list();
@@ -212,31 +234,60 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
     setStatusFromQueue(remaining, remaining.length ? 'Algumas alteracoes continuam pendentes.' : '');
   }
 
-  function subscribe() {
+  async function subscribe() {
     if (channel) {
       return channel;
     }
 
-    getClient().then((client) => {
-      channel = client
-        .channel(`${adapter.table}-changes`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: adapter.table }, async () => {
-          await list();
-          emitChange({ type: 'realtime' });
-        })
-        .subscribe();
-    });
+    if (subscriptionPromise) {
+      return subscriptionPromise;
+    }
 
-    return channel;
+    subscriptionPromise = (async () => {
+      try {
+        const client = await getClient();
+
+        if (!client) {
+          return null;
+        }
+
+        channel = client
+          .channel(`${adapter.table}-changes`)
+          .on('postgres_changes', { event: '*', schema: 'public', table: adapter.table }, async () => {
+            await list();
+            emitChange({ type: 'realtime' });
+          })
+          .subscribe();
+
+        return channel;
+      } catch (error) {
+        return null;
+      } finally {
+        subscriptionPromise = null;
+      }
+    })();
+
+    return subscriptionPromise;
   }
 
   async function unsubscribe() {
-    if (!channel) {
+    const nextChannel = channel || (subscriptionPromise ? await subscriptionPromise : null);
+
+    if (!nextChannel) {
+      channel = null;
       return;
     }
 
-    const client = await getClient();
-    client.removeChannel(channel);
+    try {
+      const client = await getClient();
+
+      if (client) {
+        client.removeChannel(nextChannel);
+      }
+    } catch (error) {
+      // Nothing else to clean up when the client cannot be reached.
+    }
+
     channel = null;
   }
 

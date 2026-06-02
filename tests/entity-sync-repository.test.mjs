@@ -28,6 +28,8 @@ let shouldFailSelect = false;
 let shouldFailUpsert = false;
 let failedUpsertIds = new Set();
 let upsertedRows = [];
+let realtimeCallback = null;
+let removedChannels = [];
 
 const fakeClient = {
   from(tableName) {
@@ -64,16 +66,22 @@ const fakeClient = {
     };
   },
   channel() {
-    return {
-      on() {
+    const nextChannel = {
+      on(eventName, options, callback) {
+        if (eventName === 'postgres_changes') {
+          realtimeCallback = callback;
+        }
         return this;
       },
       subscribe() {
         return this;
       }
     };
+    return nextChannel;
   },
-  removeChannel() {}
+  removeChannel(channel) {
+    removedChannels.push(channel);
+  }
 };
 
 const adapter = {
@@ -209,6 +217,35 @@ assert(flushRefreshFailureRepository.getSyncStatus().state === 'synced', 'flush 
 assert(flushRefreshFailureRepository.getSyncStatus().pending === 0, 'flush with all operations cleared should finish with no pending count');
 
 localStorage.clear();
+rows = [{ id: 'flush-cache-normalize-server', name: 'Flush Cache Normalize Server' }];
+shouldFailSelect = false;
+shouldFailUpsert = true;
+failedUpsertIds = new Set();
+
+const flushCacheNormalizeRepository = createEntitySyncRepository({
+  adapter,
+  getClient: async () => fakeClient,
+  emitChange: () => {}
+});
+
+await flushCacheNormalizeRepository.save({ id: 'flush-cache-normalize', name: 'Flush Cache Normalize' });
+assert(
+  JSON.parse(localStorage.getItem('test.items')).find((item) => item.id === 'flush-cache-normalize').syncPending === true,
+  'failed save should create syncPending cache item before flush'
+);
+
+shouldFailUpsert = false;
+shouldFailSelect = true;
+await flushCacheNormalizeRepository.flushQueue();
+
+const normalizedFlushCache = JSON.parse(localStorage.getItem('test.items'));
+const normalizedFlushItem = normalizedFlushCache.find((item) => item.id === 'flush-cache-normalize');
+assert(JSON.parse(localStorage.getItem('test.items.queue')).length === 0, 'successful flush with failed refresh should clear queue');
+assert(normalizedFlushItem && normalizedFlushItem.syncPending !== true, 'successful flush with failed refresh should clear syncPending cache flag');
+assert(flushCacheNormalizeRepository.getSyncStatus().state === 'synced', 'successful flush with failed refresh should finish synced');
+assert(flushCacheNormalizeRepository.getSyncStatus().pending === 0, 'successful flush with failed refresh should finish with zero pending');
+
+localStorage.clear();
 localStorage.setItem('test.items', '{invalid json');
 shouldFailSelect = true;
 
@@ -218,9 +255,77 @@ const invalidJsonRepository = createEntitySyncRepository({
   emitChange: () => {}
 });
 
+const originalWarn = console.warn;
+console.warn = () => {};
 const invalidJsonFallback = await invalidJsonRepository.list();
+console.warn = originalWarn;
 assert(Array.isArray(invalidJsonFallback), 'invalid cache JSON list fallback should be an array');
 assert(invalidJsonFallback.length === 0, 'invalid cache JSON list fallback should be empty');
 assert(invalidJsonRepository.getSyncStatus().state === 'error', 'invalid cache JSON failed list should mark error state');
+
+localStorage.clear();
+rows = [{ id: 'realtime-before', name: 'Realtime Before' }];
+shouldFailSelect = false;
+realtimeCallback = null;
+removedChannels = [];
+
+const subscribeRepository = createEntitySyncRepository({
+  adapter,
+  getClient: async () => fakeClient,
+  emitChange: () => {}
+});
+
+const subscribedChannel = await subscribeRepository.subscribe();
+assert(subscribedChannel, 'subscribe should resolve with channel');
+assert(typeof realtimeCallback === 'function', 'subscribe should register postgres changes callback');
+
+rows = [{ id: 'realtime-after', name: 'Realtime After' }];
+await realtimeCallback();
+const realtimeCache = JSON.parse(localStorage.getItem('test.items'));
+assert(realtimeCache.some((item) => item.id === 'realtime-after'), 'realtime callback should refresh cache');
+
+await subscribeRepository.unsubscribe();
+assert(removedChannels.length === 1, 'unsubscribe should remove subscribed channel');
+
+let delayedClientResolve;
+const delayedClientPromise = new Promise((resolve) => {
+  delayedClientResolve = resolve;
+});
+removedChannels = [];
+
+const delayedSubscribeRepository = createEntitySyncRepository({
+  adapter,
+  getClient: () => delayedClientPromise,
+  emitChange: () => {}
+});
+
+const delayedSubscribePromise = delayedSubscribeRepository.subscribe();
+const delayedUnsubscribePromise = delayedSubscribeRepository.unsubscribe();
+delayedClientResolve(fakeClient);
+await delayedSubscribePromise;
+await delayedUnsubscribePromise;
+assert(removedChannels.length === 1, 'unsubscribe should wait for pending subscription and remove channel');
+
+const nullSubscribeRepository = createEntitySyncRepository({
+  adapter,
+  getClient: async () => null,
+  emitChange: () => {}
+});
+
+const nullSubscribeChannel = await nullSubscribeRepository.subscribe();
+assert(nullSubscribeChannel === null, 'subscribe with null client should resolve null');
+await nullSubscribeRepository.unsubscribe();
+
+const rejectedSubscribeRepository = createEntitySyncRepository({
+  adapter,
+  getClient: async () => {
+    throw new Error('subscribe client unavailable');
+  },
+  emitChange: () => {}
+});
+
+const rejectedSubscribeChannel = await rejectedSubscribeRepository.subscribe();
+assert(rejectedSubscribeChannel === null, 'subscribe with rejected client should resolve null');
+await rejectedSubscribeRepository.unsubscribe();
 
 console.log('entity sync repository ok');
