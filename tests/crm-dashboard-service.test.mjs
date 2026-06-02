@@ -26,8 +26,10 @@ const products = await import('../src/services/product.service.js');
 const comandas = await import('../src/services/comanda.service.js');
 const transactions = await import('../src/services/transaction.service.js');
 const crm = await import('../src/services/crm-dashboard.service.js');
+const auth = await import('../src/services/auth.service.js');
 
 storage.ensureSeedData();
+auth.login({ username: 'admin', password: 'admin123' });
 comandas.clearComanda();
 
 comandas.addItem(products.getProductById('x-burger'));

@@ -27,8 +27,10 @@ const comandas = await import('../src/services/comanda.service.js');
 const transactions = await import('../src/services/transaction.service.js');
 const estoque = await import('../src/services/estoque.service.js');
 const showcase = await import('../src/services/mobile-showcase.service.js');
+const auth = await import('../src/services/auth.service.js');
 
 storage.resetAppData();
+auth.login({ username: 'admin', password: 'admin123' });
 
 const burger = products.getProductById('x-burger');
 const soda = products.getProductById('refrigerante-lata');

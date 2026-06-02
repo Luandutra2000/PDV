@@ -27,8 +27,10 @@ const comandas = await import('../src/services/comanda.service.js');
 const transactions = await import('../src/services/transaction.service.js');
 const estoque = await import('../src/services/estoque.service.js');
 const notifications = await import('../src/services/mobile-notifications.service.js');
+const auth = await import('../src/services/auth.service.js');
 
 storage.resetAppData();
+auth.login({ username: 'admin', password: 'admin123' });
 
 const burger = products.getProductById('x-burger');
 const soda = products.getProductById('refrigerante-lata');
@@ -121,8 +123,8 @@ const monthEvents = notifications.getMobileFeedEvents({ period: 'month', now: to
 assert(monthEvents.some((event) => event.id === 'sale-sale-current-month'), 'month filter should show events from current month');
 assert(!monthEvents.some((event) => event.id === 'sale-sale-previous-month'), 'month filter should hide events from previous months');
 
-const customStart = currentMonthDate.toISOString().slice(0, 10);
-const customEnd = currentMonthDate.toISOString().slice(0, 10);
+const customStart = formatDateInput(currentMonthDate);
+const customEnd = formatDateInput(currentMonthDate);
 const customEvents = notifications.getMobileFeedEvents({
   period: 'custom',
   customStart,
@@ -136,3 +138,11 @@ const periodFilters = notifications.getMobileFeedPeriodFilters().map((filter) =>
 assert(periodFilters === 'today,yesterday,month,custom', 'period filters should be today, yesterday, month, and custom period');
 
 console.log('mobile notifications service ok');
+
+function formatDateInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
