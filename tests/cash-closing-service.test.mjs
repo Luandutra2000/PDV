@@ -138,4 +138,29 @@ const afterClosing = closing.getSalesAfterClosing(confirmed);
 assert(afterClosing.length === 1, 'sales after closing should be listed separately');
 assert(closing.getCashClosings()[0].totals.sales === confirmed.totals.sales, 'confirmed closing totals should not change after later sale');
 
+globalThis.__PDV_RUNTIME_CONFIG__ = {
+  dataProvider: 'supabase',
+  supabaseUrl: 'https://example.supabase.co',
+  supabaseAnonKey: 'anon-key'
+};
+localStorage.setItem('pdv.syncQueue.financial', JSON.stringify([]));
+
+const supabaseClosing = await import(`../src/services/cash-closing.service.js?supabase=${Date.now()}`);
+const supabaseDraft = supabaseClosing.saveClosingDraft({
+  countedCash: 0,
+  leftovers: {},
+  differences: []
+});
+const supabaseConfirmed = supabaseClosing.confirmClosing(supabaseDraft);
+await new Promise((resolve) => setTimeout(resolve, 5));
+const financialQueue = JSON.parse(localStorage.getItem('pdv.syncQueue.financial'));
+
+assert(supabaseConfirmed.status === 'fechado', 'supabase closing should return confirmed closing');
+assert(
+  financialQueue.some((operation) => operation.action === 'saveCashClosing'),
+  'offline supabase closing should queue confirmed closing'
+);
+
+globalThis.__PDV_RUNTIME_CONFIG__ = null;
+
 console.log('cash closing service ok');

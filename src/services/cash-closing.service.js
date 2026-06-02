@@ -5,6 +5,8 @@ import { assertPermission } from './permission.service.js';
 import { recordAudit } from './audit.service.js';
 import { getItem, setItem } from './storage.service.js';
 import { getTransactions } from './transaction.service.js';
+import { isSupabaseEnabled } from './app-config.service.js';
+import { saveCashClosingToSupabase } from './financial-sync.service.js';
 
 export function buildClosingSummary(input = {}) {
   const payments = buildPaymentConference(input);
@@ -180,6 +182,7 @@ export function confirmClosing(draft) {
     user,
     metadata: { totals: closing.totals }
   });
+  syncClosingWithSupabase(closing);
 
   return closing;
 }
@@ -246,4 +249,14 @@ function getUnitValue(item) {
 
 function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function syncClosingWithSupabase(closing) {
+  if (!isSupabaseEnabled()) {
+    return;
+  }
+
+  saveCashClosingToSupabase(closing).catch((error) => {
+    console.warn('Nao foi possivel sincronizar fechamento de caixa com Supabase.', error);
+  });
 }
