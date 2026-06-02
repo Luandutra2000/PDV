@@ -1,13 +1,17 @@
 import {
-  createCategory,
-  createProduct,
-  deleteCategory,
-  deleteProduct,
+  getCatalogSyncStatus,
   getCategories,
   getProducts,
-  updateCategory,
-  updateProduct
+  loadCategories,
+  loadProducts,
+  removeCategory,
+  removeProduct,
+  saveCategory,
+  saveProduct,
+  syncCatalogNow
 } from '../../services/product.service.js';
+import { UI_EVENTS } from '../../database/schema.js';
+import { on } from '../../services/event-bus.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { showNotification } from '../../services/notification.service.js';
 import { getBestSellingProducts } from '../../services/transaction.service.js';
@@ -21,7 +25,10 @@ const productState = {
   bestSellerPeriod: 'today',
   bestSellerCustomStart: '',
   bestSellerCustomEnd: '',
-  bestSellerCategoryFilter: 'todos'
+  bestSellerCategoryFilter: 'todos',
+  loading: false,
+  error: '',
+  syncStatus: { state: 'idle', pending: 0 }
 };
 const boundContainers = new WeakSet();
 
@@ -29,10 +36,18 @@ export function initProdutosModule(container) {
   productState.modal = null;
   productState.editingProductId = null;
   productState.editingCategoryId = null;
+  productState.loading = true;
+  productState.error = '';
   renderProdutosScreen(container);
+  loadProductCatalog(container);
 
   if (!boundContainers.has(container)) {
     bindProdutosEvents(container);
+    on(UI_EVENTS.productCatalogChanged, () => renderProdutosScreen(container));
+    on(UI_EVENTS.productSyncStatusChanged, (status) => {
+      productState.syncStatus = status;
+      renderProdutosScreen(container);
+    });
     boundContainers.add(container);
   }
 }
@@ -50,6 +65,10 @@ function renderProdutosScreen(container) {
           <button class="button" type="button" data-action="new-product">+ Novo Produto</button>
         </div>
       </header>
+
+      ${renderSyncStatus()}
+      ${productState.loading ? '<div class="empty-products">Carregando produtos e categorias...</div>' : ''}
+      ${productState.error ? `<div class="form-error">${productState.error}</div>` : ''}
 
       <section class="manager-section">
         <header class="manager-section__header">
@@ -111,6 +130,41 @@ function renderProdutosScreen(container) {
   `;
 }
 
+async function loadProductCatalog(container) {
+  try {
+    productState.loading = true;
+    productState.error = '';
+    renderProdutosScreen(container);
+    await Promise.all([loadCategories(), loadProducts()]);
+    productState.syncStatus = getCatalogSyncStatus();
+  } catch (error) {
+    productState.error = error.message || 'Nao foi possivel carregar produtos e categorias.';
+  } finally {
+    productState.loading = false;
+    renderProdutosScreen(container);
+  }
+}
+
+function renderSyncStatus() {
+  const status = productState.syncStatus || getCatalogSyncStatus();
+  const labels = {
+    idle: 'Preparando sincronizacao',
+    local: 'Modo local',
+    synced: 'Sincronizado',
+    syncing: 'Sincronizando...',
+    cache: 'Usando cache',
+    pending: `${status.pending || 0} alteracao(oes) pendente(s)`,
+    error: 'Erro ao sincronizar'
+  };
+
+  return `
+    <div class="sync-status" data-sync-state="${status.state}">
+      <span>${labels[status.state] || 'Sincronizacao'}</span>
+      ${status.pending ? '<button class="button button--ghost" type="button" data-action="sync-catalog">Sincronizar</button>' : ''}
+    </div>
+  `;
+}
+
 function bindProdutosEvents(container) {
   container.addEventListener('input', (event) => {
     if (event.target.matches('[data-products-filter]')) {
@@ -151,21 +205,21 @@ function bindProdutosEvents(container) {
     }
   });
 
-  container.addEventListener('submit', (event) => {
+  container.addEventListener('submit', async (event) => {
     if (event.target.matches('[data-product-form]')) {
       event.preventDefault();
-      saveProductFromForm(event.target);
-      renderProdutosScreen(container);
+      await saveProductFromForm(event.target);
+      await loadProductCatalog(container);
     }
 
     if (event.target.matches('[data-category-form]')) {
       event.preventDefault();
-      saveCategoryFromForm(event.target);
-      renderProdutosScreen(container);
+      await saveCategoryFromForm(event.target);
+      await loadProductCatalog(container);
     }
   });
 
-  container.addEventListener('click', (event) => {
+  container.addEventListener('click', async (event) => {
     const actionButton = event.target.closest('[data-action]');
 
     if (!actionButton) {
@@ -177,15 +231,20 @@ function bindProdutosEvents(container) {
     if (action === 'new-product') openProductModal(container);
     if (action === 'edit-product') openProductModal(container, actionButton.dataset.productId);
     if (action === 'delete-product') {
-      deleteProduct(actionButton.dataset.productId);
-      renderProdutosScreen(container);
+      await removeProduct(actionButton.dataset.productId);
+      await loadProductCatalog(container);
     }
 
     if (action === 'new-category') openCategoryModal(container);
     if (action === 'edit-category') openCategoryModal(container, actionButton.dataset.categoryId);
     if (action === 'delete-category') {
-      deleteCategory(actionButton.dataset.categoryId);
-      renderProdutosScreen(container);
+      await removeCategory(actionButton.dataset.categoryId);
+      await loadProductCatalog(container);
+    }
+
+    if (action === 'sync-catalog') {
+      await syncCatalogNow();
+      await loadProductCatalog(container);
     }
 
     if (action === 'close-modal') {
@@ -214,7 +273,7 @@ function closeModal() {
   productState.editingCategoryId = null;
 }
 
-function saveProductFromForm(form) {
+async function saveProductFromForm(form) {
   const formData = new FormData(form);
   const selectedCategory = formData.get('categoryId');
   const newCategoryName = String(formData.get('newCategoryName') || '').trim();
@@ -229,7 +288,7 @@ function saveProductFromForm(form) {
   }
 
   const categoryId = selectedCategory === '__new__'
-    ? createCategory(newCategoryName).id
+    ? (await saveCategory({ name: newCategoryName, showInShowcase: true })).id
     : selectedCategory;
   const productData = {
     name: formData.get('name'),
@@ -241,15 +300,15 @@ function saveProductFromForm(form) {
   };
 
   if (productState.editingProductId) {
-    updateProduct(productState.editingProductId, productData);
-  } else {
-    createProduct(productData);
+    productData.id = productState.editingProductId;
   }
 
+  await saveProduct(productData);
   closeModal();
+  showNotification({ title: 'Produto salvo', message: 'Produto registrado com sucesso.', type: 'success' });
 }
 
-function saveCategoryFromForm(form) {
+async function saveCategoryFromForm(form) {
   const formData = new FormData(form);
   const name = String(formData.get('name') || '').trim();
   const showInShowcase = formData.get('showInShowcase') === 'on';
@@ -263,20 +322,20 @@ function saveCategoryFromForm(form) {
     return;
   }
 
-  if (productState.editingCategoryId) {
-    updateCategory(productState.editingCategoryId, { name, showInShowcase });
-  } else {
-    createCategory(name, { showInShowcase });
-  }
-
+  await saveCategory({
+    id: productState.editingCategoryId,
+    name,
+    showInShowcase
+  });
   closeModal();
+  showNotification({ title: 'Categoria salva', message: 'Categoria registrada com sucesso.', type: 'success' });
 }
 
 function renderCategoryRows() {
   const categories = getVisibleCategories();
 
   if (!categories.length) {
-    return '<div class="empty-products">Nenhuma categoria cadastrada.</div>';
+    return '<div class="empty-products">Nenhuma categoria cadastrada no banco.</div>';
   }
 
   return categories.map((category) => {
@@ -301,7 +360,7 @@ function renderProductRows() {
   const products = getFilteredProducts();
 
   if (!products.length) {
-    return '<div class="empty-products">Nenhum produto cadastrado.</div>';
+    return '<div class="empty-products">Nenhum produto cadastrado no banco.</div>';
   }
 
   return products.map((product) => {

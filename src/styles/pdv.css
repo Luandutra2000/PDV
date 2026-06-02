@@ -1034,6 +1034,34 @@ select.compact-select[multiple] {
   margin-top: 12px;
 }
 
+.sync-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.sync-status[data-sync-state="synced"] {
+  color: var(--color-success);
+}
+
+.sync-status[data-sync-state="pending"],
+.sync-status[data-sync-state="cache"] {
+  color: var(--color-primary);
+}
+
+.sync-status[data-sync-state="error"] {
+  color: var(--color-danger);
+}
+
 @media (max-width: 1120px) {
   .pdv-screen {
     grid-template-columns: 1fr;
