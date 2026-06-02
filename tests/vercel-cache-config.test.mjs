@@ -16,7 +16,7 @@ const cacheControl = srcHeader?.headers.find((header) => header.key.toLowerCase(
 assert(srcHeader, 'vercel config should define cache headers for source modules');
 assert(!cacheControl.includes('immutable'), 'source modules should not be immutable because URLs are not content-hashed');
 assert(cacheControl.includes('max-age=0'), 'source modules should revalidate so fixes appear after deploy');
-assert(indexHtml.includes('./src/app.js?v=20260602-01'), 'app entrypoint should use the latest cache-busting version');
+assert(indexHtml.includes('./src/app.js?v=20260602-02'), 'app entrypoint should use the latest cache-busting version');
 assert(indexHtml.includes('clearLocalDevelopmentCaches'), 'local development should clear stale app caches before boot');
 assert(indexHtml.includes('LOCAL_CACHE_VERSION'), 'local development cache clearing should be versioned');
 assert(!indexHtml.includes('await new Promise(() => {})'), 'local cache clearing should not block app boot');
