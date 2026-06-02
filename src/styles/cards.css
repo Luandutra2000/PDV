@@ -77,3 +77,69 @@
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
+
+.people-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(320px, 1.2fr);
+  gap: 16px;
+}
+
+.people-list {
+  gap: 10px;
+}
+
+.people-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.people-row.is-selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 107, 26, 0.12);
+}
+
+.people-row__main {
+  display: grid;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  padding: 0;
+  text-align: left;
+}
+
+.people-row__main span,
+.permission-panel .manager-section__header span,
+.user-audit-list span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.permission-panel {
+  margin-top: 16px;
+}
+
+.user-audit-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.user-audit-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 8px;
+}
+
+@media (max-width: 920px) {
+  .people-grid {
+    grid-template-columns: 1fr;
+  }
+}
