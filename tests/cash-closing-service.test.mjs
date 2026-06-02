@@ -27,8 +27,11 @@ const comandas = await import('../src/services/comanda.service.js');
 const transactions = await import('../src/services/transaction.service.js');
 const estoque = await import('../src/services/estoque.service.js');
 const closing = await import('../src/services/cash-closing.service.js');
+const auth = await import('../src/services/auth.service.js');
+const audit = await import('../src/services/audit.service.js');
 
 storage.ensureSeedData();
+const adminSession = auth.login({ username: 'admin', password: 'admin123' });
 
 const burger = products.getProductById('x-burger');
 const soda = products.getProductById('refrigerante-lata');
@@ -119,7 +122,12 @@ try {
 assert(missingNoteFailed, 'closing with difference should require an observation');
 
 const confirmed = closing.confirmClosing(draft);
+const closingAudit = audit.getAuditLogs().find((entry) => entry.action === 'cash.close' && entry.entityId === confirmed.id);
+
 assert(confirmed.status === 'fechado', 'confirmed closing should be closed');
+assert(confirmed.createdBy === adminSession.user.id, 'confirmed closing should store user id');
+assert(confirmed.userName === adminSession.user.name, 'confirmed closing should store user name');
+assert(closingAudit.metadata.totals.sales === confirmed.totals.sales, 'closing audit should store totals');
 assert(closing.getCashClosings().length === 1, 'closing history should include confirmed closing');
 
 await new Promise((resolve) => setTimeout(resolve, 5));

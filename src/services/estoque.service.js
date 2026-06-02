@@ -1,9 +1,15 @@
 import { STORAGE_KEYS } from '../database/schema.js';
 import { getCategories, getProductById, getProducts, updateProduct } from './product.service.js';
 import { getTransactions } from './transaction.service.js';
+import { getCurrentUser } from './auth.service.js';
+import { assertPermission } from './permission.service.js';
+import { recordAudit } from './audit.service.js';
 import { getItem, setItem } from './storage.service.js';
 
 export function createStockLaunch({ produtoId, quantidade }) {
+  const user = getCurrentUser();
+  assertPermission(user, 'showcase.launch');
+
   const product = getProductById(produtoId);
 
   if (!product) {
@@ -31,8 +37,8 @@ export function createStockLaunch({ produtoId, quantidade }) {
     valorUnitario: Number(product.price) || 0,
     valorTotal: normalizedQuantity * (Number(product.price) || 0),
     dataHora: new Date().toISOString(),
-    usuarioId: null,
-    usuarioNome: 'Local',
+    usuarioId: user?.id || '',
+    usuarioNome: user?.name || 'Sistema',
     status: 'ativo'
   };
 
@@ -41,11 +47,24 @@ export function createStockLaunch({ produtoId, quantidade }) {
   setItem(STORAGE_KEYS.stockLaunches, launches);
   showStockComparisonProduct(product.id);
   updateProductStock(product.id, normalizedQuantity);
+  recordAudit({
+    action: 'showcase.launch',
+    entityType: 'stockLaunch',
+    entityId: launch.id,
+    user,
+    metadata: {
+      productId: launch.produtoId,
+      quantity: launch.quantidade
+    }
+  });
 
   return launch;
 }
 
 export function deleteStockComparisonRow(produtoId, filters = {}) {
+  const user = getCurrentUser();
+  assertPermission(user, 'showcase.launch');
+
   const activeLaunches = getActiveLaunches(filters).filter((launch) => launch.produtoId === produtoId);
 
   activeLaunches.forEach((launch) => cancelStockLaunch(launch.id));
@@ -58,6 +77,9 @@ export function deleteStockComparisonRow(produtoId, filters = {}) {
 }
 
 export function updateStockLaunch(launchId, data) {
+  const user = getCurrentUser();
+  assertPermission(user, 'showcase.launch');
+
   const currentLaunch = getStockLaunches().find((launch) => launch.id === launchId);
 
   const launches = getStockLaunches().map((launch) => {
@@ -85,6 +107,9 @@ export function updateStockLaunch(launchId, data) {
 }
 
 export function cancelStockLaunch(launchId) {
+  const user = getCurrentUser();
+  assertPermission(user, 'showcase.launch');
+
   const currentLaunch = getStockLaunches().find((launch) => launch.id === launchId);
 
   const launches = getStockLaunches().map((launch) => {
@@ -112,6 +137,9 @@ export function getTodayShowcaseProducts() {
 }
 
 export function createShowcaseWriteOff({ productId, quantity, reason, note = '' }) {
+  const user = getCurrentUser();
+  assertPermission(user, 'showcase.launch');
+
   const product = getProductById(productId);
   const normalizedQuantity = Number(quantity) || 0;
   const normalizedReason = String(reason || '').trim();
@@ -151,6 +179,8 @@ export function createShowcaseWriteOff({ productId, quantity, reason, note = '' 
     totalValue: normalizedQuantity * unitValue,
     reason: normalizedReason,
     note: String(note || '').trim(),
+    createdBy: user?.id || '',
+    userName: user?.name || 'Sistema',
     createdAt: new Date().toISOString(),
     status: 'ativa'
   };
@@ -158,6 +188,17 @@ export function createShowcaseWriteOff({ productId, quantity, reason, note = '' 
   const writeOffs = getItem(STORAGE_KEYS.showcaseWriteOffs, []);
   writeOffs.unshift(writeOff);
   setItem(STORAGE_KEYS.showcaseWriteOffs, writeOffs);
+  recordAudit({
+    action: 'showcase.writeoff',
+    entityType: 'showcaseWriteOff',
+    entityId: writeOff.id,
+    user,
+    reason: writeOff.reason,
+    metadata: {
+      productId: writeOff.productId,
+      quantity: writeOff.quantity
+    }
+  });
 
   return writeOff;
 }

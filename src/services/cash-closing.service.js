@@ -1,5 +1,8 @@
 import { STORAGE_KEYS } from '../database/schema.js';
 import { getProductionSalesComparison } from './estoque.service.js';
+import { getCurrentUser } from './auth.service.js';
+import { assertPermission } from './permission.service.js';
+import { recordAudit } from './audit.service.js';
 import { getItem, setItem } from './storage.service.js';
 import { getTransactions } from './transaction.service.js';
 
@@ -109,6 +112,9 @@ export function getCurrentClosingDraft() {
 }
 
 export function confirmClosing(draft) {
+  const user = getCurrentUser();
+  assertPermission(user, 'cash.close');
+
   if (!draft || !draft.payments) {
     throw new Error('Rascunho de fechamento invalido.');
   }
@@ -156,6 +162,8 @@ export function confirmClosing(draft) {
       checkedCredit: draft.payments.checkedCredit,
       generalDifference: draft.payments.generalDifference
     },
+    createdBy: user?.id || '',
+    userName: user?.name || 'Sistema',
     closedAt,
     createdAt: closedAt,
     updatedAt: closedAt
@@ -165,6 +173,13 @@ export function confirmClosing(draft) {
   closings.unshift(closing);
   setItem(STORAGE_KEYS.cashClosings, closings);
   setItem(STORAGE_KEYS.cashClosingDraft, null);
+  recordAudit({
+    action: 'cash.close',
+    entityType: 'cashClosing',
+    entityId: closing.id,
+    user,
+    metadata: { totals: closing.totals }
+  });
 
   return closing;
 }

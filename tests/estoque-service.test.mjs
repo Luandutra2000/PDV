@@ -26,8 +26,11 @@ const products = await import('../src/services/product.service.js');
 const comandas = await import('../src/services/comanda.service.js');
 const transactions = await import('../src/services/transaction.service.js');
 const estoque = await import('../src/services/estoque.service.js');
+const auth = await import('../src/services/auth.service.js');
+const audit = await import('../src/services/audit.service.js');
 
 storage.ensureSeedData();
+const adminSession = auth.login({ username: 'admin', password: 'admin123' });
 
 const product = products.getProductById('x-burger');
 const initialStock = product.stock;
@@ -39,7 +42,12 @@ const launch = estoque.createStockLaunch({
 assert(launch.valorUnitario === product.price, 'unit value should come from selected product');
 assert(launch.valorTotal === 160, 'total should be quantity times product price');
 assert(launch.categoriaId === product.categoryId, 'category should come from selected product');
+assert(launch.usuarioId === adminSession.user.id, 'launch should store logged user id');
+assert(launch.usuarioNome === adminSession.user.name, 'launch should store logged user name');
 assert(products.getProductById(product.id).stock === initialStock + 10, 'launch should add quantity to product stock');
+const launchAudit = audit.getAuditLogs().find((entry) => entry.action === 'showcase.launch' && entry.entityId === launch.id);
+assert(launchAudit.metadata.productId === product.id, 'launch audit should store product id');
+assert(launchAudit.metadata.quantity === 10, 'launch audit should store quantity');
 
 comandas.clearComanda();
 comandas.addItem(product);
@@ -73,6 +81,7 @@ estoque.deleteStockComparisonRow(product.id);
 assert(estoque.getProductionSalesComparison().length === 0, 'deleting comparison row should hide it without deleting the sale');
 
 storage.resetAppData();
+auth.login({ username: 'admin', password: 'admin123' });
 const saleOnlyProduct = products.getProductById('x-burger');
 products.updateCategory(saleOnlyProduct.categoryId, {
   name: 'Lanches',
@@ -106,6 +115,7 @@ estoque.createStockLaunch({
 assert(estoque.getProductionSalesComparison().length === 1, 'new launch should show hidden product in comparison again');
 
 storage.resetAppData();
+auth.login({ username: 'admin', password: 'admin123' });
 const writeOffProduct = products.getProductById('x-burger');
 estoque.createStockLaunch({
   produtoId: writeOffProduct.id,
@@ -126,6 +136,11 @@ assert(writeOff.productId === writeOffProduct.id, 'write-off should store produc
 assert(writeOff.quantity === 2, 'write-off should store quantity');
 assert(writeOff.unitValue === writeOffProduct.price, 'write-off should store current product price');
 assert(writeOff.totalValue === writeOffProduct.price * 2, 'write-off should calculate total estimated value');
+assert(writeOff.createdBy === adminSession.user.id, 'write-off should store logged user id');
+assert(writeOff.userName === adminSession.user.name, 'write-off should store logged user name');
+const writeOffAudit = audit.getAuditLogs().find((entry) => entry.action === 'showcase.writeoff' && entry.entityId === writeOff.id);
+assert(writeOffAudit.reason === 'consumo-interno', 'write-off audit should store reason');
+assert(writeOffAudit.metadata.productId === writeOffProduct.id, 'write-off audit should store product id');
 
 const writeOffSummary = estoque.getShowcaseWriteOffSummary();
 assert(writeOffSummary.get(writeOffProduct.id).quantity === 2, 'write-off summary should group quantity by product');
