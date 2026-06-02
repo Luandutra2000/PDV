@@ -26,6 +26,7 @@ const { createEntitySyncRepository } = await import('../src/services/repositorie
 let rows = [{ id: 'item-1', name: 'Item 1' }];
 let shouldFailSelect = false;
 let shouldFailUpsert = false;
+let failedUpsertIds = new Set();
 let upsertedRows = [];
 
 const fakeClient = {
@@ -39,7 +40,7 @@ const fakeClient = {
       },
       upsert(nextRows) {
         upsertedRows = nextRows;
-        if (shouldFailUpsert) {
+        if (shouldFailUpsert || nextRows.some((row) => failedUpsertIds.has(row.id))) {
           return Promise.resolve({ error: new Error('write offline') });
         }
         rows = nextRows;
@@ -109,5 +110,19 @@ await repository.flushQueue();
 assert(upsertedRows[0].id === 'item-2', 'flush should upsert queued row');
 assert(JSON.parse(localStorage.getItem('test.items.queue')).length === 0, 'flush should clear queue');
 assert(repository.getSyncStatus().state === 'synced', 'flush success should mark synced');
+
+shouldFailUpsert = true;
+await repository.save({ id: 'item-3', name: 'Item 3' });
+await repository.save({ id: 'item-4', name: 'Item 4' });
+
+shouldFailUpsert = false;
+failedUpsertIds = new Set(['item-4']);
+await repository.flushQueue();
+
+const remainingQueue = JSON.parse(localStorage.getItem('test.items.queue'));
+assert(remainingQueue.length === 1, 'partial flush should keep failed operation queued');
+assert(remainingQueue[0].item.id === 'item-4', 'partial flush should keep the failed item queued');
+assert(repository.getSyncStatus().state === 'pending', 'partial flush should keep pending status');
+assert(repository.getSyncStatus().pending === 1, 'partial flush should keep pending count');
 
 console.log('entity sync repository ok');
