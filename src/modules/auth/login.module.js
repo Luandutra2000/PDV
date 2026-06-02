@@ -5,7 +5,7 @@ export function renderLoginModule(container, onSuccess, options = {}) {
     <section class="login-screen">
       <form class="login-card" data-login-form>
         <div>
-          <p class="module-subtitle">PDV Lanchonete</p>
+          <p class="module-subtitle">PDV</p>
           <h1 class="pdv-title">Entrar no PDV</h1>
         </div>
         ${options.message ? `<p class="form-error">${options.message}</p>` : ''}
