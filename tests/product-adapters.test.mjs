@@ -42,8 +42,11 @@ const product = productAdapter.fromRow({
 
 assert(product.categoryId === 'porcoes', 'product category_id should map to categoryId');
 assert(product.price === 14, 'product row price should map to app product');
+assert(product.cost === 6, 'product row cost should map to app product');
+assert(product.stock === 18, 'product row stock should map to app product');
 assert(product.active === true, 'product row active should map to app product');
 assert(product.aliases.join(',') === 'batata', 'product row aliases should map to app product');
+assert(product.favorite === false, 'product row favorite should map to app product');
 
 const categoryRow = categoryAdapter.toRow({
   id: 'lanches',
