@@ -14,6 +14,7 @@ export const STORAGE_KEYS = {
   cashClosings: 'pdv.cashClosings',
   cashClosingDraft: 'pdv.cashClosingDraft',
   showcaseWriteOffs: 'pdv.showcaseWriteOffs',
+  financialSyncQueue: 'pdv.syncQueue.financial',
   syncQueue: 'pdv.syncQueue'
 };
 
@@ -30,5 +31,7 @@ export const UI_EVENTS = {
   cashSummaryChanged: 'CASH_SUMMARY_CHANGED',
   mobileFeedChanged: 'MOBILE_FEED_CHANGED',
   productCatalogChanged: 'PRODUCT_CATALOG_CHANGED',
-  productSyncStatusChanged: 'PRODUCT_SYNC_STATUS_CHANGED'
+  productSyncStatusChanged: 'PRODUCT_SYNC_STATUS_CHANGED',
+  financialSyncStatusChanged: 'FINANCIAL_SYNC_STATUS_CHANGED',
+  financialDataChanged: 'FINANCIAL_DATA_CHANGED'
 };
