@@ -136,4 +136,20 @@ assert(realFavoritesCategoryResults.some((product) => product.id === productInFa
 assert(!realFavoritesCategoryResults.some((product) => product.id === aliasProduct.id), 'real favorites category search should not include favorite products from other categories');
 assert(products.getFavoriteProducts().some((product) => product.id === aliasProduct.id), 'favorite products helper should still return favorite products');
 
+globalThis.__PDV_RUNTIME_CONFIG__ = {
+  dataProvider: 'supabase',
+  supabaseUrl: 'https://example.supabase.co',
+  supabaseAnonKey: 'anon-key'
+};
+
+const supabaseProductService = await import(`../src/services/product.service.js?supabase=${Date.now()}`);
+
+const loadedCategories = await supabaseProductService.loadCategories();
+const loadedProducts = await supabaseProductService.loadProducts();
+
+assert(Array.isArray(loadedCategories), 'loadCategories should return an array');
+assert(Array.isArray(loadedProducts), 'loadProducts should return an array');
+
+globalThis.__PDV_RUNTIME_CONFIG__ = null;
+
 console.log('product service crud ok');

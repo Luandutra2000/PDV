@@ -1,4 +1,16 @@
 import { STORAGE_KEYS } from '../database/schema.js';
+import { isSupabaseEnabled } from './app-config.service.js';
+import {
+  deleteCategoryFromSupabase,
+  deleteProductFromSupabase,
+  flushProductCatalogQueue,
+  getProductSyncStatus,
+  loadCategoriesFromSupabase,
+  loadProductsFromSupabase,
+  saveCategoryToSupabase,
+  saveProductToSupabase,
+  startProductCatalogRealtime
+} from './product-sync.service.js';
 import { getItem, setItem } from './storage.service.js';
 
 export function getProducts() {
@@ -20,6 +32,22 @@ export function getShowcaseCategories() {
 export function getShowcaseProducts() {
   const showcaseCategoryIds = new Set(getShowcaseCategories().map((category) => category.id));
   return getProducts().filter((product) => product.active && showcaseCategoryIds.has(product.categoryId));
+}
+
+export async function loadCategories() {
+  if (!isSupabaseEnabled()) {
+    return getCategories();
+  }
+
+  return loadCategoriesFromSupabase();
+}
+
+export async function loadProducts() {
+  if (!isSupabaseEnabled()) {
+    return getProducts();
+  }
+
+  return loadProductsFromSupabase();
 }
 
 export function createCategory(name, options = {}) {
@@ -58,6 +86,20 @@ export function updateCategory(categoryId, data = {}) {
   return categories[index];
 }
 
+export async function saveCategory(categoryData) {
+  if (!isSupabaseEnabled()) {
+    return categoryData.id
+      ? updateCategory(categoryData.id, categoryData)
+      : createCategory(categoryData.name, categoryData);
+  }
+
+  return saveCategoryToSupabase(normalizeCategory({
+    id: categoryData.id || createSlugId(categoryData.name, getCategories().map((item) => item.id)),
+    name: categoryData.name,
+    showInShowcase: categoryData.showInShowcase
+  }));
+}
+
 export function deleteCategory(categoryId) {
   if (categoryId === 'todos') {
     return;
@@ -68,6 +110,15 @@ export function deleteCategory(categoryId) {
 
   setItem(STORAGE_KEYS.categories, categories);
   saveProducts(products);
+}
+
+export async function removeCategory(categoryId) {
+  if (!isSupabaseEnabled()) {
+    deleteCategory(categoryId);
+    return;
+  }
+
+  await deleteCategoryFromSupabase(categoryId);
 }
 
 export function getProductById(productId) {
@@ -129,9 +180,50 @@ export function updateProduct(productId, productData) {
   return products[index];
 }
 
+export async function saveProduct(productData) {
+  if (!isSupabaseEnabled()) {
+    return productData.id
+      ? updateProduct(productData.id, productData)
+      : createProduct(productData);
+  }
+
+  return saveProductToSupabase(normalizeProduct({
+    id: productData.id || createProductId(productData.name),
+    ...productData,
+    active: productData.active !== false
+  }));
+}
+
 export function deleteProduct(productId) {
   const products = getProducts().filter((product) => product.id !== productId);
   saveProducts(products);
+}
+
+export async function removeProduct(productId) {
+  if (!isSupabaseEnabled()) {
+    deleteProduct(productId);
+    return;
+  }
+
+  await deleteProductFromSupabase(productId);
+}
+
+export function getCatalogSyncStatus() {
+  return isSupabaseEnabled()
+    ? getProductSyncStatus()
+    : { state: 'local', pending: 0 };
+}
+
+export async function startCatalogRealtime() {
+  if (isSupabaseEnabled()) {
+    await startProductCatalogRealtime();
+  }
+}
+
+export async function syncCatalogNow() {
+  if (isSupabaseEnabled()) {
+    await flushProductCatalogQueue();
+  }
 }
 
 function saveProducts(products) {
