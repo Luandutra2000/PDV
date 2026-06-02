@@ -6,6 +6,14 @@ import { getItem, setItem } from './storage.service.js';
 import { getCurrentUser } from './auth.service.js';
 import { assertPermission } from './permission.service.js';
 import { recordAudit } from './audit.service.js';
+import { isSupabaseEnabled } from './app-config.service.js';
+import {
+  cancelCashMovementInSupabase,
+  cancelSaleInSupabase,
+  getFinancialSyncStatus,
+  saveCashMovementToSupabase,
+  saveSaleToSupabase
+} from './financial-sync.service.js';
 
 export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
   const user = getCurrentUser();
@@ -40,8 +48,7 @@ export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
     createdAt: new Date().toISOString()
   };
 
-  appendTransaction(sale);
-  appendClosedComanda({
+  const closedCommand = {
     ...comanda,
     status: 'fechada',
     closedAt: sale.createdAt,
@@ -49,7 +56,11 @@ export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
     paymentMethod,
     receivedAmount: paidAmount,
     change
-  });
+  };
+
+  appendTransaction(sale);
+  appendClosedComanda(closedCommand);
+  syncSaleToSupabase(sale, closedCommand);
   startNewComanda(comanda.number + 1);
   emit(SYNC_EVENTS.saleFinished, sale);
   emit(UI_EVENTS.cashSummaryChanged, sale);
@@ -100,6 +111,7 @@ export function registerCashMovement({
   };
 
   appendTransaction(movement);
+  syncCashMovementToSupabase(movement);
   emit(SYNC_EVENTS.cashMovementRegistered, movement);
   emit(UI_EVENTS.cashSummaryChanged, movement);
   recordAudit({
@@ -173,6 +185,8 @@ export function cancelClosedComanda(comandaId, { reason = '' } = {}) {
 
   setItem(STORAGE_KEYS.transactions, transactions);
   setItem(STORAGE_KEYS.closedComandas, comandas);
+  const sale = transactions.find((transaction) => transaction.comandaId === comandaId && transaction.type === 'venda');
+  syncSaleCancellationToSupabase({ saleId: sale?.id, comandaId, canceledAt });
   emit(UI_EVENTS.cashSummaryChanged, { type: 'comanda-cancelada', comandaId });
   recordAudit({
     action: 'comanda.cancel',
@@ -194,6 +208,7 @@ export function cancelTransaction(transactionId, { reason = '' } = {}) {
 
   const canceledAt = new Date().toISOString();
   let canceledSaleComandaId = null;
+  let canceledMovementId = null;
   const transactions = getTransactions().map((transaction) => {
     if (transaction.id !== transactionId) {
       return transaction;
@@ -201,6 +216,8 @@ export function cancelTransaction(transactionId, { reason = '' } = {}) {
 
     if (transaction.type === 'venda' && transaction.comandaId) {
       canceledSaleComandaId = transaction.comandaId;
+    } else {
+      canceledMovementId = transaction.id;
     }
 
     return {
@@ -216,6 +233,7 @@ export function cancelTransaction(transactionId, { reason = '' } = {}) {
   setItem(STORAGE_KEYS.transactions, transactions);
 
   if (!canceledSaleComandaId) {
+    syncCashMovementCancellationToSupabase({ movementId: canceledMovementId, canceledAt });
     emit(UI_EVENTS.cashSummaryChanged, { type: 'movimentacao-cancelada', transactionId });
     recordAudit({
       action: 'transaction.cancel',
@@ -244,6 +262,7 @@ export function cancelTransaction(transactionId, { reason = '' } = {}) {
   });
 
   setItem(STORAGE_KEYS.closedComandas, comandas);
+  syncSaleCancellationToSupabase({ saleId: transactionId, comandaId: canceledSaleComandaId, canceledAt });
   emit(UI_EVENTS.cashSummaryChanged, { type: 'movimentacao-cancelada', transactionId });
   recordAudit({
     action: 'transaction.cancel',
@@ -259,6 +278,10 @@ export function cancelTransaction(transactionId, { reason = '' } = {}) {
 
 export function getActiveTransactions() {
   return getTransactions().filter((transaction) => transaction.status !== 'cancelada');
+}
+
+export function getTransactionSyncStatus() {
+  return isSupabaseEnabled() ? getFinancialSyncStatus() : { state: 'local', pending: 0 };
 }
 
 export function getPaymentMethodTotals(transactions = getActiveTransactions()) {
@@ -366,6 +389,44 @@ function appendClosedComanda(comanda) {
   const comandas = getClosedComandas();
   comandas.unshift(comanda);
   setItem(STORAGE_KEYS.closedComandas, comandas);
+}
+
+function syncSaleToSupabase(sale, command) {
+  if (!isSupabaseEnabled()) {
+    return;
+  }
+
+  runFinancialSync(saveSaleToSupabase({ sale, command }));
+}
+
+function syncCashMovementToSupabase(movement) {
+  if (!isSupabaseEnabled()) {
+    return;
+  }
+
+  runFinancialSync(saveCashMovementToSupabase(movement));
+}
+
+function syncSaleCancellationToSupabase({ saleId, comandaId, canceledAt }) {
+  if (!isSupabaseEnabled() || !saleId) {
+    return;
+  }
+
+  runFinancialSync(cancelSaleInSupabase({ saleId, comandaId, canceledAt }));
+}
+
+function syncCashMovementCancellationToSupabase({ movementId, canceledAt }) {
+  if (!isSupabaseEnabled() || !movementId) {
+    return;
+  }
+
+  runFinancialSync(cancelCashMovementInSupabase({ movementId, canceledAt }));
+}
+
+function runFinancialSync(promise) {
+  promise.catch((error) => {
+    console.warn('Nao foi possivel enviar alteracao financeira ao Supabase.', error);
+  });
 }
 
 function sumByType(transactions, type) {

@@ -28,6 +28,7 @@ const comandas = await import('../src/services/comanda.service.js');
 const auth = await import('../src/services/auth.service.js');
 const permissions = await import('../src/services/permission.service.js');
 const audit = await import('../src/services/audit.service.js');
+const financial = await import('../src/services/financial-sync.service.js');
 const transactions = await import('../src/services/transaction.service.js');
 
 storage.ensureSeedData();
@@ -267,4 +268,69 @@ assert(deniedCancelBlocked, 'user without sales.cancel should not cancel transac
 const uncategorized = transactions.getTransactions().find((transaction) => transaction.id === entrada.id);
 assert((uncategorized.category || 'sem-categoria') === 'sem-categoria', 'old movements should remain compatible without category');
 
+const failingFinancialClient = {
+  from() {
+    return {
+      upsert() {
+        return Promise.resolve({ error: new Error('offline') });
+      },
+      update() {
+        return {
+          eq() {
+            return Promise.resolve({ error: new Error('offline') });
+          }
+        };
+      }
+    };
+  }
+};
+
+const localRuntimeConfig = { dataProvider: 'local' };
+const supabaseRuntimeConfig = {
+  dataProvider: 'supabase',
+  supabaseUrl: 'https://example.supabase.co',
+  supabaseAnonKey: 'anon-key'
+};
+
+storage.setItem(schema.STORAGE_KEYS.financialSyncQueue, []);
+globalThis.__PDV_RUNTIME_CONFIG__ = supabaseRuntimeConfig;
+financial.configureFinancialSyncForTests({ getClient: async () => failingFinancialClient });
+auth.login({ username: 'admin', password: 'admin123' });
+comandas.clearComanda();
+comandas.addItem(products.getProductById('x-burger'));
+
+const supabaseSale = transactions.finalizeComandaPayment({
+  paymentMethod: 'pix'
+});
+globalThis.__PDV_RUNTIME_CONFIG__ = localRuntimeConfig;
+await waitForAsyncSync();
+
+let financialQueue = storage.getItem(schema.STORAGE_KEYS.financialSyncQueue, []);
+assert(financialQueue.length === 1, 'supabase sale failure should queue one financial operation');
+assert(financialQueue[0].action === 'saveSale', 'supabase sale failure should queue saveSale');
+assert(financialQueue[0].sale.id === supabaseSale.id, 'supabase queued sale should keep sale id');
+assert(financialQueue[0].command.id === supabaseSale.comandaId, 'supabase queued sale should include closed comanda');
+globalThis.__PDV_RUNTIME_CONFIG__ = supabaseRuntimeConfig;
+assert(transactions.getTransactionSyncStatus().state === 'pending', 'supabase queued sale should expose pending sync status');
+
+const supabaseMovement = transactions.registerCashMovement({
+  type: 'entrada',
+  amount: 15,
+  category: 'troco',
+  description: 'Teste fila Supabase'
+});
+globalThis.__PDV_RUNTIME_CONFIG__ = localRuntimeConfig;
+await waitForAsyncSync();
+
+financialQueue = storage.getItem(schema.STORAGE_KEYS.financialSyncQueue, []);
+assert(financialQueue.length === 2, 'supabase cash movement failure should append queue operation');
+assert(financialQueue.some((operation) => operation.action === 'saveCashMovement' && operation.movement.id === supabaseMovement.id), 'supabase cash movement failure should queue saveCashMovement');
+globalThis.__PDV_RUNTIME_CONFIG__ = localRuntimeConfig;
+
 console.log('transaction service ok');
+
+function waitForAsyncSync() {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
+}
