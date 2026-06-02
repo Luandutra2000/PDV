@@ -25,6 +25,7 @@ assert(productRow.cost === 7.25, 'product cost should be numeric');
 assert(productRow.stock === 12, 'product stock should be numeric');
 assert(productRow.active === true, 'product active should be boolean');
 assert(Array.isArray(productRow.aliases), 'product aliases should stay array');
+assert(productRow.aliases.join(',') === 'burger,x', 'product aliases should keep expected values');
 assert(productRow.favorite === true, 'product favorite should be boolean');
 
 const product = productAdapter.fromRow({
@@ -42,6 +43,7 @@ const product = productAdapter.fromRow({
 assert(product.categoryId === 'porcoes', 'product category_id should map to categoryId');
 assert(product.price === 14, 'product row price should map to app product');
 assert(product.active === true, 'product row active should map to app product');
+assert(product.aliases.join(',') === 'batata', 'product row aliases should map to app product');
 
 const categoryRow = categoryAdapter.toRow({
   id: 'lanches',
