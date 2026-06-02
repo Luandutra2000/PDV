@@ -23,6 +23,7 @@ const assert = (condition, message) => {
 
 const storage = await import('../src/services/storage.service.js');
 const auth = await import('../src/services/auth.service.js');
+const supabaseClient = await import('../src/services/supabase-client.service.js');
 const { STORAGE_KEYS } = await import('../src/database/schema.js');
 
 storage.setItem(STORAGE_KEYS.users, []);
@@ -266,6 +267,16 @@ globalThis.__PDV_RUNTIME_CONFIG__ = {
 };
 
 let supabaseLoginBody = null;
+let supabaseSessionPayload = null;
+supabaseClient.configureSupabaseClientForTests({
+  client: {
+    auth: {
+      async setSession(session) {
+        supabaseSessionPayload = session;
+      }
+    }
+  }
+});
 globalThis.fetch = async (url, options) => {
   supabaseLoginBody = JSON.parse(options.body);
   return {
@@ -277,7 +288,8 @@ globalThis.fetch = async (url, options) => {
           email: 'luandutra27@gmail.com',
           user_metadata: { name: 'Luan Dutra' }
         },
-        session: { access_token: 'token' }
+        access_token: 'access-token',
+        refresh_token: 'refresh-token'
       };
     }
   };
@@ -285,10 +297,13 @@ globalThis.fetch = async (url, options) => {
 
 const supabaseSession = await auth.login({ username: 'luandutra27@gmail,com', password: '84276331' });
 assert(supabaseLoginBody.email === 'luandutra27@gmail.com', 'supabase login should normalize comma email typo');
+assert(supabaseSessionPayload.access_token === 'access-token', 'supabase login should set SDK access token');
+assert(supabaseSessionPayload.refresh_token === 'refresh-token', 'supabase login should set SDK refresh token');
 assert(supabaseSession.user.username === 'luandutra27@gmail.com', 'supabase login should create local session user');
 assert(auth.getCurrentUser().id === 'supabase-user', 'supabase login should persist local current session');
 
 globalThis.fetch = originalFetch;
 globalThis.__PDV_RUNTIME_CONFIG__ = null;
+supabaseClient.configureSupabaseClientForTests();
 
 console.log('auth service ok');

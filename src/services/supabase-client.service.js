@@ -1,10 +1,20 @@
 import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js';
 
 let clientPromise = null;
+let clientOverride = null;
+
+export function configureSupabaseClientForTests({ client } = {}) {
+  clientOverride = client || null;
+  clientPromise = null;
+}
 
 export async function getSupabaseClient() {
   if (!isSupabaseEnabled()) {
     return null;
+  }
+
+  if (clientOverride) {
+    return clientOverride;
   }
 
   if (!clientPromise) {
@@ -15,4 +25,21 @@ export async function getSupabaseClient() {
   }
 
   return clientPromise;
+}
+
+export async function setSupabaseAuthSession(session) {
+  if (!session?.access_token || !session?.refresh_token) {
+    return;
+  }
+
+  const client = await getSupabaseClient();
+
+  if (!client?.auth?.setSession) {
+    return;
+  }
+
+  await client.auth.setSession({
+    access_token: session.access_token,
+    refresh_token: session.refresh_token
+  });
 }

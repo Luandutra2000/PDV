@@ -1,6 +1,6 @@
 import { STORAGE_KEYS } from '../database/schema.js';
 import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js';
-import { getSupabaseClient } from './supabase-client.service.js';
+import { getSupabaseClient, setSupabaseAuthSession } from './supabase-client.service.js';
 import { getItem, setItem } from './storage.service.js';
 
 const VALID_ROLES = new Set(['admin', 'operator']);
@@ -207,6 +207,8 @@ async function loginWithSupabase({ email, password }) {
   if (!data?.user) {
     throw new Error('Usuario ou senha invalidos.');
   }
+
+  await setSupabaseAuthSession(data);
 
   return {
     user: ensureSupabaseLocalSession(data.user),

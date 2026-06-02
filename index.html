@@ -38,7 +38,7 @@
   </div>
   <div class="toast-root" aria-live="polite"></div>
   <script type="module">
-    const LOCAL_CACHE_VERSION = '20260602-05-login-cache-reset';
+    const LOCAL_CACHE_VERSION = '20260602-06-authenticated-catalog';
 
     async function clearStaleClientCaches() {
       if (window.sessionStorage.getItem('pdv.localCacheVersion') === LOCAL_CACHE_VERSION) {
@@ -61,7 +61,7 @@
     }
 
     await clearStaleClientCaches();
-    await import('./src/app.js?v=20260602-05');
+    await import('./src/app.js?v=20260602-06');
   </script>
   <script>
     if ('serviceWorker' in navigator) {
