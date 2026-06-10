@@ -7,6 +7,7 @@ import { getCurrentUser } from './auth.service.js';
 import { assertPermission } from './permission.service.js';
 import { recordAudit } from './audit.service.js';
 import { isSupabaseEnabled } from './app-config.service.js';
+import { createFinancialTransaction as createFinanceTransaction, upsertFinancialTransaction } from './financial.service.js';
 import {
   cancelCashMovementInSupabase,
   cancelSaleInSupabase,
@@ -84,12 +85,14 @@ export function registerCashMovement({
   amount,
   category = 'sem-categoria',
   description = '',
-  userName = 'Local'
+  userName = 'Local',
+  createFinancialTransaction = true
 }) {
   const user = getCurrentUser();
   assertPermission(user, 'cash.movement');
 
   const normalizedAmount = Number(amount) || 0;
+  const normalizedDescription = String(description || '').trim();
 
   if (!['entrada', 'saida', 'sangria'].includes(type)) {
     throw new Error('Tipo de movimento invalido.');
@@ -99,19 +102,39 @@ export function registerCashMovement({
     throw new Error('Valor precisa ser maior que zero.');
   }
 
+  if (!normalizedDescription) {
+    throw new Error('Descricao obrigatoria.');
+  }
+
   const movement = {
     id: createId(type),
     type,
     status: 'ativa',
     amount: normalizedAmount,
     category: String(category || 'sem-categoria').trim() || 'sem-categoria',
-    description,
+    description: normalizedDescription,
     userId: user?.id || '',
     userName: user?.name || String(userName || 'Local').trim() || 'Local',
     createdAt: new Date().toISOString()
   };
 
   appendTransaction(movement);
+  if (createFinancialTransaction) {
+    const financialTransaction = createFinanceTransaction({
+      type: type === 'entrada' ? 'income' : 'expense',
+      amount: normalizedAmount,
+      categoryId: movement.category,
+      description: movement.description,
+      paymentMethod: 'dinheiro',
+      status: 'paid',
+      origin: 'cashier',
+      cashMovementId: movement.id,
+      movesCashSession: true,
+      transactionDate: movement.createdAt.slice(0, 10),
+      paidAt: movement.createdAt
+    });
+    upsertFinancialTransaction({ ...financialTransaction, cashMovementId: movement.id });
+  }
   syncCashMovementToSupabase(movement);
   emit(SYNC_EVENTS.cashMovementRegistered, movement);
   emit(UI_EVENTS.cashSummaryChanged, movement);

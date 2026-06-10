@@ -10,6 +10,7 @@ import { formatCurrency } from '../../utils/currency.js';
 import { qs } from '../../utils/dom.js';
 import { showNotification } from '../../services/notification.service.js';
 import { createShowcaseWriteOff, getTodayShowcaseProducts } from '../../services/estoque.service.js';
+import { getFinancialCategories } from '../../services/financial.service.js';
 
 const CATEGORY_ALL = 'todos';
 const CATEGORY_FAVORITES = '__favoritos';
@@ -195,20 +196,39 @@ function bindEvents(container) {
     if (event.target.matches('[data-cash-form]')) {
       event.preventDefault();
       const data = new FormData(event.target);
-      registerCashMovement({
-        type: data.get('type'),
-        amount: data.get('amount'),
-        category: data.get('category'),
-        description: data.get('description'),
-        userName: 'Operador local'
-      });
-      showNotification({
-        title: data.get('type') === 'entrada' ? 'Entrada registrada' : 'Saida registrada',
-        message: `${formatCurrency(data.get('amount'))} lancado no historico.`,
-        type: data.get('type') === 'entrada' ? 'success' : 'danger'
-      });
-      state.modal = null;
-      renderModal(container);
+      const description = String(data.get('description') || '').trim();
+
+      if (!description) {
+        showNotification({
+          title: 'Descricao obrigatoria',
+          message: 'Informe o motivo do movimento de dinheiro.',
+          type: 'danger'
+        });
+        return;
+      }
+
+      try {
+        registerCashMovement({
+          type: data.get('type'),
+          amount: data.get('amount'),
+          category: data.get('category'),
+          description,
+          userName: 'Operador local'
+        });
+        showNotification({
+          title: data.get('type') === 'entrada' ? 'Entrada registrada' : 'Saida registrada',
+          message: `${formatCurrency(data.get('amount'))} lancado no historico.`,
+          type: data.get('type') === 'entrada' ? 'success' : 'danger'
+        });
+        state.modal = null;
+        renderModal(container);
+      } catch (error) {
+        showNotification({
+          title: 'Nao foi possivel registrar',
+          message: error.message || 'Confira os dados do movimento.',
+          type: 'danger'
+        });
+      }
     }
 
     if (event.target.matches('[data-write-off-form]')) {
@@ -762,7 +782,12 @@ function renderPaymentModal() {
 
 function renderCashMovementModal(type) {
   const title = type === 'entrada' ? 'Registrar entrada' : 'Registrar saida';
-  const categories = type === 'entrada' ? ENTRY_CATEGORIES : OUTPUT_CATEGORIES;
+  const financeType = type === 'entrada' ? 'income' : 'expense';
+  const fallbackCategories = type === 'entrada' ? ENTRY_CATEGORIES : OUTPUT_CATEGORIES;
+  const categories = getFinancialCategories({ type: financeType })
+    .map((category) => ({ id: category.id, name: category.name }))
+    .concat(fallbackCategories.map((category) => ({ id: category, name: category })))
+    .filter((category, index, list) => list.findIndex((item) => item.id === category.id) === index);
 
   return `
     <div class="modal-backdrop is-open">
@@ -780,12 +805,12 @@ function renderCashMovementModal(type) {
           <label class="stacked-label">
             Categoria
             <select class="field" name="category" required>
-              ${categories.map((category) => `<option value="${category}">${category}</option>`).join('')}
+              ${categories.map((category) => `<option value="${category.id}">${category.name}</option>`).join('')}
             </select>
           </label>
           <label class="stacked-label">
-            Descricao
-            <input class="field" name="description" placeholder="Ex: Sangria, reforco de caixa">
+            Descricao obrigatoria
+            <input class="field" name="description" placeholder="Ex: Sangria, reforco de caixa" required>
           </label>
           <div class="form-actions">
             <button class="button button--ghost" type="button" data-action="close-modal">Cancelar</button>

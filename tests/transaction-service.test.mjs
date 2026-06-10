@@ -21,6 +21,20 @@ const assert = (condition, message) => {
   }
 };
 
+const assertThrows = (callback, expectedMessage, message) => {
+  try {
+    callback();
+  } catch (error) {
+    assert(
+      error.message.includes(expectedMessage),
+      `${message}: expected "${expectedMessage}", got "${error.message}"`
+    );
+    return;
+  }
+
+  throw new Error(message);
+};
+
 const storage = await import('../src/services/storage.service.js');
 const schema = await import('../src/database/schema.js');
 const products = await import('../src/services/product.service.js');
@@ -230,6 +244,27 @@ const categorizedOutput = transactions.registerCashMovement({
 
 assert(categorizedOutput.category === 'compra-ingredientes', 'cash output should store category');
 assert(categorizedOutput.userName === 'Administrador', 'cash output should store responsible user');
+
+const linkedMovement = transactions.registerCashMovement({
+  type: 'saida',
+  amount: 100,
+  category: 'compra-materiais',
+  description: 'Retirada para pagar fornecedor',
+  createFinancialTransaction: true
+});
+const financialTransactions = JSON.parse(localStorage.getItem('pdv.financialTransactions'));
+const linkedFinancial = financialTransactions.find((transaction) => transaction.cashMovementId === linkedMovement.id);
+
+assert(linkedFinancial, 'cash movement should create linked financial transaction');
+assert(linkedFinancial.description === 'Retirada para pagar fornecedor', 'linked financial transaction should keep description');
+assert(linkedFinancial.type === 'expense', 'linked cash output should be financial expense');
+assert(linkedFinancial.status === 'paid', 'linked financial transaction should be paid');
+assert(linkedFinancial.movesCashSession === true, 'linked financial transaction should mark cash session movement');
+assertThrows(
+  () => transactions.registerCashMovement({ type: 'entrada', amount: 10, category: 'reforco-caixa', description: '' }),
+  'Descricao obrigatoria.',
+  'cash movement without description should throw'
+);
 
 const outputsBeforeSangria = transactions.getTransactionSummary().outputsTotal;
 const sangria = transactions.registerCashMovement({
