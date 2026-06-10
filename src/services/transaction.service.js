@@ -7,7 +7,7 @@ import { getCurrentUser } from './auth.service.js';
 import { assertPermission } from './permission.service.js';
 import { recordAudit } from './audit.service.js';
 import { isSupabaseEnabled } from './app-config.service.js';
-import { createFinancialTransaction as createFinanceTransaction, upsertFinancialTransaction } from './financial.service.js';
+import { createFinancialTransaction as createFinanceTransaction } from './financial.service.js';
 import {
   cancelCashMovementInSupabase,
   cancelSaleInSupabase,
@@ -120,7 +120,7 @@ export function registerCashMovement({
 
   appendTransaction(movement);
   if (createFinancialTransaction) {
-    const financialTransaction = createFinanceTransaction({
+    createFinanceTransaction({
       type: type === 'entrada' ? 'income' : 'expense',
       amount: normalizedAmount,
       categoryId: movement.category,
@@ -133,7 +133,6 @@ export function registerCashMovement({
       transactionDate: movement.createdAt.slice(0, 10),
       paidAt: movement.createdAt
     });
-    upsertFinancialTransaction({ ...financialTransaction, cashMovementId: movement.id });
   }
   syncCashMovementToSupabase(movement);
   emit(SYNC_EVENTS.cashMovementRegistered, movement);

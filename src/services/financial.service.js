@@ -4,6 +4,8 @@ import { getCurrentUser } from './auth.service.js';
 import { assertPermission } from './permission.service.js';
 import { getItem, setItem } from './storage.service.js';
 import { recordAudit } from './audit.service.js';
+import { isSupabaseEnabled } from './app-config.service.js';
+import { cancelFinancialTransactionInSupabase, saveFinancialTransactionToSupabase } from './financial-sync.service.js';
 
 export const PAYMENT_METHODS = ['dinheiro', 'pix', 'cartao', 'boleto', 'transferencia', 'outro'];
 export const FINANCIAL_STATUSES = ['paid', 'pending', 'overdue', 'canceled'];
@@ -71,6 +73,7 @@ export function createFinancialTransaction(input) {
   const transaction = normalizeFinancialTransaction(input, user);
   const transactions = [transaction, ...getFinancialTransactions()];
   setItem(STORAGE_KEYS.financialTransactions, transactions);
+  syncFinancialTransaction(transaction);
   emitFinanceChanged(transaction);
   recordAudit({
     action: 'financial.transaction.create',
@@ -91,6 +94,7 @@ export function upsertFinancialTransaction(transaction) {
     : [transaction, ...transactions];
 
   setItem(STORAGE_KEYS.financialTransactions, sortNewestFirst(nextTransactions));
+  syncFinancialTransaction(transaction);
   emitFinanceChanged(transaction);
   return transaction;
 }
@@ -153,6 +157,7 @@ export function cancelFinancialTransaction(transactionId, { reason = '' } = {}) 
     updatedAt: new Date().toISOString()
   };
   upsertFinancialTransaction(canceled);
+  syncFinancialTransactionCancellation(canceled);
   recordAudit({
     action: 'financial.transaction.cancel',
     entityType: 'financial_transaction',
@@ -162,6 +167,30 @@ export function cancelFinancialTransaction(transactionId, { reason = '' } = {}) 
     metadata: { amount: canceled.amount }
   });
   return canceled;
+}
+
+function syncFinancialTransaction(transaction) {
+  if (!isSupabaseEnabled()) {
+    return;
+  }
+
+  saveFinancialTransactionToSupabase(transaction).catch((error) => {
+    console.warn('Nao foi possivel sincronizar lancamento financeiro.', error);
+  });
+}
+
+function syncFinancialTransactionCancellation(transaction) {
+  if (!isSupabaseEnabled()) {
+    return;
+  }
+
+  cancelFinancialTransactionInSupabase({
+    transactionId: transaction.id,
+    canceledAt: transaction.canceledAt,
+    cancelReason: transaction.cancelReason || ''
+  }).catch((error) => {
+    console.warn('Nao foi possivel cancelar lancamento financeiro no Supabase.', error);
+  });
 }
 
 export function getFinancialSummary({ period = 'today', customStart = '', customEnd = '' } = {}) {

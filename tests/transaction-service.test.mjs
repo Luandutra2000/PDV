@@ -358,8 +358,12 @@ globalThis.__PDV_RUNTIME_CONFIG__ = localRuntimeConfig;
 await waitForAsyncSync();
 
 financialQueue = storage.getItem(schema.STORAGE_KEYS.financialSyncQueue, []);
-assert(financialQueue.length === 2, 'supabase cash movement failure should append queue operation');
+assert(financialQueue.length === 3, 'supabase cash movement failure should append cash and finance queue operations');
 assert(financialQueue.some((operation) => operation.action === 'saveCashMovement' && operation.movement.id === supabaseMovement.id), 'supabase cash movement failure should queue saveCashMovement');
+assert(
+  financialQueue.some((operation) => operation.action === 'saveFinancialTransaction' && operation.transaction.cashMovementId === supabaseMovement.id),
+  'supabase cash movement failure should queue linked financial transaction'
+);
 globalThis.__PDV_RUNTIME_CONFIG__ = localRuntimeConfig;
 
 console.log('transaction service ok');
