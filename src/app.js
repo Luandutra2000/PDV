@@ -15,6 +15,7 @@ import { initEstoqueModule } from './modules/estoque/estoque.module.js';
 import { initCaixaModule } from './modules/caixa/caixa.module.js';
 import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js?v=20260608-15';
 import { initPessoasModule } from './modules/pessoas/pessoas.module.js';
+import { initDespesasModule } from './modules/despesas/despesas.module.js';
 import { formatCurrency } from './utils/currency.js';
 import { initNotificationService } from './services/notification.service.js';
 import { initRealtimeService } from './services/realtime.service.js';
@@ -34,7 +35,8 @@ const routes = {
   'fechar-caixa': initCaixaModule,
   relatorios: renderRelatoriosModule,
   mobile: initMobileDashboardModule,
-  pessoas: initPessoasModule
+  pessoas: initPessoasModule,
+  despesas: initDespesasModule
 };
 
 const routePermissions = {
@@ -45,7 +47,8 @@ const routePermissions = {
   'fechar-caixa': 'cash.close',
   relatorios: 'reports.view',
   mobile: 'owner_app.view',
-  pessoas: 'users.manage'
+  pessoas: 'users.manage',
+  despesas: 'financial.view'
 };
 
 const AUTH_SESSION_VERSION = '20260602-01-login-boot';

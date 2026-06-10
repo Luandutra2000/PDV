@@ -20,7 +20,7 @@ const menuGroups = [
     title: 'Financeiro',
     items: [
       { id: 'fechar-caixa', label: 'Fechar Caixa / CRM', icon: 'CX', permission: 'cash.close' },
-      { id: 'despesas', label: 'Despesas', icon: 'DE', permission: 'reports.view' }
+      { id: 'despesas', label: 'Financeiro', icon: 'FI', permission: 'financial.view' }
     ]
   },
   {
