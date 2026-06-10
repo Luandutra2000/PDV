@@ -8,6 +8,8 @@ import { cashMovementAdapter } from './repositories/cash-movement.adapter.js';
 import { commandAdapter } from './repositories/command.adapter.js';
 import { commandItemAdapter } from './repositories/command-item.adapter.js';
 import { cashClosingAdapter } from './repositories/cash-closing.adapter.js';
+import { financialCategoryAdapter } from './repositories/financial-category.adapter.js';
+import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js';
 
 const FINANCIAL_TABLES = [
   commandAdapter.table,
@@ -15,7 +17,9 @@ const FINANCIAL_TABLES = [
   saleAdapter.table,
   saleItemAdapter.table,
   cashMovementAdapter.table,
-  cashClosingAdapter.table
+  cashClosingAdapter.table,
+  financialCategoryAdapter.table,
+  financialTransactionAdapter.table
 ];
 const REALTIME_HYDRATE_DELAY_MS = 600;
 
@@ -55,14 +59,18 @@ export async function hydrateFinancialData({ includePending = false } = {}) {
       movementRows,
       commandRows,
       commandItemRows,
-      closingRows
+      closingRows,
+      financialCategoryRows,
+      financialTransactionRows
     ] = await Promise.all([
       selectRows(client, saleAdapter),
       selectRows(client, saleItemAdapter),
       selectRows(client, cashMovementAdapter),
       selectRows(client, commandAdapter),
       selectRows(client, commandItemAdapter),
-      selectRows(client, cashClosingAdapter)
+      selectRows(client, cashClosingAdapter),
+      selectRows(client, financialCategoryAdapter),
+      selectRows(client, financialTransactionAdapter)
     ]);
 
     const sales = saleRows.map((row) => ({
@@ -75,20 +83,26 @@ export async function hydrateFinancialData({ includePending = false } = {}) {
       items: commandItemAdapter.fromRows(commandItemRows, row.id)
     }));
     const closings = closingRows.map(cashClosingAdapter.fromRow);
+    const financialCategories = financialCategoryRows.map(financialCategoryAdapter.fromRow);
+    const financialTransactions = financialTransactionRows.map(financialTransactionAdapter.fromRow);
 
     const queue = [...inFlightOperations, ...readQueue()];
 
     writeFinancialCaches({
       transactions: sortNewestFirst(includePending ? applyQueueToTransactions([...sales, ...movements], queue) : [...sales, ...movements]),
       commands: sortNewestFirst(includePending ? applyQueueToCommands(commands, queue) : commands),
-      closings: sortNewestFirst(includePending ? applyQueueToClosings(closings, queue) : closings)
+      closings: sortNewestFirst(includePending ? applyQueueToClosings(closings, queue) : closings),
+      financialCategories,
+      financialTransactions: sortNewestFirst(includePending ? applyQueueToFinancialTransactions(financialTransactions, queue) : financialTransactions)
     });
     setStatusFromQueue(readQueue());
 
     return {
       transactions: readJson(STORAGE_KEYS.transactions, []),
       closedComandas: readJson(STORAGE_KEYS.closedComandas, []),
-      cashClosings: readJson(STORAGE_KEYS.cashClosings, [])
+      cashClosings: readJson(STORAGE_KEYS.cashClosings, []),
+      financialCategories: readJson(STORAGE_KEYS.financialCategories, []),
+      financialTransactions: readJson(STORAGE_KEYS.financialTransactions, [])
     };
   } catch (error) {
     setStatus({
@@ -100,7 +114,9 @@ export async function hydrateFinancialData({ includePending = false } = {}) {
     return {
       transactions: readJson(STORAGE_KEYS.transactions, []),
       closedComandas: readJson(STORAGE_KEYS.closedComandas, []),
-      cashClosings: readJson(STORAGE_KEYS.cashClosings, [])
+      cashClosings: readJson(STORAGE_KEYS.cashClosings, []),
+      financialCategories: readJson(STORAGE_KEYS.financialCategories, []),
+      financialTransactions: readJson(STORAGE_KEYS.financialTransactions, [])
     };
   }
 }
@@ -148,6 +164,47 @@ export async function saveCashMovementToSupabase(movement) {
     return nextMovement;
   } finally {
     removeInFlightOperation(inFlightOperation);
+  }
+}
+
+export async function saveFinancialTransactionToSupabase(transaction) {
+  const nextTransaction = { ...transaction };
+  const inFlightOperation = { action: 'saveFinancialTransaction', transaction: nextTransaction };
+
+  try {
+    addInFlightOperation(inFlightOperation);
+    setStatus({ state: 'syncing', error: '' });
+    const client = await getWriteClient();
+    await upsertRows(client, financialTransactionAdapter.table, [financialTransactionAdapter.toRow(nextTransaction)]);
+    upsertFinancialTransactionCache(nextTransaction);
+    setStatusFromQueue(readQueue());
+    return nextTransaction;
+  } catch (error) {
+    const queue = enqueueOperation({ action: 'saveFinancialTransaction', transaction: nextTransaction });
+    upsertFinancialTransactionCache({ ...nextTransaction, syncPending: true });
+    setPendingStatus(queue, error);
+    return nextTransaction;
+  } finally {
+    removeInFlightOperation(inFlightOperation);
+  }
+}
+
+export async function cancelFinancialTransactionInSupabase({ transactionId, canceledAt, cancelReason = '' }) {
+  const nextCanceledAt = canceledAt || new Date().toISOString();
+
+  try {
+    setStatus({ state: 'syncing', error: '' });
+    await updateById(await getWriteClient(), financialTransactionAdapter.table, transactionId, {
+      status: 'canceled',
+      canceled_at: nextCanceledAt,
+      cancel_reason: cancelReason
+    });
+    markFinancialTransactionCanceledInCache({ transactionId, canceledAt: nextCanceledAt, cancelReason });
+    setStatusFromQueue(readQueue());
+  } catch (error) {
+    const queue = enqueueOperation({ action: 'cancelFinancialTransaction', transactionId, canceledAt: nextCanceledAt, cancelReason });
+    markFinancialTransactionCanceledInCache({ transactionId, canceledAt: nextCanceledAt, cancelReason, syncPending: true });
+    setPendingStatus(queue, error);
   }
 }
 
@@ -385,6 +442,11 @@ async function writeQueuedOperation(client, operation) {
     return;
   }
 
+  if (operation.action === 'saveFinancialTransaction') {
+    await upsertRows(client, financialTransactionAdapter.table, [financialTransactionAdapter.toRow(operation.transaction)]);
+    return;
+  }
+
   if (operation.action === 'cancelSale') {
     await writeSaleCancellation(client, operation);
     return;
@@ -392,6 +454,15 @@ async function writeQueuedOperation(client, operation) {
 
   if (operation.action === 'cancelCashMovement') {
     await writeMovementCancellation(client, operation);
+    return;
+  }
+
+  if (operation.action === 'cancelFinancialTransaction') {
+    await updateById(client, financialTransactionAdapter.table, operation.transactionId, {
+      status: 'canceled',
+      canceled_at: operation.canceledAt,
+      cancel_reason: operation.cancelReason || ''
+    });
   }
 }
 
@@ -598,12 +669,20 @@ function applyCompletedOperationToCache(operation) {
     upsertClosingCache(operation.closing);
   }
 
+  if (operation.action === 'saveFinancialTransaction') {
+    upsertFinancialTransactionCache(operation.transaction);
+  }
+
   if (operation.action === 'cancelSale') {
     markSaleCanceledInCache(operation);
   }
 
   if (operation.action === 'cancelCashMovement') {
     markMovementCanceledInCache(operation);
+  }
+
+  if (operation.action === 'cancelFinancialTransaction') {
+    markFinancialTransactionCanceledInCache(operation);
   }
 }
 
@@ -653,6 +732,30 @@ function applyQueueToClosings(closings, queue = readQueue()) {
   }, closings);
 }
 
+function applyQueueToFinancialTransactions(transactions, queue = readQueue()) {
+  return queue.reduce((nextTransactions, operation) => {
+    if (operation.action === 'saveFinancialTransaction') {
+      return upsertInList(nextTransactions, { ...operation.transaction, syncPending: true });
+    }
+
+    if (operation.action === 'cancelFinancialTransaction') {
+      return nextTransactions.map((transaction) => (
+        transaction.id === operation.transactionId
+          ? stripUndefined({
+            ...transaction,
+            status: 'canceled',
+            canceledAt: operation.canceledAt,
+            cancelReason: operation.cancelReason || '',
+            syncPending: true
+          })
+          : transaction
+      ));
+    }
+
+    return nextTransactions;
+  }, transactions);
+}
+
 function markSaleCanceledInCache(operation) {
   writeJson(STORAGE_KEYS.transactions, sortNewestFirst(markSaleCanceled(readJson(STORAGE_KEYS.transactions, []), operation)));
   writeJson(STORAGE_KEYS.closedComandas, sortNewestFirst(markCommandCanceled(readJson(STORAGE_KEYS.closedComandas, []), operation)));
@@ -661,6 +764,24 @@ function markSaleCanceledInCache(operation) {
 
 function markMovementCanceledInCache(operation) {
   writeJson(STORAGE_KEYS.transactions, sortNewestFirst(markMovementCanceled(readJson(STORAGE_KEYS.transactions, []), operation)));
+  emitFinancialDataChanged(operation);
+}
+
+function markFinancialTransactionCanceledInCache(operation) {
+  writeJson(
+    STORAGE_KEYS.financialTransactions,
+    sortNewestFirst(readJson(STORAGE_KEYS.financialTransactions, []).map((transaction) => (
+      transaction.id === operation.transactionId
+        ? stripUndefined({
+          ...transaction,
+          status: 'canceled',
+          canceledAt: operation.canceledAt,
+          cancelReason: operation.cancelReason || '',
+          syncPending: operation.syncPending || undefined
+        })
+        : transaction
+    )))
+  );
   emitFinancialDataChanged(operation);
 }
 
@@ -688,10 +809,12 @@ function markMovementCanceled(transactions, { movementId, canceledAt, syncPendin
   ));
 }
 
-function writeFinancialCaches({ transactions, commands, closings }) {
+function writeFinancialCaches({ transactions, commands, closings, financialCategories = [], financialTransactions = [] }) {
   writeJson(STORAGE_KEYS.transactions, transactions);
   writeJson(STORAGE_KEYS.closedComandas, commands);
   writeJson(STORAGE_KEYS.cashClosings, closings);
+  writeJson(STORAGE_KEYS.financialCategories, financialCategories);
+  writeJson(STORAGE_KEYS.financialTransactions, sortNewestFirst(financialTransactions));
   emitFinancialDataChanged({ type: 'hydrated' });
 }
 
@@ -707,6 +830,11 @@ function upsertCommandCache(item) {
 
 function upsertClosingCache(item) {
   writeJson(STORAGE_KEYS.cashClosings, upsertInList(readJson(STORAGE_KEYS.cashClosings, []), item));
+  emitFinancialDataChanged(item);
+}
+
+function upsertFinancialTransactionCache(item) {
+  writeJson(STORAGE_KEYS.financialTransactions, upsertInList(readJson(STORAGE_KEYS.financialTransactions, []), item));
   emitFinancialDataChanged(item);
 }
 

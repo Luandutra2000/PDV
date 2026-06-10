@@ -35,7 +35,9 @@ const rows = {
   cash_movements: [],
   commands: [],
   command_items: [],
-  cash_closings: []
+  cash_closings: [],
+  financial_categories: [],
+  financial_transactions: []
 };
 
 const fakeClient = {
@@ -193,6 +195,25 @@ await financial.hydrateFinancialData();
 assert(Array.isArray(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))), 'hydrate should write transaction cache');
 assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))[0].id === 'entrada-1', 'hydrate should sort transactions newest-first');
 assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.closedComandas)).some((item) => item.id === 'comanda-queued'), 'hydrate should keep closed comandas from Supabase');
+assert(calls.find((call) => call.table === 'financial_categories') || Array.isArray(JSON.parse(localStorage.getItem(STORAGE_KEYS.financialCategories))), 'financial categories should hydrate');
+assert(calls.find((call) => call.table === 'financial_transactions') || Array.isArray(JSON.parse(localStorage.getItem(STORAGE_KEYS.financialTransactions))), 'financial transactions should hydrate');
+
+await financial.saveFinancialTransactionToSupabase({
+  id: 'fin-1',
+  type: 'expense',
+  description: 'Boleto fornecedor',
+  amount: 220,
+  categoryId: 'fornecedor',
+  paymentMethod: 'boleto',
+  status: 'pending',
+  transactionDate: '2026-06-10',
+  dueDate: '2026-06-15',
+  origin: 'finance',
+  movesCashSession: false,
+  createdAt: '2026-06-10T10:00:00.000Z',
+  updatedAt: '2026-06-10T10:00:00.000Z'
+});
+assert(calls.find((call) => call.table === 'financial_transactions'), 'financial transaction should write financial_transactions');
 
 await financial.startFinancialRealtime();
 rows.cash_movements.push({
