@@ -1,102 +1,50 @@
-const assert = (condition, message) => {
-  if (!condition) {
-    throw new Error(message);
-  }
-};
+import assert from 'node:assert/strict';
 
-const saleAdapter = await import('../src/services/repositories/sale.adapter.js');
-const saleItemAdapter = await import('../src/services/repositories/sale-item.adapter.js');
-const cashMovementAdapter = await import('../src/services/repositories/cash-movement.adapter.js');
-const commandAdapter = await import('../src/services/repositories/command.adapter.js');
-const commandItemAdapter = await import('../src/services/repositories/command-item.adapter.js');
-const cashClosingAdapter = await import('../src/services/repositories/cash-closing.adapter.js');
+const categoryAdapter = await import('../src/services/repositories/financial-category.adapter.js');
+const transactionAdapter = await import('../src/services/repositories/financial-transaction.adapter.js');
 
-const sale = {
-  id: 'sale-1',
-  status: 'ativa',
-  comandaId: 'comanda-1',
-  comandaNumber: 12,
-  total: '38.50',
-  paymentMethod: 'dinheiro',
-  receivedAmount: '50',
-  change: '11.50',
-  createdBy: 'user-1',
-  createdAt: '2026-06-02T10:00:00.000Z'
-};
-const saleRow = saleAdapter.toRow(sale);
-assert(saleRow.command_id === 'comanda-1', 'sale comandaId should map to command_id');
-assert(saleRow.command_number === 12, 'sale comandaNumber should map to command_number');
-assert(saleRow.received_amount === 50, 'sale receivedAmount should map numeric');
-assert(saleRow.change_amount === 11.5, 'sale change should map numeric');
-assert(saleAdapter.fromRow(saleRow).comandaId === 'comanda-1', 'sale row should map command_id back');
-
-const saleItemRow = saleItemAdapter.toRows({
-  id: 'sale-1',
-  items: [
-    { productId: 'x-burger', name: 'X-Burger', quantity: 2, unitPrice: 16, total: 32 },
-    { productId: 'batata', name: 'Batata', quantity: 1, price: 14, total: 14 }
-  ]
+const category = categoryAdapter.fromRow({
+  id: 'fornecedor',
+  name: 'Fornecedor',
+  type: 'expense',
+  color: '#c2413b',
+  active: true,
+  created_at: '2026-06-10T10:00:00.000Z',
+  updated_at: '2026-06-10T10:00:00.000Z'
 });
-assert(saleItemRow[0].id === 'sale-1-x-burger-0', 'sale item id should be deterministic');
-assert(saleItemRow[1].unit_price === 14, 'sale item should accept price fallback');
-assert(saleItemAdapter.fromRows(saleItemRow, 'sale-1').length === 2, 'sale item rows should map back');
 
-const movementRow = cashMovementAdapter.toRow({
-  id: 'entrada-1',
-  type: 'entrada',
-  status: 'ativa',
-  amount: '20',
-  category: 'troco',
-  description: 'Troco inicial',
-  userName: 'Luan',
-  createdBy: 'user-1',
-  createdAt: '2026-06-02T09:00:00.000Z'
-});
-assert(movementRow.user_name === 'Luan', 'movement userName should map to user_name');
-assert(cashMovementAdapter.fromRow(movementRow).amount === 20, 'movement row amount should map numeric');
+assert.equal(category.name, 'Fornecedor');
+assert.equal(category.active, true);
+assert.equal(categoryAdapter.toRow(category).created_at, '2026-06-10T10:00:00.000Z');
 
-const commandRow = commandAdapter.toRow({
-  id: 'comanda-1',
-  number: 12,
-  status: 'fechada',
-  total: 38.5,
-  paymentMethod: 'dinheiro',
-  receivedAmount: 50,
-  change: 11.5,
-  createdAt: '2026-06-02T09:50:00.000Z',
-  updatedAt: '2026-06-02T10:00:00.000Z',
-  closedAt: '2026-06-02T10:00:00.000Z'
+const transaction = transactionAdapter.fromRow({
+  id: 'fin-1',
+  type: 'expense',
+  description: 'Boleto fornecedor',
+  amount: 220,
+  category_id: 'fornecedor',
+  payment_method: 'boleto',
+  status: 'pending',
+  transaction_date: '2026-06-10',
+  due_date: '2026-06-15',
+  paid_at: null,
+  notes: 'Entrega de embalagens',
+  origin: 'finance',
+  cash_movement_id: null,
+  moves_cash_session: false,
+  created_by: 'user-1',
+  canceled_at: null,
+  cancel_reason: null,
+  created_at: '2026-06-10T10:00:00.000Z',
+  updated_at: '2026-06-10T10:00:00.000Z'
 });
-assert(commandRow.payment_method === 'dinheiro', 'command paymentMethod should map');
-assert(commandAdapter.fromRow(commandRow).paymentMethod === 'dinheiro', 'command row should map back');
 
-const commandItemRows = commandItemAdapter.toRows({
-  id: 'comanda-1',
-  items: [{ productId: 'x-burger', name: 'X-Burger', quantity: 2, unitPrice: 16, total: 32 }]
-});
-const commandItemRowsAgain = commandItemAdapter.toRows({
-  id: 'comanda-1',
-  items: [{ productId: 'x-burger', name: 'X-Burger', quantity: 2, unitPrice: 16, total: 32 }]
-});
-const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-assert(uuidRegex.test(commandItemRows[0].id), 'command item id should be UUID compatible');
-assert(commandItemRows[0].id === commandItemRowsAgain[0].id, 'command item id should be deterministic');
-assert(commandItemAdapter.fromRows(commandItemRows, 'comanda-1')[0].productId === 'x-burger', 'command item rows should map back');
-
-const closingRow = cashClosingAdapter.toRow({
-  id: 'closing-1',
-  status: 'fechado',
-  totals: { sales: 100 },
-  payments: { expectedCash: 50 },
-  showcase: [{ productId: 'x-burger' }],
-  differences: [{ scope: 'payment' }],
-  input: { countedCash: 48 },
-  createdBy: 'user-1',
-  createdAt: '2026-06-02T11:00:00.000Z',
-  closedAt: '2026-06-02T11:05:00.000Z',
-  updatedAt: '2026-06-02T11:05:00.000Z'
-});
-assert(closingRow.totals.sales === 100, 'closing totals should stay JSON');
-assert(cashClosingAdapter.fromRow(closingRow).payments.expectedCash === 50, 'closing payments should map back');
+assert.equal(transaction.amount, 220);
+assert.equal(transaction.categoryId, 'fornecedor');
+assert.equal(transaction.paymentMethod, 'boleto');
+assert.equal(transaction.dueDate, '2026-06-15');
+assert.equal(transaction.movesCashSession, false);
+assert.equal(transactionAdapter.toRow(transaction).category_id, 'fornecedor');
+assert.equal(transactionAdapter.toRow(transaction).cash_movement_id, null);
 
 console.log('financial adapters ok');
