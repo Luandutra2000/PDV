@@ -25,6 +25,7 @@ const storage = await import('../src/services/storage.service.js');
 const products = await import('../src/services/product.service.js');
 const comandas = await import('../src/services/comanda.service.js');
 const transactions = await import('../src/services/transaction.service.js');
+const estoque = await import('../src/services/estoque.service.js');
 const cashFlow = await import('../src/services/mobile-cash-flow.service.js');
 const auth = await import('../src/services/auth.service.js');
 
@@ -37,15 +38,21 @@ comandas.addItem(burger);
 transactions.finalizeComandaPayment({ paymentMethod: 'dinheiro', receivedAmount: 20 });
 transactions.registerCashMovement({ type: 'entrada', amount: 100, description: 'Troco inicial' });
 transactions.registerCashMovement({ type: 'saida', amount: 25, description: 'Compra de material' });
+estoque.createStockLaunch({ produtoId: burger.id, quantidade: 3, note: 'Balcao' });
 
 const summary = cashFlow.getMobileCashFlowSummary();
 
 assert(summary.salesTotal === burger.price, 'cash flow should include daily sales total');
 assert(summary.entriesTotal === 100, 'cash flow should include daily entries');
 assert(summary.outputsTotal === 25, 'cash flow should include daily outputs');
-assert(summary.expectedCash === burger.price + 100 - 25, 'cash flow should calculate expected cash');
-assert(summary.estimatedProfit === burger.price + 100 - 25, 'cash flow should calculate estimated profit');
+assert(summary.expectedCash === burger.price + 100 - 25, 'cash flow should calculate expected physical cash');
+assert(summary.estimatedProfit === burger.price + 100 - 25, 'cash flow should calculate current cash');
 assert(summary.paymentTotals.dinheiro === burger.price, 'cash flow should include payment totals');
+assert(summary.currentCash === summary.expectedCash, 'mobile Caixa atual should use total vendido + entradas - saídas');
+assert(summary.cards.find((card) => card.id === 'cash').value === summary.expectedCash, 'Caixa atual card should show standardized current cash');
+assert(summary.estimatedShowcase === burger.price * 2, 'mobile vitrine estimada should come from current showcase value');
+assert(summary.cards.find((card) => card.id === 'showcase').label === 'Vitrine estimada', 'showcase card should use standard label');
+assert(summary.cards.find((card) => card.id === 'cash').label === 'Caixa atual', 'cash card should use standard label');
 assert(summary.cards.length === 5, 'cash flow should expose five dashboard cards');
 
 const yesterday = new Date();

@@ -6,7 +6,7 @@ import { assertPermission } from './permission.service.js';
 import { recordAudit } from './audit.service.js';
 import { getItem, setItem } from './storage.service.js';
 
-export function createStockLaunch({ produtoId, quantidade }) {
+export function createStockLaunch({ produtoId, quantidade, note = '' }) {
   const user = getCurrentUser();
   assertPermission(user, 'showcase.launch');
 
@@ -36,6 +36,7 @@ export function createStockLaunch({ produtoId, quantidade }) {
     quantidade: normalizedQuantity,
     valorUnitario: Number(product.price) || 0,
     valorTotal: normalizedQuantity * (Number(product.price) || 0),
+    note: String(note || '').trim(),
     dataHora: new Date().toISOString(),
     usuarioId: user?.id || '',
     usuarioNome: user?.name || 'Sistema',

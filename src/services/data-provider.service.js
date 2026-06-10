@@ -31,6 +31,14 @@ export async function hydrateDataProvider(keys) {
   }
 }
 
+export async function flushDataProvider() {
+  const provider = getDataProvider();
+
+  if (typeof provider.flush === 'function') {
+    await provider.flush();
+  }
+}
+
 function getLocalProvider() {
   if (!localProvider) {
     localProvider = createLocalProvider();

@@ -4,8 +4,8 @@ export function renderDashboardResumo(summary) {
   const cards = [
     ['Total vendido', formatCurrency(summary.salesTotal), 'R$'],
     ['Entradas', formatCurrency(summary.entriesTotal), '+'],
-    ['Saidas', formatCurrency(summary.outputsTotal), '-'],
-    ['Lucro estimado', formatCurrency(summary.estimatedProfit), '%'],
+    ['Saídas', formatCurrency(summary.outputsTotal), '-'],
+    ['Caixa atual', formatCurrency(summary.estimatedProfit), 'CX'],
     ['Ticket medio', formatCurrency(summary.ticketAverage), 'TM'],
     ['Comandas fechadas', summary.closedComandas, 'CF']
   ];

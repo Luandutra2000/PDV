@@ -26,6 +26,7 @@ const financial = await import('../src/services/financial-sync.service.js');
 
 const calls = [];
 let failTable = '';
+let delayTable = '';
 let realtimeCallback = null;
 
 const rows = {
@@ -48,6 +49,14 @@ const fakeClient = {
         if (failTable === table) {
           return Promise.resolve({ error: new Error(`fail ${table}`) });
         }
+        if (delayTable === table) {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              rows[table] = mergeRows(rows[table] || [], nextRows);
+              resolve({ error: null });
+            }, 120);
+          });
+        }
         rows[table] = mergeRows(rows[table] || [], nextRows);
         return Promise.resolve({ error: null });
       },
@@ -58,6 +67,20 @@ const fakeClient = {
             rows[table] = (rows[table] || []).map((row) => (
               row[column] === value ? { ...row, ...patch } : row
             ));
+            return Promise.resolve({ error: null });
+          }
+        };
+      },
+      delete() {
+        return {
+          eq(column, value) {
+            calls.push({ table, delete: true, column, value });
+            rows[table] = (rows[table] || []).filter((row) => row[column] !== value);
+            return Promise.resolve({ error: null });
+          },
+          in(column, values) {
+            calls.push({ table, delete: true, column, values });
+            rows[table] = (rows[table] || []).filter((row) => !values.includes(row[column]));
             return Promise.resolve({ error: null });
           }
         };
@@ -133,6 +156,8 @@ assert(financial.getFinancialSyncStatus().state === 'pending', 'failed composed 
 assert(JSON.parse(localStorage.getItem('pdv.syncQueue.financial')).length === 1, 'failed composed sale should queue operation');
 assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))[0].id === 'sale-queued', 'pending sale should be newest-first in transaction cache');
 assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.closedComandas))[0].id === 'comanda-queued', 'pending command should be newest-first in command cache');
+assert(countRowsById('sales', 'sale-queued') === 0, 'failed composed sale should clean partial sale rows');
+assert(countRowsById('commands', 'comanda-queued') === 0, 'failed composed sale should clean partial command rows');
 
 failTable = '';
 await financial.flushFinancialQueue();
@@ -141,6 +166,16 @@ assert(countRowsById('commands', 'comanda-queued') === 1, 'flush retry should ke
 assert(countRowsById('command_items', rows.command_items.find((row) => row.command_id === 'comanda-queued').id) === 1, 'flush retry should keep one command item row after partial failure');
 assert(countRowsById('sales', 'sale-queued') === 1, 'flush retry should keep one sale row after partial failure');
 assert(countRowsById('sale_items', 'sale-queued-x-burger-0') === 1, 'flush retry should keep one sale item row after partial failure');
+
+delayTable = 'sale_items';
+const inFlightSalePromise = financial.saveSaleToSupabase({
+  sale: { ...sale, id: 'sale-in-flight', comandaId: 'comanda-in-flight', createdAt: '2026-06-02T10:45:00.000Z' },
+  command: { ...command, id: 'comanda-in-flight', closedAt: '2026-06-02T10:45:00.000Z', updatedAt: '2026-06-02T10:45:00.000Z' }
+});
+await financial.hydrateFinancialData({ includePending: true });
+assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions)).some((item) => item.id === 'sale-in-flight'), 'hydrate should keep in-flight sale visible while Supabase write finishes');
+await inFlightSalePromise;
+delayTable = '';
 
 await financial.saveCashMovementToSupabase({
   id: 'entrada-1',
@@ -157,7 +192,7 @@ assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))[0].id === 'en
 await financial.hydrateFinancialData();
 assert(Array.isArray(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))), 'hydrate should write transaction cache');
 assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))[0].id === 'entrada-1', 'hydrate should sort transactions newest-first');
-assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.closedComandas))[0].id === 'comanda-queued', 'hydrate should sort closed comandas newest-first');
+assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.closedComandas)).some((item) => item.id === 'comanda-queued'), 'hydrate should keep closed comandas from Supabase');
 
 await financial.startFinancialRealtime();
 rows.cash_movements.push({
@@ -170,8 +205,37 @@ rows.cash_movements.push({
   user_name: 'Luan',
   created_at: '2026-06-02T12:00:00.000Z'
 });
-await realtimeCallback();
+realtimeCallback();
+await new Promise((resolve) => {
+  setTimeout(resolve, 700);
+});
 assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions)).some((item) => item.id === 'entrada-2'), 'realtime should refresh financial cache');
 assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))[0].id === 'entrada-2', 'realtime refresh should keep newest transaction first');
+
+localStorage.setItem(STORAGE_KEYS.financialSyncQueue, JSON.stringify([{
+  action: 'saveCashMovement',
+  movement: {
+    id: 'local-only-entrada',
+    type: 'entrada',
+    amount: 99,
+    category: 'teste',
+    description: 'Somente local',
+    userName: 'Luan',
+    createdAt: '2026-06-02T13:00:00.000Z'
+  },
+  createdAt: '2026-06-02T13:00:00.000Z'
+}]));
+await financial.hydrateFinancialData();
+assert(
+  !JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions)).some((item) => item.id === 'local-only-entrada'),
+  'online hydrate should not display local-only queued movements as synced history'
+);
+
+await financial.clearFinancialHistoryInSupabase({ period: 'all' });
+assert(rows.sales.length === 0, 'remote history clear should delete sales');
+assert(rows.sale_items.length === 0, 'remote history clear should delete sale items');
+assert(rows.commands.length === 0, 'remote history clear should delete commands');
+assert(rows.command_items.length === 0, 'remote history clear should delete command items');
+assert(rows.cash_movements.length === 0, 'remote history clear should delete cash movements');
 
 console.log('financial sync service ok');

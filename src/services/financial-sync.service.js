@@ -1,6 +1,7 @@
 import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js';
 import { emit } from './event-bus.service.js';
 import { getSupabaseClient } from './supabase-client.service.js';
+import { getSupabaseRestClient } from './supabase-rest-client.service.js';
 import { saleAdapter } from './repositories/sale.adapter.js';
 import { saleItemAdapter } from './repositories/sale-item.adapter.js';
 import { cashMovementAdapter } from './repositories/cash-movement.adapter.js';
@@ -16,10 +17,13 @@ const FINANCIAL_TABLES = [
   cashMovementAdapter.table,
   cashClosingAdapter.table
 ];
+const REALTIME_HYDRATE_DELAY_MS = 600;
 
 let getClientOverride = null;
 let realtimeChannel = null;
 let realtimePromise = null;
+let realtimeHydrateTimer = null;
+let inFlightOperations = [];
 let status = createStatus('idle', readQueue().length);
 
 export function configureFinancialSyncForTests({ getClient } = {}) {
@@ -27,6 +31,8 @@ export function configureFinancialSyncForTests({ getClient } = {}) {
   status = createStatus('idle', readQueue().length);
   realtimeChannel = null;
   realtimePromise = null;
+  inFlightOperations = [];
+  clearRealtimeHydrateTimer();
 }
 
 export function getFinancialSyncStatus() {
@@ -39,10 +45,10 @@ export function getFinancialSyncStatus() {
   };
 }
 
-export async function hydrateFinancialData() {
+export async function hydrateFinancialData({ includePending = false } = {}) {
   try {
     setStatus({ state: 'syncing', error: '' });
-    const client = await getClient();
+    const client = await getWriteClient();
     const [
       saleRows,
       saleItemRows,
@@ -70,10 +76,12 @@ export async function hydrateFinancialData() {
     }));
     const closings = closingRows.map(cashClosingAdapter.fromRow);
 
+    const queue = [...inFlightOperations, ...readQueue()];
+
     writeFinancialCaches({
-      transactions: sortNewestFirst(applyQueueToTransactions([...sales, ...movements])),
-      commands: sortNewestFirst(applyQueueToCommands(commands)),
-      closings: sortNewestFirst(applyQueueToClosings(closings))
+      transactions: sortNewestFirst(includePending ? applyQueueToTransactions([...sales, ...movements], queue) : [...sales, ...movements]),
+      commands: sortNewestFirst(includePending ? applyQueueToCommands(commands, queue) : commands),
+      closings: sortNewestFirst(includePending ? applyQueueToClosings(closings, queue) : closings)
     });
     setStatusFromQueue(readQueue());
 
@@ -100,10 +108,12 @@ export async function hydrateFinancialData() {
 export async function saveSaleToSupabase({ sale, command }) {
   const nextSale = { ...sale };
   const nextCommand = { ...command };
+  const inFlightOperation = { action: 'saveSale', sale: nextSale, command: nextCommand };
 
   try {
+    addInFlightOperation(inFlightOperation);
     setStatus({ state: 'syncing', error: '' });
-    await writeComposedSale(await getClient(), nextSale, nextCommand);
+    await writeComposedSale(await getWriteClient(), nextSale, nextCommand);
     upsertTransactionCache(nextSale);
     upsertCommandCache(nextCommand);
     setStatusFromQueue(readQueue());
@@ -114,15 +124,19 @@ export async function saveSaleToSupabase({ sale, command }) {
     upsertCommandCache({ ...nextCommand, syncPending: true });
     setPendingStatus(queue, error);
     return nextSale;
+  } finally {
+    removeInFlightOperation(inFlightOperation);
   }
 }
 
 export async function saveCashMovementToSupabase(movement) {
   const nextMovement = { ...movement };
+  const inFlightOperation = { action: 'saveCashMovement', movement: nextMovement };
 
   try {
+    addInFlightOperation(inFlightOperation);
     setStatus({ state: 'syncing', error: '' });
-    const client = await getClient();
+    const client = await getWriteClient();
     await upsertRows(client, cashMovementAdapter.table, [cashMovementAdapter.toRow(nextMovement)]);
     upsertTransactionCache(nextMovement);
     setStatusFromQueue(readQueue());
@@ -132,15 +146,19 @@ export async function saveCashMovementToSupabase(movement) {
     upsertTransactionCache({ ...nextMovement, syncPending: true });
     setPendingStatus(queue, error);
     return nextMovement;
+  } finally {
+    removeInFlightOperation(inFlightOperation);
   }
 }
 
 export async function saveCashClosingToSupabase(closing) {
   const nextClosing = { ...closing };
+  const inFlightOperation = { action: 'saveCashClosing', closing: nextClosing };
 
   try {
+    addInFlightOperation(inFlightOperation);
     setStatus({ state: 'syncing', error: '' });
-    const client = await getClient();
+    const client = await getWriteClient();
     await upsertRows(client, cashClosingAdapter.table, [cashClosingAdapter.toRow(nextClosing)]);
     upsertClosingCache(nextClosing);
     setStatusFromQueue(readQueue());
@@ -150,6 +168,8 @@ export async function saveCashClosingToSupabase(closing) {
     upsertClosingCache({ ...nextClosing, syncPending: true });
     setPendingStatus(queue, error);
     return nextClosing;
+  } finally {
+    removeInFlightOperation(inFlightOperation);
   }
 }
 
@@ -158,7 +178,7 @@ export async function cancelSaleInSupabase({ saleId, comandaId, canceledAt }) {
 
   try {
     setStatus({ state: 'syncing', error: '' });
-    await writeSaleCancellation(await getClient(), { saleId, comandaId, canceledAt: nextCanceledAt });
+    await writeSaleCancellation(await getWriteClient(), { saleId, comandaId, canceledAt: nextCanceledAt });
     markSaleCanceledInCache({ saleId, comandaId, canceledAt: nextCanceledAt });
     setStatusFromQueue(readQueue());
   } catch (error) {
@@ -178,7 +198,7 @@ export async function cancelCashMovementInSupabase({ movementId, canceledAt }) {
 
   try {
     setStatus({ state: 'syncing', error: '' });
-    await writeMovementCancellation(await getClient(), { movementId, canceledAt: nextCanceledAt });
+    await writeMovementCancellation(await getWriteClient(), { movementId, canceledAt: nextCanceledAt });
     markMovementCanceledInCache({ movementId, canceledAt: nextCanceledAt });
     setStatusFromQueue(readQueue());
   } catch (error) {
@@ -203,7 +223,7 @@ export async function flushFinancialQueue() {
   const remaining = [];
 
   try {
-    const client = await getClient();
+    const client = await getWriteClient();
 
     for (const operation of queue) {
       try {
@@ -222,6 +242,34 @@ export async function flushFinancialQueue() {
   setStatusFromQueue(remaining, remaining.length ? 'Algumas alteracoes continuam pendentes.' : '');
 }
 
+export async function clearFinancialHistoryInSupabase({ period = 'today', customStart = '', customEnd = '' } = {}) {
+  const client = await getWriteClient();
+  const range = resolvePeriodRange({ period, customStart, customEnd });
+  const [
+    saleRows,
+    commandRows,
+    movementRows,
+    closingRows
+  ] = await Promise.all([
+    selectRows(client, saleAdapter),
+    selectRows(client, commandAdapter),
+    selectRows(client, cashMovementAdapter),
+    selectRows(client, cashClosingAdapter)
+  ]);
+  const saleIds = saleRows.filter((row) => isRowInRange(row.created_at, range)).map((row) => row.id);
+  const commandIds = commandRows.filter((row) => isRowInRange(row.closed_at || row.created_at, range)).map((row) => row.id);
+  const movementIds = movementRows.filter((row) => isRowInRange(row.created_at, range)).map((row) => row.id);
+  const closingIds = closingRows.filter((row) => isRowInRange(row.created_at || row.closed_at, range)).map((row) => row.id);
+
+  await deleteByForeignIds(client, saleItemAdapter.table, 'sale_id', saleIds);
+  await deleteByIds(client, saleAdapter.table, saleIds);
+  await deleteByForeignIds(client, commandItemAdapter.table, 'command_id', commandIds);
+  await deleteByIds(client, commandAdapter.table, commandIds);
+  await deleteByIds(client, cashMovementAdapter.table, movementIds);
+  await deleteByIds(client, cashClosingAdapter.table, closingIds);
+  await hydrateFinancialData({ includePending: true });
+}
+
 export async function startFinancialRealtime() {
   if (realtimeChannel) {
     return realtimeChannel;
@@ -235,8 +283,8 @@ export async function startFinancialRealtime() {
     try {
       const client = await getClient();
       const channel = client.channel('financial-changes');
-      const onChange = async () => {
-        await hydrateFinancialData();
+      const onChange = () => {
+        scheduleRealtimeHydrate();
       };
 
       FINANCIAL_TABLES.forEach((table) => {
@@ -276,6 +324,7 @@ export async function stopFinancialRealtime() {
   }
 
   realtimeChannel = null;
+  clearRealtimeHydrateTimer();
 }
 
 function getClient() {
@@ -283,11 +332,41 @@ function getClient() {
   return getClientFn();
 }
 
+function getWriteClient() {
+  if (getClientOverride) {
+    return getClientOverride();
+  }
+
+  return getSupabaseRestClient();
+}
+
 async function writeComposedSale(client, sale, command) {
-  await upsertRows(client, commandAdapter.table, [commandAdapter.toRow(command)]);
-  await upsertRows(client, commandItemAdapter.table, commandItemAdapter.toRows(command));
-  await upsertRows(client, saleAdapter.table, [saleAdapter.toRow(sale)]);
-  await upsertRows(client, saleItemAdapter.table, saleItemAdapter.toRows(sale));
+  try {
+    await upsertRows(client, commandAdapter.table, [commandAdapter.toRow(command)]);
+    await upsertRows(client, commandItemAdapter.table, commandItemAdapter.toRows(command));
+    await upsertRows(client, saleAdapter.table, [saleAdapter.toRow(sale)]);
+    await upsertRows(client, saleItemAdapter.table, saleItemAdapter.toRows(sale));
+  } catch (error) {
+    await cleanupPartialComposedSale(client, sale, command);
+    throw error;
+  }
+}
+
+function scheduleRealtimeHydrate() {
+  clearRealtimeHydrateTimer();
+  realtimeHydrateTimer = setTimeout(async () => {
+    realtimeHydrateTimer = null;
+    await hydrateFinancialData({ includePending: true });
+  }, REALTIME_HYDRATE_DELAY_MS);
+}
+
+function clearRealtimeHydrateTimer() {
+  if (!realtimeHydrateTimer) {
+    return;
+  }
+
+  clearTimeout(realtimeHydrateTimer);
+  realtimeHydrateTimer = null;
 }
 
 async function writeQueuedOperation(client, operation) {
@@ -314,6 +393,14 @@ async function writeQueuedOperation(client, operation) {
   if (operation.action === 'cancelCashMovement') {
     await writeMovementCancellation(client, operation);
   }
+}
+
+function addInFlightOperation(operation) {
+  inFlightOperations = [...inFlightOperations, operation];
+}
+
+function removeInFlightOperation(operation) {
+  inFlightOperations = inFlightOperations.filter((candidate) => candidate !== operation);
 }
 
 async function writeSaleCancellation(client, { saleId, comandaId, canceledAt }) {
@@ -366,6 +453,137 @@ async function updateById(client, table, id, patch) {
   }
 }
 
+async function cleanupPartialComposedSale(client, sale, command) {
+  const saleItemRows = saleItemAdapter.toRows(sale);
+  const commandItemRows = commandItemAdapter.toRows(command);
+
+  try {
+    await deleteByIds(client, saleItemAdapter.table, saleItemRows.map((row) => row.id));
+    await deleteById(client, saleAdapter.table, sale.id);
+    await deleteByIds(client, commandItemAdapter.table, commandItemRows.map((row) => row.id));
+    await deleteById(client, commandAdapter.table, command.id);
+  } catch (cleanupError) {
+    console.warn('Nao foi possivel limpar venda parcial no Supabase.', cleanupError);
+  }
+}
+
+async function deleteByIds(client, table, ids) {
+  const nextIds = ids.filter(Boolean);
+
+  if (!nextIds.length) {
+    return;
+  }
+
+  const query = client.from(table);
+
+  if (typeof query.delete !== 'function') {
+    return;
+  }
+
+  const { error } = await query.delete().in('id', nextIds);
+
+  if (error) {
+    throw error;
+  }
+}
+
+async function deleteByForeignIds(client, table, column, ids) {
+  const nextIds = ids.filter(Boolean);
+
+  if (!nextIds.length) {
+    return;
+  }
+
+  const query = client.from(table);
+
+  if (typeof query.delete !== 'function') {
+    return;
+  }
+
+  const { error } = await query.delete().in(column, nextIds);
+
+  if (error) {
+    throw error;
+  }
+}
+
+async function deleteById(client, table, id) {
+  if (!id) {
+    return;
+  }
+
+  const query = client.from(table);
+
+  if (typeof query.delete !== 'function') {
+    return;
+  }
+
+  const { error } = await query.delete().eq('id', id);
+
+  if (error) {
+    throw error;
+  }
+}
+
+function resolvePeriodRange({ period = 'today', customStart = '', customEnd = '' } = {}) {
+  const now = new Date();
+
+  if (period === 'all') {
+    return { start: null, end: null };
+  }
+
+  if (period === 'hour') {
+    const start = new Date(now);
+    start.setMinutes(0, 0, 0);
+    const end = new Date(start);
+    end.setMinutes(59, 59, 999);
+    return { start, end };
+  }
+
+  if (period === 'custom') {
+    return {
+      start: customStart ? new Date(`${customStart}T00:00:00`) : null,
+      end: customEnd ? new Date(`${customEnd}T23:59:59`) : null
+    };
+  }
+
+  if (period === 'yesterday') {
+    const start = new Date(now);
+    start.setDate(now.getDate() - 1);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }
+
+  if (period === 'month') {
+    return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: now };
+  }
+
+  if (period === 'year') {
+    return { start: new Date(now.getFullYear(), 0, 1), end: now };
+  }
+
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
+function isRowInRange(value, { start, end }) {
+  if (!start && !end) {
+    return true;
+  }
+
+  if (!value) {
+    return false;
+  }
+
+  const date = new Date(value);
+  return (!start || date >= start) && (!end || date <= end);
+}
+
 function applyCompletedOperationToCache(operation) {
   if (operation.action === 'saveSale') {
     upsertTransactionCache(operation.sale);
@@ -389,8 +607,8 @@ function applyCompletedOperationToCache(operation) {
   }
 }
 
-function applyQueueToTransactions(transactions) {
-  return readQueue().reduce((nextTransactions, operation) => {
+function applyQueueToTransactions(transactions, queue = readQueue()) {
+  return queue.reduce((nextTransactions, operation) => {
     if (operation.action === 'saveSale') {
       return upsertInList(nextTransactions, { ...operation.sale, syncPending: true });
     }
@@ -411,8 +629,8 @@ function applyQueueToTransactions(transactions) {
   }, transactions);
 }
 
-function applyQueueToCommands(commands) {
-  return readQueue().reduce((nextCommands, operation) => {
+function applyQueueToCommands(commands, queue = readQueue()) {
+  return queue.reduce((nextCommands, operation) => {
     if (operation.action === 'saveSale') {
       return upsertInList(nextCommands, { ...operation.command, syncPending: true });
     }
@@ -425,8 +643,8 @@ function applyQueueToCommands(commands) {
   }, commands);
 }
 
-function applyQueueToClosings(closings) {
-  return readQueue().reduce((nextClosings, operation) => {
+function applyQueueToClosings(closings, queue = readQueue()) {
+  return queue.reduce((nextClosings, operation) => {
     if (operation.action === 'saveCashClosing') {
       return upsertInList(nextClosings, { ...operation.closing, syncPending: true });
     }

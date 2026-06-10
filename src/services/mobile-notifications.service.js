@@ -37,7 +37,7 @@ export function getMobileFeedFilters() {
     { id: 'all', label: 'Tudo' },
     { id: 'sales', label: 'Vendas' },
     { id: 'entries', label: 'Entradas' },
-    { id: 'outputs', label: 'Saidas' },
+    { id: 'outputs', label: 'Saídas' },
     { id: 'alerts', label: 'Alertas' }
   ];
 }
@@ -84,8 +84,32 @@ function buildSaleEvent(sale) {
     description: `${quantity} item(ns) - ${firstItem}`,
     amount: Number(sale.total || 0),
     createdAt: sale.createdAt,
-    icon: 'R$'
+    icon: 'R$',
+    details: {
+      comandaNumber: sale.comandaNumber,
+      paymentMethod: sale.paymentMethod,
+      paymentLabel: getPaymentLabel(sale.paymentMethod),
+      receivedAmount: Number(sale.receivedAmount || 0),
+      change: Number(sale.change || 0),
+      total: Number(sale.total || 0),
+      items: sale.items.map((item) => ({
+        name: item.name,
+        quantity: Number(item.quantity || 0) || 1,
+        total: Number(item.total || 0)
+      }))
+    }
   };
+}
+
+function getPaymentLabel(method) {
+  const labels = {
+    dinheiro: 'Dinheiro',
+    pix: 'Pix',
+    debito: 'Debito',
+    credito: 'Credito'
+  };
+
+  return labels[method] || method || 'Nao informado';
 }
 
 function buildCashEvent(movement, kind) {

@@ -7,8 +7,10 @@ import {
   getTransactions,
   registerCashMovement
 } from '../../services/transaction.service.js';
+import { getDashboardResumo } from '../../services/dashboard-resumo.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { showNotification } from '../../services/notification.service.js';
+import { hydrateOnlineOperationalData } from '../../services/online-data.service.js';
 
 const dashboardState = {
   modal: null,
@@ -21,6 +23,7 @@ export function initDashboardModule(container) {
   dashboardState.modal = null;
   dashboardState.pendingCancelComandaId = null;
   renderDashboard(container);
+  hydrateOnlineOperationalData({ financial: true, showcase: false }).then(() => renderDashboard(container));
 
   if (!boundContainers.has(container)) {
     bindDashboardEvents(container);
@@ -30,6 +33,7 @@ export function initDashboardModule(container) {
 
 function renderDashboard(container) {
   const moneySummary = getMoneySummary({ period: dashboardState.period });
+  const resumo = getDashboardResumo({ period: dashboardState.period });
 
   container.innerHTML = `
     <section class="module-screen products-module" data-dashboard-screen>
@@ -48,14 +52,14 @@ function renderDashboard(container) {
       </header>
 
       <div class="summary-grid money-summary-grid">
-        ${renderSummaryCard('Total vendido', moneySummary.salesTotal)}
-        ${renderSummaryCard('Dinheiro esperado', moneySummary.expectedCash)}
+        ${renderSummaryCard('Caixa atual', resumo.caixaAtual)}
+        ${renderSummaryCard('Vitrine estimada', resumo.vitrineEstimada)}
+        ${renderSummaryCard('Total vendido', resumo.totalVendido)}
+        ${renderSummaryCard('Entradas', resumo.entradas)}
+        ${renderSummaryCard('Saídas', resumo.saidas)}
         ${renderSummaryCard('Pix', moneySummary.paymentTotals.pix)}
         ${renderSummaryCard('Debito', moneySummary.paymentTotals.debito)}
         ${renderSummaryCard('Credito', moneySummary.paymentTotals.credito)}
-        ${renderSummaryCard('Entradas', moneySummary.entriesTotal)}
-        ${renderSummaryCard('Saidas', moneySummary.outputsTotal)}
-        ${renderSummaryCard('Saldo liquido', moneySummary.netTotal)}
         <article class="summary-card"><span>Comandas canceladas</span><strong>${moneySummary.canceledComandas}</strong></article>
       </div>
 
@@ -87,7 +91,7 @@ function renderDashboard(container) {
 }
 
 function bindDashboardEvents(container) {
-  container.addEventListener('click', (event) => {
+  container.addEventListener('click', async (event) => {
     if (!event.target.closest('[data-dashboard-screen]')) {
       return;
     }
@@ -115,13 +119,28 @@ function bindDashboardEvents(container) {
     }
 
     if (button.dataset.action === 'clear-history') {
-      clearTransactionHistory();
-      showNotification({
-        title: 'Historico limpo',
-        message: 'Comandas e movimentos foram removidos.',
-        type: 'danger'
-      });
-      renderDashboard(container);
+      const periodLabel = getPeriodLabel(dashboardState.period);
+      const confirmed = window.confirm(`Limpar historico de ${periodLabel}? Isso tambem apaga esse periodo no Supabase.`);
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        await clearTransactionHistory({ period: dashboardState.period });
+        showNotification({
+          title: 'Historico limpo',
+          message: `Comandas e movimentos de ${periodLabel} foram removidos.`,
+          type: 'danger'
+        });
+        renderDashboard(container);
+      } catch (error) {
+        showNotification({
+          title: 'Nao foi possivel limpar',
+          message: error.message || 'Tente novamente em instantes.',
+          type: 'danger'
+        });
+      }
     }
 
     if (button.dataset.action === 'cancel-comanda') {
@@ -223,6 +242,16 @@ function renderSummaryCard(label, value) {
   return `<article class="summary-card"><span>${label}</span><strong>${formatCurrency(value)}</strong></article>`;
 }
 
+export function formatHistoryItemQuantity(item) {
+  const quantity = Number(item?.quantity);
+
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    return '1x';
+  }
+
+  return `${quantity}x`;
+}
+
 function renderClosedComandas() {
   const comandas = getFilteredClosedComandas();
 
@@ -244,7 +273,10 @@ function renderClosedComandas() {
       <div class="history-comanda__items">
         ${comanda.items.map((item) => `
           <div>
-            <span>${item.name}</span>
+            <span class="history-comanda__item-name">
+              <span class="history-comanda__qty">${formatHistoryItemQuantity(item)}</span>
+              <span>${item.name}</span>
+            </span>
             <strong>${formatCurrency(item.total)}</strong>
           </div>
         `).join('')}
@@ -294,6 +326,7 @@ function getFilteredClosedComandas() {
 
 function renderPeriodOptions() {
   const options = [
+    ['hour', 'Hora atual'],
     ['today', 'Hoje'],
     ['yesterday', 'Ontem'],
     ['month', 'Este mes'],
@@ -304,6 +337,19 @@ function renderPeriodOptions() {
   return options.map(([value, label]) => `
     <option value="${value}" ${dashboardState.period === value ? 'selected' : ''}>${label}</option>
   `).join('');
+}
+
+function getPeriodLabel(period) {
+  const labels = {
+    hour: 'hora atual',
+    today: 'hoje',
+    yesterday: 'ontem',
+    month: 'este mes',
+    year: 'este ano',
+    all: 'todo o periodo'
+  };
+
+  return labels[period] || 'periodo selecionado';
 }
 
 function isInSelectedPeriod(value) {
@@ -318,6 +364,13 @@ function isInSelectedPeriod(value) {
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
     return date.toDateString() === yesterday.toDateString();
+  }
+
+  if (dashboardState.period === 'hour') {
+    return date.getFullYear() === now.getFullYear()
+      && date.getMonth() === now.getMonth()
+      && date.getDate() === now.getDate()
+      && date.getHours() === now.getHours();
   }
 
   if (dashboardState.period === 'month') {

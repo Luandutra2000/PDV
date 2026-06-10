@@ -10,7 +10,7 @@ export function getMobileShowcaseSummary() {
     producedUnits: summary.producedUnits,
     soldUnits: summary.soldUnits,
     remainingUnits: summary.quantityBalance,
-    estimatedValue: summary.estimatedProductionValue,
+    estimatedValue: Math.max(0, summary.valueDifference),
     soldValue: summary.salesValue,
     valueDifference: summary.valueDifference,
     bestSeller: bestSellers[0] || null,

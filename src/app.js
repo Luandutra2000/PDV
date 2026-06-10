@@ -2,17 +2,18 @@ import './config/runtime-config.js';
 import { renderSidebar } from './components/sidebar.component.js?v=20260526-03';
 import { ensureSeedData } from './services/storage.service.js';
 import { hydrateDataProvider } from './services/data-provider.service.js';
-import { loadCategories, loadProducts, startCatalogRealtime } from './services/product.service.js';
+import { loadCategories, loadProducts, startCatalogRealtime, syncCatalogNow } from './services/product.service.js';
 import { hydrateFinancialData, startFinancialRealtime } from './services/financial-sync.service.js';
 import { isSupabaseEnabled } from './services/app-config.service.js';
+import { hydrateOnlineOperationalData } from './services/online-data.service.js';
+import { getDashboardResumo } from './services/dashboard-resumo.service.js';
 import { initSyncService } from './services/sync.service.js';
-import { getCaixaSummary } from './services/caixa.service.js';
 import { initVendasModule } from './modules/vendas/vendas.module.js';
 import { initProdutosModule } from './modules/produtos/produtos.module.js';
 import { initDashboardModule } from './modules/dashboard/dashboard.module.js';
 import { initEstoqueModule } from './modules/estoque/estoque.module.js';
 import { initCaixaModule } from './modules/caixa/caixa.module.js';
-import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js?v=20260601-05';
+import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js?v=20260608-15';
 import { initPessoasModule } from './modules/pessoas/pessoas.module.js';
 import { formatCurrency } from './utils/currency.js';
 import { initNotificationService } from './services/notification.service.js';
@@ -70,7 +71,8 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
     await Promise.all([loadCategories(), loadProducts()]);
     await startCatalogRealtime();
     if (isSupabaseEnabled()) {
-      await hydrateFinancialData();
+      await syncCatalogNow();
+      await hydrateOnlineOperationalData({ catalog: false, financial: true, showcase: true });
       await startFinancialRealtime();
     }
     await hydrateDataProvider();
@@ -106,6 +108,8 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   const workspace = app.querySelector('[data-workspace-body]');
   const initialView = getAuthorizedInitialView(currentUser);
   renderCashStrip(app);
+  workspace.dataset.activeRoute = initialView;
+  setRouteShellMode(app, initialView);
   routes[initialView](workspace);
   setActiveMenu(app, initialView);
   bindNavigation(app, workspace);
@@ -144,16 +148,14 @@ function renderCashStrip(root = document) {
     return;
   }
 
-  const caixa = getCaixaSummary();
-  const moneySummary = getDailyMoneySummary();
-  const estimatedCash = moneySummary.expectedCash;
-  const currentCash = Number(caixa.currentAmount || 0);
+  const resumo = getDashboardResumo({ period: 'today' });
 
   target.innerHTML = `
-    ${renderCashMetric('Caixa atual', currentCash, true)}
-    ${renderCashMetric('Caixa estimado', estimatedCash, false, 'money-warning')}
-    ${renderCashMetric('Entradas', moneySummary.entriesTotal, false, 'money-positive')}
-    ${renderCashMetric('Saidas', moneySummary.outputsTotal, false, 'money-negative')}
+    ${renderCashMetric('Caixa atual', resumo.caixaAtual, false, 'money-info')}
+    ${renderCashMetric('Vitrine estimada', resumo.vitrineEstimada, false, 'money-warning')}
+    ${renderCashMetric('Total vendido', resumo.totalVendido, false, 'money-primary')}
+    ${renderCashMetric('Entradas', resumo.entradas, false, 'money-positive')}
+    ${renderCashMetric('Saídas', resumo.saidas, false, 'money-negative')}
   `;
 }
 
@@ -233,6 +235,8 @@ function bindNavigation(app, workspace) {
       }
 
       setActiveMenu(app, 'mobile');
+      workspace.dataset.activeRoute = 'mobile';
+      setRouteShellMode(app, 'mobile');
       initMobileDashboardModule(workspace);
       return;
     }
@@ -256,6 +260,8 @@ function bindNavigation(app, workspace) {
     }
 
     setActiveMenu(app, menuButton.dataset.menuId);
+    workspace.dataset.activeRoute = menuButton.dataset.menuId;
+    setRouteShellMode(app, menuButton.dataset.menuId);
 
     if (route) {
       route(workspace);
@@ -264,6 +270,10 @@ function bindNavigation(app, workspace) {
 
     renderModulePlaceholder(workspace, menuButton.querySelector('.sidebar__label').textContent);
   });
+}
+
+function setRouteShellMode(app, routeId) {
+  app.classList.toggle('is-mobile-owner', routeId === 'mobile');
 }
 
 function renderPermissionDenied(workspace) {

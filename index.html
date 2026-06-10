@@ -38,30 +38,59 @@
   </div>
   <div class="toast-root" aria-live="polite"></div>
   <script type="module">
-    const LOCAL_CACHE_VERSION = '20260602-06-authenticated-catalog';
+    const LOCAL_CACHE_VERSION = '20260610-02-online-sync-no-fiado';
 
     async function clearStaleClientCaches() {
-      if (window.sessionStorage.getItem('pdv.localCacheVersion') === LOCAL_CACHE_VERSION) {
-        return;
+      try {
+        if (window.sessionStorage.getItem('pdv.localCacheVersion') === LOCAL_CACHE_VERSION) {
+          return false;
+        }
+
+        window.sessionStorage.setItem('pdv.localCacheVersion', LOCAL_CACHE_VERSION);
+      } catch (error) {
+        console.warn('Nao foi possivel ler a versao de cache local.', error);
       }
 
-      window.sessionStorage.setItem('pdv.localCacheVersion', LOCAL_CACHE_VERSION);
-
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(registrations.map((registration) => registration.unregister()));
+      try {
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((registration) => registration.unregister()));
+        }
+      } catch (error) {
+        console.warn('Nao foi possivel limpar service workers antigos.', error);
       }
 
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((key) => caches.delete(key)));
+      try {
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((key) => caches.delete(key)));
+        }
+      } catch (error) {
+        console.warn('Nao foi possivel limpar caches antigos.', error);
       }
 
       return true;
     }
 
-    await clearStaleClientCaches();
-    await import('./src/app.js?v=20260602-06');
+    try {
+      await clearStaleClientCaches();
+      await import('./src/app.js?v=20260610-02');
+    } catch (error) {
+      console.error('Nao foi possivel iniciar o PDV.', error);
+      const app = document.getElementById('app');
+      if (app) {
+        app.innerHTML = `
+          <section class="login-screen">
+            <div class="login-card">
+              <p class="module-subtitle">PDV</p>
+              <h1 class="pdv-title">Erro ao iniciar</h1>
+              <p class="form-error">Atualize a pagina. Se continuar, limpe o cache do navegador.</p>
+              <button class="button" type="button" onclick="window.location.reload()">Atualizar</button>
+            </div>
+          </section>
+        `;
+      }
+    }
   </script>
   <script>
     if ('serviceWorker' in navigator) {

@@ -29,6 +29,7 @@ const estoque = await import('../src/services/estoque.service.js');
 const closing = await import('../src/services/cash-closing.service.js');
 const auth = await import('../src/services/auth.service.js');
 const audit = await import('../src/services/audit.service.js');
+const financial = await import('../src/services/financial-sync.service.js');
 
 storage.ensureSeedData();
 const adminSession = auth.login({ username: 'admin', password: 'admin123' });
@@ -144,6 +145,17 @@ globalThis.__PDV_RUNTIME_CONFIG__ = {
   supabaseAnonKey: 'anon-key'
 };
 localStorage.setItem('pdv.syncQueue.financial', JSON.stringify([]));
+financial.configureFinancialSyncForTests({
+  getClient: async () => ({
+    from() {
+      return {
+        upsert() {
+          return Promise.resolve({ error: new Error('offline') });
+        }
+      };
+    }
+  })
+});
 
 const supabaseClosing = await import(`../src/services/cash-closing.service.js?supabase=${Date.now()}`);
 const supabaseDraft = supabaseClosing.saveClosingDraft({
@@ -162,5 +174,6 @@ assert(
 );
 
 globalThis.__PDV_RUNTIME_CONFIG__ = null;
+financial.configureFinancialSyncForTests();
 
 console.log('cash closing service ok');

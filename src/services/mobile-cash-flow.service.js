@@ -1,26 +1,25 @@
-import { getCaixaSummary } from './caixa.service.js';
+import { getDashboardResumo } from './dashboard-resumo.service.js';
 import { getMoneySummary } from './transaction.service.js';
 
 export function getMobileCashFlowSummary({ period = 'today', customStart = '', customEnd = '' } = {}) {
-  const caixa = getCaixaSummary();
+  const resumo = getDashboardResumo({ period, customStart, customEnd });
   const summary = getMoneySummary({ period, customStart, customEnd });
-  const currentCash = Number(caixa.currentAmount || 0);
-  const estimatedProfit = summary.salesTotal + summary.entriesTotal - summary.outputsTotal;
 
   return {
-    salesTotal: summary.salesTotal,
-    entriesTotal: summary.entriesTotal,
-    outputsTotal: summary.outputsTotal,
-    currentCash,
+    salesTotal: resumo.totalVendido,
+    entriesTotal: resumo.entradas,
+    outputsTotal: resumo.saidas,
+    currentCash: resumo.caixaAtual,
     expectedCash: summary.expectedCash,
-    estimatedProfit,
+    estimatedProfit: resumo.caixaAtual,
+    estimatedShowcase: resumo.vitrineEstimada,
     paymentTotals: summary.paymentTotals,
     cards: [
-      { id: 'sales', label: 'Total vendido', value: summary.salesTotal, tone: 'primary' },
-      { id: 'entries', label: 'Entradas', value: summary.entriesTotal, tone: 'success' },
-      { id: 'outputs', label: 'Saidas', value: summary.outputsTotal, tone: 'danger' },
-      { id: 'cash', label: 'Saldo caixa', value: currentCash, tone: 'info' },
-      { id: 'profit', label: 'Lucro estimado', value: estimatedProfit, tone: 'warning' }
+      { id: 'sales', label: 'Total vendido', value: resumo.totalVendido, tone: 'primary' },
+      { id: 'entries', label: 'Entradas', value: resumo.entradas, tone: 'success' },
+      { id: 'outputs', label: 'Saídas', value: resumo.saidas, tone: 'danger' },
+      { id: 'cash', label: 'Caixa atual', value: resumo.caixaAtual, tone: 'info' },
+      { id: 'showcase', label: 'Vitrine estimada', value: resumo.vitrineEstimada, tone: 'warning' }
     ]
   };
 }

@@ -47,7 +47,7 @@ const summary = showcase.getMobileShowcaseSummary();
 assert(summary.producedUnits === 12, 'showcase should include produced units');
 assert(summary.soldUnits === 2, 'showcase should include sold units');
 assert(summary.remainingUnits === 10, 'showcase should include remaining units');
-assert(summary.estimatedValue === (burger.price * 10) + (soda.price * 2), 'showcase should include estimated value');
+assert(summary.estimatedValue === (burger.price * 8) + (soda.price * 2), 'showcase should include current estimated showcase value');
 assert(summary.soldValue === burger.price * 2, 'showcase should include sold value');
 assert(summary.bestSeller.produtoId === burger.id, 'showcase should expose best seller');
 assert(summary.lowStock.some((item) => item.produtoId === soda.id), 'showcase should expose low stock rows');

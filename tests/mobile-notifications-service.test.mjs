@@ -48,6 +48,10 @@ const events = notifications.getMobileFeedEvents({ now: new Date() });
 assert(events.length >= 4, 'feed should include sales, cash movements, and stock alerts');
 assert(events[0].createdAt >= events[1].createdAt, 'feed should be newest first');
 assert(events.some((event) => event.kind === 'sale' && event.title === 'Venda realizada'), 'sale event should be present');
+const saleDetailEvent = events.find((event) => event.kind === 'sale');
+assert(saleDetailEvent.details.paymentLabel === 'Dinheiro', 'sale event should expose payment label for mobile detail');
+assert(saleDetailEvent.details.items.some((item) => item.quantity === 2 && item.name === burger.name), 'sale event should expose purchased items and quantities');
+assert(saleDetailEvent.details.change === 8, 'sale event should expose sale change for mobile detail');
 assert(events.some((event) => event.kind === 'outflow' && event.level === 'danger'), 'high outflow should be danger');
 assert(events.some((event) => event.kind === 'alert' && event.title === 'Produto acabando'), 'low showcase stock alert should be present');
 

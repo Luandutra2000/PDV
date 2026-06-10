@@ -713,8 +713,27 @@ select.compact-select[multiple] {
 
 .history-comanda__items div {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.history-comanda__item-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.history-comanda__qty {
+  min-width: 30px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 106, 31, 0.12);
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .history-comanda__footer {

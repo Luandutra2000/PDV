@@ -60,6 +60,7 @@ const TABLE_MAPPERS = {
   },
   [STORAGE_KEYS.stockLaunches]: {
     table: 'stock_production',
+    select: 'id,product_id,product_name,category_id,category_name,quantity,unit_value,total_value,note,status,created_at,canceled_at',
     map: (launch) => ({
       id: launch.id,
       product_id: launch.produtoId || launch.productId,
@@ -69,13 +70,29 @@ const TABLE_MAPPERS = {
       quantity: Number(launch.quantidade || launch.quantity) || 0,
       unit_value: Number(launch.valorUnitario || launch.unitValue) || 0,
       total_value: Number(launch.valorTotal || launch.totalValue) || 0,
+      note: launch.note || launch.observacao || '',
       status: launch.status || 'ativo',
-      created_at: launch.createdAt || new Date().toISOString(),
+      created_at: launch.dataHora || launch.createdAt || new Date().toISOString(),
       canceled_at: launch.canceledAt || null
+    }),
+    unmap: (row) => ({
+      id: row.id,
+      produtoId: row.product_id,
+      produtoNome: row.product_name,
+      categoriaId: row.category_id,
+      categoriaNome: row.category_name,
+      quantidade: Number(row.quantity) || 0,
+      valorUnitario: Number(row.unit_value) || 0,
+      valorTotal: Number(row.total_value) || 0,
+      note: row.note || '',
+      dataHora: row.created_at,
+      status: row.status || 'ativo',
+      canceledAt: row.canceled_at || null
     })
   },
   [STORAGE_KEYS.showcaseWriteOffs]: {
     table: 'showcase_write_offs',
+    select: 'id,product_id,product_name,category_id,category_name,quantity,unit_value,total_value,reason,note,status,created_at,canceled_at',
     map: (writeOff) => ({
       id: writeOff.id,
       product_id: writeOff.produtoId || writeOff.productId,
@@ -90,23 +107,23 @@ const TABLE_MAPPERS = {
       status: writeOff.status || 'ativa',
       created_at: writeOff.createdAt || new Date().toISOString(),
       canceled_at: writeOff.canceledAt || null
+    }),
+    unmap: (row) => ({
+      id: row.id,
+      productId: row.product_id,
+      productName: row.product_name,
+      categoryId: row.category_id,
+      categoryName: row.category_name,
+      quantity: Number(row.quantity) || 0,
+      unitValue: Number(row.unit_value) || 0,
+      totalValue: Number(row.total_value) || 0,
+      reason: row.reason || 'ajuste',
+      note: row.note || '',
+      status: row.status || 'ativa',
+      createdAt: row.created_at,
+      canceledAt: row.canceled_at || null
     })
   },
-  [STORAGE_KEYS.cashClosings]: {
-    table: 'cash_closings',
-    map: (closing) => ({
-      id: closing.id,
-      status: closing.status || 'fechado',
-      totals: closing.totals || {},
-      payments: closing.payments || {},
-      showcase: closing.showcase || [],
-      differences: closing.differences || [],
-      input: closing.input || {},
-      created_at: closing.createdAt || closing.closedAt,
-      closed_at: closing.closedAt || closing.createdAt || new Date().toISOString(),
-      updated_at: closing.updatedAt || closing.closedAt || closing.createdAt
-    })
-  }
 };
 
 export function createSupabaseProvider({ getClient, localProvider = createLocalProvider() }) {

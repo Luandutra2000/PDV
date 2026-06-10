@@ -10,6 +10,7 @@ import { isSupabaseEnabled } from './app-config.service.js';
 import {
   cancelCashMovementInSupabase,
   cancelSaleInSupabase,
+  clearFinancialHistoryInSupabase,
   getFinancialSyncStatus,
   saveCashMovementToSupabase,
   saveSaleToSupabase
@@ -138,9 +139,16 @@ export function getClosedComandas() {
   return getItem(STORAGE_KEYS.closedComandas, []);
 }
 
-export function clearTransactionHistory() {
-  setItem(STORAGE_KEYS.transactions, []);
-  setItem(STORAGE_KEYS.closedComandas, []);
+export async function clearTransactionHistory({ period = 'today', customStart = '', customEnd = '' } = {}) {
+  const filters = { customStart, customEnd };
+  const shouldClear = (value) => isInPeriod(value, period, filters);
+  setItem(STORAGE_KEYS.transactions, getTransactions().filter((transaction) => !shouldClear(transaction.createdAt)));
+  setItem(STORAGE_KEYS.closedComandas, getClosedComandas().filter((comanda) => !shouldClear(comanda.closedAt || comanda.createdAt)));
+
+  if (isSupabaseEnabled()) {
+    await clearFinancialHistoryInSupabase({ period, customStart, customEnd });
+  }
+
   emit(UI_EVENTS.cashSummaryChanged, { type: 'historico-limpo' });
 }
 
@@ -457,6 +465,13 @@ function isInPeriod(value, period, filters = {}) {
     const start = filters.customStart ? new Date(`${filters.customStart}T00:00:00`) : null;
     const end = filters.customEnd ? new Date(`${filters.customEnd}T23:59:59`) : null;
     return (!start || date >= start) && (!end || date <= end);
+  }
+
+  if (period === 'hour') {
+    return date.getFullYear() === now.getFullYear()
+      && date.getMonth() === now.getMonth()
+      && date.getDate() === now.getDate()
+      && date.getHours() === now.getHours();
   }
 
   if (period === 'yesterday') {

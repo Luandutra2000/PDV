@@ -1,0 +1,59 @@
+import { readFile } from 'node:fs/promises';
+
+const assert = (condition, message) => {
+  if (!condition) {
+    throw new Error(message);
+  }
+};
+
+const migration = await readFile(new URL('../supabase/migrations/202606030002_restore_anon_online_sync.sql', import.meta.url), 'utf8')
+  .catch(() => '');
+
+[
+  'categories',
+  'products',
+  'commands',
+  'command_items',
+  'sales',
+  'sale_items',
+  'cash_movements',
+  'cash_closings',
+  'stock_production',
+  'showcase_write_offs'
+].forEach((table) => {
+  assert(migration.includes(`public.${table}`), `anon sync migration should cover ${table}`);
+});
+
+assert(migration.includes('to anon'), 'anon sync migration should create policies for anon role');
+assert(migration.includes('for select'), 'anon sync migration should allow online reads');
+assert(migration.includes('for insert'), 'anon sync migration should allow online inserts');
+assert(migration.includes('for update'), 'anon sync migration should allow online updates');
+assert(!migration.includes('for delete'), 'anon sync migration should not allow browser deletes');
+
+const nullableMigration = await readFile(new URL('../supabase/migrations/202606030003_allow_local_sync_without_auth_uid.sql', import.meta.url), 'utf8')
+  .catch(() => '');
+const schemaAlignmentMigration = await readFile(new URL('../supabase/migrations/202606030004_align_remote_sales_schema.sql', import.meta.url), 'utf8')
+  .catch(() => '');
+const itemSnapshotMigration = await readFile(new URL('../supabase/migrations/20260608154723_allow_sale_item_product_snapshot.sql', import.meta.url), 'utf8')
+  .catch(() => '');
+const financialDeleteMigration = await readFile(new URL('../supabase/migrations/20260608162457_allow_financial_history_delete.sql', import.meta.url), 'utf8')
+  .catch(() => '');
+
+[
+  'sales',
+  'cash_movements',
+  'cash_closings',
+  'stock_production'
+].forEach((table) => {
+  assert(nullableMigration.includes(`public.${table} alter column created_by drop not null`), `local sync migration should allow ${table}.created_by to be null`);
+});
+
+assert(schemaAlignmentMigration.includes('add column if not exists command_id'), 'remote schema alignment should add sales.command_id');
+assert(schemaAlignmentMigration.includes('add column if not exists command_number'), 'remote schema alignment should add sales.command_number');
+assert(schemaAlignmentMigration.includes('alter table public.sale_items alter column id type text'), 'remote schema alignment should allow deterministic sale item ids');
+assert(itemSnapshotMigration.includes('drop constraint if exists command_items_product_id_fkey'), 'command item snapshots should not fail when a local product id is missing remotely');
+assert(itemSnapshotMigration.includes('drop constraint if exists sale_items_product_id_fkey'), 'sale item snapshots should not fail when a local product id is missing remotely');
+assert(financialDeleteMigration.includes('grant delete on table'), 'financial history cleanup should grant delete on remote history tables');
+assert(financialDeleteMigration.includes('for delete to anon'), 'financial history cleanup should allow browser delete policies');
+
+console.log('anon online sync policy ok');

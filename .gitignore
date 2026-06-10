@@ -2,3 +2,6 @@
 .local-server*.pid
 .local-server*.log
 .worktrees/
+
+.vercel
+supabase/.temp/

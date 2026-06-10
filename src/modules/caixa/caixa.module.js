@@ -174,7 +174,7 @@ function renderClosingPanel(summary, closingSummary) {
       </header>
       <div class="crm-payment-row"><span>Vendas</span><strong>${formatCurrency(summary.salesTotal)}</strong></div>
       <div class="crm-payment-row"><span>Entradas</span><strong>${formatCurrency(summary.entriesTotal)}</strong></div>
-      <div class="crm-payment-row"><span>Saidas</span><strong>${formatCurrency(summary.outputsTotal)}</strong></div>
+      <div class="crm-payment-row"><span>Saídas</span><strong>${formatCurrency(summary.outputsTotal)}</strong></div>
       <div class="crm-payment-row"><span>Dinheiro esperado</span><strong>${formatCurrency(expectedCash)}</strong></div>
       <div class="crm-payment-row"><span>Pix esperado</span><strong>${formatCurrency(summary.paymentTotals.pix)}</strong></div>
       <div class="crm-payment-row"><span>Cartoes</span><strong>${formatCurrency(summary.paymentTotals.debito + summary.paymentTotals.credito)}</strong></div>

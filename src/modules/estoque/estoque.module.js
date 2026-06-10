@@ -9,6 +9,7 @@ import {
   updateStockLaunch
 } from '../../services/estoque.service.js';
 import { showNotification } from '../../services/notification.service.js';
+import { hydrateOnlineOperationalData } from '../../services/online-data.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 
 const estoqueState = {
@@ -24,6 +25,7 @@ const boundContainers = new WeakSet();
 
 export function initEstoqueModule(container) {
   renderEstoque(container);
+  hydrateOnlineOperationalData({ financial: true, showcase: true }).then(() => renderEstoque(container));
 
   if (!boundContainers.has(container)) {
     bindEstoqueEvents(container);
@@ -60,12 +62,12 @@ function renderEstoque(container) {
       ` : ''}
 
       <div class="summary-grid stock-summary-grid">
-        ${renderSummaryCard('Valor estimado na vitrine', summary.estimatedProductionValue, true)}
+        ${renderSummaryCard('Vitrine estimada', Math.max(0, summary.valueDifference), true)}
         ${renderSummaryCard('Unidades na vitrine', summary.producedUnits)}
         ${renderSummaryCard('Produtos diferentes', summary.uniqueProducts)}
         ${renderSummaryCard('Vendido em comandas', summary.salesValue, true)}
         ${renderSummaryCard('Qtd. vendida', summary.soldUnits)}
-        ${renderSummaryCard('Diferenca valor', summary.valueDifference, true)}
+        ${renderSummaryCard('Valor produzido', summary.estimatedProductionValue, true)}
         ${renderSummaryCard('Sobra estimada', summary.quantityBalance)}
       </div>
 

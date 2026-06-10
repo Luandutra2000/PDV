@@ -4,8 +4,8 @@ export function renderFechamentoRapidoModal({ summary, closingSummary, showcase,
   const cards = [
     ['Vendido hoje', formatCurrency(summary.salesTotal)],
     ['Entradas', formatCurrency(summary.entriesTotal)],
-    ['Saidas', formatCurrency(summary.outputsTotal)],
-    ['Lucro estimado', formatCurrency(summary.estimatedProfit)]
+    ['Saídas', formatCurrency(summary.outputsTotal)],
+    ['Caixa atual', formatCurrency(summary.estimatedProfit)]
   ];
   const cardTotals = summary.paymentTotals.debito + summary.paymentTotals.credito;
 
