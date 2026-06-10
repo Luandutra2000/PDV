@@ -38,6 +38,8 @@ const itemSnapshotMigration = await readFile(new URL('../supabase/migrations/202
   .catch(() => '');
 const financialDeleteMigration = await readFile(new URL('../supabase/migrations/20260608162457_allow_financial_history_delete.sql', import.meta.url), 'utf8')
   .catch(() => '');
+const catalogDeleteMigration = await readFile(new URL('../supabase/migrations/20260610130251_allow_catalog_delete_sync.sql', import.meta.url), 'utf8')
+  .catch(() => '');
 
 [
   'sales',
@@ -55,5 +57,10 @@ assert(itemSnapshotMigration.includes('drop constraint if exists command_items_p
 assert(itemSnapshotMigration.includes('drop constraint if exists sale_items_product_id_fkey'), 'sale item snapshots should not fail when a local product id is missing remotely');
 assert(financialDeleteMigration.includes('grant delete on table'), 'financial history cleanup should grant delete on remote history tables');
 assert(financialDeleteMigration.includes('for delete to anon'), 'financial history cleanup should allow browser delete policies');
+assert(catalogDeleteMigration.includes('grant delete on table public.products to anon'), 'catalog delete sync should grant product deletes');
+assert(catalogDeleteMigration.includes('grant delete on table public.categories to anon'), 'catalog delete sync should grant category deletes');
+assert(catalogDeleteMigration.includes('for delete to anon'), 'catalog delete sync should allow browser delete policies');
+assert(!catalogDeleteMigration.includes('public.sales'), 'catalog delete sync should not open sale deletes');
+assert(!catalogDeleteMigration.includes('public.cash_movements'), 'catalog delete sync should not open cash movement deletes');
 
 console.log('anon online sync policy ok');
