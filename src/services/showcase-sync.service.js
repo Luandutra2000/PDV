@@ -128,18 +128,19 @@ export async function flushShowcaseQueue() {
     return;
   }
 
-  const remaining = [];
-  let lastError = null;
+  let remaining = [];
+  let flushError = null;
 
   try {
     const client = await getClient();
 
-    for (const operation of queue) {
+    for (const [index, operation] of queue.entries()) {
       try {
         await callRpc(client, operation.action, operation.input);
       } catch (error) {
-        remaining.push(operation);
-        lastError = error;
+        remaining = queue.slice(index);
+        flushError = error;
+        break;
       }
     }
   } catch (error) {
@@ -148,7 +149,7 @@ export async function flushShowcaseQueue() {
   }
 
   writeQueue(remaining);
-  setStatusFromQueue(remaining, remaining.length ? (lastError?.message || 'Algumas alteracoes da vitrine continuam pendentes.') : '');
+  setStatusFromQueue(remaining, remaining.length ? (flushError?.message || 'Algumas alteracoes da vitrine continuam pendentes.') : '');
 }
 
 export async function startShowcaseRealtime() {

@@ -36,6 +36,7 @@ const rows = {
 const rpcCalls = [];
 const registeredTables = [];
 let rpcFailure = null;
+let failOperationId = '';
 
 const fakeClient = {
   from(table) {
@@ -47,6 +48,10 @@ const fakeClient = {
   },
   rpc(functionName, input) {
     rpcCalls.push({ functionName, input });
+
+    if (input?._payload?.operationId === failOperationId) {
+      return Promise.resolve({ data: null, error: new Error(`fail ${failOperationId}`) });
+    }
 
     if (rpcFailure) {
       return Promise.resolve({ data: null, error: rpcFailure });
@@ -79,6 +84,7 @@ function reset() {
   rpcCalls.length = 0;
   registeredTables.length = 0;
   rpcFailure = null;
+  failOperationId = '';
   showcaseSync.configureShowcaseSyncForTests({ getClient: async () => fakeClient });
 }
 
@@ -154,6 +160,46 @@ await showcaseSync.flushShowcaseQueue();
 assert.equal(rpcCalls.at(-1).functionName, 'process_showcase_sale', 'flush should retry queued RPC operation');
 assert.equal(readJson(STORAGE_KEYS.showcaseSyncQueue).length, 0, 'successful flush should clear queue');
 assert.equal(showcaseSync.getShowcaseSyncStatus().state, 'synced', 'successful flush should set synced status');
+
+reset();
+localStorage.setItem(STORAGE_KEYS.showcaseSyncQueue, JSON.stringify([
+  {
+    action: 'processProduction',
+    input: {
+      operationId: 'queued-first',
+      productId: 'coxinha',
+      quantity: 4,
+      userId: 'user-1',
+      createdAt: '2026-06-15T10:30:00.000Z'
+    },
+    createdAt: '2026-06-15T10:30:00.000Z'
+  },
+  {
+    action: 'adjustStock',
+    input: {
+      operationId: 'queued-second',
+      productId: 'coxinha',
+      quantityAvailable: 8,
+      userId: 'user-1',
+      createdAt: '2026-06-15T10:35:00.000Z'
+    },
+    createdAt: '2026-06-15T10:35:00.000Z'
+  }
+]));
+failOperationId = 'queued-first';
+
+await showcaseSync.flushShowcaseQueue();
+assert.deepEqual(
+  rpcCalls.map((call) => call.input._payload.operationId),
+  ['queued-first'],
+  'flush should stop at first failed queued operation'
+);
+assert.deepEqual(
+  readJson(STORAGE_KEYS.showcaseSyncQueue).map((operation) => operation.input.operationId),
+  ['queued-first', 'queued-second'],
+  'flush should keep failed operation and all later operations in order'
+);
+assert.equal(showcaseSync.getShowcaseSyncStatus().state, 'pending', 'failed ordered flush should keep pending status');
 
 reset();
 await showcaseSync.startShowcaseRealtime();
