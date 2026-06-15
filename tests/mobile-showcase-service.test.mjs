@@ -52,4 +52,19 @@ assert(summary.soldValue === burger.price * 2, 'showcase should include sold val
 assert(summary.bestSeller.produtoId === burger.id, 'showcase should expose best seller');
 assert(summary.lowStock.some((item) => item.produtoId === soda.id), 'showcase should expose low stock rows');
 
+const canceledLaunch = estoque.createStockLaunch({ produtoId: soda.id, quantidade: 3 });
+estoque.cancelStockLaunch(canceledLaunch.id);
+
+const summaryAfterCancel = showcase.getMobileShowcaseSummary();
+
+assert(Array.isArray(summaryAfterCancel.cards), 'showcase should expose mobile cards');
+assert(summaryAfterCancel.cards.find((card) => card.id === 'showcase').value === 12, 'Vitrine card should count active produced units');
+assert(summaryAfterCancel.cards.find((card) => card.id === 'sold').value === 2, 'Vendidos card should count sold units');
+assert(summaryAfterCancel.cards.find((card) => card.id === 'leftovers').value === 10, 'Sobras card should count remaining active units');
+assert(summaryAfterCancel.cards.find((card) => card.id === 'soldWithoutStock').value === 0, 'Vendidos sem estoque should be zero when production covers sales');
+assert(summaryAfterCancel.comparisonRows[0].produtoNome, 'comparison rows should include product name');
+assert('valorProduzido' in summaryAfterCancel.comparisonRows[0], 'comparison rows should include produced value');
+assert(summaryAfterCancel.canceledLaunches.some((launch) => launch.id === canceledLaunch.id), 'showcase should expose canceled launches');
+assert(!summaryAfterCancel.rows.some((row) => row.produtoId === soda.id && row.quantidadeProduzida === 5), 'canceled launches should not inflate active rows');
+
 console.log('mobile showcase service ok');
