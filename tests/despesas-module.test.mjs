@@ -75,5 +75,35 @@ assert(html.includes('Contas a pagar'));
 assert(html.includes('Mais info'));
 assert(html.includes('Mini CRM financeiro'));
 assert(html.includes('Vencimento: 09/06/2026'));
+assert(html.includes('data-finance-period="today"'));
+assert(html.includes('data-finance-period="yesterday"'));
+assert(html.includes('data-finance-period="month"'));
+assert(html.includes('data-finance-period="custom"'));
+
+const customHtml = renderFinanceiroMarkup({
+  summary: {
+    entriesTotal: 0,
+    outputsTotal: 0,
+    balance: 0,
+    payablesCount: 0,
+    paidBillsCount: 0,
+    overdueCount: 0
+  },
+  categories: [],
+  transactions: [],
+  payables: { pending: [], overdue: [], upcoming: [] },
+  crm: {
+    outputsByCategory: {},
+    entriesByCategory: {},
+    spendingByPaymentMethod: {},
+    pendingByCategory: {}
+  },
+  filters: { period: 'custom', customStart: '2026-06-01', customEnd: '2026-06-15' }
+});
+
+assert(customHtml.includes('name="customStart"'));
+assert(customHtml.includes('name="customEnd"'));
+assert(customHtml.includes('value="2026-06-01"'));
+assert(customHtml.includes('value="2026-06-15"'));
 
 console.log('despesas module ok');

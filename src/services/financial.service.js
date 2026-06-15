@@ -62,8 +62,9 @@ export function getFinancialCategories({ type = 'all', activeOnly = true } = {})
   });
 }
 
-export function getFinancialTransactions() {
-  return getItem(STORAGE_KEYS.financialTransactions, []);
+export function getFinancialTransactions({ period = 'all', customStart = '', customEnd = '' } = {}) {
+  return getItem(STORAGE_KEYS.financialTransactions, [])
+    .filter((transaction) => isInPeriod(transaction.transactionDate || transaction.createdAt, period, { customStart, customEnd }));
 }
 
 export function createFinancialTransaction(input) {
@@ -225,8 +226,8 @@ export function getPayables({ now = new Date() } = {}) {
   };
 }
 
-export function buildFinancialCrm() {
-  const active = getFinancialTransactions().map(resolveOverdueStatus).filter((transaction) => transaction.status !== 'canceled');
+export function buildFinancialCrm({ period = 'all', customStart = '', customEnd = '' } = {}) {
+  const active = getFinancialTransactions({ period, customStart, customEnd }).map(resolveOverdueStatus).filter((transaction) => transaction.status !== 'canceled');
   const paid = active.filter((transaction) => transaction.status === 'paid');
 
   return {
@@ -352,6 +353,12 @@ function isInPeriod(value, period, filters = {}) {
 
   if (period === 'month') {
     return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+  }
+
+  if (period === 'yesterday') {
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return date.toDateString() === yesterday.toDateString();
   }
 
   return date.toDateString() === now.toDateString();

@@ -75,4 +75,22 @@ assert.equal(summary.entriesTotal, 0);
 assert.equal(summary.outputsTotal, 320);
 assert.equal(summary.paidBillsCount, 1);
 
+finance.createFinancialTransaction({
+  type: 'income',
+  amount: 50,
+  categoryId: 'reforco-caixa',
+  description: 'Reforco no periodo',
+  paymentMethod: 'pix',
+  status: 'paid',
+  transactionDate: '2026-06-12'
+});
+
+const crmInPeriod = finance.buildFinancialCrm({
+  period: 'custom',
+  customStart: '2026-06-12',
+  customEnd: '2026-06-12'
+});
+assert.equal(crmInPeriod.entriesByCategory['reforco-caixa'], 50);
+assert.equal(crmInPeriod.outputsByCategory['compra-materiais'], undefined);
+
 console.log('financial service ok');

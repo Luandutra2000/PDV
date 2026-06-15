@@ -33,6 +33,12 @@
   color: var(--color-primary);
 }
 
+.button--active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
 .button--danger {
   background: var(--color-danger);
   color: #ffffff;

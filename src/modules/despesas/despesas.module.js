@@ -11,6 +11,14 @@ import {
 } from '../../services/financial.service.js';
 import { showNotification } from '../../services/notification.service.js';
 
+const DEFAULT_FILTERS = {
+  period: 'today',
+  customStart: '',
+  customEnd: ''
+};
+
+let financeiroFilters = { ...DEFAULT_FILTERS };
+
 export function initDespesasModule(container) {
   seedFinancialCategories();
   renderFinanceiro(container);
@@ -22,17 +30,24 @@ export function renderFinanceiro(container) {
 }
 
 export function getFinanceiroState() {
+  const periodFilters = {
+    period: financeiroFilters.period,
+    customStart: financeiroFilters.customStart,
+    customEnd: financeiroFilters.customEnd
+  };
+
   return {
-    summary: getFinancialSummary({ period: 'today' }),
+    summary: getFinancialSummary(periodFilters),
     categories: getFinancialCategories(),
-    transactions: getFinancialTransactions(),
+    transactions: getFinancialTransactions(periodFilters),
     payables: getPayables(),
-    crm: buildFinancialCrm(),
+    crm: buildFinancialCrm(periodFilters),
+    filters: financeiroFilters,
     modal: null
   };
 }
 
-export function renderFinanceiroMarkup({ summary, categories, transactions, payables, crm, modal = null }) {
+export function renderFinanceiroMarkup({ summary, categories, transactions, payables, crm, filters = DEFAULT_FILTERS, modal = null }) {
   const activeTransactions = transactions.filter((transaction) => transaction.status !== 'canceled');
 
   return `
@@ -59,7 +74,7 @@ export function renderFinanceiroMarkup({ summary, categories, transactions, paya
       </div>
 
       <div class="history-grid finance-grid">
-        ${renderFinancialTable(activeTransactions, categories)}
+        ${renderFinancialTable(activeTransactions, categories, filters)}
         ${renderPayablesPanel(payables)}
       </div>
 
@@ -99,6 +114,17 @@ function bindFinanceiroEvents(container) {
       return;
     }
 
+    const periodButton = event.target.closest('[data-finance-period]');
+
+    if (periodButton) {
+      financeiroFilters = {
+        ...financeiroFilters,
+        period: periodButton.dataset.financePeriod
+      };
+      renderFinanceiro(container);
+      return;
+    }
+
     const payableButton = event.target.closest('[data-payable-id]');
 
     if (payableButton) {
@@ -113,6 +139,19 @@ function bindFinanceiroEvents(container) {
         showNotification({ title: 'Nao foi possivel pagar', message: error.message, type: 'danger' });
       }
     }
+  });
+
+  container.addEventListener('change', (event) => {
+    if (!event.target.matches('[data-finance-custom-date]')) {
+      return;
+    }
+
+    financeiroFilters = {
+      ...financeiroFilters,
+      period: 'custom',
+      [event.target.name]: event.target.value
+    };
+    renderFinanceiro(container);
   });
 
   container.addEventListener('submit', (event) => {
@@ -164,7 +203,7 @@ function renderCountCard(label, value, stateClass) {
   return `<article class="summary-card"><span>${label}</span><strong class="${stateClass}">${value}</strong></article>`;
 }
 
-function renderFinancialTable(transactions, categories) {
+function renderFinancialTable(transactions, categories, filters) {
   return `
     <section class="manager-section">
       <div class="manager-section__header">
@@ -172,7 +211,14 @@ function renderFinancialTable(transactions, categories) {
         <span>SUPABASE</span>
       </div>
       <div class="header-actions" style="padding: 12px;">
-        <button class="button button--ghost button--small" type="button">Hoje</button>
+        ${renderPeriodFilterButton('today', 'Hoje', filters)}
+        ${renderPeriodFilterButton('yesterday', 'Ontem', filters)}
+        ${renderPeriodFilterButton('month', 'Mes', filters)}
+        ${renderPeriodFilterButton('custom', 'Periodo', filters)}
+        ${filters.period === 'custom' ? `
+          <input class="field" style="max-width: 150px;" type="date" name="customStart" value="${filters.customStart || ''}" data-finance-custom-date>
+          <input class="field" style="max-width: 150px;" type="date" name="customEnd" value="${filters.customEnd || ''}" data-finance-custom-date>
+        ` : ''}
         <button class="button button--ghost button--small" type="button">Todos os tipos</button>
         <button class="button button--ghost button--small" type="button">Categoria</button>
         <button class="button button--ghost button--small" type="button">Status</button>
@@ -199,6 +245,11 @@ function renderFinancialTable(transactions, categories) {
       </div>
     </section>
   `;
+}
+
+function renderPeriodFilterButton(period, label, filters) {
+  const activeClass = filters.period === period ? ' button--active' : '';
+  return `<button class="button button--ghost button--small${activeClass}" type="button" data-finance-period="${period}">${label}</button>`;
 }
 
 function renderFinancialRow(transaction, categories) {
