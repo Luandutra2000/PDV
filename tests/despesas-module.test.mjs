@@ -80,6 +80,119 @@ assert(html.includes('data-finance-period="today"'));
 assert(html.includes('data-finance-period="yesterday"'));
 assert(html.includes('data-finance-period="month"'));
 assert(html.includes('data-finance-period="custom"'));
+assert(html.includes('data-finance-filter="type"'));
+assert(html.includes('data-finance-filter="categoryId"'));
+assert(html.includes('data-finance-filter="status"'));
+
+const filteredHtml = renderFinanceiroMarkup({
+  summary: {
+    entriesTotal: 0,
+    outputsTotal: 0,
+    balance: 0,
+    payablesCount: 0,
+    paidBillsCount: 0,
+    overdueCount: 0
+  },
+  categories: [
+    { id: 'reforco-caixa', name: 'Reforco de caixa', type: 'income' },
+    { id: 'fornecedor', name: 'Fornecedor', type: 'expense' }
+  ],
+  transactions: [
+    {
+      id: 'fin-income',
+      type: 'income',
+      description: 'Troco',
+      amount: 100,
+      categoryId: 'reforco-caixa',
+      status: 'paid',
+      transactionDate: '2026-06-15'
+    },
+    {
+      id: 'fin-expense',
+      type: 'expense',
+      description: 'Boleto fornecedor',
+      amount: 220,
+      categoryId: 'fornecedor',
+      status: 'pending',
+      transactionDate: '2026-06-15'
+    }
+  ],
+  payables: { pending: [], overdue: [], upcoming: [] },
+  crm: {
+    outputsByCategory: {},
+    entriesByCategory: {},
+    spendingByPaymentMethod: {},
+    pendingByCategory: {}
+  },
+  filters: {
+    period: 'today',
+    customStart: '',
+    customEnd: '',
+    type: 'income',
+    categoryId: 'reforco-caixa',
+    status: 'paid'
+  }
+});
+
+assert(filteredHtml.includes('Troco'));
+assert(!filteredHtml.includes('Boleto fornecedor'));
+
+store.clear();
+storage.setItem('pdv.users', [{
+  id: 'admin-1',
+  name: 'Administrador',
+  username: 'admin',
+  password: '1234',
+  role: 'admin',
+  active: true
+}]);
+storage.setItem('pdv.currentSession', { userId: 'admin-1', startedAt: '2026-06-15T10:00:00.000Z' });
+storage.setItem('pdv.financialTransactions', [
+  {
+    id: 'fin-income-change',
+    type: 'income',
+    description: 'Troco',
+    amount: 100,
+    categoryId: 'reforco-caixa',
+    status: 'paid',
+    transactionDate: '2026-06-15'
+  },
+  {
+    id: 'fin-expense-change',
+    type: 'expense',
+    description: 'Conta fornecedor',
+    amount: 150,
+    categoryId: 'fornecedor',
+    status: 'paid',
+    transactionDate: '2026-06-15'
+  }
+]);
+
+const filterListeners = {};
+const filterContainer = {
+  innerHTML: '',
+  addEventListener(type, handler) {
+    filterListeners[type] = filterListeners[type] || [];
+    filterListeners[type].push(handler);
+  }
+};
+
+initDespesasModule(filterContainer);
+assert(filterContainer.innerHTML.includes('Troco'));
+assert(filterContainer.innerHTML.includes('Conta fornecedor'));
+
+filterListeners.change[0]({
+  target: {
+    name: 'type',
+    value: 'income',
+    matches(selector) {
+      return selector === '[data-finance-filter]';
+    }
+  }
+});
+
+assert(filterContainer.innerHTML.includes('Troco'));
+assert(!filterContainer.innerHTML.includes('Conta fornecedor'));
 
 const customHtml = renderFinanceiroMarkup({
   summary: {

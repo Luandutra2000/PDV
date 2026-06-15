@@ -14,7 +14,10 @@ import { showNotification } from '../../services/notification.service.js';
 const DEFAULT_FILTERS = {
   period: 'today',
   customStart: '',
-  customEnd: ''
+  customEnd: '',
+  type: 'all',
+  categoryId: 'all',
+  status: 'all'
 };
 
 let financeiroFilters = { ...DEFAULT_FILTERS };
@@ -53,7 +56,11 @@ export function getFinanceiroState() {
 }
 
 export function renderFinanceiroMarkup({ summary, categories, transactions, payables, crm, filters = DEFAULT_FILTERS, modal = null }) {
-  const activeTransactions = transactions.filter((transaction) => transaction.status !== 'canceled');
+  const normalizedFilters = { ...DEFAULT_FILTERS, ...filters };
+  const activeTransactions = applyTableFilters(
+    transactions.filter((transaction) => transaction.status !== 'canceled'),
+    normalizedFilters
+  );
 
   return `
     <section class="module-screen finance-screen" data-financeiro-screen>
@@ -79,7 +86,7 @@ export function renderFinanceiroMarkup({ summary, categories, transactions, paya
       </div>
 
       <div class="history-grid finance-grid">
-        ${renderFinancialTable(activeTransactions, categories, filters)}
+        ${renderFinancialTable(activeTransactions, categories, normalizedFilters)}
         ${renderPayablesPanel(payables)}
       </div>
 
@@ -147,16 +154,23 @@ function bindFinanceiroEvents(container) {
   });
 
   container.addEventListener('change', (event) => {
-    if (!event.target.matches('[data-finance-custom-date]')) {
+    if (event.target.matches('[data-finance-filter]')) {
+      financeiroFilters = {
+        ...financeiroFilters,
+        [event.target.name]: event.target.value
+      };
+      renderFinanceiro(container);
       return;
     }
 
-    financeiroFilters = {
-      ...financeiroFilters,
-      period: 'custom',
-      [event.target.name]: event.target.value
-    };
-    renderFinanceiro(container);
+    if (event.target.matches('[data-finance-custom-date]')) {
+      financeiroFilters = {
+        ...financeiroFilters,
+        period: 'custom',
+        [event.target.name]: event.target.value
+      };
+      renderFinanceiro(container);
+    }
   });
 
   container.addEventListener('submit', (event) => {
@@ -224,9 +238,9 @@ function renderFinancialTable(transactions, categories, filters) {
           <input class="field" style="max-width: 150px;" type="date" name="customStart" value="${filters.customStart || ''}" data-finance-custom-date>
           <input class="field" style="max-width: 150px;" type="date" name="customEnd" value="${filters.customEnd || ''}" data-finance-custom-date>
         ` : ''}
-        <button class="button button--ghost button--small" type="button">Todos os tipos</button>
-        <button class="button button--ghost button--small" type="button">Categoria</button>
-        <button class="button button--ghost button--small" type="button">Status</button>
+        ${renderTypeFilter(filters)}
+        ${renderCategoryFilter(categories, filters)}
+        ${renderStatusFilter(filters)}
       </div>
       <div class="product-table">
         <table>
@@ -255,6 +269,49 @@ function renderFinancialTable(transactions, categories, filters) {
 function renderPeriodFilterButton(period, label, filters) {
   const activeClass = filters.period === period ? ' button--active' : '';
   return `<button class="button button--ghost button--small${activeClass}" type="button" data-finance-period="${period}">${label}</button>`;
+}
+
+function renderTypeFilter(filters) {
+  return `
+    <select class="field" style="width: auto; min-width: 118px; min-height: 34px; padding: 0 12px; font-size: 13px; font-weight: 800;" name="type" data-finance-filter="type">
+      <option value="all"${isSelected(filters.type, 'all')}>Todos os tipos</option>
+      <option value="income"${isSelected(filters.type, 'income')}>Entrada</option>
+      <option value="expense"${isSelected(filters.type, 'expense')}>Saida</option>
+    </select>
+  `;
+}
+
+function renderCategoryFilter(categories, filters) {
+  return `
+    <select class="field" style="width: auto; min-width: 118px; min-height: 34px; padding: 0 12px; font-size: 13px; font-weight: 800;" name="categoryId" data-finance-filter="categoryId">
+      <option value="all"${isSelected(filters.categoryId, 'all')}>Categoria</option>
+      ${categories.map((category) => `<option value="${category.id}"${isSelected(filters.categoryId, category.id)}>${category.name}</option>`).join('')}
+    </select>
+  `;
+}
+
+function renderStatusFilter(filters) {
+  return `
+    <select class="field" style="width: auto; min-width: 118px; min-height: 34px; padding: 0 12px; font-size: 13px; font-weight: 800;" name="status" data-finance-filter="status">
+      <option value="all"${isSelected(filters.status, 'all')}>Status</option>
+      <option value="paid"${isSelected(filters.status, 'paid')}>Pago</option>
+      <option value="pending"${isSelected(filters.status, 'pending')}>Pendente</option>
+      <option value="overdue"${isSelected(filters.status, 'overdue')}>Vencida</option>
+    </select>
+  `;
+}
+
+function applyTableFilters(transactions, filters) {
+  return transactions.filter((transaction) => {
+    const typeMatches = filters.type === 'all' || transaction.type === filters.type;
+    const categoryMatches = filters.categoryId === 'all' || transaction.categoryId === filters.categoryId;
+    const statusMatches = filters.status === 'all' || transaction.status === filters.status;
+    return typeMatches && categoryMatches && statusMatches;
+  });
+}
+
+function isSelected(value, expected) {
+  return value === expected ? ' selected' : '';
 }
 
 function renderFinancialRow(transaction, categories) {
