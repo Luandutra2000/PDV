@@ -1,3 +1,4 @@
+import { getUsers } from '../../services/auth.service.js';
 import { getCategories, getProductById, getShowcaseCategories, getShowcaseProducts } from '../../services/product.service.js';
 import {
   cancelStockLaunch,
@@ -486,7 +487,7 @@ function renderMovementHistory(movements) {
                 <td>${movement.previousQuantity}</td>
                 <td>${movement.newQuantity}</td>
                 <td>${movement.saleId || movement.commandId || '-'}</td>
-                <td>${movement.userId || '-'}</td>
+                <td>${resolveShowcaseMovementUserName(movement.userId)}</td>
                 <td>${formatDate(movement.createdAt)}</td>
               </tr>
             `).join('')}
@@ -572,6 +573,15 @@ function formatMovementType(type) {
   };
 
   return labels[type] || type;
+}
+
+export function resolveShowcaseMovementUserName(userId) {
+  if (!userId) {
+    return '-';
+  }
+
+  const user = getUsers().find((item) => item.id === userId);
+  return user?.name || userId;
 }
 
 function renderPeriodOptions() {
