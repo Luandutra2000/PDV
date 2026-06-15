@@ -12,6 +12,8 @@ import { showNotification } from '../../services/notification.service.js';
 import { createShowcaseWriteOff, getTodayShowcaseProducts } from '../../services/estoque.service.js';
 import { getFinancialCategories } from '../../services/financial.service.js';
 import { getShowcaseStockByProductId } from '../../services/showcase-stock.service.js';
+import { on } from '../../services/event-bus.service.js';
+import { UI_EVENTS } from '../../database/schema.js';
 
 const CATEGORY_ALL = 'todos';
 const CATEGORY_FAVORITES = '__favoritos';
@@ -36,6 +38,11 @@ export function initVendasModule(container) {
 
   if (!boundContainers.has(container)) {
     bindEvents(container);
+    on(UI_EVENTS.showcaseStockChanged, () => {
+      if (container.querySelector('.pdv-screen')) {
+        renderProducts(container);
+      }
+    });
     boundContainers.add(container);
   }
 }

@@ -10,12 +10,14 @@ import {
 } from '../../services/estoque.service.js';
 import { showNotification } from '../../services/notification.service.js';
 import { hydrateOnlineOperationalData } from '../../services/online-data.service.js';
+import { on } from '../../services/event-bus.service.js';
 import {
   getActiveOutOfStockSales,
   getShowcaseMovements,
   getShowcaseStock,
   getShowcaseStockByProductId
 } from '../../services/showcase-stock.service.js';
+import { UI_EVENTS } from '../../database/schema.js';
 import { formatCurrency } from '../../utils/currency.js';
 
 const estoqueState = {
@@ -35,6 +37,11 @@ export function initEstoqueModule(container) {
 
   if (!boundContainers.has(container)) {
     bindEstoqueEvents(container);
+    on(UI_EVENTS.showcaseDataChanged, () => {
+      if (container.querySelector('[data-estoque-screen]')) {
+        renderEstoque(container);
+      }
+    });
     boundContainers.add(container);
   }
 }

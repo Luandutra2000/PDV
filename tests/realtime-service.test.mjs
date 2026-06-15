@@ -4,6 +4,8 @@ const assert = (condition, message) => {
   }
 };
 
+import { readFileSync } from 'node:fs';
+
 const { SYNC_EVENTS, UI_EVENTS } = await import('../src/database/schema.js');
 const { emit, on } = await import('../src/services/event-bus.service.js');
 const realtime = await import('../src/services/realtime.service.js');
@@ -23,5 +25,9 @@ realtime.initRealtimeService();
 emit(SYNC_EVENTS.cashMovementRegistered, { id: 'cash-test' });
 
 assert(received?.id === 'cash-test', 'realtime bridge should republish cash movement events to mobile feed updates');
+
+const source = readFileSync(new URL('../src/services/realtime.service.js', import.meta.url), 'utf8');
+assert(source.includes('startShowcaseRealtime'), 'realtime service should start showcase realtime sync');
+assert(source.includes('isSupabaseEnabled()'), 'showcase realtime should only start when Supabase is enabled');
 
 console.log('realtime service ok');

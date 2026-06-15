@@ -213,7 +213,8 @@ function bindRealtimeRefresh(workspace) {
     on(UI_EVENTS.mobileFeedChanged, () => renderIfActive(workspace)),
     on(UI_EVENTS.cashSummaryChanged, () => renderIfActive(workspace)),
     on(UI_EVENTS.financialSyncStatusChanged, () => renderIfActive(workspace)),
-    on(UI_EVENTS.productSyncStatusChanged, () => renderIfActive(workspace))
+    on(UI_EVENTS.productSyncStatusChanged, () => renderIfActive(workspace)),
+    on(UI_EVENTS.showcaseDataChanged, () => renderIfActive(workspace))
   ];
   subscribedWorkspace = workspace;
 }
