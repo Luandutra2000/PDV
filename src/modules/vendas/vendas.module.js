@@ -11,6 +11,7 @@ import { qs } from '../../utils/dom.js';
 import { showNotification } from '../../services/notification.service.js';
 import { createShowcaseWriteOff, getTodayShowcaseProducts } from '../../services/estoque.service.js';
 import { getFinancialCategories } from '../../services/financial.service.js';
+import { getShowcaseStockByProductId } from '../../services/showcase-stock.service.js';
 
 const CATEGORY_ALL = 'todos';
 const CATEGORY_FAVORITES = '__favoritos';
@@ -113,6 +114,7 @@ function bindEvents(container) {
 
     if (actionButton?.dataset.action === 'add-product') {
       const product = getProductById(actionButton.dataset.productId);
+      warnIfProductOutOfStock(product);
       addItem(product);
       renderComanda(container);
       return;
@@ -121,6 +123,7 @@ function bindEvents(container) {
     if (actionButton?.dataset.action === 'quick-add') {
       try {
         const product = getProductById(actionButton.dataset.productId);
+        warnIfProductOutOfStock(product);
         addItemQuantity(product, actionButton.dataset.quantity);
         renderComanda(container);
       } catch (error) {
@@ -263,7 +266,9 @@ function bindEvents(container) {
       const data = new FormData(event.target);
 
       try {
-        addItemQuantity(getProductById(state.quantityProductId), data.get('quantity'));
+        const product = getProductById(state.quantityProductId);
+        warnIfProductOutOfStock(product);
+        addItemQuantity(product, data.get('quantity'));
         state.modal = null;
         state.quantityProductId = null;
         renderComanda(container);
@@ -350,7 +355,8 @@ function renderProducts(container) {
 
   target.innerHTML = products.map((product) => {
     const category = categories.find((item) => item.id === product.categoryId);
-    return renderProductCard(product, category ? category.name : 'Sem categoria');
+    const showcaseStock = getShowcaseStockByProductId(product.id).quantityAvailable;
+    return renderProductCard({ ...product, showcaseStock }, category ? category.name : 'Sem categoria');
   }).join('');
 }
 
@@ -849,5 +855,22 @@ function getPaymentLabel(method) {
 function setActiveSalesMenu() {
   document.querySelectorAll('[data-menu-id]').forEach((item) => {
     item.classList.toggle('is-active', item.dataset.menuId === 'frente-caixa');
+  });
+}
+
+function warnIfProductOutOfStock(product) {
+  if (!product) {
+    return;
+  }
+
+  const stock = getShowcaseStockByProductId(product.id).quantityAvailable;
+  if (stock > 0) {
+    return;
+  }
+
+  showNotification({
+    title: 'Produto sem estoque',
+    message: 'Atencao: este produto esta sem estoque na vitrine.',
+    type: 'warning'
   });
 }

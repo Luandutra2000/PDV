@@ -1,12 +1,17 @@
 import { formatCurrency } from '../utils/currency.js';
 
 export function renderProductCard(product, categoryName = '') {
+  const stock = Number(product.showcaseStock ?? product.stock ?? 0);
+  const visibleStock = Math.max(stock, 0);
+  const isEmpty = visibleStock <= 0;
+
   return `
-    <article class="product-card" data-product-card data-product-id="${product.id}">
+    <article class="product-card ${isEmpty ? 'product-card--empty-stock' : ''}" data-product-card data-product-id="${product.id}" data-stock-state="${isEmpty ? 'empty' : 'available'}">
       <button class="product-card__main" type="button" data-action="add-product" data-product-id="${product.id}">
         <span>
           <h3 class="product-card__name">${product.name}</h3>
-          <span class="product-card__meta">${categoryName} - Estoque ${product.stock}</span>
+          <span class="product-card__meta">${categoryName} - Estoque ${visibleStock}</span>
+          ${isEmpty ? '<span class="stock-badge stock-badge--empty">Sem estoque</span>' : ''}
         </span>
         <strong class="product-card__price">${formatCurrency(product.price)}</strong>
       </button>

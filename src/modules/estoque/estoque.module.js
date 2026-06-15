@@ -10,6 +10,12 @@ import {
 } from '../../services/estoque.service.js';
 import { showNotification } from '../../services/notification.service.js';
 import { hydrateOnlineOperationalData } from '../../services/online-data.service.js';
+import {
+  getActiveOutOfStockSales,
+  getShowcaseMovements,
+  getShowcaseStock,
+  getShowcaseStockByProductId
+} from '../../services/showcase-stock.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 
 const estoqueState = {
@@ -37,6 +43,7 @@ function renderEstoque(container) {
   const filters = getFilters();
   const summary = getStockSummary(filters);
   const launches = getStockLaunches(filters);
+  const liveSummary = getShowcaseLiveSummary(filters);
 
   container.innerHTML = `
     <section class="module-screen products-module" data-estoque-screen>
@@ -62,14 +69,19 @@ function renderEstoque(container) {
       ` : ''}
 
       <div class="summary-grid stock-summary-grid">
-        ${renderSummaryCard('Vitrine estimada', Math.max(0, summary.valueDifference), true)}
-        ${renderSummaryCard('Unidades na vitrine', summary.producedUnits)}
+        ${renderSummaryCard('Estoque atual', liveSummary.availableUnits)}
+        ${renderSummaryCard('Vitrine estimada', liveSummary.estimatedValue, true)}
+        ${renderSummaryCard('Produzido hoje', liveSummary.producedUnits)}
+        ${renderSummaryCard('Vendido hoje', liveSummary.soldUnits)}
+        ${renderSummaryCard('Vendido sem estoque', liveSummary.outOfStockUnits)}
+        ${renderSummaryCard('Produtos zerados', liveSummary.zeroProducts)}
         ${renderSummaryCard('Produtos diferentes', summary.uniqueProducts)}
         ${renderSummaryCard('Vendido em comandas', summary.salesValue, true)}
-        ${renderSummaryCard('Qtd. vendida', summary.soldUnits)}
         ${renderSummaryCard('Valor produzido', summary.estimatedProductionValue, true)}
         ${renderSummaryCard('Sobra estimada', summary.quantityBalance)}
       </div>
+
+      ${renderLiveShowcase(liveSummary)}
 
       <section class="manager-section">
         <header class="manager-section__header">
@@ -99,6 +111,8 @@ function renderEstoque(container) {
           ${renderComparison(filters)}
         </div>
       </section>
+
+      ${renderMovementHistory(liveSummary.movements)}
     </section>
   `;
 }
@@ -313,6 +327,43 @@ function renderLaunchRows(launches) {
   `).join('');
 }
 
+function renderLiveShowcase(liveSummary) {
+  if (!liveSummary.stockRows.length) {
+    return `
+      <section class="manager-section">
+        <header class="manager-section__header">
+          <strong>Estoque atual da vitrine</strong>
+          <span>Nenhum produto com saldo</span>
+        </header>
+        <div class="empty-products product-empty-large">SEM ESTOQUE REGISTRADO NA VITRINE</div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="manager-section">
+      <header class="manager-section__header">
+        <strong>Estoque atual da vitrine</strong>
+        <span>${liveSummary.zeroProducts ? `${liveSummary.zeroProducts} produto(s) zerado(s)` : 'Todos com saldo'}</span>
+      </header>
+      <div class="live-stock-list">
+        ${liveSummary.stockRows.map((item) => `
+          <article class="live-stock-row ${item.quantityAvailable <= 0 ? 'live-stock-row--empty' : ''}">
+            <div>
+              <strong>${item.productName}</strong>
+              <span>${item.categoryName}</span>
+            </div>
+            <div>
+              <strong>${item.quantityAvailable}</strong>
+              <span>${item.quantityAvailable <= 0 ? 'Sem estoque' : 'Disponivel'}</span>
+            </div>
+          </article>
+        `).join('')}
+      </div>
+    </section>
+  `;
+}
+
 function getLaunchableProducts(launch = null) {
   const products = getShowcaseProducts();
 
@@ -386,8 +437,134 @@ function renderComparisonCounters(filters) {
   `;
 }
 
+function renderMovementHistory(movements) {
+  if (!movements.length) {
+    return `
+      <section class="manager-section">
+        <header class="manager-section__header">
+          <strong>Historico da vitrine ${getPeriodLabel()}</strong>
+          <span>0 movimentos</span>
+        </header>
+        <div class="empty-products product-empty-large">SEM MOVIMENTACAO NO PERIODO</div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="manager-section">
+      <header class="manager-section__header">
+        <strong>Historico da vitrine ${getPeriodLabel()}</strong>
+        <span>${movements.length} movimento(s)</span>
+      </header>
+      <div class="comparison-table">
+        <table class="showcase-movement-table">
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Tipo</th>
+              <th>Quantidade</th>
+              <th>Anterior</th>
+              <th>Novo</th>
+              <th>Venda/comanda</th>
+              <th>Usuario</th>
+              <th>Horario</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${movements.slice(0, 30).map((movement) => `
+              <tr>
+                <td><strong>${movement.productName}</strong></td>
+                <td>${formatMovementType(movement.movementType)}</td>
+                <td>${movement.quantity}</td>
+                <td>${movement.previousQuantity}</td>
+                <td>${movement.newQuantity}</td>
+                <td>${movement.saleId || movement.commandId || '-'}</td>
+                <td>${movement.userId || '-'}</td>
+                <td>${formatDate(movement.createdAt)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
 function renderSummaryCard(label, value, isCurrency = false) {
   return `<article class="summary-card"><span>${label}</span><strong>${isCurrency ? formatCurrency(value) : value}</strong></article>`;
+}
+
+function getShowcaseLiveSummary(filters) {
+  const productIds = new Set([
+    ...getShowcaseProducts().map((product) => product.id),
+    ...getShowcaseStock().map((item) => item.productId)
+  ]);
+  const stockRows = [...productIds]
+    .map((productId) => {
+      const product = getProductById(productId);
+      const stock = getShowcaseStockByProductId(productId);
+
+      return {
+        productId,
+        productName: product?.name || 'Produto removido',
+        categoryName: product ? getCategoryName(product.categoryId) : 'Sem categoria',
+        quantityAvailable: Math.max(Number(stock.quantityAvailable || 0), 0),
+        estimatedValue: Math.max(Number(stock.quantityAvailable || 0), 0) * Number(product?.price || 0),
+        updatedAt: stock.updatedAt
+      };
+    })
+    .sort((left, right) => {
+      if (left.quantityAvailable <= 0 && right.quantityAvailable > 0) {
+        return -1;
+      }
+
+      if (left.quantityAvailable > 0 && right.quantityAvailable <= 0) {
+        return 1;
+      }
+
+      return left.productName.localeCompare(right.productName, 'pt-BR');
+    });
+  const movements = getShowcaseMovements()
+    .filter((movement) => isInSelectedPeriod(movement.createdAt, filters.period || 'today', filters))
+    .map((movement) => {
+      const product = getProductById(movement.productId);
+
+      return {
+        ...movement,
+        productName: product?.name || 'Produto removido'
+      };
+    })
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+  const activeOutOfStock = getActiveOutOfStockSales()
+    .filter((item) => isInSelectedPeriod(item.createdAt, filters.period || 'today', filters));
+
+  return {
+    stockRows,
+    movements,
+    availableUnits: stockRows.reduce((total, item) => total + item.quantityAvailable, 0),
+    estimatedValue: stockRows.reduce((total, item) => total + item.estimatedValue, 0),
+    zeroProducts: stockRows.filter((item) => item.quantityAvailable <= 0).length,
+    producedUnits: movements
+      .filter((movement) => movement.movementType === 'entrada_producao' && movement.status !== 'estornada')
+      .reduce((total, movement) => total + Number(movement.quantity || 0), 0),
+    soldUnits: movements
+      .filter((movement) => movement.movementType === 'saida_venda' && movement.status !== 'estornada')
+      .reduce((total, movement) => total + Number(movement.quantity || 0), 0),
+    outOfStockUnits: activeOutOfStock.reduce((total, item) => total + Number(item.quantity || 0), 0)
+  };
+}
+
+function formatMovementType(type) {
+  const labels = {
+    entrada_producao: 'Entrada de producao',
+    saida_venda: 'Baixa por venda',
+    ajuste_manual: 'Ajuste manual',
+    venda_sem_estoque: 'Venda sem estoque',
+    estorno_venda: 'Estorno de venda',
+    estorno_sem_estoque: 'Estorno sem estoque'
+  };
+
+  return labels[type] || type;
 }
 
 function renderPeriodOptions() {
@@ -504,6 +681,39 @@ function formatDate(value) {
     hour: '2-digit',
     minute: '2-digit'
   });
+}
+
+function isInSelectedPeriod(value, period, filters = {}) {
+  if (!value || period === 'all') {
+    return true;
+  }
+
+  const date = new Date(value);
+  const now = new Date();
+
+  if (period === 'custom') {
+    const start = filters.customStart ? new Date(`${filters.customStart}T00:00:00`) : null;
+    const end = filters.customEnd ? new Date(`${filters.customEnd}T23:59:59`) : null;
+
+    return (!start || date >= start) && (!end || date <= end);
+  }
+
+  if (period === 'month') {
+    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+  }
+
+  if (period === 'yesterday') {
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+
+    return date.toDateString() === yesterday.toDateString();
+  }
+
+  if (period === 'year') {
+    return date.getFullYear() === now.getFullYear();
+  }
+
+  return date.toDateString() === now.toDateString();
 }
 
 function formatNumberInput(value) {
