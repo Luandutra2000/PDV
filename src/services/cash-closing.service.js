@@ -5,7 +5,7 @@ import { getCurrentUser } from './auth.service.js';
 import { assertPermission } from './permission.service.js';
 import { recordAudit } from './audit.service.js';
 import { getItem, setItem } from './storage.service.js';
-import { getTransactions } from './transaction.service.js';
+import { getClosedComandas, getTransactions } from './transaction.service.js';
 import { isSupabaseEnabled } from './app-config.service.js';
 import { saveCashClosingToSupabase } from './financial-sync.service.js';
 import { getActiveOutOfStockSales } from './showcase-stock.service.js';
@@ -217,6 +217,8 @@ function getClosingTransactions() {
 
 function buildOutOfStockClosingRows() {
   const categories = getCategories();
+  const transactions = getTransactions();
+  const closedComandas = getClosedComandas();
 
   return getActiveOutOfStockSales().map((item) => {
     const product = getProductById(item.productId);
@@ -232,9 +234,26 @@ function buildOutOfStockClosingRows() {
       createdAt: item.createdAt,
       saleId: item.saleId,
       commandId: item.commandId,
+      commandReference: resolveCommandReference(item, transactions, closedComandas),
       userId: item.userId
     };
   });
+}
+
+function resolveCommandReference(item, transactions, closedComandas) {
+  const command = item.commandId
+    ? closedComandas.find((candidate) => candidate.id === item.commandId)
+    : null;
+  const sale = item.saleId
+    ? transactions.find((candidate) => candidate.id === item.saleId)
+    : null;
+  const commandNumber = command?.number || sale?.comandaNumber;
+
+  if (commandNumber) {
+    return `Comanda ${String(commandNumber).padStart(4, '0')}`;
+  }
+
+  return item.commandId || item.saleId || '-';
 }
 
 function sumPayment(sales, paymentMethod) {

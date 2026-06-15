@@ -19,6 +19,7 @@ import {
   getShowcaseStockByProductId
 } from '../../services/showcase-stock.service.js';
 import { UI_EVENTS } from '../../database/schema.js';
+import { getClosedComandas, getTransactions } from '../../services/transaction.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 
 const estoqueState = {
@@ -486,7 +487,7 @@ function renderMovementHistory(movements) {
                 <td>${movement.quantity}</td>
                 <td>${movement.previousQuantity}</td>
                 <td>${movement.newQuantity}</td>
-                <td>${movement.saleId || movement.commandId || '-'}</td>
+                <td>${resolveShowcaseMovementCommandReference(movement)}</td>
                 <td>${resolveShowcaseMovementUserName(movement.userId)}</td>
                 <td>${formatDate(movement.createdAt)}</td>
               </tr>
@@ -582,6 +583,24 @@ export function resolveShowcaseMovementUserName(userId) {
 
   const user = getUsers().find((item) => item.id === userId);
   return user?.name || userId;
+}
+
+export function resolveShowcaseMovementCommandReference(movement = {}) {
+  const commandId = movement.commandId || '';
+  const saleId = movement.saleId || '';
+  const command = commandId
+    ? getClosedComandas().find((item) => item.id === commandId)
+    : null;
+  const sale = saleId
+    ? getTransactions().find((item) => item.id === saleId)
+    : null;
+  const commandNumber = command?.number || sale?.comandaNumber;
+
+  if (commandNumber) {
+    return `Comanda ${formatComandaNumber(commandNumber)}`;
+  }
+
+  return commandId || saleId || '-';
 }
 
 function renderPeriodOptions() {
@@ -698,6 +717,10 @@ function formatDate(value) {
     hour: '2-digit',
     minute: '2-digit'
   });
+}
+
+function formatComandaNumber(number) {
+  return String(number || 0).padStart(4, '0');
 }
 
 function isInSelectedPeriod(value, period, filters = {}) {

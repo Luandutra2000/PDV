@@ -44,7 +44,7 @@ estoque.createStockLaunch({ produtoId: soda.id, quantidade: 5 });
 comandas.clearComanda();
 comandas.addItem(burger);
 comandas.addItem(burger);
-transactions.finalizeComandaPayment({ paymentMethod: 'dinheiro', receivedAmount: 40 });
+const cashSale = transactions.finalizeComandaPayment({ paymentMethod: 'dinheiro', receivedAmount: 40 });
 
 comandas.addItem(soda);
 transactions.finalizeComandaPayment({ paymentMethod: 'pix' });
@@ -70,7 +70,7 @@ estoque.createShowcaseWriteOff({
 showcaseStock.applySaleToShowcase({
   operationId: 'sale-sem-estoque',
   saleId: 'sale-sem-estoque',
-  commandId: 'cmd-sem-estoque',
+  commandId: cashSale.comandaId,
   userId: adminSession.user.id,
   createdAt: new Date().toISOString(),
   items: [{ productId: burger.id, quantity: 20, unitPrice: burger.price, total: burger.price * 20 }]
@@ -99,7 +99,8 @@ assert(summary.outOfStockSales[0].categoryName === 'Lanches', 'out-of-stock clos
 assert(summary.outOfStockSales[0].quantity === 13, 'out-of-stock closing row should include missing quantity');
 assert(summary.outOfStockSales[0].unitPrice === burger.price, 'out-of-stock closing row should include unit price');
 assert(summary.outOfStockSales[0].totalPrice === burger.price * 13, 'out-of-stock closing row should include total price');
-assert(summary.outOfStockSales[0].commandId === 'cmd-sem-estoque', 'out-of-stock closing row should include command id');
+assert(summary.outOfStockSales[0].commandId === cashSale.comandaId, 'out-of-stock closing row should include command id');
+assert(summary.outOfStockSales[0].commandReference === 'Comanda 0001', 'out-of-stock closing row should display command number');
 assert(summary.outOfStockSales[0].userId === adminSession.user.id, 'out-of-stock closing row should include user id');
 
 const draft = closing.saveClosingDraft({

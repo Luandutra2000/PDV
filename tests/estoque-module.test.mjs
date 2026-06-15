@@ -1,6 +1,9 @@
 import { STORAGE_KEYS } from '../src/database/schema.js';
 import { setItem } from '../src/services/storage.service.js';
-import { resolveShowcaseMovementUserName } from '../src/modules/estoque/estoque.module.js';
+import {
+  resolveShowcaseMovementCommandReference,
+  resolveShowcaseMovementUserName
+} from '../src/modules/estoque/estoque.module.js';
 
 const assert = (condition, message) => {
   if (!condition) {
@@ -32,6 +35,17 @@ setItem(STORAGE_KEYS.users, [{
   role: 'admin',
   active: true
 }]);
+setItem(STORAGE_KEYS.closedComandas, [{
+  id: 'comanda-12',
+  number: 12,
+  status: 'fechada'
+}]);
+setItem(STORAGE_KEYS.transactions, [{
+  id: 'sale-13',
+  type: 'venda',
+  comandaId: 'comanda-13',
+  comandaNumber: 13
+}]);
 
 assert(
   resolveShowcaseMovementUserName('user-admin') === 'Administrador',
@@ -42,5 +56,18 @@ assert(
   'unknown showcase movement user should fall back to id'
 );
 assert(resolveShowcaseMovementUserName('') === '-', 'blank showcase movement user should display dash');
+assert(
+  resolveShowcaseMovementCommandReference({ commandId: 'comanda-12', saleId: 'sale-12' }) === 'Comanda 0012',
+  'showcase movement should display command number when command is known'
+);
+assert(
+  resolveShowcaseMovementCommandReference({ saleId: 'sale-13' }) === 'Comanda 0013',
+  'showcase movement should display command number from sale when command id is missing'
+);
+assert(
+  resolveShowcaseMovementCommandReference({ commandId: 'comanda-desconhecida', saleId: 'sale-unknown' }) === 'comanda-desconhecida',
+  'unknown showcase movement command should fall back to command id'
+);
+assert(resolveShowcaseMovementCommandReference({}) === '-', 'blank showcase movement command should display dash');
 
 console.log('estoque module ok');

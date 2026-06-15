@@ -164,7 +164,7 @@ function renderOutOfStockSales(rows = []) {
                 <td>${item.quantity}</td>
                 <td>${formatCurrency(item.unitPrice)}</td>
                 <td>${formatCurrency(item.totalPrice)}</td>
-                <td>${item.commandId || item.saleId}</td>
+                <td>${item.commandReference || item.commandId || item.saleId}</td>
                 <td>${item.userName || item.userId || 'Sistema'}</td>
               </tr>
             `).join('')}
