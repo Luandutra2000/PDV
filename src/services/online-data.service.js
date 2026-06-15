@@ -4,7 +4,7 @@ import { hydrateDataProvider } from './data-provider.service.js';
 import { flushDataProvider } from './data-provider.service.js';
 import { syncCatalogNow } from './product.service.js';
 import { flushFinancialQueue, hydrateFinancialData } from './financial-sync.service.js';
-import { flushShowcaseQueue, hydrateShowcaseData } from './showcase-sync.service.js';
+import { flushShowcaseQueue, getShowcaseSyncStatus, hydrateShowcaseData } from './showcase-sync.service.js';
 
 const OPERATIONAL_KEYS = [
   STORAGE_KEYS.stockLaunches,
@@ -22,9 +22,10 @@ export async function hydrateOnlineOperationalData({ catalog = false, financial 
 
   if (showcase) {
     await hydrateDataProvider(OPERATIONAL_KEYS);
-    await hydrateShowcaseData();
     await flushShowcaseQueue();
-    await hydrateShowcaseData();
+    if (getShowcaseSyncStatus().pending === 0) {
+      await hydrateShowcaseData();
+    }
   }
 
   if (financial) {

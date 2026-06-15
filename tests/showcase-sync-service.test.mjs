@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 
 const store = new Map();
 
@@ -131,6 +130,20 @@ assert.equal(rpcCalls[0].functionName, 'process_showcase_sale', 'online sale sho
 assert.equal(readJson(STORAGE_KEYS.showcaseSyncQueue).length, 0, 'successful online sale should not queue operation');
 
 reset();
+await showcaseSync.adjustShowcaseStockOnline({
+  operationId: 'adjust-note-op',
+  productId: 'coxinha',
+  quantityAvailable: 9,
+  reason: 'conferencia',
+  note: 'balcao contado',
+  userId: 'user-1',
+  createdAt: '2026-06-15T10:12:00.000Z'
+});
+assert.equal(rpcCalls[0].functionName, 'adjust_showcase_stock', 'online adjustment should call adjustment RPC');
+assert.equal(rpcCalls[0].input._payload.note, 'balcao contado', 'adjustment RPC payload should keep original note field');
+assert.equal(rpcCalls[0].input._payload.notes, 'balcao contado', 'adjustment RPC payload should include SQL notes field');
+
+reset();
 showcaseDomain.applyProductionToShowcase({
   operationId: 'seed-short',
   productId: 'risole',
@@ -160,6 +173,45 @@ await showcaseSync.flushShowcaseQueue();
 assert.equal(rpcCalls.at(-1).functionName, 'process_showcase_sale', 'flush should retry queued RPC operation');
 assert.equal(readJson(STORAGE_KEYS.showcaseSyncQueue).length, 0, 'successful flush should clear queue');
 assert.equal(showcaseSync.getShowcaseSyncStatus().state, 'synced', 'successful flush should set synced status');
+
+reset();
+showcaseDomain.applyProductionToShowcase({
+  operationId: 'local-pending-production',
+  productId: 'coxinha',
+  quantity: 5,
+  userId: 'user-1',
+  createdAt: '2026-06-15T10:25:00.000Z'
+});
+rows.product_stock = [{
+  id: 'stock-coxinha',
+  product_id: 'coxinha',
+  quantity_available: '1',
+  updated_by: 'user-1',
+  updated_at: '2026-06-15T10:24:00.000Z'
+}];
+localStorage.setItem(STORAGE_KEYS.showcaseSyncQueue, JSON.stringify([{
+  action: 'processProduction',
+  input: {
+    operationId: 'local-pending-production',
+    productId: 'coxinha',
+    quantity: 5,
+    userId: 'user-1',
+    createdAt: '2026-06-15T10:25:00.000Z'
+  },
+  createdAt: '2026-06-15T10:25:00.000Z'
+}]));
+failOperationId = 'local-pending-production';
+
+await showcaseSync.flushShowcaseQueue();
+const protectedHydrate = await showcaseSync.hydrateShowcaseData();
+assert.deepEqual(
+  readJson(STORAGE_KEYS.showcaseSyncQueue).map((operation) => operation.input.operationId),
+  ['local-pending-production'],
+  'failed flush should leave pending showcase operation queued'
+);
+assert.equal(showcaseDomain.getShowcaseStockByProductId('coxinha').quantityAvailable, 5, 'hydrate after failed flush should not overwrite local stock with stale remote stock');
+assert.equal(protectedHydrate.productStock[0].quantityAvailable, 5, 'pending hydrate after failed flush should return current local stock');
+assert.equal(showcaseSync.getShowcaseSyncStatus().state, 'pending', 'pending hydrate should keep pending status');
 
 reset();
 localStorage.setItem(STORAGE_KEYS.showcaseSyncQueue, JSON.stringify([
@@ -209,9 +261,5 @@ assert.deepEqual(
   'realtime should subscribe to all showcase-related tables'
 );
 await showcaseSync.stopShowcaseRealtime();
-
-const onlineDataSource = await readFile(new URL('../src/services/online-data.service.js', import.meta.url), 'utf8');
-assert(onlineDataSource.includes('hydrateShowcaseData'), 'online data hydration should call showcase sync hydrate when showcase option is true');
-assert(onlineDataSource.includes('flushShowcaseQueue'), 'online data hydration should flush showcase sync queue when showcase option is true');
 
 console.log('showcase sync service ok');

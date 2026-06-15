@@ -56,7 +56,18 @@ export function getShowcaseSyncStatus() {
   };
 }
 
-export async function hydrateShowcaseData() {
+export async function hydrateShowcaseData({ force = false } = {}) {
+  const queue = readQueue();
+
+  if (queue.length && !force) {
+    setStatus({
+      state: 'pending',
+      pending: queue.length,
+      error: ''
+    });
+    return readShowcaseCaches();
+  }
+
   try {
     setStatus({ state: 'syncing', error: '' });
     const client = await getClient();
@@ -68,11 +79,7 @@ export async function hydrateShowcaseData() {
     emitShowcaseDataChanged({ type: 'hydrated' });
     setStatusFromQueue(readQueue());
 
-    return {
-      productStock: readJson(STORAGE_KEYS.productStock, []),
-      showcaseMovements: readJson(STORAGE_KEYS.showcaseMovements, []),
-      outOfStockSales: readJson(STORAGE_KEYS.outOfStockSales, [])
-    };
+    return readShowcaseCaches();
   } catch (error) {
     setStatus({
       state: hasCachedShowcaseData() ? 'cache' : 'error',
@@ -80,11 +87,7 @@ export async function hydrateShowcaseData() {
       error: error.message || 'Erro ao carregar estoque da vitrine.'
     });
 
-    return {
-      productStock: readJson(STORAGE_KEYS.productStock, []),
-      showcaseMovements: readJson(STORAGE_KEYS.showcaseMovements, []),
-      outOfStockSales: readJson(STORAGE_KEYS.outOfStockSales, [])
-    };
+    return readShowcaseCaches();
   }
 }
 
@@ -240,10 +243,18 @@ async function callRpc(client, action, input) {
     throw new Error(`Acao de vitrine desconhecida: ${action}`);
   }
 
-  const { error } = await client.rpc(functionName, { _payload: input });
+  const { error } = await client.rpc(functionName, { _payload: normalizeRpcInput(action, input) });
   if (error) {
     throw error;
   }
+}
+
+function normalizeRpcInput(action, input = {}) {
+  if (action === 'adjustStock' && input.note && !input.notes) {
+    return { ...input, notes: input.note };
+  }
+
+  return input;
 }
 
 function getClient() {
@@ -319,6 +330,14 @@ function hasCachedShowcaseData() {
   return readJson(STORAGE_KEYS.productStock, []).length > 0
     || readJson(STORAGE_KEYS.showcaseMovements, []).length > 0
     || readJson(STORAGE_KEYS.outOfStockSales, []).length > 0;
+}
+
+function readShowcaseCaches() {
+  return {
+    productStock: readJson(STORAGE_KEYS.productStock, []),
+    showcaseMovements: readJson(STORAGE_KEYS.showcaseMovements, []),
+    outOfStockSales: readJson(STORAGE_KEYS.outOfStockSales, [])
+  };
 }
 
 function readJson(key, fallback) {
