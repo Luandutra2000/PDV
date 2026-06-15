@@ -1,5 +1,6 @@
 import { STORAGE_KEYS } from '../database/schema.js';
 import { getProductionSalesComparison } from './estoque.service.js';
+import { getCategories, getProductById } from './product.service.js';
 import { getCurrentUser } from './auth.service.js';
 import { assertPermission } from './permission.service.js';
 import { recordAudit } from './audit.service.js';
@@ -7,6 +8,7 @@ import { getItem, setItem } from './storage.service.js';
 import { getTransactions } from './transaction.service.js';
 import { isSupabaseEnabled } from './app-config.service.js';
 import { saveCashClosingToSupabase } from './financial-sync.service.js';
+import { getActiveOutOfStockSales } from './showcase-stock.service.js';
 
 export function buildClosingSummary(input = {}) {
   const payments = buildPaymentConference(input);
@@ -25,7 +27,8 @@ export function buildClosingSummary(input = {}) {
       closedComandas: sales.length
     },
     payments,
-    showcase
+    showcase,
+    outOfStockSales: buildOutOfStockClosingRows()
   };
 }
 
@@ -210,6 +213,28 @@ export function getSalesAfterClosing(closing) {
 
 function getClosingTransactions() {
   return getTransactions().filter((transaction) => transaction.status !== 'cancelada');
+}
+
+function buildOutOfStockClosingRows() {
+  const categories = getCategories();
+
+  return getActiveOutOfStockSales().map((item) => {
+    const product = getProductById(item.productId);
+    const category = categories.find((candidate) => candidate.id === product?.categoryId);
+
+    return {
+      productId: item.productId,
+      productName: product?.name || item.productName || 'Produto removido',
+      categoryName: category?.name || 'Sem categoria',
+      quantity: Number(item.quantity) || 0,
+      unitPrice: Number(item.unitPrice) || 0,
+      totalPrice: Number(item.totalPrice) || 0,
+      createdAt: item.createdAt,
+      saleId: item.saleId,
+      commandId: item.commandId,
+      userId: item.userId
+    };
+  });
 }
 
 function sumPayment(sales, paymentMethod) {

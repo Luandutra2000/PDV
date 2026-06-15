@@ -27,6 +27,7 @@ const comandas = await import('../src/services/comanda.service.js');
 const transactions = await import('../src/services/transaction.service.js');
 const estoque = await import('../src/services/estoque.service.js');
 const closing = await import('../src/services/cash-closing.service.js');
+const showcaseStock = await import('../src/services/showcase-stock.service.js');
 const auth = await import('../src/services/auth.service.js');
 const audit = await import('../src/services/audit.service.js');
 const financial = await import('../src/services/financial-sync.service.js');
@@ -66,6 +67,15 @@ estoque.createShowcaseWriteOff({
   reason: 'consumo-interno'
 });
 
+showcaseStock.applySaleToShowcase({
+  operationId: 'sale-sem-estoque',
+  saleId: 'sale-sem-estoque',
+  commandId: 'cmd-sem-estoque',
+  userId: adminSession.user.id,
+  createdAt: new Date().toISOString(),
+  items: [{ productId: burger.id, quantity: 20, unitPrice: burger.price, total: burger.price * 20 }]
+});
+
 const summary = closing.buildClosingSummary({
   countedCash: 45,
   checkedPix: ''
@@ -83,6 +93,14 @@ assert(burgerRow.producedQuantity === 10, 'showcase should include produced quan
 assert(burgerRow.soldQuantity === 2, 'showcase should include sold quantity');
 assert(burgerRow.writeOffQuantity === 1, 'showcase should include write-off quantity');
 assert(burgerRow.expectedLeftoverQuantity === 7, 'showcase should calculate expected leftover');
+assert(summary.outOfStockSales.length === 1, 'closing summary should include out-of-stock sales');
+assert(summary.outOfStockSales[0].productName === burger.name, 'out-of-stock closing row should include product name');
+assert(summary.outOfStockSales[0].categoryName === 'Lanches', 'out-of-stock closing row should include category name');
+assert(summary.outOfStockSales[0].quantity === 13, 'out-of-stock closing row should include missing quantity');
+assert(summary.outOfStockSales[0].unitPrice === burger.price, 'out-of-stock closing row should include unit price');
+assert(summary.outOfStockSales[0].totalPrice === burger.price * 13, 'out-of-stock closing row should include total price');
+assert(summary.outOfStockSales[0].commandId === 'cmd-sem-estoque', 'out-of-stock closing row should include command id');
+assert(summary.outOfStockSales[0].userId === adminSession.user.id, 'out-of-stock closing row should include user id');
 
 const draft = closing.saveClosingDraft({
   countedCash: 45,

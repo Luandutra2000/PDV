@@ -36,7 +36,7 @@ export function renderFechamentoRapidoModal({ summary, closingSummary, showcase,
           </div>
 
           ${state.quickClosingTab === 'pagamentos' ? renderPayments(summary, closingSummary, state, cardTotals) : ''}
-          ${state.quickClosingTab === 'vitrine' ? renderShowcase(showcase, state) : ''}
+          ${state.quickClosingTab === 'vitrine' ? renderShowcase(showcase, state, closingSummary.outOfStockSales) : ''}
           ${state.quickClosingTab === 'resumo' ? renderSummary(summary, closingSummary, showcase, state, cardTotals) : ''}
         </div>
       </div>
@@ -69,6 +69,7 @@ function renderSummary(summary, closingSummary, showcase, state, cardTotals) {
         Observacao do fechamento
         <input class="field" data-quick-note value="${state.quickClosing.note}" placeholder="Obrigatoria se houver sobra, falta ou diferenca">
       </label>
+      ${renderOutOfStockSales(closingSummary.outOfStockSales)}
       <button class="button" type="button" data-action="confirm-quick-closing">Fechar caixa agora</button>
     </section>
   `;
@@ -103,9 +104,14 @@ function renderPaymentInput(name, label, expected, value) {
   `;
 }
 
-function renderShowcase(showcase, state) {
+function renderShowcase(showcase, state, outOfStockSales = []) {
   if (!showcase.length) {
-    return '<div class="empty-products">Nenhum produto lancado na vitrine hoje.</div>';
+    return `
+      <section class="quick-closing-section">
+        <div class="empty-products">Nenhum produto lancado na vitrine hoje.</div>
+        ${renderOutOfStockSales(outOfStockSales)}
+      </section>
+    `;
   }
 
   return `
@@ -120,6 +126,50 @@ function renderShowcase(showcase, state) {
             <strong class="${Number(item.differenceQuantity || 0) ? 'money-negative' : 'money-positive'}">${item.differenceQuantity === null ? '-' : item.differenceQuantity}</strong>
           </div>
         `).join('')}
+      </div>
+      ${renderOutOfStockSales(outOfStockSales)}
+    </section>
+  `;
+}
+
+function renderOutOfStockSales(rows = []) {
+  if (!rows.length) {
+    return '';
+  }
+
+  return `
+    <section class="quick-closing-out-of-stock">
+      <header class="manager-section__header">
+        <strong>Produtos vendidos sem estoque</strong>
+        <span>${rows.length} registro(s)</span>
+      </header>
+      <div class="comparison-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Categoria</th>
+              <th>Qtd.</th>
+              <th>Unitario</th>
+              <th>Total</th>
+              <th>Venda</th>
+              <th>Usuario</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((item) => `
+              <tr>
+                <td>${item.productName}</td>
+                <td>${item.categoryName}</td>
+                <td>${item.quantity}</td>
+                <td>${formatCurrency(item.unitPrice)}</td>
+                <td>${formatCurrency(item.totalPrice)}</td>
+                <td>${item.commandId || item.saleId}</td>
+                <td>${item.userName || item.userId || 'Sistema'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
       </div>
     </section>
   `;

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 
 const categoryAdapter = await import('../src/services/repositories/financial-category.adapter.js');
 const transactionAdapter = await import('../src/services/repositories/financial-transaction.adapter.js');
+const { cashClosingAdapter } = await import('../src/services/repositories/cash-closing.adapter.js');
 
 const category = categoryAdapter.fromRow({
   id: 'fornecedor',
@@ -46,5 +47,42 @@ assert.equal(transaction.dueDate, '2026-06-15');
 assert.equal(transaction.movesCashSession, false);
 assert.equal(transactionAdapter.toRow(transaction).category_id, 'fornecedor');
 assert.equal(transactionAdapter.toRow(transaction).cash_movement_id, null);
+
+const closingRow = cashClosingAdapter.toRow({
+  id: 'closing-1',
+  status: 'fechado',
+  totals: { sales: 100 },
+  payments: {},
+  showcase: [],
+  outOfStockSales: [
+    {
+      productId: 'risole',
+      productName: 'Risole',
+      quantity: 3
+    }
+  ],
+  differences: [],
+  input: { countedCash: 100 },
+  createdAt: '2026-06-15T10:00:00.000Z',
+  closedAt: '2026-06-15T10:00:00.000Z',
+  updatedAt: '2026-06-15T10:00:00.000Z'
+});
+
+assert.equal(closingRow.input.outOfStockSales[0].quantity, 3, 'closing adapter should persist out-of-stock rows in input json');
+
+const closing = cashClosingAdapter.fromRow({
+  id: 'closing-1',
+  status: 'fechado',
+  totals: { sales: 100 },
+  payments: {},
+  showcase: [],
+  differences: [],
+  input: closingRow.input,
+  created_at: '2026-06-15T10:00:00.000Z',
+  closed_at: '2026-06-15T10:00:00.000Z',
+  updated_at: '2026-06-15T10:00:00.000Z'
+});
+
+assert.equal(closing.outOfStockSales[0].productId, 'risole', 'closing adapter should hydrate out-of-stock rows from input json');
 
 console.log('financial adapters ok');
