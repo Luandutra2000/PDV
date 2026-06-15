@@ -18,11 +18,16 @@ const DEFAULT_FILTERS = {
 };
 
 let financeiroFilters = { ...DEFAULT_FILTERS };
+const boundFinanceiroContainers = new WeakSet();
 
 export function initDespesasModule(container) {
   seedFinancialCategories();
   renderFinanceiro(container);
-  bindFinanceiroEvents(container);
+
+  if (!boundFinanceiroContainers.has(container)) {
+    bindFinanceiroEvents(container);
+    boundFinanceiroContainers.add(container);
+  }
 }
 
 export function renderFinanceiro(container) {

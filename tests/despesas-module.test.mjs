@@ -22,7 +22,8 @@ globalThis.document = {
   }
 };
 
-const { renderFinanceiroMarkup } = await import('../src/modules/despesas/despesas.module.js');
+const storage = await import('../src/services/storage.service.js');
+const { initDespesasModule, renderFinanceiroMarkup } = await import('../src/modules/despesas/despesas.module.js');
 
 const html = renderFinanceiroMarkup({
   summary: {
@@ -105,5 +106,63 @@ assert(customHtml.includes('name="customStart"'));
 assert(customHtml.includes('name="customEnd"'));
 assert(customHtml.includes('value="2026-06-01"'));
 assert(customHtml.includes('value="2026-06-15"'));
+
+store.clear();
+storage.setItem('pdv.users', [{
+  id: 'admin-1',
+  name: 'Administrador',
+  username: 'admin',
+  password: '1234',
+  role: 'admin',
+  active: true
+}]);
+storage.setItem('pdv.currentSession', { userId: 'admin-1', startedAt: '2026-06-15T10:00:00.000Z' });
+
+const originalFormData = globalThis.FormData;
+globalThis.FormData = class TestFormData {
+  get(name) {
+    return {
+      formType: 'expense',
+      description: 'Pagamento casa das frutas',
+      amount: '150',
+      categoryId: 'compra-materiais',
+      transactionDate: '2026-06-15',
+      dueDate: '',
+      notes: '',
+      movesCashSession: ''
+    }[name];
+  }
+};
+
+const listeners = {};
+const container = {
+  innerHTML: '',
+  addEventListener(type, handler) {
+    listeners[type] = listeners[type] || [];
+    listeners[type].push(handler);
+  }
+};
+
+initDespesasModule(container);
+initDespesasModule(container);
+
+const submitEvent = {
+  preventDefault() {},
+  target: {
+    matches(selector) {
+      return selector === '[data-finance-form]';
+    }
+  }
+};
+
+for (const listener of listeners.submit) {
+  listener(submitEvent);
+}
+
+const savedTransactions = JSON.parse(localStorage.getItem('pdv.financialTransactions'));
+assert.equal(savedTransactions.length, 1);
+assert.equal(savedTransactions[0].description, 'Pagamento casa das frutas');
+
+globalThis.FormData = originalFormData;
 
 console.log('despesas module ok');
