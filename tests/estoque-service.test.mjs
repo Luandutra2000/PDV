@@ -26,11 +26,13 @@ const products = await import('../src/services/product.service.js');
 const comandas = await import('../src/services/comanda.service.js');
 const transactions = await import('../src/services/transaction.service.js');
 const estoque = await import('../src/services/estoque.service.js');
+const showcaseStock = await import('../src/services/showcase-stock.service.js');
 const auth = await import('../src/services/auth.service.js');
 const audit = await import('../src/services/audit.service.js');
 
 storage.ensureSeedData();
 const adminSession = auth.login({ username: 'admin', password: 'admin123' });
+showcaseStock.resetShowcaseStockForTests();
 
 const product = products.getProductById('x-burger');
 const initialStock = product.stock;
@@ -45,6 +47,11 @@ assert(launch.categoriaId === product.categoryId, 'category should come from sel
 assert(launch.usuarioId === adminSession.user.id, 'launch should store logged user id');
 assert(launch.usuarioNome === adminSession.user.name, 'launch should store logged user name');
 assert(products.getProductById(product.id).stock === initialStock + 10, 'launch should add quantity to product stock');
+assert(showcaseStock.getShowcaseStockByProductId(product.id).quantityAvailable === 10, 'launch should add quantity to showcase stock');
+assert(
+  showcaseStock.getShowcaseMovements().some((movement) => movement.movementType === 'entrada_producao' && movement.productId === product.id),
+  'launch should create showcase production movement'
+);
 const launchAudit = audit.getAuditLogs().find((entry) => entry.action === 'showcase.launch' && entry.entityId === launch.id);
 assert(launchAudit.metadata.productId === product.id, 'launch audit should store product id');
 assert(launchAudit.metadata.quantity === 10, 'launch audit should store quantity');
@@ -72,10 +79,12 @@ assert(comparison[0].percentualVendido === 20, 'comparison should calculate sold
 estoque.updateStockLaunch(launch.id, { quantidade: 5 });
 assert(estoque.getStockSummary().producedUnits === 5, 'editing launch should recalculate summary');
 assert(products.getProductById(product.id).stock === initialStock + 5, 'editing launch should adjust product stock by the quantity difference');
+assert(showcaseStock.getShowcaseStockByProductId(product.id).quantityAvailable === 3, 'editing launch should adjust showcase stock by the quantity difference');
 
 estoque.cancelStockLaunch(launch.id);
 assert(estoque.getStockSummary().producedUnits === 0, 'canceling launch should remove it from totals');
 assert(products.getProductById(product.id).stock === initialStock, 'canceling launch should remove the quantity from product stock');
+assert(showcaseStock.getShowcaseStockByProductId(product.id).quantityAvailable === 0, 'canceling launch should remove the quantity from showcase stock');
 
 estoque.deleteStockComparisonRow(product.id);
 assert(estoque.getProductionSalesComparison().length === 0, 'deleting comparison row should hide it without deleting the sale');

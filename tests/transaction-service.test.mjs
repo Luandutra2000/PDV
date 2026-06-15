@@ -44,9 +44,38 @@ const permissions = await import('../src/services/permission.service.js');
 const audit = await import('../src/services/audit.service.js');
 const financial = await import('../src/services/financial-sync.service.js');
 const transactions = await import('../src/services/transaction.service.js');
+const estoque = await import('../src/services/estoque.service.js');
+const showcaseStock = await import('../src/services/showcase-stock.service.js');
 
 storage.ensureSeedData();
 const adminSession = auth.login({ username: 'admin', password: 'admin123' });
+showcaseStock.resetShowcaseStockForTests();
+
+const showcaseProduct = products.getProductById('x-burger');
+estoque.createStockLaunch({ produtoId: showcaseProduct.id, quantidade: 10 });
+assert(
+  showcaseStock.getShowcaseStockByProductId(showcaseProduct.id).quantityAvailable === 10,
+  'stock launch should increase showcase stock'
+);
+
+comandas.clearComanda();
+comandas.addItem(showcaseProduct);
+comandas.addItem(showcaseProduct);
+const showcaseSale = transactions.finalizeComandaPayment({ paymentMethod: 'pix' });
+assert(
+  showcaseStock.getShowcaseStockByProductId(showcaseProduct.id).quantityAvailable === 8,
+  'sale should decrease showcase stock'
+);
+
+transactions.cancelTransaction(showcaseSale.id, { reason: 'Teste de estorno da vitrine' });
+assert(
+  showcaseStock.getShowcaseStockByProductId(showcaseProduct.id).quantityAvailable === 10,
+  'canceling sale should restore stocked showcase quantity'
+);
+
+storage.resetAppData();
+auth.login({ username: 'admin', password: 'admin123' });
+showcaseStock.resetShowcaseStockForTests();
 comandas.clearComanda();
 comandas.addItem(products.getProductById('x-burger'));
 comandas.addItem(products.getProductById('x-burger'));

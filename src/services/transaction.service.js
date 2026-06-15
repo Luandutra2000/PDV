@@ -16,6 +16,7 @@ import {
   saveCashMovementToSupabase,
   saveSaleToSupabase
 } from './financial-sync.service.js';
+import { processShowcaseSale, reverseShowcaseSale } from './showcase-sync.service.js';
 
 export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
   const user = getCurrentUser();
@@ -63,6 +64,19 @@ export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
   appendTransaction(sale);
   appendClosedComanda(closedCommand);
   syncSaleToSupabase(sale, closedCommand);
+  runShowcaseSync(processShowcaseSale({
+    operationId: sale.id,
+    saleId: sale.id,
+    commandId: sale.comandaId,
+    userId: sale.createdBy,
+    createdAt: sale.createdAt,
+    items: sale.items.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice ?? item.price,
+      total: item.total
+    }))
+  }));
   startNewComanda(comanda.number + 1);
   emit(SYNC_EVENTS.saleFinished, sale);
   emit(UI_EVENTS.cashSummaryChanged, sale);
@@ -217,6 +231,15 @@ export function cancelClosedComanda(comandaId, { reason = '' } = {}) {
   setItem(STORAGE_KEYS.closedComandas, comandas);
   const sale = transactions.find((transaction) => transaction.comandaId === comandaId && transaction.type === 'venda');
   syncSaleCancellationToSupabase({ saleId: sale?.id, comandaId, canceledAt });
+  if (sale?.id) {
+    runShowcaseSync(reverseShowcaseSale({
+      operationId: `reverse-${sale.id}`,
+      saleId: sale.id,
+      commandId: comandaId,
+      userId: user?.id || '',
+      createdAt: canceledAt
+    }));
+  }
   emit(UI_EVENTS.cashSummaryChanged, { type: 'comanda-cancelada', comandaId });
   recordAudit({
     action: 'comanda.cancel',
@@ -293,6 +316,16 @@ export function cancelTransaction(transactionId, { reason = '' } = {}) {
 
   setItem(STORAGE_KEYS.closedComandas, comandas);
   syncSaleCancellationToSupabase({ saleId: transactionId, comandaId: canceledSaleComandaId, canceledAt });
+  const canceledSale = transactions.find((transaction) => transaction.id === transactionId && transaction.type === 'venda');
+  if (canceledSale) {
+    runShowcaseSync(reverseShowcaseSale({
+      operationId: `reverse-${canceledSale.id}`,
+      saleId: canceledSale.id,
+      commandId: canceledSale.comandaId,
+      userId: user?.id || '',
+      createdAt: canceledAt
+    }));
+  }
   emit(UI_EVENTS.cashSummaryChanged, { type: 'movimentacao-cancelada', transactionId });
   recordAudit({
     action: 'transaction.cancel',
@@ -456,6 +489,12 @@ function syncCashMovementCancellationToSupabase({ movementId, canceledAt }) {
 function runFinancialSync(promise) {
   promise.catch((error) => {
     console.warn('Nao foi possivel enviar alteracao financeira ao Supabase.', error);
+  });
+}
+
+function runShowcaseSync(promise) {
+  promise.catch((error) => {
+    console.warn('Nao foi possivel sincronizar alteracao da vitrine.', error);
   });
 }
 
