@@ -404,28 +404,31 @@ async function saveCategoryFromForm(form) {
 }
 
 function renderProductSummaryCards(metrics = getProductDashboardMetrics()) {
-  const totalStock = metrics.products.reduce((total, product) => total + (Number(product.stock) || 0), 0);
-  const showcaseCategories = metrics.categories.filter((category) => category.showInShowcase !== false).length;
   const summaryCards = [
     {
-      label: 'Produtos',
+      label: 'Total de produtos',
       value: metrics.products.length,
-      detail: `${metrics.activeProducts.length} ativos`
+      detail: 'Cadastrados'
     },
     {
-      label: 'Categorias',
+      label: 'Total de categorias',
       value: metrics.categories.length,
-      detail: `${showcaseCategories} na vitrine`
+      detail: 'Abas do catalogo'
     },
     {
-      label: 'Vitrine',
+      label: 'Produtos ativos',
+      value: metrics.activeProducts.length,
+      detail: 'Liberados para venda'
+    },
+    {
+      label: 'Produtos que aparecem na vitrine',
       value: metrics.showcaseProducts.length,
-      detail: 'Produtos visiveis para venda'
+      detail: 'Visiveis ao cliente'
     },
     {
-      label: 'Estoque',
-      value: totalStock,
-      detail: 'Unidades cadastradas'
+      label: 'Produto mais vendido',
+      value: metrics.topProduct?.name || 'Sem vendas',
+      detail: metrics.topProduct ? `${metrics.topProduct.quantity} vendidos` : 'Sem ranking no periodo'
     }
   ];
 
@@ -450,7 +453,7 @@ function renderProductAlerts(metrics = getProductDashboardMetrics()) {
   }
 
   return `
-    <section class="product-alert-list" aria-label="Alertas de produtos">
+    <section class="product-alert-grid" aria-label="Alertas de produtos">
       ${alerts.map((alert) => `
         <article class="product-alert product-alert--${alert.tone}" data-alert-key="${alert.key}">
           <strong>${alert.count}</strong>
