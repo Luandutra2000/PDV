@@ -189,6 +189,17 @@ export async function saveFinancialTransactionToSupabase(transaction) {
   }
 }
 
+export async function saveFinancialTransactionToSupabaseStrict(transaction) {
+  const nextTransaction = { ...transaction };
+
+  setStatus({ state: 'syncing', error: '' });
+  const client = await getWriteClient();
+  await upsertRows(client, financialTransactionAdapter.table, [financialTransactionAdapter.toRow(nextTransaction)]);
+  upsertFinancialTransactionCache(nextTransaction);
+  setStatusFromQueue(readQueue());
+  return nextTransaction;
+}
+
 export async function cancelFinancialTransactionInSupabase({ transactionId, canceledAt, cancelReason = '' }) {
   const nextCanceledAt = canceledAt || new Date().toISOString();
 
@@ -228,6 +239,17 @@ export async function saveCashClosingToSupabase(closing) {
   } finally {
     removeInFlightOperation(inFlightOperation);
   }
+}
+
+export async function saveCashClosingToSupabaseStrict(closing) {
+  const nextClosing = { ...closing };
+
+  setStatus({ state: 'syncing', error: '' });
+  const client = await getWriteClient();
+  await upsertRows(client, cashClosingAdapter.table, [cashClosingAdapter.toRow(nextClosing)]);
+  upsertClosingCache(nextClosing);
+  setStatusFromQueue(readQueue());
+  return nextClosing;
 }
 
 export async function cancelSaleInSupabase({ saleId, comandaId, canceledAt }) {
