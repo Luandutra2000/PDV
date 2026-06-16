@@ -15,6 +15,7 @@ import { on } from '../../services/event-bus.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { showNotification } from '../../services/notification.service.js';
 import { getBestSellingProducts } from '../../services/transaction.service.js';
+import { getActiveOutOfStockSales } from '../../services/showcase-stock.service.js';
 
 const productState = {
   modal: null,
@@ -22,6 +23,7 @@ const productState = {
   editingCategoryId: null,
   query: '',
   categoryFilter: 'todos',
+  statusFilter: 'todos',
   bestSellerPeriod: 'today',
   bestSellerCustomStart: '',
   bestSellerCustomEnd: '',
@@ -50,6 +52,90 @@ export function initProdutosModule(container) {
     });
     boundContainers.add(container);
   }
+}
+
+function getCategoriesById() {
+  return new Map(getVisibleCategories().map((category) => [category.id, category]));
+}
+
+function isProductInShowcase(product, categoriesById = getCategoriesById()) {
+  const category = categoriesById.get(product.categoryId);
+  return Boolean(product.active && category?.showInShowcase);
+}
+
+function getProductDashboardMetrics() {
+  const products = getProducts();
+  const categories = getVisibleCategories();
+  const categoriesById = getCategoriesById();
+  const activeProducts = products.filter((product) => product.active !== false);
+  const showcaseProducts = products.filter((product) => isProductInShowcase(product, categoriesById));
+  const selectedRanking = getFilteredBestSellers();
+  const todayRanking = getBestSellingProducts({ period: 'today' });
+
+  return {
+    products,
+    categories,
+    categoriesById,
+    activeProducts,
+    showcaseProducts,
+    topProduct: selectedRanking[0] || null,
+    todayRanking
+  };
+}
+
+function getProductAlerts(metrics = getProductDashboardMetrics()) {
+  const alerts = [
+    {
+      key: 'without-price',
+      count: metrics.products.filter((product) => Number(product.price) <= 0).length,
+      label: 'Sem preco',
+      tone: 'danger'
+    },
+    {
+      key: 'out-showcase',
+      count: metrics.activeProducts.filter((product) => !isProductInShowcase(product, metrics.categoriesById)).length,
+      label: 'Fora da vitrine',
+      tone: 'warning'
+    },
+    {
+      key: 'zero-stock',
+      count: metrics.activeProducts.filter((product) => Number(product.stock) <= 0).length,
+      label: 'Estoque zerado',
+      tone: 'danger'
+    },
+    {
+      key: 'inactive',
+      count: metrics.products.filter((product) => product.active === false).length,
+      label: 'Inativos',
+      tone: 'muted'
+    },
+    {
+      key: 'without-category',
+      count: metrics.products.filter((product) => !metrics.categoriesById.has(product.categoryId)).length,
+      label: 'Sem categoria',
+      tone: 'warning'
+    },
+    {
+      key: 'today-best',
+      count: metrics.todayRanking.length,
+      label: 'Vendidos hoje',
+      tone: 'success'
+    },
+    {
+      key: 'sold-without-stock',
+      count: getActiveOutOfStockSales().reduce((total, sale) => total + (Number(sale.quantity) || 0), 0),
+      label: 'Vendidos sem estoque',
+      tone: 'danger'
+    },
+    {
+      key: 'showcase',
+      count: metrics.showcaseProducts.length,
+      label: 'Na vitrine',
+      tone: 'info'
+    }
+  ];
+
+  return alerts.filter((alert) => alert.count > 0);
 }
 
 function renderProdutosScreen(container) {
@@ -176,6 +262,11 @@ function bindProdutosEvents(container) {
   container.addEventListener('change', (event) => {
     if (event.target.matches('[data-category-filter]')) {
       productState.categoryFilter = event.target.value;
+      renderProdutosScreen(container);
+    }
+
+    if (event.target.matches('[data-status-filter]')) {
+      productState.statusFilter = event.target.value;
       renderProdutosScreen(container);
     }
 
@@ -481,12 +572,20 @@ function getVisibleCategories() {
 
 function getFilteredProducts() {
   const normalizedQuery = productState.query.trim().toLowerCase();
+  const categoriesById = getCategoriesById();
 
   return getProducts().filter((product) => {
     const matchesQuery = !normalizedQuery || product.name.toLowerCase().includes(normalizedQuery);
     const matchesCategory = productState.categoryFilter === 'todos' || product.categoryId === productState.categoryFilter;
+    const matchesStatus = (
+      productState.statusFilter === 'todos'
+        || (productState.statusFilter === 'active' && product.active !== false)
+        || (productState.statusFilter === 'inactive' && product.active === false)
+        || (productState.statusFilter === 'showcase' && isProductInShowcase(product, categoriesById))
+        || (productState.statusFilter === 'out-showcase' && !isProductInShowcase(product, categoriesById))
+    );
 
-    return matchesQuery && matchesCategory;
+    return matchesQuery && matchesCategory && matchesStatus;
   });
 }
 
