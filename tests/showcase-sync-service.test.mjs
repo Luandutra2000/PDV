@@ -26,14 +26,27 @@ globalThis.__PDV_RUNTIME_CONFIG__ = {
 const { STORAGE_KEYS } = await import('../src/database/schema.js');
 const showcaseDomain = await import('../src/services/showcase-stock.service.js');
 const showcaseSync = await import('../src/services/showcase-sync.service.js');
+const financialSync = await import('../src/services/financial-sync.service.js');
+const supabaseClient = await import('../src/services/supabase-client.service.js');
 
 const rows = {
   product_stock: [],
   showcase_movements: [],
-  out_of_stock_sales: []
+  out_of_stock_sales: [],
+  stock_production: [],
+  showcase_write_offs: [],
+  sales: [],
+  sale_items: [],
+  cash_movements: [],
+  commands: [],
+  command_items: [],
+  cash_closings: [],
+  financial_categories: [],
+  financial_transactions: []
 };
 const rpcCalls = [];
 const registeredTables = [];
+const realtimeCallbacks = [];
 let rpcFailure = null;
 let failOperationId = '';
 
@@ -63,7 +76,7 @@ const fakeClient = {
       name,
       on(eventName, filter, callback) {
         registeredTables.push(filter.table);
-        this.callback = callback;
+        realtimeCallbacks.push({ table: filter.table, callback });
         return this;
       },
       subscribe() {
@@ -80,11 +93,24 @@ function reset() {
   rows.product_stock = [];
   rows.showcase_movements = [];
   rows.out_of_stock_sales = [];
+  rows.stock_production = [];
+  rows.showcase_write_offs = [];
+  rows.sales = [];
+  rows.sale_items = [];
+  rows.cash_movements = [];
+  rows.commands = [];
+  rows.command_items = [];
+  rows.cash_closings = [];
+  rows.financial_categories = [];
+  rows.financial_transactions = [];
   rpcCalls.length = 0;
   registeredTables.length = 0;
+  realtimeCallbacks.length = 0;
   rpcFailure = null;
   failOperationId = '';
+  supabaseClient.configureSupabaseClientForTests({ client: fakeClient });
   showcaseSync.configureShowcaseSyncForTests({ getClient: async () => fakeClient });
+  financialSync.configureFinancialSyncForTests({ getClient: async () => fakeClient });
 }
 
 function readJson(key) {
@@ -260,6 +286,51 @@ assert.deepEqual(
   ['product_stock', 'showcase_movements', 'out_of_stock_sales', 'stock_production'],
   'realtime should subscribe to all showcase-related tables'
 );
+await showcaseSync.stopShowcaseRealtime();
+
+reset();
+await showcaseSync.startShowcaseRealtime();
+rows.stock_production.push({
+  id: 'prod-live-1',
+  product_id: 'coxinha',
+  product_name: 'Coxinha',
+  category_id: 'salgados',
+  category_name: 'Salgados',
+  quantity: '6',
+  unit_value: '9',
+  total_value: '54',
+  note: '',
+  status: 'ativo',
+  created_at: '2026-06-15T11:00:00.000Z',
+  canceled_at: null
+});
+rows.sales.push({
+  id: 'sale-live-1',
+  status: 'ativa',
+  command_id: 'cmd-live-1',
+  command_number: 7,
+  total: '9',
+  payment_method: 'pix',
+  received_amount: '9',
+  change_amount: '0',
+  created_at: '2026-06-15T11:05:00.000Z',
+  canceled_at: null
+});
+rows.sale_items.push({
+  id: 'sale-live-1-coxinha-0',
+  sale_id: 'sale-live-1',
+  product_id: 'coxinha',
+  name: 'Coxinha',
+  quantity: '1',
+  unit_price: '9',
+  total: '9'
+});
+realtimeCallbacks.find((item) => item.table === 'stock_production').callback();
+await new Promise((resolve) => {
+  setTimeout(resolve, 700);
+});
+assert(readJson(STORAGE_KEYS.stockLaunches).some((launch) => launch.id === 'prod-live-1'), 'showcase realtime should refresh production launches used by mobile alerts');
+assert(readJson(STORAGE_KEYS.transactions).some((transaction) => transaction.id === 'sale-live-1'), 'showcase realtime should refresh sales used by mobile alerts');
 await showcaseSync.stopShowcaseRealtime();
 
 console.log('showcase sync service ok');

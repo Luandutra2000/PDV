@@ -1,6 +1,8 @@
 import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js';
 import { isSupabaseEnabled } from './app-config.service.js';
+import { hydrateDataProvider } from './data-provider.service.js';
 import { emit } from './event-bus.service.js';
+import { hydrateFinancialData } from './financial-sync.service.js';
 import { getSupabaseClient } from './supabase-client.service.js';
 import {
   adjustShowcaseStock,
@@ -17,6 +19,10 @@ const SHOWCASE_ADAPTERS = [
   productStockAdapter,
   showcaseMovementAdapter,
   outOfStockSaleAdapter
+];
+const SHOWCASE_OPERATIONAL_KEYS = [
+  STORAGE_KEYS.stockLaunches,
+  STORAGE_KEYS.showcaseWriteOffs
 ];
 const REALTIME_TABLES = [
   productStockAdapter.table,
@@ -280,8 +286,16 @@ function scheduleRealtimeHydrate() {
   clearRealtimeHydrateTimer();
   realtimeHydrateTimer = setTimeout(async () => {
     realtimeHydrateTimer = null;
-    await hydrateShowcaseData();
+    await hydrateRealtimeShowcaseData();
   }, REALTIME_HYDRATE_DELAY_MS);
+}
+
+async function hydrateRealtimeShowcaseData() {
+  await hydrateDataProvider(SHOWCASE_OPERATIONAL_KEYS);
+  await Promise.all([
+    hydrateShowcaseData(),
+    hydrateFinancialData({ includePending: true })
+  ]);
 }
 
 function clearRealtimeHydrateTimer() {
