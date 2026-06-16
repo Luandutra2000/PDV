@@ -40,6 +40,8 @@ const financialDeleteMigration = await readFile(new URL('../supabase/migrations/
   .catch(() => '');
 const catalogDeleteMigration = await readFile(new URL('../supabase/migrations/20260610130251_allow_catalog_delete_sync.sql', import.meta.url), 'utf8')
   .catch(() => '');
+const financialAnonMigration = await readFile(new URL('../supabase/migrations/20260616132515_allow_anon_financial_app_sync.sql', import.meta.url), 'utf8')
+  .catch(() => '');
 
 [
   'sales',
@@ -62,5 +64,18 @@ assert(catalogDeleteMigration.includes('grant delete on table public.categories 
 assert(catalogDeleteMigration.includes('for delete to anon'), 'catalog delete sync should allow browser delete policies');
 assert(!catalogDeleteMigration.includes('public.sales'), 'catalog delete sync should not open sale deletes');
 assert(!catalogDeleteMigration.includes('public.cash_movements'), 'catalog delete sync should not open cash movement deletes');
+
+[
+  'financial_categories',
+  'financial_transactions'
+].forEach((table) => {
+  assert(financialAnonMigration.includes(`public.${table}`), `financial anon sync migration should cover ${table}`);
+});
+
+assert(financialAnonMigration.includes('to anon'), 'financial anon sync should grant browser sync role');
+assert(financialAnonMigration.includes('for select to anon'), 'financial anon sync should allow reads');
+assert(financialAnonMigration.includes('for insert to anon'), 'financial anon sync should allow inserts');
+assert(financialAnonMigration.includes('for update to anon'), 'financial anon sync should allow updates');
+assert(!financialAnonMigration.includes('for delete to anon'), 'financial anon sync should not allow deletes');
 
 console.log('anon online sync policy ok');

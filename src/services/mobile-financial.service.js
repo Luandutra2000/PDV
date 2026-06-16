@@ -9,7 +9,7 @@ import {
 } from './financial.service.js';
 import { getCurrentUser } from './auth.service.js';
 import { isSupabaseEnabled } from './app-config.service.js';
-import { saveFinancialTransactionToSupabaseStrict } from './financial-sync.service.js';
+import { saveFinancialTransactionToSupabaseStrict, updateFinancialTransactionInSupabaseStrict } from './financial-sync.service.js';
 
 export function getMobileFinancialSummary(filters = { period: 'today' }) {
   const normalizedFilters = { period: 'today', ...filters };
@@ -72,7 +72,7 @@ export async function markMobileFinancialTransactionPaid(transactionId, input = 
   };
 
   try {
-    await saveFinancialTransactionToSupabaseStrict(nextTransaction);
+    await updateFinancialTransactionInSupabaseStrict(nextTransaction);
   } catch (error) {
     throw new Error(error.message || 'Nao foi possivel marcar a conta como paga no Supabase.');
   }

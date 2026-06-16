@@ -58,6 +58,22 @@ const fakeClient = {
 
         rows[table] = mergeRows(rows[table] || [], nextRows);
         return Promise.resolve({ error: null });
+      },
+      update(patch) {
+        return {
+          eq(column, value) {
+            calls.push({ table, patch, column, value });
+
+            if (failWrites) {
+              return Promise.resolve({ error: new Error('offline') });
+            }
+
+            rows[table] = (rows[table] || []).map((row) => (
+              row[column] === value ? { ...row, ...patch } : row
+            ));
+            return Promise.resolve({ error: null });
+          }
+        };
       }
     };
   }
@@ -105,6 +121,7 @@ const bill = await mobileFinance.createMobileFinancialTransaction({
   dueDate: '2026-06-20'
 });
 await mobileFinance.markMobileFinancialTransactionPaid(bill.id, { paymentMethod: 'boleto' });
+assert(calls.some((call) => call.table === 'financial_transactions' && call.patch?.status === 'paid'), 'mobile pay should update Supabase transaction');
 assert(
   JSON.parse(localStorage.getItem(schema.STORAGE_KEYS.financialTransactions)).find((item) => item.id === bill.id).status === 'paid',
   'mobile finance should mark payable paid'

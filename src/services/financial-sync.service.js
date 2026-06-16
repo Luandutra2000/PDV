@@ -200,6 +200,18 @@ export async function saveFinancialTransactionToSupabaseStrict(transaction) {
   return nextTransaction;
 }
 
+export async function updateFinancialTransactionInSupabaseStrict(transaction) {
+  const nextTransaction = { ...transaction };
+  const { id, ...patch } = financialTransactionAdapter.toRow(nextTransaction);
+
+  setStatus({ state: 'syncing', error: '' });
+  const client = await getWriteClient();
+  await updateById(client, financialTransactionAdapter.table, id, patch);
+  upsertFinancialTransactionCache(nextTransaction);
+  setStatusFromQueue(readQueue());
+  return nextTransaction;
+}
+
 export async function cancelFinancialTransactionInSupabase({ transactionId, canceledAt, cancelReason = '' }) {
   const nextCanceledAt = canceledAt || new Date().toISOString();
 

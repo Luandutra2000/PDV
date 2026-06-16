@@ -41,7 +41,7 @@ const html = renderFinanceiroMarkup({
     description: 'Boleto fornecedor',
     amount: 220,
     categoryId: 'fornecedor',
-    status: 'pending',
+    status: 'paid',
     transactionDate: '2026-06-10',
     dueDate: '2026-06-15'
   }],
@@ -74,6 +74,7 @@ assert(html.includes('+ Boleto'));
 assert(html.includes('Descricao obrigatoria'));
 assert(html.includes('Contas a pagar'));
 assert(html.includes('Mais info'));
+assert(html.includes('data-finance-action="edit"'));
 assert(html.includes('Mini CRM financeiro'));
 assert(html.includes('Vencimento: 09/06/2026'));
 assert(html.includes('data-finance-period="today"'));
@@ -155,7 +156,7 @@ storage.setItem('pdv.financialTransactions', [
     amount: 100,
     categoryId: 'reforco-caixa',
     status: 'paid',
-    transactionDate: '2026-06-15'
+    transactionDate: '2026-06-16'
   },
   {
     id: 'fin-expense-change',
@@ -164,7 +165,7 @@ storage.setItem('pdv.financialTransactions', [
     amount: 150,
     categoryId: 'fornecedor',
     status: 'paid',
-    transactionDate: '2026-06-15'
+    transactionDate: '2026-06-16'
   }
 ]);
 
@@ -275,6 +276,79 @@ for (const listener of listeners.submit) {
 const savedTransactions = JSON.parse(localStorage.getItem('pdv.financialTransactions'));
 assert.equal(savedTransactions.length, 1);
 assert.equal(savedTransactions[0].description, 'Pagamento casa das frutas');
+
+globalThis.FormData = originalFormData;
+
+store.clear();
+storage.setItem('pdv.users', [{
+  id: 'admin-1',
+  name: 'Administrador',
+  username: 'admin',
+  password: '1234',
+  role: 'admin',
+  active: true
+}]);
+storage.setItem('pdv.currentSession', { userId: 'admin-1', startedAt: '2026-06-15T10:00:00.000Z' });
+storage.setItem('pdv.financialTransactions', [{
+  id: 'fin-edit',
+  type: 'expense',
+  description: 'Conta antiga',
+  amount: 80,
+  categoryId: 'fornecedor',
+  paymentMethod: 'boleto',
+  status: 'paid',
+  transactionDate: '2026-06-15',
+  dueDate: '2026-06-20',
+  notes: ''
+}]);
+
+const editListeners = {};
+const editContainer = {
+  innerHTML: '',
+  addEventListener(type, handler) {
+    editListeners[type] = editListeners[type] || [];
+    editListeners[type].push(handler);
+  }
+};
+
+initDespesasModule(editContainer);
+editListeners.click[0]({
+  target: {
+    closest(selector) {
+      if (selector === '[data-finance-action]') {
+        return { dataset: { financeAction: 'edit', transactionId: 'fin-edit' } };
+      }
+
+      return null;
+    }
+  }
+});
+assert(editContainer.innerHTML.includes('Editar lancamento'), 'edit action should open transaction modal');
+assert(editContainer.innerHTML.includes('value="Conta antiga"'), 'edit modal should preload current description');
+
+globalThis.FormData = class EditFormData {
+  get(name) {
+    return {
+      transactionId: 'fin-edit',
+      formType: 'expense',
+      description: 'Conta editada',
+      amount: '95',
+      categoryId: 'fornecedor',
+      paymentMethod: 'boleto',
+      status: 'paid',
+      transactionDate: '2026-06-16',
+      dueDate: '2026-06-21',
+      notes: 'ajuste'
+    }[name];
+  }
+};
+
+editListeners.submit[0](submitEvent);
+const editedTransactions = JSON.parse(localStorage.getItem('pdv.financialTransactions'));
+assert.equal(editedTransactions.length, 1);
+assert.equal(editedTransactions[0].description, 'Conta editada');
+assert.equal(editedTransactions[0].amount, 95);
+assert.equal(editedTransactions[0].dueDate, '2026-06-21');
 
 globalThis.FormData = originalFormData;
 
