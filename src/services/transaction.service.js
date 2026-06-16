@@ -541,6 +541,14 @@ function isInPeriod(value, period, filters = {}) {
     return date.toDateString() === yesterday.toDateString();
   }
 
+  if (period === 'last7' || period === 'last30') {
+    const days = period === 'last7' ? 7 : 30;
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - (days - 1));
+    return date >= start && date <= now;
+  }
+
   if (period === 'month') {
     return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
   }

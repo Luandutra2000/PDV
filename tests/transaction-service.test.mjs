@@ -108,6 +108,62 @@ assert(bestSellers[0].productId === 'x-burger', 'best seller should be x-burger 
 assert(bestSellers[0].quantity === 3, 'best seller should sum quantities across comandas');
 assert(transactions.getBestSellingProducts({ categoryId: 'porcoes' })[0].productId === 'batata-frita', 'category filter should work');
 
+const dateDaysAgo = (days) => {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString();
+};
+const refrigeratedDrink = products.getProductById('refrigerante-lata');
+const fries = products.getProductById('batata-frita');
+const currentTransactions = transactions.getTransactions();
+storage.setItem(schema.STORAGE_KEYS.transactions, [
+  {
+    id: 'sale-8-days-ago',
+    type: 'venda',
+    status: 'ativa',
+    items: [{
+      productId: refrigeratedDrink.id,
+      name: refrigeratedDrink.name,
+      quantity: 1,
+      unitPrice: refrigeratedDrink.price,
+      total: refrigeratedDrink.price
+    }],
+    total: refrigeratedDrink.price,
+    paymentMethod: 'pix',
+    createdAt: dateDaysAgo(8)
+  },
+  {
+    id: 'sale-31-days-ago',
+    type: 'venda',
+    status: 'ativa',
+    items: [{
+      productId: fries.id,
+      name: fries.name,
+      quantity: 5,
+      unitPrice: fries.price,
+      total: fries.price * 5
+    }],
+    total: fries.price * 5,
+    paymentMethod: 'pix',
+    createdAt: dateDaysAgo(31)
+  },
+  ...currentTransactions
+]);
+
+assert(
+  !transactions.getBestSellingProducts({ period: 'last7' }).some((item) => item.productId === 'refrigerante-lata'),
+  'last7 should exclude sales older than 7 calendar days'
+);
+assert(
+  transactions.getBestSellingProducts({ period: 'last30' }).some((item) => item.productId === 'refrigerante-lata'),
+  'last30 should include sales from 8 days ago'
+);
+assert(
+  transactions.getBestSellingProducts({ period: 'last30' }).find((item) => item.productId === 'batata-frita').quantity === 2,
+  'last30 should exclude batata-frita quantities from 31 days ago'
+);
+storage.setItem(schema.STORAGE_KEYS.transactions, currentTransactions);
+
 transactions.registerCashMovement({
   type: 'entrada',
   amount: 10,
