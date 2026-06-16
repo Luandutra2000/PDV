@@ -45,6 +45,7 @@ const admin = { id: 'admin-1', role: 'admin', active: true };
 const gerente = { id: 'gerente-1', role: 'gerente', active: true };
 const caixa = { id: 'caixa-1', role: 'caixa', active: true };
 const operator = { id: 'operator-1', role: 'operador', active: true };
+const owner = { id: 'owner-1', role: 'dono', active: true };
 const inactive = { id: 'operator-2', role: 'operador', active: false };
 
 assert(permissions.hasPermission(admin, 'owner_app.view'), 'admin should access owner app');
@@ -66,6 +67,10 @@ assert(!permissions.hasPermission(operator, 'cash.close'), 'operator should not 
 assert(!permissions.hasPermission(operator, 'sales.discount'), 'operator should not apply discounts by default');
 assert(!permissions.hasPermission(operator, 'owner_app.view'), 'operator should not access owner app by default');
 assert(!permissions.hasPermission(operator, 'financial.view'), 'operator should not view finance module by default');
+assert(permissions.hasPermission(owner, 'owner_app.view'), 'owner should access owner app');
+assert(permissions.hasPermission(owner, 'financial.view'), 'owner should view finance in owner app');
+assert(permissions.hasPermission(owner, 'financial.transaction.create'), 'owner should create finance transactions from owner app');
+assert(permissions.hasPermission(owner, 'financial.payable.pay'), 'owner should mark payables as paid from owner app');
 assert(!permissions.hasPermission(inactive, 'sales.create'), 'inactive user should not have permissions');
 
 permissions.setUserPermissionOverride('operator-1', 'owner_app.view', 'allow');
