@@ -854,6 +854,149 @@
   line-height: 1.35;
 }
 
+.mobile-comparison-row,
+.mobile-finance-form,
+.mobile-closing-form,
+.mobile-closing-history,
+.mobile-finance-crm-group {
+  display: grid;
+  gap: 10px;
+}
+
+.mobile-comparison-row,
+.mobile-closing-history,
+.mobile-finance-row {
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.mobile-comparison-row header,
+.mobile-canceled-card header,
+.mobile-closing-history header,
+.mobile-finance-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mobile-comparison-row header span,
+.mobile-finance-row span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mobile-comparison-row div,
+.mobile-finance-crm-group .mobile-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mobile-canceled-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(194, 65, 59, 0.35);
+  border-radius: 8px;
+  background: rgba(194, 65, 59, 0.12);
+}
+
+.mobile-canceled-card header span,
+.mobile-error {
+  color: #c2413b;
+  font-weight: 900;
+}
+
+.mobile-canceled-card p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.mobile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mobile-closing-form label,
+.mobile-finance-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mobile-closing-form textarea,
+.mobile-finance-form textarea {
+  resize: vertical;
+}
+
+.mobile-status-badge {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.mobile-status-badge--success {
+  background: rgba(23, 130, 79, 0.12);
+  color: #17824f;
+}
+
+.mobile-status-badge--warning {
+  background: rgba(255, 193, 7, 0.18);
+  color: #8a5a00;
+}
+
+.mobile-status-badge--danger {
+  background: rgba(194, 65, 59, 0.12);
+  color: #c2413b;
+}
+
+.mobile-finance-actions,
+.mobile-finance-form__actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mobile-finance-actions button,
+.mobile-finance-form__actions button,
+.mobile-finance-row__actions button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 900;
+}
+
+.mobile-finance-form__actions button:first-child {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.mobile-finance-row__actions {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.mobile-error {
+  margin: 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(194, 65, 59, 0.1);
+  font-size: 13px;
+}
+
 @keyframes mobilePulse {
   70% {
     box-shadow: 0 0 0 9px rgba(23, 130, 79, 0);
