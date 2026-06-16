@@ -158,8 +158,11 @@ assert(
   transactions.getBestSellingProducts({ period: 'last30' }).some((item) => item.productId === 'refrigerante-lata'),
   'last30 should include sales from 8 days ago'
 );
+const last30Fries = transactions.getBestSellingProducts({ period: 'last30' })
+  .find((item) => item.productId === 'batata-frita');
+assert(last30Fries, 'last30 should include current batata-frita sales');
 assert(
-  transactions.getBestSellingProducts({ period: 'last30' }).find((item) => item.productId === 'batata-frita').quantity === 2,
+  last30Fries.quantity === 2,
   'last30 should exclude batata-frita quantities from 31 days ago'
 );
 storage.setItem(schema.STORAGE_KEYS.transactions, currentTransactions);
