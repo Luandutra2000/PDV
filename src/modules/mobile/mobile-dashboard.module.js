@@ -42,6 +42,8 @@ const tabs = [
   { id: 'closing', label: 'Fechar', icon: 'OK' }
 ];
 
+const MOBILE_AUTO_REFRESH_MS = 40000;
+
 let state = {
   tab: 'home',
   filter: 'all',
@@ -64,6 +66,10 @@ let state = {
 
 let subscribedWorkspace = null;
 let unsubscribeRealtimeRefresh = [];
+let autoRefreshTimer = null;
+let autoRefreshWorkspace = null;
+let focusedMobileField = false;
+let pendingDeferredRender = false;
 
 export function initMobileDashboardModule(workspace) {
   workspace.dataset.activeRoute = 'mobile';
@@ -89,6 +95,7 @@ export function initMobileDashboardModule(workspace) {
 
   render(workspace);
   bindRealtimeRefresh(workspace);
+  bindAutoRefresh(workspace);
   refreshMobileData(workspace);
 }
 
@@ -266,6 +273,23 @@ function bindEvents(workspace) {
       render(workspace);
     }
   });
+
+  workspace.addEventListener('focusin', (event) => {
+    if (isEditableMobileTarget(event.target)) {
+      focusedMobileField = true;
+    }
+  });
+
+  workspace.addEventListener('focusout', () => {
+    setTimeout(() => {
+      focusedMobileField = Boolean(getFocusedMobileField(workspace));
+
+      if (!focusedMobileField && pendingDeferredRender) {
+        pendingDeferredRender = false;
+        renderIfActive(workspace);
+      }
+    }, 0);
+  });
 }
 
 function bindRealtimeRefresh(workspace) {
@@ -284,10 +308,29 @@ function bindRealtimeRefresh(workspace) {
   subscribedWorkspace = workspace;
 }
 
-async function refreshMobileData(workspace, { force = false } = {}) {
+function bindAutoRefresh(workspace) {
+  if (autoRefreshWorkspace === workspace && autoRefreshTimer) {
+    return;
+  }
+
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+  }
+
+  autoRefreshWorkspace = workspace;
+  autoRefreshTimer = setInterval(() => {
+    refreshMobileData(workspace, { automatic: true });
+  }, MOBILE_AUTO_REFRESH_MS);
+
+  if (typeof autoRefreshTimer.unref === 'function') {
+    autoRefreshTimer.unref();
+  }
+}
+
+async function refreshMobileData(workspace, { force = false, automatic = false } = {}) {
   state.syncState = force ? 'syncing' : state.syncState;
   state.syncError = '';
-  renderIfActive(workspace);
+  renderIfActive(workspace, { deferWhileEditing: automatic });
 
   try {
     if (force) {
@@ -301,15 +344,46 @@ async function refreshMobileData(workspace, { force = false } = {}) {
     state.syncError = error.message || 'Erro de sincronizacao';
   }
 
-  renderIfActive(workspace);
+  renderIfActive(workspace, { deferWhileEditing: automatic });
 }
 
-function renderIfActive(workspace) {
+function renderIfActive(workspace, { deferWhileEditing = false } = {}) {
   if (workspace.dataset.activeRoute !== 'mobile') {
     return;
   }
 
+  if (deferWhileEditing && isMobileFormEditing(workspace)) {
+    pendingDeferredRender = true;
+    return;
+  }
+
   render(workspace);
+}
+
+function isMobileFormEditing(workspace) {
+  return focusedMobileField || Boolean(getFocusedMobileField(workspace));
+}
+
+function getFocusedMobileField(workspace) {
+  try {
+    const focused = workspace.querySelector?.(':focus') || globalThis.document?.activeElement;
+    return isEditableMobileTarget(focused) ? focused : null;
+  } catch (error) {
+    return focusedMobileField ? {} : null;
+  }
+}
+
+function isEditableMobileTarget(target) {
+  if (!target) {
+    return false;
+  }
+
+  const tagName = String(target.tagName || '').toLowerCase();
+  return tagName === 'input'
+    || tagName === 'textarea'
+    || tagName === 'select'
+    || target.isContentEditable === true
+    || typeof target.matches === 'function' && target.matches('input, textarea, select, [contenteditable="true"]');
 }
 
 function render(workspace) {

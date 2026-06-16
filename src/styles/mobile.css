@@ -978,6 +978,13 @@
   resize: vertical;
 }
 
+.mobile-shell input,
+.mobile-shell select,
+.mobile-shell textarea,
+.mobile-shell .field {
+  font-size: 16px;
+}
+
 .mobile-status-badge {
   flex: 0 0 auto;
   padding: 4px 8px;
