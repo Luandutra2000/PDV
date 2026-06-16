@@ -516,16 +516,19 @@ function renderCategoryRows() {
 
   return categories.map((category) => {
     const productCount = getProducts().filter((product) => product.categoryId === category.id).length;
+    const activeClass = productState.categoryFilter === category.id ? ' is-active' : '';
+    const showcaseStatus = category.showInShowcase ? 'Aparece na vitrine' : 'Nao aparece na vitrine';
 
     return `
-      <article class="manager-row">
-        <div>
+      <article class="category-manager-card${activeClass}">
+        <div class="category-manager-card__content">
           <strong>${category.name}</strong>
-          <span>${productCount} produtos - ${category.showInShowcase ? 'Aparece na vitrine' : 'Nao aparece na vitrine'}</span>
+          <span>${productCount} produtos</span>
+          <span>${showcaseStatus}</span>
         </div>
         <div class="row-actions">
-          <button class="button button--ghost" type="button" data-action="edit-category" data-category-id="${category.id}">Editar</button>
-          <button class="button button--danger" type="button" data-action="delete-category" data-category-id="${category.id}">Apagar</button>
+          <button class="button button--ghost button--small" type="button" data-action="edit-category" data-category-id="${category.id}">Editar</button>
+          <button class="button button--danger button--small" type="button" data-action="delete-category" data-category-id="${category.id}">Apagar</button>
         </div>
       </article>
     `;
@@ -534,23 +537,30 @@ function renderCategoryRows() {
 
 function renderProductRows() {
   const products = getFilteredProducts();
+  const categoriesById = getCategoriesById();
 
   if (!products.length) {
-    return '<div class="empty-products">Nenhum produto cadastrado no banco.</div>';
+    return '<div class="empty-products">Nenhum produto encontrado com os filtros atuais.</div>';
   }
 
   return products.map((product) => {
-    const category = getCategories().find((item) => item.id === product.categoryId);
+    const category = categoriesById.get(product.categoryId);
+    const isActive = product.active !== false;
+    const inShowcase = isProductInShowcase(product, categoriesById);
 
     return `
-      <article class="manager-row">
-        <div>
+      <article class="product-manager-card">
+        <div class="product-manager-card__content">
           <strong>${product.name}</strong>
           <span>${category ? category.name : 'Sem categoria'} - ${formatCurrency(product.price)} - Estoque: ${product.stock}</span>
+          <div class="product-manager-card__badges">
+            <span class="product-manager-card__badge ${isActive ? 'is-active' : 'is-inactive'}">${isActive ? 'Ativo' : 'Inativo'}</span>
+            <span class="product-manager-card__badge ${inShowcase ? 'is-showcase' : 'is-out-showcase'}">${inShowcase ? 'Na vitrine' : 'Fora da vitrine'}</span>
+          </div>
         </div>
         <div class="row-actions">
-          <button class="button button--ghost" type="button" data-action="edit-product" data-product-id="${product.id}">Editar</button>
-          <button class="button button--danger" type="button" data-action="delete-product" data-product-id="${product.id}">Excluir</button>
+          <button class="button button--ghost button--small" type="button" data-action="edit-product" data-product-id="${product.id}">Editar</button>
+          <button class="button button--danger button--small" type="button" data-action="delete-product" data-product-id="${product.id}">Apagar</button>
         </div>
       </article>
     `;
