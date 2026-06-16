@@ -1,5 +1,6 @@
 import { STORAGE_KEYS } from '../src/database/schema.js';
 import { setItem } from '../src/services/storage.service.js';
+import { readFile } from 'node:fs/promises';
 import {
   resolveShowcaseMovementCommandReference,
   resolveShowcaseMovementUserName
@@ -69,5 +70,9 @@ assert(
   'unknown showcase movement command should fall back to command id'
 );
 assert(resolveShowcaseMovementCommandReference({}) === '-', 'blank showcase movement command should display dash');
+
+const estoqueSource = await readFile(new URL('../src/modules/estoque/estoque.module.js', import.meta.url), 'utf8');
+assert(estoqueSource.includes('data-showcase-movements-more'), 'showcase history should expose a show more button');
+assert(estoqueSource.includes('movementHistoryExpanded ? 30 : 8'), 'showcase history should start collapsed with fewer rows');
 
 console.log('estoque module ok');

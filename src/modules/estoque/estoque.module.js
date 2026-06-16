@@ -28,7 +28,8 @@ const estoqueState = {
   productIds: [],
   customStart: '',
   customEnd: '',
-  editingId: null
+  editingId: null,
+  movementHistoryExpanded: false
 };
 
 const boundContainers = new WeakSet();
@@ -175,9 +176,15 @@ function bindEstoqueEvents(container) {
       return;
     }
 
-    const button = event.target.closest('[data-action], [data-clear-filter]');
+    const button = event.target.closest('[data-action], [data-clear-filter], [data-showcase-movements-more]');
 
     if (!button) {
+      return;
+    }
+
+    if (button.matches('[data-showcase-movements-more]')) {
+      estoqueState.movementHistoryExpanded = !estoqueState.movementHistoryExpanded;
+      renderEstoque(container);
       return;
     }
 
@@ -447,6 +454,9 @@ function renderComparisonCounters(filters) {
 }
 
 function renderMovementHistory(movements) {
+  const visibleLimit = estoqueState.movementHistoryExpanded ? 30 : 8;
+  const visibleMovements = movements.slice(0, visibleLimit);
+
   if (!movements.length) {
     return `
       <section class="manager-section">
@@ -480,7 +490,7 @@ function renderMovementHistory(movements) {
             </tr>
           </thead>
           <tbody>
-            ${movements.slice(0, 30).map((movement) => `
+            ${visibleMovements.map((movement) => `
               <tr>
                 <td><strong>${movement.productName}</strong></td>
                 <td>${formatMovementType(movement.movementType)}</td>
@@ -495,6 +505,13 @@ function renderMovementHistory(movements) {
           </tbody>
         </table>
       </div>
+      ${movements.length > 8 ? `
+        <div class="table-footer-actions">
+          <button class="button button--ghost button--small" type="button" data-showcase-movements-more>
+            ${estoqueState.movementHistoryExpanded ? 'Ver menos' : `Ver mais ${Math.min(movements.length - 8, 22)} movimento(s)`}
+          </button>
+        </div>
+      ` : ''}
     </section>
   `;
 }

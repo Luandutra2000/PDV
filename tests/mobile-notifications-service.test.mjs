@@ -55,6 +55,41 @@ assert(saleDetailEvent.details.change === 8, 'sale event should expose sale chan
 assert(events.some((event) => event.kind === 'outflow' && event.level === 'danger'), 'high outflow should be danger');
 assert(events.some((event) => event.kind === 'alert' && event.title === 'Produto acabando'), 'low showcase stock alert should be present');
 
+const schema = await import('../src/database/schema.js');
+const billNow = new Date();
+const billDue = new Date(billNow);
+billDue.setDate(billNow.getDate() + 1);
+storage.setItem(schema.STORAGE_KEYS.financialTransactions, [
+  {
+    id: 'bill-pending',
+    type: 'expense',
+    description: 'Aluguel do ponto',
+    amount: 500,
+    paymentMethod: 'boleto',
+    status: 'pending',
+    transactionDate: formatDateInput(billNow),
+    dueDate: formatDateInput(billDue),
+    createdAt: billNow.toISOString()
+  },
+  {
+    id: 'bill-paid',
+    type: 'expense',
+    description: 'Energia',
+    amount: 120,
+    paymentMethod: 'boleto',
+    status: 'paid',
+    transactionDate: formatDateInput(billNow),
+    dueDate: formatDateInput(billNow),
+    paidAt: billNow.toISOString(),
+    createdAt: billNow.toISOString()
+  }
+]);
+
+const billEvents = notifications.getMobileFeedEvents({ filter: 'alerts', now: billNow });
+assert(billEvents.some((event) => event.title === 'Novo boleto cadastrado' && event.description.includes('Aluguel do ponto')), 'mobile alerts should show new bills');
+assert(billEvents.some((event) => event.title === 'Boleto proximo do vencimento'), 'mobile alerts should show bills near due date');
+assert(billEvents.some((event) => event.title === 'Pagamento de boleto' && event.description.includes('Energia')), 'mobile alerts should show paid bills');
+
 const saleEvents = notifications.getMobileFeedEvents({ filter: 'sales' });
 assert(saleEvents.length > 0, 'sales filter should return sale events');
 assert(saleEvents.every((event) => event.kind === 'sale'), 'sales filter should only return sale events');
@@ -63,7 +98,7 @@ const today = new Date();
 const yesterday = new Date(today);
 yesterday.setDate(today.getDate() - 1);
 
-storage.setItem((await import('../src/database/schema.js')).STORAGE_KEYS.transactions, [
+storage.setItem(schema.STORAGE_KEYS.transactions, [
   {
     id: 'sale-yesterday',
     type: 'venda',
@@ -83,7 +118,7 @@ storage.setItem((await import('../src/database/schema.js')).STORAGE_KEYS.transac
     createdAt: today.toISOString()
   }
 ]);
-storage.setItem((await import('../src/database/schema.js')).STORAGE_KEYS.stockLaunches, []);
+storage.setItem(schema.STORAGE_KEYS.stockLaunches, []);
 
 const liveEvents = notifications.getMobileFeedEvents({ now: today });
 assert(liveEvents.some((event) => event.id === 'sale-sale-today'), 'live feed should include current-day events');

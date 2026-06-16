@@ -17,6 +17,7 @@ const DEFAULT_FILTERS = {
   customStart: '',
   customEnd: '',
   type: 'all',
+  historyKind: 'all',
   categoryId: 'all',
   status: 'all'
 };
@@ -275,6 +276,7 @@ function renderFinancialTable(transactions, categories, filters) {
           <input class="field" style="max-width: 150px;" type="date" name="customEnd" value="${filters.customEnd || ''}" data-finance-custom-date>
         ` : ''}
         ${renderTypeFilter(filters)}
+        ${renderHistoryKindFilter(filters)}
         ${renderCategoryFilter(categories, filters)}
         ${renderStatusFilter(filters)}
       </div>
@@ -317,6 +319,16 @@ function renderTypeFilter(filters) {
   `;
 }
 
+function renderHistoryKindFilter(filters) {
+  return `
+    <select class="field" style="width: auto; min-width: 138px; min-height: 34px; padding: 0 12px; font-size: 13px; font-weight: 800;" name="historyKind" data-finance-filter="historyKind">
+      <option value="all"${isSelected(filters.historyKind, 'all')}>Historico</option>
+      <option value="cash"${isSelected(filters.historyKind, 'cash')}>Mov. caixa</option>
+      <option value="bill"${isSelected(filters.historyKind, 'bill')}>Boletos</option>
+    </select>
+  `;
+}
+
 function renderCategoryFilter(categories, filters) {
   return `
     <select class="field" style="width: auto; min-width: 118px; min-height: 34px; padding: 0 12px; font-size: 13px; font-weight: 800;" name="categoryId" data-finance-filter="categoryId">
@@ -340,9 +352,11 @@ function renderStatusFilter(filters) {
 function applyTableFilters(transactions, filters) {
   return transactions.filter((transaction) => {
     const typeMatches = filters.type === 'all' || transaction.type === filters.type;
+    const historyKindMatches = filters.historyKind === 'all'
+      || filters.historyKind === getFinancialHistoryKind(transaction);
     const categoryMatches = filters.categoryId === 'all' || transaction.categoryId === filters.categoryId;
     const statusMatches = filters.status === 'all' || transaction.status === filters.status;
-    return typeMatches && categoryMatches && statusMatches;
+    return typeMatches && historyKindMatches && categoryMatches && statusMatches;
   });
 }
 
@@ -358,9 +372,9 @@ function renderFinancialRow(transaction, categories) {
     <tr data-finance-row="${transaction.id}">
       <td>${formatDate(transaction.transactionDate || transaction.createdAt)}</td>
       <td>
-        <strong>${transaction.description}</strong>
+        <strong>${getFinancialHistoryTitle(transaction)}</strong>
         <div class="finance-row-details">
-          <small>Observacao: ${transaction.notes || 'Sem observacao'}</small><br>
+          <small>Observacao: ${getFinancialHistoryObservation(transaction)}</small><br>
           <small>Origem: ${transaction.origin === 'cashier' ? 'Frente de Caixa' : 'Financeiro'}</small><br>
           <small>Vencimento: ${formatDate(transaction.dueDate)}</small>
         </div>
@@ -379,6 +393,18 @@ function renderFinancialRow(transaction, categories) {
       </td>
     </tr>
   `;
+}
+
+function getFinancialHistoryTitle(transaction) {
+  return getFinancialHistoryKind(transaction) === 'bill' ? 'Boleto' : 'Movimentação de Caixa';
+}
+
+function getFinancialHistoryObservation(transaction) {
+  return transaction.description || transaction.notes || 'Sem observacao';
+}
+
+function getFinancialHistoryKind(transaction) {
+  return transaction.paymentMethod === 'boleto' || Boolean(transaction.dueDate) ? 'bill' : 'cash';
 }
 
 function renderPayablesPanel(payables) {

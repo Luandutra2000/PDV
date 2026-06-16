@@ -82,8 +82,14 @@ assert(html.includes('data-finance-period="yesterday"'));
 assert(html.includes('data-finance-period="month"'));
 assert(html.includes('data-finance-period="custom"'));
 assert(html.includes('data-finance-filter="type"'));
+assert(html.includes('data-finance-filter="historyKind"'));
+assert(html.includes('Mov. caixa'));
+assert(html.includes('Boletos'));
 assert(html.includes('data-finance-filter="categoryId"'));
 assert(html.includes('data-finance-filter="status"'));
+assert(html.includes('<strong>Boleto</strong>'));
+assert(html.includes('Observacao: Boleto fornecedor'));
+assert(!html.includes('<strong>Boleto fornecedor</strong>'));
 
 const filteredHtml = renderFinanceiroMarkup({
   summary: {
@@ -130,6 +136,7 @@ const filteredHtml = renderFinanceiroMarkup({
     customStart: '',
     customEnd: '',
     type: 'income',
+    historyKind: 'cash',
     categoryId: 'reforco-caixa',
     status: 'paid'
   }

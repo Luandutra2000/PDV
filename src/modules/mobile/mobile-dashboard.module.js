@@ -18,7 +18,7 @@ import {
   getMobileFeedEvents,
   getMobileFeedFilters,
   getMobileFeedPeriodFilters
-} from '../../services/mobile-notifications.service.js?v=20260608-14';
+} from '../../services/mobile-notifications.service.js?v=20260616-04';
 import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js';
 import {
   createStockLaunch,

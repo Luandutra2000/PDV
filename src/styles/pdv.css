@@ -710,6 +710,13 @@ select.compact-select[multiple] {
   min-width: 1040px;
 }
 
+.table-footer-actions {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
 .comparison-table th,
 .comparison-table td {
   padding: 12px 10px;
