@@ -139,74 +139,55 @@ function getProductAlerts(metrics = getProductDashboardMetrics()) {
 }
 
 function renderProdutosScreen(container) {
+  const metrics = getProductDashboardMetrics();
+
   container.innerHTML = `
-    <section class="module-screen products-module">
-      <header class="module-header">
+    <section class="module-screen products-module products-dashboard">
+      <header class="products-hero">
         <div>
+          <span class="products-hero__eyebrow">Catalogo</span>
           <h1 class="pdv-title">Produtos</h1>
-          <p class="module-subtitle">Cadastre produtos e tipos. Cada tipo aparece como aba no caixa.</p>
+          <p class="module-subtitle">Gerencie categorias, produtos, precos e exibicao na vitrine.</p>
         </div>
         <div class="header-actions">
-          <button class="button button--ghost" type="button" data-action="new-category">+ Nova Categoria</button>
-          <button class="button" type="button" data-action="new-product">+ Novo Produto</button>
+          <button class="button button--ghost" type="button" data-action="new-category">+ Nova categoria</button>
+          <button class="button" type="button" data-action="new-product">+ Novo produto</button>
         </div>
       </header>
 
       ${renderSyncStatus()}
       ${productState.loading ? '<div class="empty-products">Carregando produtos e categorias...</div>' : ''}
       ${productState.error ? `<div class="form-error">${productState.error}</div>` : ''}
+      ${renderProductSummaryCards(metrics)}
+      ${renderProductAlerts(metrics)}
 
-      <section class="manager-section">
-        <header class="manager-section__header">
+      <section class="manager-section products-section">
+        <header class="products-section__header">
           <strong>Categorias / Abas</strong>
-          <span>${getVisibleCategories().length} categorias</span>
+          <span>${metrics.categories.length} categorias organizam as abas do caixa e da vitrine.</span>
         </header>
-        <div class="manager-list">
+        <div class="category-card-grid">
           ${renderCategoryRows()}
         </div>
       </section>
 
-      <section class="manager-section">
-        <header class="manager-section__header">
+      <section class="manager-section products-section">
+        <header class="products-section__header">
           <strong>Produtos cadastrados</strong>
-          <span>${getFilteredProducts().length} produtos</span>
+          <span>${getFilteredProducts().length} produtos encontrados pelos filtros atuais.</span>
         </header>
-        <div class="products-filter-row">
-          <input class="field" type="search" placeholder="Filtrar produto..." value="${productState.query}" data-products-filter>
-          <select class="field" data-category-filter>
-            <option value="todos" ${productState.categoryFilter === 'todos' ? 'selected' : ''}>Todas as abas</option>
-            ${getVisibleCategories().map((category) => `
-              <option value="${category.id}" ${productState.categoryFilter === category.id ? 'selected' : ''}>${category.name}</option>
-            `).join('')}
-          </select>
-        </div>
-        <div class="manager-list">
+        ${renderProductFilters()}
+        <div class="product-card-grid">
           ${renderProductRows()}
         </div>
       </section>
 
-      <section class="manager-section">
-        <header class="manager-section__header">
+      <section class="manager-section products-section product-crm-section">
+        <header class="products-section__header">
           <strong>Mais vendidos</strong>
           <span>${renderBestSellerSummary()}</span>
         </header>
-        <div class="products-filter-row">
-          <select class="field" data-best-seller-period-filter>
-            ${renderBestSellerPeriodOptions()}
-          </select>
-          <select class="field" data-best-seller-category-filter>
-            <option value="todos" ${productState.bestSellerCategoryFilter === 'todos' ? 'selected' : ''}>Todas as abas</option>
-            ${getVisibleCategories().map((category) => `
-              <option value="${category.id}" ${productState.bestSellerCategoryFilter === category.id ? 'selected' : ''}>${category.name}</option>
-            `).join('')}
-          </select>
-        </div>
-        ${productState.bestSellerPeriod === 'custom' ? `
-          <div class="products-filter-row">
-            <input class="field" type="date" value="${productState.bestSellerCustomStart}" data-best-seller-custom-start aria-label="Data inicial">
-            <input class="field" type="date" value="${productState.bestSellerCustomEnd}" data-best-seller-custom-end aria-label="Data final">
-          </div>
-        ` : ''}
+        ${renderBestSellerFilters()}
         ${renderBestSellers()}
       </section>
 
@@ -420,6 +401,107 @@ async function saveCategoryFromForm(form) {
   });
   closeModal();
   showNotification({ title: 'Categoria salva', message: 'Categoria registrada com sucesso.', type: 'success' });
+}
+
+function renderProductSummaryCards(metrics = getProductDashboardMetrics()) {
+  const totalStock = metrics.products.reduce((total, product) => total + (Number(product.stock) || 0), 0);
+  const showcaseCategories = metrics.categories.filter((category) => category.showInShowcase !== false).length;
+  const summaryCards = [
+    {
+      label: 'Produtos',
+      value: metrics.products.length,
+      detail: `${metrics.activeProducts.length} ativos`
+    },
+    {
+      label: 'Categorias',
+      value: metrics.categories.length,
+      detail: `${showcaseCategories} na vitrine`
+    },
+    {
+      label: 'Vitrine',
+      value: metrics.showcaseProducts.length,
+      detail: 'Produtos visiveis para venda'
+    },
+    {
+      label: 'Estoque',
+      value: totalStock,
+      detail: 'Unidades cadastradas'
+    }
+  ];
+
+  return `
+    <section class="product-summary-grid" aria-label="Resumo de produtos">
+      ${summaryCards.map((card) => `
+        <article class="product-summary-card">
+          <span>${card.label}</span>
+          <strong>${card.value}</strong>
+          <small>${card.detail}</small>
+        </article>
+      `).join('')}
+    </section>
+  `;
+}
+
+function renderProductAlerts(metrics = getProductDashboardMetrics()) {
+  const alerts = getProductAlerts(metrics);
+
+  if (!alerts.length) {
+    return '';
+  }
+
+  return `
+    <section class="product-alert-list" aria-label="Alertas de produtos">
+      ${alerts.map((alert) => `
+        <article class="product-alert product-alert--${alert.tone}" data-alert-key="${alert.key}">
+          <strong>${alert.count}</strong>
+          <span>${alert.label}</span>
+        </article>
+      `).join('')}
+    </section>
+  `;
+}
+
+function renderProductFilters() {
+  return `
+    <div class="products-filter-row">
+      <input class="field" type="search" placeholder="Filtrar produto..." value="${productState.query}" data-products-filter>
+      <select class="field" data-category-filter>
+        <option value="todos" ${productState.categoryFilter === 'todos' ? 'selected' : ''}>Todas as abas</option>
+        ${getVisibleCategories().map((category) => `
+          <option value="${category.id}" ${productState.categoryFilter === category.id ? 'selected' : ''}>${category.name}</option>
+        `).join('')}
+      </select>
+      <select class="field" data-status-filter>
+        <option value="todos" ${productState.statusFilter === 'todos' ? 'selected' : ''}>Todos os status</option>
+        <option value="active" ${productState.statusFilter === 'active' ? 'selected' : ''}>Ativos</option>
+        <option value="inactive" ${productState.statusFilter === 'inactive' ? 'selected' : ''}>Inativos</option>
+        <option value="showcase" ${productState.statusFilter === 'showcase' ? 'selected' : ''}>Na vitrine</option>
+        <option value="out-showcase" ${productState.statusFilter === 'out-showcase' ? 'selected' : ''}>Fora da vitrine</option>
+      </select>
+    </div>
+  `;
+}
+
+function renderBestSellerFilters() {
+  return `
+    <div class="products-filter-row">
+      <select class="field" data-best-seller-period-filter>
+        ${renderBestSellerPeriodOptions()}
+      </select>
+      <select class="field" data-best-seller-category-filter>
+        <option value="todos" ${productState.bestSellerCategoryFilter === 'todos' ? 'selected' : ''}>Todas as abas</option>
+        ${getVisibleCategories().map((category) => `
+          <option value="${category.id}" ${productState.bestSellerCategoryFilter === category.id ? 'selected' : ''}>${category.name}</option>
+        `).join('')}
+      </select>
+    </div>
+    ${productState.bestSellerPeriod === 'custom' ? `
+      <div class="products-filter-row">
+        <input class="field" type="date" value="${productState.bestSellerCustomStart}" data-best-seller-custom-start aria-label="Data inicial">
+        <input class="field" type="date" value="${productState.bestSellerCustomEnd}" data-best-seller-custom-end aria-label="Data final">
+      </div>
+    ` : ''}
+  `;
 }
 
 function renderCategoryRows() {
