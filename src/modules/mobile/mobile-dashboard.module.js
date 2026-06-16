@@ -54,6 +54,7 @@ let state = {
   syncError: '',
   showcaseCategoryId: '',
   showcaseProductId: '',
+  expandedComparisonIds: [],
   closingForm: { countedCash: '', checkedPix: '', checkedCard: '', note: '' },
   closingError: '',
   financeModal: '',
@@ -78,6 +79,7 @@ export function initMobileDashboardModule(workspace) {
     syncError: '',
     showcaseCategoryId: '',
     showcaseProductId: '',
+    expandedComparisonIds: [],
     closingForm: { countedCash: '', checkedPix: '', checkedCard: '', note: '' },
     closingError: '',
     financeModal: '',
@@ -109,6 +111,7 @@ function bindEvents(workspace) {
     const financeActionButton = event.target.closest('[data-mobile-finance-action]');
     const financeCloseButton = event.target.closest('[data-mobile-finance-close]');
     const payableButton = event.target.closest('[data-mobile-payable-id]');
+    const comparisonToggleButton = event.target.closest('[data-mobile-comparison-toggle]');
 
     if (syncButton) {
       refreshMobileData(workspace, { force: true });
@@ -149,6 +152,12 @@ function bindEvents(workspace) {
 
     if (payableButton) {
       payMobileBill(payableButton.dataset.mobilePayableId, workspace);
+      return;
+    }
+
+    if (comparisonToggleButton) {
+      toggleMobileComparison(comparisonToggleButton.dataset.mobileComparisonToggle);
+      render(workspace);
       return;
     }
 
@@ -467,19 +476,40 @@ function renderShowcaseTab() {
 }
 
 function renderMobileComparisonRow(item) {
+  const isExpanded = state.expandedComparisonIds.includes(item.produtoId);
+
   return `
-    <article class="mobile-comparison-row">
+    <article class="mobile-comparison-row ${isExpanded ? 'is-expanded' : ''}">
       <header>
         <strong>${item.produtoNome}</strong>
         <span>${item.categoriaNome}</span>
       </header>
-      ${renderComparisonMetric('Produzido', item.quantidadeProduzida)}
-      ${renderComparisonMetric('Valor produzido', formatCurrency(item.valorProduzido))}
-      ${renderComparisonMetric('Vendido', item.quantidadeVendida)}
-      ${renderComparisonMetric('Valor vendido', formatCurrency(item.valorVendido))}
-      ${renderComparisonMetric('Sobra', item.sobraQuantidade)}
-      ${renderComparisonMetric('Diferenca', formatCurrency(item.diferencaValor))}
-      ${renderComparisonMetric('% vendido', `${item.percentualVendido}%`)}
+      <div class="mobile-comparison-summary">
+        <div>
+          <span>Vendido</span>
+          <strong>${item.quantidadeVendida}/${item.quantidadeProduzida}</strong>
+        </div>
+        <div>
+          <span>Sobra</span>
+          <strong>${item.sobraQuantidade}</strong>
+        </div>
+        <div>
+          <span>% vendido</span>
+          <strong>${item.percentualVendido}%</strong>
+        </div>
+      </div>
+      ${isExpanded ? `
+        <div class="mobile-comparison-details">
+          ${renderComparisonMetric('Produzido', item.quantidadeProduzida)}
+          ${renderComparisonMetric('Valor produzido', formatCurrency(item.valorProduzido))}
+          ${renderComparisonMetric('Vendido', item.quantidadeVendida)}
+          ${renderComparisonMetric('Valor vendido', formatCurrency(item.valorVendido))}
+          ${renderComparisonMetric('Diferenca', formatCurrency(item.diferencaValor))}
+        </div>
+      ` : ''}
+      <button class="mobile-comparison-toggle" type="button" data-mobile-comparison-toggle="${item.produtoId}" aria-expanded="${isExpanded ? 'true' : 'false'}">
+        ${isExpanded ? 'Exibir menos' : 'Exibir mais'}
+      </button>
     </article>
   `;
 }
@@ -491,6 +521,16 @@ function renderComparisonMetric(label, value) {
       <strong>${value}</strong>
     </div>
   `;
+}
+
+function toggleMobileComparison(productId) {
+  if (!productId) {
+    return;
+  }
+
+  state.expandedComparisonIds = state.expandedComparisonIds.includes(productId)
+    ? state.expandedComparisonIds.filter((id) => id !== productId)
+    : [...state.expandedComparisonIds, productId];
 }
 
 function renderCanceledShowcaseLaunch(launch) {
