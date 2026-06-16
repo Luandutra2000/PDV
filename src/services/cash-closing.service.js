@@ -113,7 +113,7 @@ export function getCurrentClosingDraft() {
   return getItem(STORAGE_KEYS.cashClosingDraft, null);
 }
 
-export function confirmClosing(draft) {
+export function confirmClosing(draft, { sync = true } = {}) {
   const user = getCurrentUser();
   assertPermission(user, 'cash.close');
 
@@ -182,7 +182,9 @@ export function confirmClosing(draft) {
     user,
     metadata: { totals: closing.totals }
   });
-  syncClosingWithSupabase(closing);
+  if (sync) {
+    syncClosingWithSupabase(closing);
+  }
 
   return closing;
 }

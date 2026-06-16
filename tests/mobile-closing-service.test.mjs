@@ -26,6 +26,7 @@ const products = await import('../src/services/product.service.js');
 const comandas = await import('../src/services/comanda.service.js');
 const transactions = await import('../src/services/transaction.service.js');
 const closing = await import('../src/services/cash-closing.service.js');
+const financialSync = await import('../src/services/financial-sync.service.js');
 const mobileClosing = await import('../src/services/mobile-closing.service.js');
 const auth = await import('../src/services/auth.service.js');
 
@@ -49,5 +50,50 @@ assert(summary.entriesTotal === 10, 'closing should expose entries total');
 assert(summary.outputsTotal === 5, 'closing should expose outputs total');
 assert(summary.cashDifference === 0, 'closing preview without counted cash should default to no current difference');
 assert(summary.history.length === 1, 'closing should expose closing history');
+assert(summary.formDefaults.countedCash === summary.expectedCash, 'closing should default counted cash to expected cash');
+assert(summary.formDefaults.checkedPix === summary.expectedPix, 'closing should default pix counted to expected pix');
+assert(summary.formDefaults.checkedCard === summary.expectedDebit + summary.expectedCredit, 'closing should default card counted to expected card');
+assert(summary.history[0].statusLabel === 'Pequena diferenca', 'small difference closing should be Pequena diferenca');
+
+const preview = mobileClosing.previewMobileClosing({
+  countedCash: summary.expectedCash + 6,
+  checkedPix: summary.expectedPix,
+  checkedCard: summary.expectedDebit + summary.expectedCredit,
+  note: 'Teste'
+});
+assert(preview.statusLabel === 'Grande diferenca', 'difference above five should be Grande diferenca');
+
+globalThis.__PDV_RUNTIME_CONFIG__ = {
+  dataProvider: 'supabase',
+  supabaseUrl: 'https://example.supabase.co',
+  supabaseAnonKey: 'anon'
+};
+financialSync.configureFinancialSyncForTests({
+  getClient: async () => ({
+    from() {
+      return {
+        upsert() {
+          return Promise.resolve({ error: new Error('offline') });
+        }
+      };
+    }
+  })
+});
+
+const historyBeforeFailedSubmit = closing.getCashClosings().length;
+let failedSubmit = false;
+try {
+  await mobileClosing.submitMobileClosing({
+    countedCash: summary.formDefaults.countedCash,
+    checkedPix: summary.formDefaults.checkedPix,
+    checkedCard: summary.formDefaults.checkedCard,
+    note: 'Falha online'
+  });
+} catch (error) {
+  failedSubmit = error.message.includes('offline') || error.message.includes('Supabase');
+}
+
+assert(failedSubmit, 'mobile closing should fail when Supabase write fails');
+assert(closing.getCashClosings().length === historyBeforeFailedSubmit, 'failed mobile closing should not stay saved locally');
 
 console.log('mobile closing service ok');
