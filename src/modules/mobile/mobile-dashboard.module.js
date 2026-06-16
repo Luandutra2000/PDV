@@ -8,7 +8,12 @@ import {
   getSalesSeries
 } from '../../services/crm-dashboard.service.js';
 import { getMobileCashFlowSummary } from '../../services/mobile-cash-flow.service.js';
-import { getMobileClosingSummary } from '../../services/mobile-closing.service.js';
+import { getMobileClosingSummary, previewMobileClosing, submitMobileClosing } from '../../services/mobile-closing.service.js';
+import {
+  createMobileFinancialTransaction,
+  getMobileFinancialSummary,
+  markMobileFinancialTransactionPaid
+} from '../../services/mobile-financial.service.js';
 import {
   getMobileFeedEvents,
   getMobileFeedFilters,
@@ -33,6 +38,7 @@ const tabs = [
   { id: 'cash', label: 'Caixa', icon: '$' },
   { id: 'showcase', label: 'Vitrine', icon: 'VT' },
   { id: 'crm', label: 'CRM', icon: 'CR' },
+  { id: 'finance', label: 'Financ.', icon: 'FN' },
   { id: 'closing', label: 'Fechar', icon: 'OK' }
 ];
 
@@ -48,6 +54,10 @@ let state = {
   syncError: '',
   showcaseCategoryId: '',
   showcaseProductId: '',
+  closingForm: { countedCash: '', checkedPix: '', checkedCard: '', note: '' },
+  closingError: '',
+  financeModal: '',
+  financeError: '',
   periodMenuOpen: false
 };
 
@@ -68,6 +78,10 @@ export function initMobileDashboardModule(workspace) {
     syncError: '',
     showcaseCategoryId: '',
     showcaseProductId: '',
+    closingForm: { countedCash: '', checkedPix: '', checkedCard: '', note: '' },
+    closingError: '',
+    financeModal: '',
+    financeError: '',
     periodMenuOpen: false
   };
 
@@ -92,6 +106,9 @@ function bindEvents(workspace) {
     const periodToggleButton = event.target.closest('[data-mobile-period-toggle]');
     const themeButton = event.target.closest('[data-mobile-theme]');
     const logoutButton = event.target.closest('[data-mobile-logout]');
+    const financeActionButton = event.target.closest('[data-mobile-finance-action]');
+    const financeCloseButton = event.target.closest('[data-mobile-finance-close]');
+    const payableButton = event.target.closest('[data-mobile-payable-id]');
 
     if (syncButton) {
       refreshMobileData(workspace, { force: true });
@@ -113,6 +130,25 @@ function bindEvents(workspace) {
     if (logoutButton) {
       logout();
       window.location.href = window.location.pathname || './';
+      return;
+    }
+
+    if (financeActionButton) {
+      state.financeModal = financeActionButton.dataset.mobileFinanceAction;
+      state.financeError = '';
+      render(workspace);
+      return;
+    }
+
+    if (financeCloseButton) {
+      state.financeModal = '';
+      state.financeError = '';
+      render(workspace);
+      return;
+    }
+
+    if (payableButton) {
+      payMobileBill(payableButton.dataset.mobilePayableId, workspace);
       return;
     }
 
@@ -160,15 +196,35 @@ function bindEvents(workspace) {
   });
 
   workspace.addEventListener('submit', async (event) => {
-    if (!event.target.matches('[data-mobile-showcase-form]')) {
+    if (event.target.matches('[data-mobile-showcase-form]')) {
+      event.preventDefault();
+      await saveMobileShowcaseLaunch(event.target, workspace);
       return;
     }
 
-    event.preventDefault();
-    await saveMobileShowcaseLaunch(event.target, workspace);
+    if (event.target.matches('[data-mobile-closing-form]')) {
+      event.preventDefault();
+      await saveMobileClosing(event.target, workspace);
+      return;
+    }
+
+    if (event.target.matches('[data-mobile-finance-form]')) {
+      event.preventDefault();
+      await saveMobileFinance(event.target, workspace);
+    }
   });
 
   workspace.addEventListener('change', (event) => {
+    if (event.target.matches('[data-mobile-closing-field]')) {
+      state.closingForm = {
+        ...state.closingForm,
+        [event.target.name]: event.target.value
+      };
+      state.closingError = '';
+      render(workspace);
+      return;
+    }
+
     if (event.target.matches('[data-feed-custom-start]')) {
       state.customStart = event.target.value;
       state.feedPeriod = 'custom';
@@ -320,6 +376,10 @@ function renderTabContent(cash) {
     return renderCrmTab();
   }
 
+  if (state.tab === 'finance') {
+    return renderFinanceTab();
+  }
+
   if (state.tab === 'closing') {
     return renderClosingTab();
   }
@@ -384,32 +444,64 @@ function renderCashTab(cash) {
 }
 
 function renderShowcaseTab() {
-  const summary = getMobileShowcaseSummary();
-  const cards = [
-    { label: 'Produzidos', value: summary.producedUnits, tone: 'info', isCurrency: false },
-    { label: 'Vendidos', value: summary.soldUnits, tone: 'success', isCurrency: false },
-    { label: 'Restantes', value: summary.remainingUnits, tone: 'warning', isCurrency: false },
-    { label: 'Vitrine estimada', value: summary.estimatedValue, tone: 'warning' },
-    { label: 'Valor vendido', value: summary.soldValue, tone: 'primary' }
-  ];
+  const summary = getMobileShowcaseSummary(getMobilePeriodFilters());
 
   return `
     <div class="mobile-content">
       ${renderMobilePeriodControls(state)}
       <div class="mobile-metrics">
-        ${cards.map(renderMetricCard).join('')}
+        ${summary.cards.map(renderMetricCard).join('')}
       </div>
       ${renderMobileShowcaseForm(summary)}
       <section class="mobile-list-panel">
-        <h2>Produtos na vitrine</h2>
-        ${summary.rows.map((row) => `
-          <div class="mobile-row">
-            <span>${row.produtoNome}</span>
-            <strong>${row.sobraQuantidade} rest. / ${formatCurrency(row.valorProduzido)}</strong>
-          </div>
-        `).join('') || '<p class="mobile-empty">Nenhum produto na vitrine hoje.</p>'}
+        <h2>Comparativo producao x vendas</h2>
+        ${summary.comparisonRows.map(renderMobileComparisonRow).join('') || '<p class="mobile-empty">Sem dados para comparar.</p>'}
+      </section>
+      <section class="mobile-list-panel">
+        <h2>Cancelados</h2>
+        ${summary.canceledLaunches.map(renderCanceledShowcaseLaunch).join('') || '<p class="mobile-empty">Nenhum cancelamento no periodo.</p>'}
       </section>
     </div>
+  `;
+}
+
+function renderMobileComparisonRow(item) {
+  return `
+    <article class="mobile-comparison-row">
+      <header>
+        <strong>${item.produtoNome}</strong>
+        <span>${item.categoriaNome}</span>
+      </header>
+      ${renderComparisonMetric('Produzido', item.quantidadeProduzida)}
+      ${renderComparisonMetric('Valor produzido', formatCurrency(item.valorProduzido))}
+      ${renderComparisonMetric('Vendido', item.quantidadeVendida)}
+      ${renderComparisonMetric('Valor vendido', formatCurrency(item.valorVendido))}
+      ${renderComparisonMetric('Sobra', item.sobraQuantidade)}
+      ${renderComparisonMetric('Diferenca', formatCurrency(item.diferencaValor))}
+      ${renderComparisonMetric('% vendido', `${item.percentualVendido}%`)}
+    </article>
+  `;
+}
+
+function renderComparisonMetric(label, value) {
+  return `
+    <div>
+      <span>${label}</span>
+      <strong>${value}</strong>
+    </div>
+  `;
+}
+
+function renderCanceledShowcaseLaunch(launch) {
+  return `
+    <article class="mobile-canceled-card">
+      <header>
+        <strong>${launch.produtoNome}</strong>
+        <span>Cancelado</span>
+      </header>
+      <p>${launch.categoriaNome} - ${launch.quantidade} un. - ${formatDateTime(launch.canceledAt || launch.dataHora)}</p>
+      <strong>${formatCurrency(launch.valorTotal)}</strong>
+    </article>
   `;
 }
 
@@ -568,11 +660,13 @@ function renderMobileProductionChart(comparison) {
 
 function renderClosingTab() {
   const closing = getMobileClosingSummary();
+  const closingForm = getClosingFormValues(closing.formDefaults);
+  const preview = previewMobileClosing(closingForm);
   const cards = [
     { label: 'Dinheiro esperado', value: closing.expectedCash, tone: 'primary' },
     { label: 'Pix esperado', value: closing.expectedPix, tone: 'success' },
-    { label: 'Cartao esperado', value: closing.expectedDebit + closing.expectedCredit, tone: 'info' },
-    { label: 'Diferenca', value: closing.generalDifference, tone: closing.generalDifference ? 'danger' : 'success' }
+    { label: 'Cartao esperado', value: closing.expectedCard, tone: 'info' },
+    { label: 'Diferenca', value: preview.differenceTotal, tone: preview.differenceTotal ? 'danger' : 'success' }
   ];
 
   return `
@@ -580,17 +674,262 @@ function renderClosingTab() {
       <div class="mobile-metrics">
         ${cards.map(renderMetricCard).join('')}
       </div>
+      ${renderMobileClosingForm(closingForm)}
+      ${renderMobileClosingPreview(preview)}
       <section class="mobile-list-panel">
         <h2>Historico de fechamentos</h2>
-        ${closing.history.map((item) => `
-          <div class="mobile-row">
-            <span>${formatDateTime(item.closedAt || item.generatedAt)}</span>
-            <strong>${formatCurrency(item.totals?.sales || 0)}</strong>
-          </div>
-        `).join('') || '<p class="mobile-empty">Nenhum fechamento registrado.</p>'}
+        ${closing.history.map(renderMobileClosingHistoryRow).join('') || '<p class="mobile-empty">Nenhum fechamento registrado.</p>'}
       </section>
     </div>
   `;
+}
+
+function getClosingFormValues(defaults) {
+  return {
+    countedCash: state.closingForm.countedCash === '' ? defaults.countedCash : state.closingForm.countedCash,
+    checkedPix: state.closingForm.checkedPix === '' ? defaults.checkedPix : state.closingForm.checkedPix,
+    checkedCard: state.closingForm.checkedCard === '' ? defaults.checkedCard : state.closingForm.checkedCard,
+    note: state.closingForm.note || ''
+  };
+}
+
+function renderMobileClosingForm(values) {
+  return `
+    <section class="mobile-list-panel">
+      <h2>Fechar caixa</h2>
+      ${state.closingError ? `<p class="mobile-error">${state.closingError}</p>` : ''}
+      <form class="mobile-closing-form" data-mobile-closing-form>
+        <div class="mobile-form-grid">
+          ${renderMoneyInput('Dinheiro contado', 'countedCash', values.countedCash)}
+          ${renderMoneyInput('Pix contado', 'checkedPix', values.checkedPix)}
+          ${renderMoneyInput('Cartao contado', 'checkedCard', values.checkedCard)}
+        </div>
+        <label>
+          Observacao
+          <textarea class="field" name="note" rows="3" data-mobile-closing-field>${values.note}</textarea>
+        </label>
+        <button class="mobile-showcase-submit" type="submit">Fechar Caixa</button>
+      </form>
+    </section>
+  `;
+}
+
+function renderMoneyInput(label, name, value) {
+  return `
+    <label>
+      ${label}
+      <input class="field" name="${name}" type="number" min="0" step="0.01" value="${formatNumberInput(value)}" data-mobile-closing-field>
+    </label>
+  `;
+}
+
+function renderMobileClosingPreview(preview) {
+  const rows = [
+    ['Dinheiro esperado', preview.payments.expectedCash],
+    ['Pix esperado', preview.payments.expectedPix],
+    ['Cartao esperado', preview.expectedCard],
+    ['Total esperado', preview.expectedTotal],
+    ['Total contado', preview.countedTotal],
+    ['Dif. dinheiro', preview.cashDifference],
+    ['Dif. pix', preview.pixDifference || 0],
+    ['Dif. cartao', preview.cardDifference],
+    ['Dif. total', preview.differenceTotal]
+  ];
+
+  return `
+    <section class="mobile-list-panel">
+      <h2>Resumo do fechamento</h2>
+      ${rows.map(([label, value]) => renderCompactRow({ label, value })).join('')}
+    </section>
+  `;
+}
+
+function renderMobileClosingHistoryRow(item) {
+  return `
+    <article class="mobile-closing-history">
+      <header>
+        <strong>${formatDate(item.closedAt || item.generatedAt)}</strong>
+        <span class="mobile-status-badge mobile-status-badge--${getClosingStatusTone(item.statusLabel)}">${item.statusLabel}</span>
+      </header>
+      ${renderTextRow('Hora', formatTime(item.closedAt || item.generatedAt))}
+      ${renderTextRow('Usuario', item.userName || 'Sistema')}
+      ${renderCompactRow({ label: 'Valor esperado', value: item.expectedTotal })}
+      ${renderCompactRow({ label: 'Valor contado', value: item.countedTotal })}
+      ${renderCompactRow({ label: 'Diferenca', value: item.difference })}
+    </article>
+  `;
+}
+
+function getClosingStatusTone(statusLabel) {
+  if (statusLabel === 'Conferido') {
+    return 'success';
+  }
+
+  if (statusLabel === 'Pequena diferenca') {
+    return 'warning';
+  }
+
+  return 'danger';
+}
+
+function renderFinanceTab() {
+  const finance = getMobileFinancialSummary(getMobilePeriodFilters());
+  const payables = getUniquePayables(finance.payables);
+
+  return `
+    <div class="mobile-content">
+      ${renderMobilePeriodControls(state)}
+      <div class="mobile-metrics">
+        ${finance.cards.map(renderMetricCard).join('')}
+      </div>
+      <section class="mobile-list-panel">
+        <h2>Financeiro</h2>
+        ${state.financeError ? `<p class="mobile-error">${state.financeError}</p>` : ''}
+        <div class="mobile-finance-actions">
+          <button type="button" data-mobile-finance-action="income">+ Entrada</button>
+          <button type="button" data-mobile-finance-action="expense">- Saida</button>
+          <button type="button" data-mobile-finance-action="bill">+ Boleto</button>
+        </div>
+        ${state.financeModal ? renderMobileFinanceForm(state.financeModal, finance.categories) : ''}
+      </section>
+      <section class="mobile-list-panel">
+        <h2>Movimentacoes financeiras</h2>
+        ${finance.transactions.filter((transaction) => transaction.status !== 'canceled').slice(0, 12).map((transaction) => renderMobileFinanceTransaction(transaction, finance.categories)).join('') || '<p class="mobile-empty">Nenhuma movimentacao financeira.</p>'}
+      </section>
+      <section class="mobile-list-panel">
+        <h2>Contas a pagar</h2>
+        ${payables.map(renderMobilePayable).join('') || '<p class="mobile-empty">Nenhuma conta a pagar.</p>'}
+      </section>
+      <section class="mobile-list-panel">
+        <h2>Mini CRM financeiro</h2>
+        ${renderMobileFinanceCrm(finance.crm, finance.categories)}
+      </section>
+    </div>
+  `;
+}
+
+function renderMobileFinanceForm(type, categories) {
+  const isBill = type === 'bill';
+  const isIncome = type === 'income';
+  const filteredCategories = categories.filter((category) => (
+    isBill
+      ? category.type === 'expense' || category.type === 'both'
+      : category.type === (isIncome ? 'income' : 'expense') || category.type === 'both'
+  ));
+
+  return `
+    <form class="mobile-finance-form" data-mobile-finance-form>
+      <input type="hidden" name="formType" value="${type}">
+      <label>
+        Descricao
+        <input class="field" name="description" required placeholder="${isIncome ? 'Ex: Aporte do dono' : 'Ex: Boleto fornecedor'}">
+      </label>
+      <div class="mobile-form-grid">
+        <label>
+          Valor
+          <input class="field" name="amount" type="number" min="0.01" step="0.01" required>
+        </label>
+        <label>
+          Categoria
+          <select class="field" name="categoryId" required>
+            ${filteredCategories.map((category) => `<option value="${category.id}">${category.name}</option>`).join('')}
+          </select>
+        </label>
+      </div>
+      ${isBill ? `
+        <div class="mobile-form-grid">
+          <label>
+            Vencimento
+            <input class="field" name="dueDate" type="date" required>
+          </label>
+          <label>
+            Status
+            <select class="field" name="status">
+              <option value="pending">Pendente</option>
+              <option value="paid">Pago</option>
+            </select>
+          </label>
+        </div>
+      ` : ''}
+      <label>
+        Observacao
+        <textarea class="field" name="notes" rows="3"></textarea>
+      </label>
+      <div class="mobile-finance-form__actions">
+        <button type="button" data-mobile-finance-close>Cancelar</button>
+        <button type="submit">Salvar</button>
+      </div>
+    </form>
+  `;
+}
+
+function renderMobileFinanceTransaction(transaction, categories) {
+  const category = categories.find((item) => item.id === transaction.categoryId);
+  const isIncome = transaction.type === 'income';
+
+  return `
+    <article class="mobile-finance-row">
+      <div>
+        <strong>${transaction.description}</strong>
+        <span>${formatDate(transaction.transactionDate || transaction.createdAt)} - ${category?.name || 'Sem categoria'} - ${formatFinanceStatus(transaction.status)}</span>
+      </div>
+      <strong class="${isIncome ? 'money-positive' : 'money-negative'}">${isIncome ? '+' : '-'} ${formatCurrency(transaction.amount)}</strong>
+    </article>
+  `;
+}
+
+function renderMobilePayable(transaction) {
+  return `
+    <article class="mobile-finance-row">
+      <div>
+        <strong>${transaction.description}</strong>
+        <span>${formatFinanceStatus(transaction.status)} - Venc. ${formatDate(transaction.dueDate)}</span>
+      </div>
+      <div class="mobile-finance-row__actions">
+        <strong class="money-negative">${formatCurrency(transaction.amount)}</strong>
+        <button type="button" data-mobile-payable-id="${transaction.id}">Pagar</button>
+      </div>
+    </article>
+  `;
+}
+
+function renderMobileFinanceCrm(crm, categories) {
+  return [
+    renderMobileCrmGroup('Saidas por categoria', crm.outputsByCategory, categories),
+    renderMobileCrmGroup('Entradas por categoria', crm.entriesByCategory, categories),
+    renderMobileCrmGroup('Pendentes por categoria', crm.pendingByCategory, categories),
+    renderMobileCrmGroup('Gastos por pagamento', crm.spendingByPaymentMethod, [])
+  ].join('');
+}
+
+function renderMobileCrmGroup(title, totals, categories) {
+  const rows = Object.entries(totals || {}).sort((left, right) => right[1] - left[1]).slice(0, 5);
+
+  return `
+    <div class="mobile-finance-crm-group">
+      <strong>${title}</strong>
+      ${rows.map(([id, value]) => renderCompactRow({
+        label: categories.find((category) => category.id === id)?.name || id,
+        value
+      })).join('') || '<p class="mobile-empty">Sem dados.</p>'}
+    </div>
+  `;
+}
+
+function getUniquePayables(payables) {
+  return [...payables.overdue, ...payables.upcoming, ...payables.pending]
+    .filter((item, index, list) => list.findIndex((candidate) => candidate.id === item.id) === index);
+}
+
+function formatFinanceStatus(status) {
+  const labels = {
+    paid: 'Pago',
+    pending: 'Pendente',
+    overdue: 'Vencida',
+    canceled: 'Cancelada'
+  };
+
+  return labels[status] || status || 'Pendente';
 }
 
 function renderMobileShowcaseForm(summary) {
@@ -716,6 +1055,86 @@ async function saveMobileShowcaseLaunch(form, workspace) {
   } catch (error) {
     state.syncState = 'error';
     state.syncError = error.message || 'Nao foi possivel lancar vitrine.';
+  }
+
+  renderIfActive(workspace);
+}
+
+async function saveMobileClosing(form, workspace) {
+  const formData = new FormData(form);
+  const input = {
+    countedCash: formData.get('countedCash'),
+    checkedPix: formData.get('checkedPix'),
+    checkedCard: formData.get('checkedCard'),
+    note: formData.get('note')
+  };
+
+  state.syncState = 'syncing';
+  state.closingError = '';
+  renderIfActive(workspace);
+
+  try {
+    await submitMobileClosing(input);
+    await hydrateOnlineOperationalData({ catalog: false, financial: true, showcase: false });
+    state.syncState = 'synced';
+    state.closingForm = { countedCash: '', checkedPix: '', checkedCard: '', note: '' };
+  } catch (error) {
+    state.syncState = 'error';
+    state.closingError = error.message || 'Nao foi possivel fechar o caixa.';
+    state.syncError = state.closingError;
+  }
+
+  renderIfActive(workspace);
+}
+
+async function saveMobileFinance(form, workspace) {
+  const formData = new FormData(form);
+  const formType = String(formData.get('formType') || '');
+  const isBill = formType === 'bill';
+  const isIncome = formType === 'income';
+
+  state.syncState = 'syncing';
+  state.financeError = '';
+  renderIfActive(workspace);
+
+  try {
+    await createMobileFinancialTransaction({
+      type: isIncome ? 'income' : 'expense',
+      description: formData.get('description'),
+      amount: formData.get('amount'),
+      categoryId: formData.get('categoryId'),
+      paymentMethod: isBill ? 'boleto' : 'dinheiro',
+      status: isBill ? formData.get('status') : 'paid',
+      transactionDate: new Date().toISOString().slice(0, 10),
+      dueDate: formData.get('dueDate') || '',
+      notes: formData.get('notes') || '',
+      movesCashSession: false
+    });
+    await hydrateOnlineOperationalData({ catalog: false, financial: true, showcase: false });
+    state.financeModal = '';
+    state.syncState = 'synced';
+  } catch (error) {
+    state.syncState = 'error';
+    state.financeError = error.message || 'Nao foi possivel registrar o lancamento financeiro.';
+    state.syncError = state.financeError;
+  }
+
+  renderIfActive(workspace);
+}
+
+async function payMobileBill(transactionId, workspace) {
+  state.syncState = 'syncing';
+  state.financeError = '';
+  renderIfActive(workspace);
+
+  try {
+    await markMobileFinancialTransactionPaid(transactionId, { paymentMethod: 'boleto' });
+    await hydrateOnlineOperationalData({ catalog: false, financial: true, showcase: false });
+    state.syncState = 'synced';
+  } catch (error) {
+    state.syncState = 'error';
+    state.financeError = error.message || 'Nao foi possivel marcar a conta como paga.';
+    state.syncError = state.financeError;
   }
 
   renderIfActive(workspace);
@@ -948,6 +1367,33 @@ function formatDateTime(value) {
     hour: '2-digit',
     minute: '2-digit'
   }).format(new Date(value));
+}
+
+function formatDate(value) {
+  if (!value) {
+    return '-';
+  }
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  }).format(new Date(String(value).length === 10 ? `${value}T12:00:00` : value));
+}
+
+function formatTime(value) {
+  if (!value) {
+    return '--:--';
+  }
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(value));
+}
+
+function formatNumberInput(value) {
+  return Number(value || 0).toFixed(2);
 }
 
 function formatShortDate(value) {
