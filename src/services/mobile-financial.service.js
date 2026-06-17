@@ -10,6 +10,7 @@ import {
 import { getCurrentUser } from './auth.service.js';
 import { isSupabaseEnabled } from './app-config.service.js';
 import { saveFinancialTransactionToSupabaseStrict, updateFinancialTransactionInSupabaseStrict } from './financial-sync.service.js';
+import { assertPermission } from './permission.service.js';
 
 export function getMobileFinancialSummary(filters = { period: 'today' }) {
   const normalizedFilters = { period: 'today', ...filters };
@@ -43,6 +44,7 @@ export async function createMobileFinancialTransaction(input) {
   assertOnlineSupabase();
 
   const user = getCurrentUser();
+  assertPermission(user, getCreateMobileFinancialTransactionPermission(input), { source: 'mobile-financial' });
   const transaction = normalizeFinancialTransaction({ ...input, origin: 'finance' }, user);
 
   try {
@@ -56,6 +58,9 @@ export async function createMobileFinancialTransaction(input) {
 
 export async function markMobileFinancialTransactionPaid(transactionId, input = {}) {
   assertOnlineSupabase();
+
+  const user = getCurrentUser();
+  assertPermission(user, 'financial.bill.pay', { source: 'mobile-financial', transactionId });
 
   const transaction = getFinancialTransactions({ period: 'all' }).find((item) => item.id === transactionId);
 
@@ -84,4 +89,11 @@ function assertOnlineSupabase() {
   if (!isSupabaseEnabled()) {
     throw new Error('Supabase online obrigatorio para esta acao.');
   }
+}
+
+function getCreateMobileFinancialTransactionPermission(input = {}) {
+  const type = String(input.type || '').trim();
+  return type === 'income' || type === 'entrada'
+    ? 'financial.income.create'
+    : 'financial.expense.create';
 }

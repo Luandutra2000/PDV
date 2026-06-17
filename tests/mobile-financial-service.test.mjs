@@ -21,6 +21,20 @@ const assert = (condition, message) => {
   }
 };
 
+const assertRejects = async (callback, expectedMessage, message) => {
+  try {
+    await callback();
+  } catch (error) {
+    assert(
+      error.message.includes(expectedMessage),
+      `${message}: expected "${expectedMessage}", got "${error.message}"`
+    );
+    return error;
+  }
+
+  throw new Error(message);
+};
+
 const storage = await import('../src/services/storage.service.js');
 const auth = await import('../src/services/auth.service.js');
 const schema = await import('../src/database/schema.js');
@@ -126,6 +140,86 @@ assert(
   JSON.parse(localStorage.getItem(schema.STORAGE_KEYS.financialTransactions)).find((item) => item.id === bill.id).status === 'paid',
   'mobile finance should mark payable paid'
 );
+
+auth.createUser({
+  name: 'Operador Mobile',
+  username: 'mobile-op',
+  password: 'mobile123',
+  role: 'operador'
+});
+
+const deniedBill = await mobileFinance.createMobileFinancialTransaction({
+  type: 'expense',
+  description: 'Conta sem permissao',
+  amount: 45,
+  categoryId: 'fornecedor',
+  paymentMethod: 'boleto',
+  status: 'pending',
+  dueDate: '2026-06-21'
+});
+
+auth.login({ username: 'mobile-op', password: 'mobile123' });
+
+let callCount = calls.length;
+await assertRejects(
+  () => mobileFinance.createMobileFinancialTransaction({
+    type: 'income',
+    description: 'Entrada bloqueada',
+    amount: 25,
+    categoryId: 'aporte-dono',
+    paymentMethod: 'dinheiro',
+    status: 'paid'
+  }),
+  'Usuario sem permissao para esta acao.',
+  'mobile finance create should require income permission'
+);
+assert(calls.length === callCount, 'denied mobile finance create should not write to Supabase');
+assert(
+  !JSON.parse(localStorage.getItem(schema.STORAGE_KEYS.financialTransactions)).some((item) => item.description === 'Entrada bloqueada'),
+  'denied mobile finance create should not update cache'
+);
+
+let auditLogs = JSON.parse(localStorage.getItem(schema.STORAGE_KEYS.auditLogs));
+assert(auditLogs[0]?.action === 'permission.denied', 'denied mobile finance create should record permission audit');
+assert(auditLogs[0]?.entityId === 'financial.income.create', 'denied mobile finance create should audit income permission');
+
+for (const type of ['saida', 'bill']) {
+  callCount = calls.length;
+  await assertRejects(
+    () => mobileFinance.createMobileFinancialTransaction({
+      type,
+      description: `Saida bloqueada ${type}`,
+      amount: 35,
+      categoryId: 'fornecedor',
+      paymentMethod: 'boleto',
+      status: 'pending'
+    }),
+    'Usuario sem permissao para esta acao.',
+    `mobile finance create should require expense permission for ${type}`
+  );
+  assert(calls.length === callCount, `denied mobile finance create ${type} should not write to Supabase`);
+
+  auditLogs = JSON.parse(localStorage.getItem(schema.STORAGE_KEYS.auditLogs));
+  assert(auditLogs[0]?.entityId === 'financial.expense.create', `denied mobile finance create ${type} should audit expense permission`);
+}
+
+callCount = calls.length;
+await assertRejects(
+  () => mobileFinance.markMobileFinancialTransactionPaid(deniedBill.id, { paymentMethod: 'boleto' }),
+  'Usuario sem permissao para esta acao.',
+  'mobile finance pay should require bill pay permission'
+);
+assert(calls.length === callCount, 'denied mobile finance pay should not write to Supabase');
+assert(
+  JSON.parse(localStorage.getItem(schema.STORAGE_KEYS.financialTransactions)).find((item) => item.id === deniedBill.id).status === 'pending',
+  'denied mobile finance pay should leave bill pending'
+);
+
+auditLogs = JSON.parse(localStorage.getItem(schema.STORAGE_KEYS.auditLogs));
+assert(auditLogs[0]?.action === 'permission.denied', 'denied mobile finance pay should record permission audit');
+assert(auditLogs[0]?.entityId === 'financial.bill.pay', 'denied mobile finance pay should audit bill pay permission');
+
+auth.login({ username: 'admin', password: 'admin123' });
 
 failWrites = true;
 let failed = false;
