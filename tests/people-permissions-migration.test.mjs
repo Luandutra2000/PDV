@@ -57,7 +57,8 @@ const requiredSnippets = [
   "private.current_profile_has_permission('permissions.manage')",
   "update public.profiles set role_id = 'operador' where role_id in ('caixa', 'operator')",
   'grant select, insert, update, delete on public.user_permission_overrides to authenticated',
-  'grant select on public.user_permission_overrides to anon'
+  'grant select on public.user_permission_overrides to anon',
+  'create policy "user managers read profiles" on public.profiles for select to authenticated'
 ];
 
 for (const snippet of requiredSnippets) {
@@ -68,6 +69,11 @@ assert(
   normalizedSql.includes("delete from public.role_permissions where role_id in ('admin', 'gerente', 'operador', 'dono')")
     || normalizedSql.includes("delete from public.role_permissions where role_id in ('admin','gerente','operador','dono')"),
   'migration should reset role permissions for managed roles'
+);
+
+assert(
+  !normalizedSql.includes('create policy "user managers manage profiles" on public.profiles for all to authenticated'),
+  'migration should not allow direct profile writes through a broad manager policy'
 );
 
 console.log(`people permissions migration ok: ${migrationFile}`);

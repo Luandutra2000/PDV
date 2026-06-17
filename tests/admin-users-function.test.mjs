@@ -31,5 +31,13 @@ assert(
 );
 assert(source.includes('SUPABASE_SERVICE_ROLE_KEY'), 'function should use service role env var inside Edge Function');
 assert(!source.includes('NEXT_PUBLIC_SUPABASE_SERVICE_ROLE'), 'function should not use frontend service role env names');
+assert(
+  compactSource.includes("const { error } = await adminClient.from('audit_logs').insert"),
+  'recordAudit should inspect audit_logs insert errors'
+);
+assert(
+  compactSource.includes("if (error) { throw error; }"),
+  'recordAudit should throw when audit_logs insert fails'
+);
 
 console.log('admin users function ok');

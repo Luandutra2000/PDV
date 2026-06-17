@@ -140,10 +140,10 @@ create policy "permission managers manage user permission overrides" on public.u
   with check (private.current_profile_has_permission('permissions.manage'));
 
 drop policy if exists "user managers manage profiles" on public.profiles;
-create policy "user managers manage profiles" on public.profiles
-  for all to authenticated
-  using (private.current_profile_has_permission('users.manage') or private.current_profile_has_permission('users.edit'))
-  with check (private.current_profile_has_permission('users.manage') or private.current_profile_has_permission('users.edit'));
+drop policy if exists "user managers read profiles" on public.profiles;
+create policy "user managers read profiles" on public.profiles
+  for select to authenticated
+  using (private.current_profile_has_permission('users.manage') or private.current_profile_has_permission('users.edit'));
 
 drop policy if exists "user managers manage permissions" on public.permissions;
 drop policy if exists "permission managers manage permissions" on public.permissions;

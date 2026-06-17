@@ -377,7 +377,7 @@ async function recordPermissionDenied(actor: Profile, permissionIds: string[]) {
 }
 
 async function recordAudit(actor: Profile, payload: AuditPayload) {
-  await adminClient.from('audit_logs').insert({
+  const { error } = await adminClient.from('audit_logs').insert({
     action: payload.action,
     entity_type: payload.entityType,
     entity_id: payload.entityId ?? null,
@@ -385,6 +385,10 @@ async function recordAudit(actor: Profile, payload: AuditPayload) {
     user_name: actor.name,
     metadata: payload.metadata ?? {}
   });
+
+  if (error) {
+    throw error;
+  }
 }
 
 async function throwIfError(query: PromiseLike<{ error: Error | null }>) {
