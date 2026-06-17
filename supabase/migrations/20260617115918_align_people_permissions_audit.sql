@@ -195,6 +195,7 @@ begin
 end;
 $$;
 
+revoke execute on function public.update_profile_with_admin_guard(uuid, text, text, boolean) from public;
 revoke execute on function public.update_profile_with_admin_guard(uuid, text, text, boolean) from anon, authenticated;
 grant execute on function public.update_profile_with_admin_guard(uuid, text, text, boolean) to service_role;
 

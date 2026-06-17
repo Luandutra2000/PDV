@@ -62,6 +62,7 @@ const requiredSnippets = [
   "private.current_profile_has_permission('permissions.manage')",
   "update public.profiles set role_id = 'operador' where role_id in ('caixa', 'operator')",
   'grant select, insert, update, delete on public.user_permission_overrides to authenticated',
+  'revoke execute on function public.update_profile_with_admin_guard(uuid, text, text, boolean) from public',
   'revoke execute on function public.update_profile_with_admin_guard(uuid, text, text, boolean) from anon, authenticated',
   'grant execute on function public.update_profile_with_admin_guard(uuid, text, text, boolean) to service_role',
   'create policy "user managers read profiles" on public.profiles for select to authenticated'
