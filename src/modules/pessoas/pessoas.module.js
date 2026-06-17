@@ -19,7 +19,8 @@ const peopleState = {
   editingUserId: null,
   selectedUserId: null,
   modalRole: 'operador',
-  modalPermissions: {}
+  modalPermissions: {},
+  modalDraft: createBlankUserDraft()
 };
 const boundContainers = new WeakSet();
 
@@ -87,6 +88,7 @@ function bindPeopleEvents(container) {
       peopleState.editingUserId = null;
       peopleState.modalRole = 'operador';
       peopleState.modalPermissions = buildRolePermissionState('operador');
+      peopleState.modalDraft = createBlankUserDraft();
       renderPeople(container);
       return;
     }
@@ -103,6 +105,7 @@ function bindPeopleEvents(container) {
       const user = getUsers().find((candidate) => candidate.id === button.dataset.userId);
       peopleState.modalRole = normalizeRole(user?.role || 'operador');
       peopleState.modalPermissions = buildUserPermissionState(user);
+      peopleState.modalDraft = createUserDraft(user);
       renderPeople(container);
     }
   });
@@ -145,16 +148,28 @@ function bindPeopleEvents(container) {
 
       peopleState.editingUserId = user.id;
       peopleState.selectedUserId = user.id;
+      peopleState.modalRole = normalizeRole(user.role);
+      peopleState.modalPermissions = buildUserPermissionState(user);
+      peopleState.modalDraft = createUserDraft(user);
       renderPeople(container);
     } catch (error) {
       renderFormError(event.target, error.message || 'Nao foi possivel salvar o usuario.');
     }
   });
 
+  container.addEventListener('input', (event) => {
+    if (!event.target.closest('[data-people-screen]') || !event.target.closest('[data-user-form]')) {
+      return;
+    }
+
+    updateModalDraftField(event.target);
+  });
+
   container.addEventListener('change', (event) => {
     const roleSelect = event.target.closest('[data-role-select]');
 
     if (roleSelect && event.target.closest('[data-people-screen]')) {
+      captureModalDraftFromForm(roleSelect.form);
       peopleState.modalRole = normalizeRole(event.target.value);
       peopleState.modalPermissions = buildRolePermissionState(peopleState.modalRole);
       renderPeople(container);
@@ -169,6 +184,11 @@ function bindPeopleEvents(container) {
         [permissionCheckbox.dataset.permissionId]: permissionCheckbox.checked
       };
       renderPeople(container);
+      return;
+    }
+
+    if (event.target.closest('[data-user-form]') && event.target.closest('[data-people-screen]')) {
+      updateModalDraftField(event.target);
       return;
     }
 
@@ -211,6 +231,8 @@ function renderUserList(users) {
 
 function renderUserForm(user) {
   const role = peopleState.modalRole || normalizeRole(user?.role || 'operador');
+  const draft = peopleState.modalDraft || createUserDraft(user);
+  const active = typeof draft.active === 'boolean' ? draft.active : user?.active !== false;
 
   return `
     <form class="product-form people-form" data-user-form>
@@ -219,15 +241,15 @@ function renderUserForm(user) {
       <div class="form-grid">
         <label>
           Nome
-          <input class="field" name="name" value="${escapeHtml(user?.name || '')}" required>
+          <input class="field" name="name" value="${escapeHtml(draft.name ?? user?.name ?? '')}" required>
         </label>
         <label>
           Usuario
-          <input class="field" name="username" value="${escapeHtml(user?.username || '')}" required>
+          <input class="field" name="username" value="${escapeHtml(draft.username ?? user?.username ?? '')}" required>
         </label>
         <label>
           Senha
-          <input class="field" name="password" type="password" ${user ? 'placeholder="Preencha para alterar"' : 'required'}>
+          <input class="field" name="password" type="password" value="${escapeHtml(draft.password || '')}" ${user ? 'placeholder="Preencha para alterar"' : 'required'}>
         </label>
         <label>
           Perfil
@@ -238,7 +260,7 @@ function renderUserForm(user) {
           </select>
         </label>
         <label class="checkbox-field">
-          <input type="checkbox" name="active" ${user?.active === false ? '' : 'checked'}>
+          <input type="checkbox" name="active" ${active ? 'checked' : ''}>
           Usuario ativo
         </label>
       </div>
@@ -248,6 +270,56 @@ function renderUserForm(user) {
       </div>
     </form>
   `;
+}
+
+function createBlankUserDraft() {
+  return {
+    name: '',
+    username: '',
+    password: '',
+    active: true
+  };
+}
+
+function createUserDraft(user) {
+  return {
+    name: user?.name || '',
+    username: user?.username || '',
+    password: '',
+    active: user?.active !== false
+  };
+}
+
+function updateModalDraftField(field) {
+  if (!['name', 'username', 'password', 'active'].includes(field.name)) {
+    return;
+  }
+
+  peopleState.modalDraft = {
+    ...(peopleState.modalDraft || createBlankUserDraft()),
+    [field.name]: field.type === 'checkbox' ? field.checked : field.value
+  };
+}
+
+function captureModalDraftFromForm(form) {
+  if (!form?.elements) {
+    return;
+  }
+
+  const getField = (name) => {
+    if (typeof form.elements.namedItem === 'function') {
+      return form.elements.namedItem(name);
+    }
+
+    return form.elements[name] || null;
+  };
+
+  peopleState.modalDraft = {
+    name: getField('name')?.value || '',
+    username: getField('username')?.value || '',
+    password: getField('password')?.value || '',
+    active: getField('active')?.checked === true
+  };
 }
 
 function renderPermissionChecklist(role) {

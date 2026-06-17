@@ -33,6 +33,7 @@ function dispatchRoleChange(container, value) {
   container.listeners.change[0]({
     target: {
       value,
+      form: null,
       closest(selector) {
         if (selector === '[data-role-select]') {
           return this;
@@ -46,6 +47,38 @@ function dispatchRoleChange(container, value) {
       }
     }
   });
+}
+
+function dispatchFieldChange(container, name, value, checked = false) {
+  const type = name === 'active' ? 'checkbox' : 'text';
+
+  container.listeners.change[0]({
+    target: {
+      name,
+      value,
+      checked,
+      type,
+      closest(selector) {
+        if (selector === '[data-user-form]') {
+          return {};
+        }
+
+        if (selector === '[data-people-screen]') {
+          return {};
+        }
+
+        return null;
+      }
+    }
+  });
+}
+
+function assertPermissionChecked(html, permissionId, message) {
+  const permissionIndex = html.indexOf(`data-permission-id="${permissionId}"`);
+  assert.notEqual(permissionIndex, -1, `${permissionId} checkbox should exist`);
+
+  const checkboxFragment = html.slice(permissionIndex, html.indexOf('>', permissionIndex));
+  assert(checkboxFragment.includes('checked'), message);
 }
 
 const storage = await import('../src/services/storage.service.js');
@@ -78,6 +111,17 @@ assert(container.innerHTML.includes('<option value="dono"'), 'role select should
 assert(container.innerHTML.includes('>Visualizador/Dono</option>'), 'role select should label dono');
 assert(container.innerHTML.includes('data-permission-checkbox'), 'permission checklist should expose data-permission-checkbox');
 
+dispatchFieldChange(container, 'name', 'Maria Gerente');
+dispatchFieldChange(container, 'username', 'maria@example.test');
+dispatchFieldChange(container, 'password', 'senha-secreta');
+dispatchFieldChange(container, 'active', '', false);
+dispatchRoleChange(container, 'gerente');
+
+assert(container.innerHTML.includes('value="Maria Gerente"'), 'typed name should survive role change');
+assert(container.innerHTML.includes('value="maria@example.test"'), 'typed username should survive role change');
+assert(container.innerHTML.includes('value="senha-secreta"'), 'typed password should survive role change');
+assert(!container.innerHTML.includes('name="active" checked'), 'typed inactive state should survive role change');
+
 const expectedSelections = [
   ['admin', 'Administrador'],
   ['gerente', 'Gerente'],
@@ -102,10 +146,6 @@ assert(
 
 dispatchRoleChange(container, 'gerente');
 assert(container.innerHTML.includes('Aplicar desconto'), 'gerente checklist should include discount permission');
-assert(
-  container.innerHTML.includes('data-permission-id="sales.discount"')
-    && container.innerHTML.includes('checked'),
-  'gerente checklist should check discount by default'
-);
+assertPermissionChecked(container.innerHTML, 'sales.discount', 'gerente checklist should check discount by default');
 
 console.log('pessoas module ok');
