@@ -30,10 +30,28 @@ export function createManagedUser(input) {
   };
 
   if (isSupabaseEnabled()) {
+    validateSupabaseCreatePayload(payload);
     return invokeAdminUsersFunction('createUser', payload).then((result) => cacheManagedUser(result?.user || result));
   }
 
   return createUser(payload);
+}
+
+function validateSupabaseCreatePayload(payload) {
+  const username = String(payload?.username || payload?.email || '').trim();
+  const password = String(payload?.password || '').trim();
+
+  if (!isValidEmail(username)) {
+    throw new Error('No modo online, o campo Usuario precisa ser um e-mail valido.');
+  }
+
+  if (password.length < 6) {
+    throw new Error('A senha precisa ter pelo menos 6 caracteres.');
+  }
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
 }
 
 export function updateManagedUser(userId, patch) {

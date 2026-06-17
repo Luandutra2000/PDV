@@ -9,6 +9,8 @@ const source = readFileSync(
 const compactSource = source.replace(/\s+/g, ' ');
 
 assert(source.includes("case 'createUser'"), 'function should handle createUser action');
+assert(source.includes('isValidEmail(email)'), 'createUser should reject usernames that are not valid emails');
+assert(source.includes('password.length < 6'), 'createUser should validate Supabase minimum password length');
 assert(source.includes("case 'listUsers'"), 'function should handle listUsers action');
 assert(
   source.includes("await requireAnyPermission(actor, ['users.manage', 'users.edit', 'permissions.manage', 'audit.view'])"),

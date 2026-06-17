@@ -233,11 +233,46 @@ globalThis.fetch = async () => {
   };
 };
 
+storage.setItem(STORAGE_KEYS.currentSession, {
+  userId: 'admin-1',
+  accessToken: 'test-access-token',
+  startedAt: '2026-06-17T10:30:00.000Z'
+});
+
+assert.throws(
+  () => userAdmin.createManagedUser({
+    name: 'Maria',
+    username: 'maria',
+    password: '123456',
+    role: 'operador'
+  }),
+  /No modo online, o campo Usuario precisa ser um e-mail valido\./,
+  'supabase createManagedUser should require email-shaped usernames'
+);
+assert.equal(
+  unauthenticatedFetchCalled,
+  false,
+  'supabase createManagedUser should fail before fetch when username is not an email'
+);
+
+assert.throws(
+  () => userAdmin.createManagedUser({
+    name: 'Maria',
+    username: 'maria@example.test',
+    password: '12345',
+    role: 'operador'
+  }),
+  /A senha precisa ter pelo menos 6 caracteres\./,
+  'supabase createManagedUser should validate minimum Supabase password length'
+);
+
+storage.setItem(STORAGE_KEYS.currentSession, null);
+
 await assert.rejects(
   () => userAdmin.createManagedUser({
     name: 'Sem Sessao',
-    username: 'sem-sessao',
-    password: '1234',
+    username: 'sem-sessao@example.test',
+    password: '123456',
     role: 'operador'
   }),
   /Entre novamente com seu usuario Supabase para cadastrar usuarios\./,

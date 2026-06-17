@@ -132,6 +132,14 @@ async function createManagedUser(actor: Profile, body: Record<string, unknown>) 
     throw new HttpError(400, 'Nome, email e senha sao obrigatorios.');
   }
 
+  if (!isValidEmail(email)) {
+    throw new HttpError(400, 'No modo online, o campo Usuario precisa ser um e-mail valido.');
+  }
+
+  if (password.length < 6) {
+    throw new HttpError(400, 'A senha precisa ter pelo menos 6 caracteres.');
+  }
+
   const { data, error } = await adminClient.auth.admin.createUser({
     email,
     password,
@@ -493,6 +501,10 @@ function normalizeOverrides(value: unknown): Record<string, OverrideState> {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
 function toUser(profile: Profile, email?: string) {
