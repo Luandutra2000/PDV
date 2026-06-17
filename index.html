@@ -38,7 +38,7 @@
   </div>
   <div class="toast-root" aria-live="polite"></div>
   <script type="module">
-    const LOCAL_CACHE_VERSION = '20260616-01-showcase-stock-sync';
+    const LOCAL_CACHE_VERSION = '20260616-02-produtos-redesign';
 
     async function clearStaleClientCaches() {
       try {
@@ -74,7 +74,7 @@
 
     try {
       await clearStaleClientCaches();
-      await import('./src/app.js?v=20260616-04');
+      await import('./src/app.js?v=20260616-05');
     } catch (error) {
       console.error('Nao foi possivel iniciar o PDV.', error);
       const app = document.getElementById('app');
