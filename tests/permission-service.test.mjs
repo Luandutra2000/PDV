@@ -147,4 +147,71 @@ assert(
 permissions.setUserPermissionOverride('admin-1', 'sales.discount', 'deny');
 assert(permissions.hasPermission(admin, 'sales.discount'), 'admin deny override should not block admin access');
 
+const requiredCatalogShape = permissions.PERMISSIONS.every((permission) => (
+  permission.id
+    && permission.key === permission.id
+    && permission.label
+    && permission.name === permission.label
+    && permission.description
+    && permission.group
+    && permission.module
+    && Array.isArray(permission.defaultRoles)
+));
+assert(requiredCatalogShape, 'every permission should expose canonical catalog metadata');
+
+const expectedPermissionIds = [
+  'sales.access',
+  'sales.create',
+  'sales.cancel',
+  'sales.discount',
+  'cash.movement',
+  'cash.withdrawal',
+  'cash.close',
+  'cash.balance.view',
+  'showcase.access',
+  'showcase.launch',
+  'showcase.edit',
+  'stock.writeoff',
+  'products.manage',
+  'categories.manage',
+  'reports.view',
+  'crm.view',
+  'owner_app.view',
+  'financial.expense.access',
+  'financial.income.create',
+  'financial.expense.create',
+  'financial.entries.edit',
+  'financial.entries.delete',
+  'financial.categories.manage',
+  'financial.bill.pay',
+  'users.manage',
+  'users.edit',
+  'permissions.manage',
+  'audit.view',
+  'data.export'
+];
+
+assert(
+  expectedPermissionIds.every((permissionId) => permissions.PERMISSIONS.some((permission) => permission.id === permissionId)),
+  'catalog should include every requested permission'
+);
+assert(
+  permissions.PERMISSIONS.every((permission) => expectedPermissionIds.includes(permission.id)),
+  'catalog should not expose duplicate legacy permissions'
+);
+assert(permissions.resolvePermissionId('financial.view') === 'financial.expense.access', 'financial.view should map to canonical access permission');
+assert(permissions.resolvePermissionId('financial.transaction.create') === 'financial.income.create', 'legacy create should map to income create by default');
+assert(permissions.resolvePermissionId('financial.payable.pay') === 'financial.bill.pay', 'legacy payable pay should map to canonical bill pay');
+assert(permissions.normalizeRole('caixa') === 'operador', 'caixa should normalize to operador');
+assert(permissions.normalizeRole('operator') === 'operador', 'operator should normalize to operador');
+assert(permissions.can('sales.create', operator), 'can should check an explicit user');
+assertThrows(
+  () => permissions.requirePermission('sales.discount', operator),
+  'Usuario sem permissao para esta acao.',
+  'requirePermission should throw for denied actions'
+);
+const auditLogs = storage.getItem(STORAGE_KEYS.auditLogs, []);
+assert(auditLogs[0]?.action === 'permission.denied', 'requirePermission should record denied permission audit logs');
+assert(auditLogs[0]?.entityId === 'sales.discount', 'denied permission audit should identify the permission');
+
 console.log('permission service ok');
