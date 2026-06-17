@@ -287,9 +287,8 @@ supabaseClient.configureSupabaseClientForTests({
                       data: {
                         id: value,
                         name: 'Luan Gerente',
-                        username: 'luandutra27@gmail.com',
                         role_id: 'gerente',
-                        active: true
+                        is_active: true
                       },
                       error: null
                     };

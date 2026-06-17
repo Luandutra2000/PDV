@@ -226,7 +226,7 @@ async function ensureSupabaseLocalSession(authUser, authSession = null) {
     ...(existingUser || {}),
     id: authUser.id,
     name: profile.name || authUser.user_metadata?.name || email || 'Usuario',
-    username: normalizeEmail(profile.username || email),
+    username: email,
     password: existingUser?.password || '',
     role: normalizeRoleLocal(profile.role_id),
     active: profile.active !== false,
@@ -271,7 +271,7 @@ async function loadSupabaseProfile(userId) {
 
   const query = client
     .from('profiles')
-    .select('id,name,username,role_id,active')
+    .select('id,name,role_id,is_active')
     .eq('id', userId);
   const result = typeof query.maybeSingle === 'function'
     ? await query.maybeSingle()
@@ -282,7 +282,7 @@ async function loadSupabaseProfile(userId) {
     throw new Error('Nao foi possivel carregar o perfil do usuario.');
   }
 
-  if (profile.active === false) {
+  if (profile.is_active === false) {
     throw new Error('Usuario inativo.');
   }
 
