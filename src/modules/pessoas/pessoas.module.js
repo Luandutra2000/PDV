@@ -4,12 +4,22 @@ import {
   PERMISSIONS,
   getRolePermissions,
   getUserPermissionOverride,
-  setUserPermissionOverride
+  setUserPermissionOverride,
+  normalizeRole
 } from '../../services/permission.service.js';
+
+const ROLE_OPTIONS = [
+  { value: 'admin', label: 'Administrador' },
+  { value: 'gerente', label: 'Gerente' },
+  { value: 'operador', label: 'Operador/Caixa' },
+  { value: 'dono', label: 'Visualizador/Dono' }
+];
 
 const peopleState = {
   editingUserId: null,
-  selectedUserId: null
+  selectedUserId: null,
+  modalRole: 'operador',
+  modalPermissions: {}
 };
 const boundContainers = new WeakSet();
 
@@ -75,6 +85,8 @@ function bindPeopleEvents(container) {
 
     if (button.dataset.action === 'new-user') {
       peopleState.editingUserId = null;
+      peopleState.modalRole = 'operador';
+      peopleState.modalPermissions = buildRolePermissionState('operador');
       renderPeople(container);
       return;
     }
@@ -88,6 +100,9 @@ function bindPeopleEvents(container) {
     if (button.dataset.action === 'edit-user') {
       peopleState.editingUserId = button.dataset.userId;
       peopleState.selectedUserId = button.dataset.userId;
+      const user = getUsers().find((candidate) => candidate.id === button.dataset.userId);
+      peopleState.modalRole = normalizeRole(user?.role || 'operador');
+      peopleState.modalPermissions = buildUserPermissionState(user);
       renderPeople(container);
     }
   });
@@ -103,7 +118,7 @@ function bindPeopleEvents(container) {
     const payload = {
       name: form.get('name'),
       username: form.get('username'),
-      role: form.get('role'),
+      role: normalizeRole(form.get('role')),
       active: form.get('active') === 'on'
     };
     const password = String(form.get('password') || '').trim();
@@ -137,6 +152,26 @@ function bindPeopleEvents(container) {
   });
 
   container.addEventListener('change', (event) => {
+    const roleSelect = event.target.closest('[data-role-select]');
+
+    if (roleSelect && event.target.closest('[data-people-screen]')) {
+      peopleState.modalRole = normalizeRole(event.target.value);
+      peopleState.modalPermissions = buildRolePermissionState(peopleState.modalRole);
+      renderPeople(container);
+      return;
+    }
+
+    const permissionCheckbox = event.target.closest('[data-permission-checkbox]');
+
+    if (permissionCheckbox && event.target.closest('[data-people-screen]')) {
+      peopleState.modalPermissions = {
+        ...peopleState.modalPermissions,
+        [permissionCheckbox.dataset.permissionId]: permissionCheckbox.checked
+      };
+      renderPeople(container);
+      return;
+    }
+
     const select = event.target.closest('[data-permission-select]');
 
     if (!select || !event.target.closest('[data-people-screen]')) {
@@ -175,6 +210,8 @@ function renderUserList(users) {
 }
 
 function renderUserForm(user) {
+  const role = peopleState.modalRole || normalizeRole(user?.role || 'operador');
+
   return `
     <form class="product-form people-form" data-user-form>
       <input type="hidden" name="id" value="${user?.id || ''}">
@@ -194,9 +231,10 @@ function renderUserForm(user) {
         </label>
         <label>
           Perfil
-          <select class="field" name="role" required>
-            <option value="operator" ${user?.role === 'operator' ? 'selected' : ''}>Operador</option>
-            <option value="admin" ${user?.role === 'admin' ? 'selected' : ''}>Administrador</option>
+          <select class="field" name="role" data-role-select required>
+            ${ROLE_OPTIONS.map((option) => `
+              <option value="${option.value}"${role === option.value ? ' selected' : ''}>${option.label}</option>
+            `).join('')}
           </select>
         </label>
         <label class="checkbox-field">
@@ -204,10 +242,48 @@ function renderUserForm(user) {
           Usuario ativo
         </label>
       </div>
+      ${renderPermissionChecklist(role)}
       <div class="form-actions">
         <button class="button" type="submit">${user ? 'Salvar usuario' : 'Cadastrar usuario'}</button>
       </div>
     </form>
+  `;
+}
+
+function renderPermissionChecklist(role) {
+  const groups = groupPermissions();
+
+  return `
+    <div class="permission-grid">
+      ${groups.map(([group, permissions]) => `
+        <section class="permission-group">
+          <h3>${group}</h3>
+          ${permissions.map((permission) => renderPermissionCheckbox(role, permission)).join('')}
+        </section>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderPermissionCheckbox(role, permission) {
+  const normalizedRole = normalizeRole(role);
+  const checked = getModalPermissionValue(normalizedRole, permission.id);
+  const isAdmin = normalizedRole === 'admin';
+
+  return `
+    <label class="permission-row">
+      <span>
+        <strong>${escapeHtml(permission.label)}</strong>
+        <small>${checked ? 'Liberado no perfil' : 'Bloqueado no perfil'}</small>
+      </span>
+      <input
+        type="checkbox"
+        data-permission-checkbox
+        data-permission-id="${permission.id}"
+        ${checked ? 'checked' : ''}
+        ${isAdmin ? 'disabled' : ''}
+      >
+    </label>
   `;
 }
 
@@ -285,6 +361,51 @@ function groupPermissions() {
   }, {}));
 }
 
+function buildRolePermissionState(role) {
+  const normalizedRole = normalizeRole(role);
+  const rolePermissions = new Set(getRolePermissions(normalizedRole));
+
+  return PERMISSIONS.reduce((state, permission) => {
+    state[permission.id] = normalizedRole === 'admin' || rolePermissions.has(permission.id);
+    return state;
+  }, {});
+}
+
+function buildUserPermissionState(user) {
+  const normalizedRole = normalizeRole(user?.role || 'operador');
+  const state = buildRolePermissionState(normalizedRole);
+
+  if (!user || normalizedRole === 'admin') {
+    return state;
+  }
+
+  PERMISSIONS.forEach((permission) => {
+    const override = getUserPermissionOverride(user.id, permission.id);
+
+    if (override === 'allow') {
+      state[permission.id] = true;
+    }
+
+    if (override === 'deny') {
+      state[permission.id] = false;
+    }
+  });
+
+  return state;
+}
+
+function getModalPermissionValue(role, permissionId) {
+  if (role === 'admin') {
+    return true;
+  }
+
+  if (Object.hasOwn(peopleState.modalPermissions, permissionId)) {
+    return peopleState.modalPermissions[permissionId];
+  }
+
+  return getRolePermissions(role).includes(permissionId);
+}
+
 function ensureSelectedUser() {
   const users = getUsers();
 
@@ -305,7 +426,10 @@ function renderFormError(form, message) {
 }
 
 function getRoleLabel(role) {
-  return role === 'admin' ? 'Administrador' : 'Operador';
+  const normalizedRole = normalizeRole(role);
+  const option = ROLE_OPTIONS.find((candidate) => candidate.value === normalizedRole);
+
+  return option?.label || 'Operador/Caixa';
 }
 
 function getAuditLabel(action) {
