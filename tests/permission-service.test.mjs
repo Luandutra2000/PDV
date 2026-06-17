@@ -201,7 +201,12 @@ assert(
 );
 assert(permissions.resolvePermissionId('financial.view') === 'financial.expense.access', 'financial.view should map to canonical access permission');
 assert(permissions.resolvePermissionId('financial.transaction.create') === 'financial.income.create', 'legacy create should map to income create by default');
+assert(permissions.resolvePermissionId('financial.transaction.edit') === 'financial.entries.edit', 'legacy edit should map to canonical entries edit');
+assert(permissions.resolvePermissionId('financial.transaction.cancel') === 'financial.entries.delete', 'legacy cancel should map to canonical entries delete');
+assert(permissions.resolvePermissionId('financial.category.manage') === 'financial.categories.manage', 'legacy category manage should map to canonical categories manage');
 assert(permissions.resolvePermissionId('financial.payable.pay') === 'financial.bill.pay', 'legacy payable pay should map to canonical bill pay');
+assert(permissions.hasPermission(gerente, 'financial.transaction.edit'), 'permission checks should allow legacy edit alias when canonical edit is allowed');
+assert(!permissions.hasPermission(operator, 'financial.transaction.cancel'), 'permission checks should deny legacy cancel alias when canonical delete is denied');
 assert(permissions.normalizeRole('caixa') === 'operador', 'caixa should normalize to operador');
 assert(permissions.normalizeRole('operator') === 'operador', 'operator should normalize to operador');
 assert(permissions.can('sales.create', operator), 'can should check an explicit user');
@@ -210,8 +215,15 @@ assertThrows(
   'Usuario sem permissao para esta acao.',
   'requirePermission should throw for denied actions'
 );
+assertThrows(
+  () => permissions.requirePermission('financial.transaction.cancel', operator, { source: 'permission-service-test' }),
+  'Usuario sem permissao para esta acao.',
+  'requirePermission should throw for denied legacy aliases'
+);
 const auditLogs = storage.getItem(STORAGE_KEYS.auditLogs, []);
 assert(auditLogs[0]?.action === 'permission.denied', 'requirePermission should record denied permission audit logs');
-assert(auditLogs[0]?.entityId === 'sales.discount', 'denied permission audit should identify the permission');
+assert(auditLogs[0]?.entityId === 'financial.entries.delete', 'denied permission audit should identify the canonical permission');
+assert(auditLogs[0]?.metadata?.permissionId === 'financial.entries.delete', 'denied permission audit metadata should include the canonical permission');
+assert(auditLogs[0]?.metadata?.source === 'permission-service-test', 'denied permission audit should preserve custom metadata');
 
 console.log('permission service ok');
