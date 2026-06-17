@@ -16,6 +16,8 @@ import { formatCurrency } from '../../utils/currency.js';
 import { showNotification } from '../../services/notification.service.js';
 import { getBestSellingProducts } from '../../services/transaction.service.js';
 import { getActiveOutOfStockSales } from '../../services/showcase-stock.service.js';
+import { getCurrentUser } from '../../services/auth.service.js';
+import { hasPermission } from '../../services/permission.service.js';
 
 const productState = {
   modal: null,
@@ -140,6 +142,8 @@ function getProductAlerts(metrics = getProductDashboardMetrics()) {
 
 function renderProdutosScreen(container) {
   const metrics = getProductDashboardMetrics();
+  const canManageProducts = canCurrentUser('products.manage');
+  const canManageCategories = canCurrentUser('categories.manage');
 
   container.innerHTML = `
     <section class="module-screen products-module products-dashboard">
@@ -150,8 +154,8 @@ function renderProdutosScreen(container) {
           <p class="module-subtitle">Gerencie categorias, produtos, precos e exibicao na vitrine.</p>
         </div>
         <div class="header-actions">
-          <button class="button button--ghost" type="button" data-action="new-category">+ Nova categoria</button>
-          <button class="button" type="button" data-action="new-product">+ Novo produto</button>
+          ${canManageCategories ? '<button class="button button--ghost" type="button" data-action="new-category">+ Nova categoria</button>' : ''}
+          ${canManageProducts ? '<button class="button" type="button" data-action="new-product">+ Novo produto</button>' : ''}
         </div>
       </header>
 
@@ -403,6 +407,10 @@ async function saveCategoryFromForm(form) {
   showNotification({ title: 'Categoria salva', message: 'Categoria registrada com sucesso.', type: 'success' });
 }
 
+function canCurrentUser(permissionId) {
+  return hasPermission(getCurrentUser(), permissionId);
+}
+
 function renderProductSummaryCards(metrics = getProductDashboardMetrics()) {
   const summaryCards = [
     {
@@ -509,6 +517,7 @@ function renderBestSellerFilters() {
 
 function renderCategoryRows() {
   const categories = getVisibleCategories();
+  const canManageCategories = canCurrentUser('categories.manage');
 
   if (!categories.length) {
     return '<div class="empty-products">Nenhuma categoria cadastrada no banco.</div>';
@@ -526,10 +535,10 @@ function renderCategoryRows() {
           <span>${productCount} produtos</span>
           <span>${showcaseStatus}</span>
         </div>
-        <div class="row-actions">
+        ${canManageCategories ? `<div class="row-actions">
           <button class="button button--ghost button--small" type="button" data-action="edit-category" data-category-id="${category.id}">Editar</button>
           <button class="button button--danger button--small" type="button" data-action="delete-category" data-category-id="${category.id}">Apagar</button>
-        </div>
+        </div>` : ''}
       </article>
     `;
   }).join('');
@@ -538,6 +547,7 @@ function renderCategoryRows() {
 function renderProductRows() {
   const products = getFilteredProducts();
   const categoriesById = getCategoriesById();
+  const canManageProducts = canCurrentUser('products.manage');
 
   if (!products.length) {
     return '<div class="empty-products">Nenhum produto encontrado com os filtros atuais.</div>';
@@ -558,10 +568,10 @@ function renderProductRows() {
             <span class="product-manager-card__badge ${inShowcase ? 'is-showcase' : 'is-out-showcase'}">${inShowcase ? 'Na vitrine' : 'Fora da vitrine'}</span>
           </div>
         </div>
-        <div class="row-actions">
+        ${canManageProducts ? `<div class="row-actions">
           <button class="button button--ghost button--small" type="button" data-action="edit-product" data-product-id="${product.id}">Editar</button>
           <button class="button button--danger button--small" type="button" data-action="delete-product" data-product-id="${product.id}">Apagar</button>
-        </div>
+        </div>` : ''}
       </article>
     `;
   }).join('');
@@ -573,6 +583,7 @@ function renderProductModal() {
     : null;
   const title = product ? 'Editar Produto' : 'Novo Produto';
   const selectedCategory = product ? product.categoryId : '__new__';
+  const canManageCategories = canCurrentUser('categories.manage');
 
   return `
     <div class="modal-backdrop is-open">
@@ -590,12 +601,12 @@ function renderProductModal() {
           <label class="stacked-label">
             Tipo / Aba
             <select class="field" name="categoryId" data-product-category-select required>
-              <option value="__new__" ${selectedCategory === '__new__' ? 'selected' : ''}>+ Criar nova aba</option>
+              ${canManageCategories ? `<option value="__new__" ${selectedCategory === '__new__' ? 'selected' : ''}>+ Criar nova aba</option>` : ''}
               ${getCategoryOptions(selectedCategory)}
             </select>
           </label>
 
-          <div data-new-category ${selectedCategory === '__new__' ? '' : 'hidden'}>
+          <div data-new-category ${canManageCategories && selectedCategory === '__new__' ? '' : 'hidden'}>
             <label class="stacked-label">
               Nova aba
               <input class="field" name="newCategoryName" placeholder="Ex.: Combos">

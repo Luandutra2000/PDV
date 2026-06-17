@@ -3,7 +3,8 @@ import { setItem } from '../src/services/storage.service.js';
 import { readFile } from 'node:fs/promises';
 import {
   resolveShowcaseMovementCommandReference,
-  resolveShowcaseMovementUserName
+  resolveShowcaseMovementUserName,
+  initEstoqueModule
 } from '../src/modules/estoque/estoque.module.js';
 
 const assert = (condition, message) => {
@@ -47,6 +48,7 @@ setItem(STORAGE_KEYS.transactions, [{
   comandaId: 'comanda-13',
   comandaNumber: 13
 }]);
+setItem(STORAGE_KEYS.currentSession, { userId: 'user-admin', startedAt: '2026-06-15T10:00:00.000Z' });
 
 assert(
   resolveShowcaseMovementUserName('user-admin') === 'Administrador',
@@ -74,5 +76,58 @@ assert(resolveShowcaseMovementCommandReference({}) === '-', 'blank showcase move
 const estoqueSource = await readFile(new URL('../src/modules/estoque/estoque.module.js', import.meta.url), 'utf8');
 assert(estoqueSource.includes('data-showcase-movements-more'), 'showcase history should expose a show more button');
 assert(estoqueSource.includes('movementHistoryExpanded ? 30 : 8'), 'showcase history should start collapsed with fewer rows');
+
+globalThis.localStorage.clear();
+setItem(STORAGE_KEYS.users, [{
+  id: 'user-denied',
+  name: 'Operador bloqueado',
+  username: 'bloqueado',
+  password: '1234',
+  role: 'operador',
+  active: true
+}]);
+setItem(STORAGE_KEYS.currentSession, { userId: 'user-denied', startedAt: '2026-06-15T10:00:00.000Z' });
+setItem(STORAGE_KEYS.userPermissionOverrides, {
+  'user-denied': {
+    'showcase.launch': 'deny',
+    'showcase.edit': 'deny',
+    'stock.writeoff': 'deny'
+  }
+});
+setItem(STORAGE_KEYS.categories, [{ id: 'salgados', name: 'Salgados', showInShowcase: true }]);
+setItem(STORAGE_KEYS.products, [{
+  id: 'coxinha',
+  name: 'Coxinha',
+  categoryId: 'salgados',
+  price: 8,
+  stock: 0,
+  active: true
+}]);
+setItem(STORAGE_KEYS.stockLaunches, [{
+  id: 'launch-1',
+  produtoId: 'coxinha',
+  produtoNome: 'Coxinha',
+  categoriaNome: 'Salgados',
+  quantidade: 5,
+  valorUnitario: 8,
+  valorTotal: 40,
+  status: 'ativo',
+  dataHora: new Date().toISOString(),
+  usuarioNome: 'Operador bloqueado'
+}]);
+
+const deniedContainer = {
+  innerHTML: '',
+  addEventListener() {},
+  querySelector() {
+    return null;
+  }
+};
+
+initEstoqueModule(deniedContainer);
+assert(!deniedContainer.innerHTML.includes('Lancar no estoque'), 'denied user should not see stock launch submit');
+assert(!deniedContainer.innerHTML.includes('data-action="edit-launch"'), 'denied user should not see stock launch edit');
+assert(!deniedContainer.innerHTML.includes('data-action="cancel-launch"'), 'denied user should not see stock launch cancel');
+assert(!deniedContainer.innerHTML.includes('data-action="delete-comparison-row"'), 'denied user should not see destructive comparison action');
 
 console.log('estoque module ok');

@@ -1,4 +1,4 @@
-import { getUsers } from '../../services/auth.service.js';
+import { getCurrentUser, getUsers } from '../../services/auth.service.js';
 import { getCategories, getProductById, getShowcaseCategories, getShowcaseProducts } from '../../services/product.service.js';
 import {
   cancelStockLaunch,
@@ -21,6 +21,7 @@ import {
 import { UI_EVENTS } from '../../database/schema.js';
 import { getClosedComandas, getTransactions } from '../../services/transaction.service.js';
 import { formatCurrency } from '../../utils/currency.js';
+import { hasPermission } from '../../services/permission.service.js';
 
 const estoqueState = {
   period: 'today',
@@ -283,6 +284,10 @@ function saveStockLaunch(form, container) {
   }
 }
 
+function canCurrentUser(permissionId) {
+  return hasPermission(getCurrentUser(), permissionId);
+}
+
 function renderStockForm() {
   const launch = estoqueState.editingId
     ? getStockLaunches({ period: 'all' }).find((item) => item.id === estoqueState.editingId)
@@ -290,6 +295,7 @@ function renderStockForm() {
   const selectedProduct = launch ? getProductById(launch.produtoId) : null;
   const categoryName = launch ? launch.categoriaNome : selectedProduct ? getCategoryName(selectedProduct.categoryId) : 'Categoria automatica';
   const unitValue = launch ? launch.valorUnitario : selectedProduct ? selectedProduct.price : '';
+  const canSubmit = launch ? canCurrentUser('showcase.edit') : canCurrentUser('showcase.launch');
 
   return `
     <label>
@@ -318,7 +324,7 @@ function renderStockForm() {
     </label>
     <div class="form-actions stock-form__actions">
       ${launch ? '<button class="button button--ghost" type="button" data-action="cancel-edit">Cancelar</button>' : ''}
-      <button class="button" type="submit">${launch ? 'Salvar edicao' : 'Lancar no estoque'}</button>
+      ${canSubmit ? `<button class="button" type="submit">${launch ? 'Salvar edicao' : 'Lancar no estoque'}</button>` : ''}
     </div>
   `;
 }
@@ -328,6 +334,8 @@ function renderLaunchRows(launches) {
     return '<div class="empty-products product-empty-large">NENHUM LANCAMENTO NO PERIODO</div>';
   }
 
+  const canEditLaunch = canCurrentUser('showcase.edit');
+
   return launches.map((launch) => `
     <article class="manager-row ${launch.status === 'cancelado' ? 'is-canceled' : ''}">
       <div>
@@ -336,8 +344,8 @@ function renderLaunchRows(launches) {
       </div>
       <div class="row-actions">
         <strong class="stock-entry-total">${formatCurrency(launch.valorTotal)}</strong>
-        <button class="button button--ghost" type="button" data-action="edit-launch" data-launch-id="${launch.id}" ${launch.status === 'cancelado' ? 'disabled' : ''}>Editar</button>
-        <button class="button button--danger" type="button" data-action="cancel-launch" data-launch-id="${launch.id}" ${launch.status === 'cancelado' ? 'disabled' : ''}>Cancelar</button>
+        ${canEditLaunch ? `<button class="button button--ghost" type="button" data-action="edit-launch" data-launch-id="${launch.id}" ${launch.status === 'cancelado' ? 'disabled' : ''}>Editar</button>` : ''}
+        ${canEditLaunch ? `<button class="button button--danger" type="button" data-action="cancel-launch" data-launch-id="${launch.id}" ${launch.status === 'cancelado' ? 'disabled' : ''}>Cancelar</button>` : ''}
       </div>
     </article>
   `).join('');
@@ -393,6 +401,7 @@ function getLaunchableProducts(launch = null) {
 
 function renderComparison(filters) {
   const comparison = getProductionSalesComparison(filters);
+  const canWriteOff = canCurrentUser('stock.writeoff');
 
   if (!comparison.length) {
     return '<div class="empty-products product-empty-large">SEM DADOS PARA COMPARAR</div>';
@@ -427,9 +436,9 @@ function renderComparison(filters) {
             <td>${formatCurrency(item.diferencaValor)}</td>
             <td>${item.percentualVendido}%</td>
             <td>
-              <button class="button button--danger button--small" type="button" data-action="delete-comparison-row" data-product-id="${item.produtoId}">
+              ${canWriteOff ? `<button class="button button--danger button--small" type="button" data-action="delete-comparison-row" data-product-id="${item.produtoId}">
                 Apagar
-              </button>
+              </button>` : ''}
             </td>
           </tr>
         `).join('')}

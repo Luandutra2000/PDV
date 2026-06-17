@@ -11,6 +11,8 @@ import {
   upsertFinancialTransaction
 } from '../../services/financial.service.js';
 import { showNotification } from '../../services/notification.service.js';
+import { getCurrentUser } from '../../services/auth.service.js';
+import { hasPermission } from '../../services/permission.service.js';
 
 const DEFAULT_FILTERS = {
   period: 'today',
@@ -59,6 +61,12 @@ export function getFinanceiroState() {
 
 export function renderFinanceiroMarkup({ summary, categories, transactions, payables, crm, filters = DEFAULT_FILTERS, modal = null }) {
   const normalizedFilters = { ...DEFAULT_FILTERS, ...filters };
+  const permissions = {
+    canCreateIncome: canCurrentUser('financial.income.create'),
+    canCreateExpense: canCurrentUser('financial.expense.create'),
+    canPayBill: canCurrentUser('financial.bill.pay'),
+    canEditEntries: canCurrentUser('financial.entries.edit')
+  };
   const activeTransactions = applyTableFilters(
     transactions.filter((transaction) => transaction.status !== 'canceled'),
     normalizedFilters
@@ -72,9 +80,9 @@ export function renderFinanceiroMarkup({ summary, categories, transactions, paya
           <p class="module-subtitle">Entradas, saidas, boletos, contas a pagar e mini CRM financeiro.</p>
         </div>
         <div class="header-actions">
-          <button class="button button--success" type="button" data-finance-action="open-income">+ Entrada</button>
-          <button class="button button--danger" type="button" data-finance-action="open-expense">- Saida</button>
-          <button class="button" type="button" data-finance-action="open-bill">+ Boleto</button>
+          ${permissions.canCreateIncome ? '<button class="button button--success" type="button" data-finance-action="open-income">+ Entrada</button>' : ''}
+          ${permissions.canCreateExpense ? '<button class="button button--danger" type="button" data-finance-action="open-expense">- Saida</button>' : ''}
+          ${permissions.canCreateExpense ? '<button class="button" type="button" data-finance-action="open-bill">+ Boleto</button>' : ''}
         </div>
       </header>
 
@@ -88,8 +96,8 @@ export function renderFinanceiroMarkup({ summary, categories, transactions, paya
       </div>
 
       <div class="history-grid finance-grid">
-        ${renderFinancialTable(activeTransactions, categories, normalizedFilters)}
-        ${renderPayablesPanel(payables)}
+        ${renderFinancialTable(activeTransactions, categories, normalizedFilters, permissions)}
+        ${renderPayablesPanel(payables, permissions)}
       </div>
 
       ${renderFinancialCrm(crm, categories)}
@@ -247,6 +255,10 @@ function bindFinanceiroEvents(container) {
   });
 }
 
+function canCurrentUser(permissionId) {
+  return hasPermission(getCurrentUser(), permissionId);
+}
+
 function renderFinanceiroWithModal(container, modal) {
   container.innerHTML = renderFinanceiroMarkup({ ...getFinanceiroState(), modal });
 }
@@ -259,7 +271,7 @@ function renderCountCard(label, value, stateClass) {
   return `<article class="summary-card"><span>${label}</span><strong class="${stateClass}">${value}</strong></article>`;
 }
 
-function renderFinancialTable(transactions, categories, filters) {
+function renderFinancialTable(transactions, categories, filters, permissions) {
   return `
     <section class="manager-section">
       <div class="manager-section__header">
@@ -294,7 +306,7 @@ function renderFinancialTable(transactions, categories, filters) {
             </tr>
           </thead>
           <tbody>
-            ${transactions.length ? transactions.map((transaction) => renderFinancialRow(transaction, categories)).join('') : `
+            ${transactions.length ? transactions.map((transaction) => renderFinancialRow(transaction, categories, permissions)).join('') : `
               <tr><td colspan="7">Nenhuma movimentacao financeira encontrada.</td></tr>
             `}
           </tbody>
@@ -364,7 +376,7 @@ function isSelected(value, expected) {
   return value === expected ? ' selected' : '';
 }
 
-function renderFinancialRow(transaction, categories) {
+function renderFinancialRow(transaction, categories, permissions) {
   const category = categories.find((item) => item.id === transaction.categoryId);
   const isIncome = transaction.type === 'income';
 
@@ -387,8 +399,8 @@ function renderFinancialRow(transaction, categories) {
         <div class="row-actions">
           <button class="button button--ghost button--small" type="button" data-finance-action="toggle-info">Mais info</button>
           ${transaction.status === 'pending' || transaction.status === 'overdue'
-            ? `<button class="button button--small" type="button" data-payable-id="${transaction.id}">Pagar</button>`
-            : `<button class="button button--ghost button--small" type="button" data-finance-action="edit" data-transaction-id="${transaction.id}">Editar</button>`}
+            ? (permissions.canPayBill ? `<button class="button button--small" type="button" data-payable-id="${transaction.id}">Pagar</button>` : '')
+            : (permissions.canEditEntries ? `<button class="button button--ghost button--small" type="button" data-finance-action="edit" data-transaction-id="${transaction.id}">Editar</button>` : '')}
         </div>
       </td>
     </tr>
@@ -407,7 +419,7 @@ function getFinancialHistoryKind(transaction) {
   return transaction.paymentMethod === 'boleto' || Boolean(transaction.dueDate) ? 'bill' : 'cash';
 }
 
-function renderPayablesPanel(payables) {
+function renderPayablesPanel(payables, permissions) {
   const items = [...payables.overdue, ...payables.upcoming, ...payables.pending]
     .filter((item, index, list) => list.findIndex((candidate) => candidate.id === item.id) === index);
 
@@ -415,13 +427,13 @@ function renderPayablesPanel(payables) {
     <section class="manager-section">
       <div class="manager-section__header"><strong>Contas a pagar</strong></div>
       <div class="manager-list">
-        ${items.length ? items.map(renderPayableCard).join('') : '<div class="empty-products">Nenhuma conta a pagar.</div>'}
+        ${items.length ? items.map((item) => renderPayableCard(item, permissions)).join('') : '<div class="empty-products">Nenhuma conta a pagar.</div>'}
       </div>
     </section>
   `;
 }
 
-function renderPayableCard(transaction) {
+function renderPayableCard(transaction, permissions) {
   const statusClass = transaction.status === 'overdue' ? 'is-canceled' : '';
 
   return `
@@ -435,7 +447,7 @@ function renderPayableCard(transaction) {
       </div>
       <div class="money-row__right">
         <strong class="money-negative">${formatCurrency(transaction.amount)}</strong>
-        <button class="button button--success button--small" type="button" data-payable-id="${transaction.id}">Marcar pago</button>
+        ${permissions.canPayBill ? `<button class="button button--success button--small" type="button" data-payable-id="${transaction.id}">Marcar pago</button>` : ''}
       </div>
     </article>
   `;

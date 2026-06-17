@@ -25,6 +25,24 @@ globalThis.document = {
 const storage = await import('../src/services/storage.service.js');
 const { initDespesasModule, renderFinanceiroMarkup } = await import('../src/modules/despesas/despesas.module.js');
 
+function seedUser({ role = 'admin', overrides = {} } = {}) {
+  const user = {
+    id: `user-${role}`,
+    name: `Usuario ${role}`,
+    username: role,
+    password: '1234',
+    role,
+    active: true
+  };
+
+  storage.setItem('pdv.users', [user]);
+  storage.setItem('pdv.currentSession', { userId: user.id, startedAt: '2026-06-15T10:00:00.000Z' });
+  storage.setItem('pdv.userPermissionOverrides', { [user.id]: overrides });
+  return user;
+}
+
+seedUser();
+
 const html = renderFinanceiroMarkup({
   summary: {
     entriesTotal: 420,
@@ -146,6 +164,72 @@ assert(filteredHtml.includes('Troco'));
 assert(!filteredHtml.includes('Boleto fornecedor'));
 
 store.clear();
+seedUser({
+  role: 'operador',
+  overrides: {
+    'financial.income.create': 'deny',
+    'financial.expense.create': 'deny',
+    'financial.bill.pay': 'deny',
+    'financial.entries.edit': 'deny'
+  }
+});
+
+const deniedHtml = renderFinanceiroMarkup({
+  summary: {
+    entriesTotal: 0,
+    outputsTotal: 0,
+    balance: 0,
+    payablesCount: 1,
+    paidBillsCount: 0,
+    overdueCount: 0
+  },
+  categories: [{ id: 'fornecedor', name: 'Fornecedor', type: 'expense' }],
+  transactions: [{
+    id: 'fin-pending',
+    type: 'expense',
+    description: 'Conta sem permissao',
+    amount: 80,
+    categoryId: 'fornecedor',
+    paymentMethod: 'boleto',
+    status: 'pending',
+    transactionDate: '2026-06-15',
+    dueDate: '2026-06-20'
+  }, {
+    id: 'fin-paid',
+    type: 'expense',
+    description: 'Conta paga',
+    amount: 90,
+    categoryId: 'fornecedor',
+    status: 'paid',
+    transactionDate: '2026-06-15'
+  }],
+  payables: {
+    pending: [{
+      id: 'fin-pending',
+      description: 'Conta sem permissao',
+      amount: 80,
+      status: 'pending',
+      transactionDate: '2026-06-15',
+      dueDate: '2026-06-20'
+    }],
+    overdue: [],
+    upcoming: []
+  },
+  crm: {
+    outputsByCategory: {},
+    entriesByCategory: {},
+    spendingByPaymentMethod: {},
+    pendingByCategory: {}
+  }
+});
+
+assert(!deniedHtml.includes('data-finance-action="open-income"'), 'denied user should not see income creation');
+assert(!deniedHtml.includes('data-finance-action="open-expense"'), 'denied user should not see expense creation');
+assert(!deniedHtml.includes('data-finance-action="open-bill"'), 'denied user should not see bill creation');
+assert(!deniedHtml.includes('data-payable-id="fin-pending"'), 'denied user should not see bill payment buttons');
+assert(!deniedHtml.includes('data-finance-action="edit"'), 'denied user should not see finance edit buttons');
+
+store.clear();
 storage.setItem('pdv.users', [{
   id: 'admin-1',
   name: 'Administrador',
@@ -163,7 +247,7 @@ storage.setItem('pdv.financialTransactions', [
     amount: 100,
     categoryId: 'reforco-caixa',
     status: 'paid',
-    transactionDate: '2026-06-16'
+    transactionDate: '2026-06-17'
   },
   {
     id: 'fin-expense-change',
@@ -172,7 +256,7 @@ storage.setItem('pdv.financialTransactions', [
     amount: 150,
     categoryId: 'fornecedor',
     status: 'paid',
-    transactionDate: '2026-06-16'
+    transactionDate: '2026-06-17'
   }
 ]);
 

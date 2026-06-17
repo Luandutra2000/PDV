@@ -14,6 +14,8 @@ import { getFinancialCategories } from '../../services/financial.service.js';
 import { getShowcaseStockByProductId } from '../../services/showcase-stock.service.js';
 import { on } from '../../services/event-bus.service.js';
 import { UI_EVENTS } from '../../database/schema.js';
+import { getCurrentUser } from '../../services/auth.service.js';
+import { hasPermission } from '../../services/permission.service.js';
 
 const CATEGORY_ALL = 'todos';
 const CATEGORY_FAVORITES = '__favoritos';
@@ -56,8 +58,8 @@ function renderScreen(container) {
           <div class="pdv-actions">
             <label class="sr-only" for="product-search">Buscar produto</label>
             <input id="product-search" class="field" type="search" placeholder="Buscar produto..." value="${state.query}">
-            <button class="button button--ghost" type="button" data-action="open-quick-closing">Fechamento Rapido</button>
-            <button class="button button--danger" type="button" data-action="open-write-off">Perda / Consumo</button>
+            ${canCurrentUser('cash.close') ? '<button class="button button--ghost" type="button" data-action="open-quick-closing">Fechamento Rapido</button>' : ''}
+            ${canCurrentUser('stock.writeoff') ? '<button class="button button--danger" type="button" data-action="open-write-off">Perda / Consumo</button>' : ''}
           </div>
         </header>
         ${renderQuickAccess()}
@@ -401,7 +403,38 @@ function renderComanda(container) {
     return;
   }
 
-  target.innerHTML = renderOrderPanel(getActiveComanda());
+  target.innerHTML = gateOrderPanelActions(renderOrderPanel(getActiveComanda()));
+}
+
+function canCurrentUser(permissionId) {
+  return hasPermission(getCurrentUser(), permissionId);
+}
+
+function gateOrderPanelActions(markup) {
+  let gatedMarkup = markup;
+
+  if (!canCurrentUser('cash.movement')) {
+    gatedMarkup = gatedMarkup.replace(
+      '<button class="button button--success" type="button" data-action="open-entry">+ Entrada</button>',
+      ''
+    );
+  }
+
+  if (!canCurrentUser('cash.withdrawal')) {
+    gatedMarkup = gatedMarkup.replace(
+      '<button class="button button--danger" type="button" data-action="open-output">- Saida</button>',
+      ''
+    );
+  }
+
+  if (!canCurrentUser('sales.create')) {
+    gatedMarkup = gatedMarkup.replace(
+      /<button class="button" type="button" data-action="open-payment"[^>]*>Receber [\s\S]*?<\/button>/,
+      ''
+    );
+  }
+
+  return gatedMarkup;
 }
 
 function handleOrderAction(actionButton, container) {

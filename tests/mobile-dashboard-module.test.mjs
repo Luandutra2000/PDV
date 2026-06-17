@@ -4,13 +4,20 @@ const assert = (condition, message) => {
   }
 };
 
+const store = new Map();
 globalThis.localStorage = {
-  getItem() {
-    return null;
+  getItem(key) {
+    return store.has(key) ? store.get(key) : null;
   },
-  setItem() {},
-  removeItem() {},
-  clear() {}
+  setItem(key, value) {
+    store.set(key, String(value));
+  },
+  removeItem(key) {
+    store.delete(key);
+  },
+  clear() {
+    store.clear();
+  }
 };
 
 globalThis.window = {
@@ -28,7 +35,8 @@ globalThis.document = {
 
 const mobileDashboard = await import('../src/modules/mobile/mobile-dashboard.module.js');
 const eventBus = await import('../src/services/event-bus.service.js');
-const { UI_EVENTS } = await import('../src/database/schema.js');
+const { STORAGE_KEYS, UI_EVENTS } = await import('../src/database/schema.js');
+const storage = await import('../src/services/storage.service.js');
 
 const header = mobileDashboard.renderMobileTopbar({
   period: 'today',
@@ -122,12 +130,79 @@ eventBus.emit(UI_EVENTS.cashSummaryChanged);
 
 assert(currentWorkspace.innerHTML === 'frente de caixa', 'mobile dashboard should not take over workspace after leaving owner app');
 
+store.clear();
+storage.setItem(STORAGE_KEYS.users, [{
+  id: 'owner-denied',
+  name: 'Dono restrito',
+  username: 'dono',
+  password: '1234',
+  role: 'dono',
+  active: true
+}]);
+storage.setItem(STORAGE_KEYS.currentSession, { userId: 'owner-denied', startedAt: '2026-06-15T10:00:00.000Z' });
+storage.setItem(STORAGE_KEYS.userPermissionOverrides, {
+  'owner-denied': {
+    'financial.income.create': 'deny',
+    'financial.expense.create': 'deny',
+    'financial.bill.pay': 'deny',
+    'cash.close': 'deny',
+    'showcase.launch': 'deny',
+    'showcase.edit': 'deny'
+  }
+});
+storage.setItem(STORAGE_KEYS.financialTransactions, [{
+  id: 'mobile-payable',
+  type: 'expense',
+  description: 'Conta mobile',
+  amount: 100,
+  paymentMethod: 'boleto',
+  status: 'pending',
+  transactionDate: '2026-06-15',
+  dueDate: '2026-06-20'
+}]);
+
+const deniedWorkspace = createWorkspace();
+mobileDashboard.initMobileDashboardModule(deniedWorkspace);
+
+clickMobileTab(deniedWorkspace, 'finance');
+assert(!deniedWorkspace.innerHTML.includes('data-mobile-finance-action="income"'), 'denied mobile user should not see income action');
+assert(!deniedWorkspace.innerHTML.includes('data-mobile-finance-action="expense"'), 'denied mobile user should not see expense action');
+assert(!deniedWorkspace.innerHTML.includes('data-mobile-finance-action="bill"'), 'denied mobile user should not see bill action');
+assert(!deniedWorkspace.innerHTML.includes('data-mobile-payable-id="mobile-payable"'), 'denied mobile user should not see payable action');
+
+clickMobileTab(deniedWorkspace, 'closing');
+assert(!deniedWorkspace.innerHTML.includes('Fechar Caixa'), 'denied mobile user should not see closing submit');
+
+clickMobileTab(deniedWorkspace, 'showcase');
+assert(!deniedWorkspace.innerHTML.includes('Lancar / atualizar vitrine'), 'denied mobile user should not see showcase submit');
+
 console.log('mobile dashboard module ok');
 
 function createWorkspace() {
   return {
     dataset: {},
     innerHTML: '',
-    addEventListener() {}
+    listeners: {},
+    addEventListener(type, handler) {
+      this.listeners[type] = this.listeners[type] || [];
+      this.listeners[type].push(handler);
+    },
+    querySelector() {
+      return null;
+    }
   };
+}
+
+function clickMobileTab(workspace, tab) {
+  workspace.listeners.click[0]({
+    target: {
+      closest(selector) {
+        if (selector === '[data-mobile-tab]') {
+          return { dataset: { mobileTab: tab } };
+        }
+
+        return null;
+      }
+    }
+  });
 }

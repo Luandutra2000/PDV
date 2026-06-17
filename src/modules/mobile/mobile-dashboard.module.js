@@ -27,11 +27,12 @@ import {
 import { getShowcaseCategories, getShowcaseProducts, getProductById, syncCatalogNow } from '../../services/product.service.js';
 import { getTransactionSyncStatus } from '../../services/transaction.service.js';
 import { getCatalogSyncStatus } from '../../services/product.service.js';
-import { logout } from '../../services/auth.service.js';
+import { getCurrentUser, logout } from '../../services/auth.service.js';
 import { hydrateOnlineOperationalData, syncOnlineOperationalData } from '../../services/online-data.service.js';
 import { isSupabaseEnabled } from '../../services/app-config.service.js';
 import { getThemeLabel, toggleTheme } from '../../services/theme.service.js';
 import { formatCurrency } from '../../utils/currency.js';
+import { hasPermission } from '../../services/permission.service.js';
 
 const tabs = [
   { id: 'home', label: 'Inicio', icon: 'IN' },
@@ -384,6 +385,10 @@ function isEditableMobileTarget(target) {
     || tagName === 'select'
     || target.isContentEditable === true
     || typeof target.matches === 'function' && target.matches('input, textarea, select, [contenteditable="true"]');
+}
+
+function canCurrentUser(permissionId) {
+  return hasPermission(getCurrentUser(), permissionId);
 }
 
 function render(workspace) {
@@ -823,7 +828,7 @@ function renderMobileClosingForm(values) {
           Observacao
           <textarea class="field" name="note" rows="3" data-mobile-closing-field>${values.note}</textarea>
         </label>
-        <button class="mobile-showcase-submit" type="submit">Fechar Caixa</button>
+        ${canCurrentUser('cash.close') ? '<button class="mobile-showcase-submit" type="submit">Fechar Caixa</button>' : ''}
       </form>
     </section>
   `;
@@ -890,6 +895,8 @@ function getClosingStatusTone(statusLabel) {
 function renderFinanceTab() {
   const finance = getMobileFinancialSummary(getMobilePeriodFilters());
   const payables = getUniquePayables(finance.payables);
+  const canCreateIncome = canCurrentUser('financial.income.create');
+  const canCreateExpense = canCurrentUser('financial.expense.create');
 
   return `
     <div class="mobile-content">
@@ -901,9 +908,9 @@ function renderFinanceTab() {
         <h2>Financeiro</h2>
         ${state.financeError ? `<p class="mobile-error">${state.financeError}</p>` : ''}
         <div class="mobile-finance-actions">
-          <button type="button" data-mobile-finance-action="income">+ Entrada</button>
-          <button type="button" data-mobile-finance-action="expense">- Saida</button>
-          <button type="button" data-mobile-finance-action="bill">+ Boleto</button>
+          ${canCreateIncome ? '<button type="button" data-mobile-finance-action="income">+ Entrada</button>' : ''}
+          ${canCreateExpense ? '<button type="button" data-mobile-finance-action="expense">- Saida</button>' : ''}
+          ${canCreateExpense ? '<button type="button" data-mobile-finance-action="bill">+ Boleto</button>' : ''}
         </div>
         ${state.financeModal ? renderMobileFinanceForm(state.financeModal, finance.categories) : ''}
       </section>
@@ -1002,7 +1009,7 @@ function renderMobilePayable(transaction) {
       </div>
       <div class="mobile-finance-row__actions">
         <strong class="money-negative">${formatCurrency(transaction.amount)}</strong>
-        <button type="button" data-mobile-payable-id="${transaction.id}">Pagar</button>
+        ${canCurrentUser('financial.bill.pay') ? `<button type="button" data-mobile-payable-id="${transaction.id}">Pagar</button>` : ''}
       </div>
     </article>
   `;
@@ -1101,7 +1108,7 @@ function renderMobileShowcaseForm(summary) {
           Observacao
           <input class="field" name="note" placeholder="Opcional">
         </label>
-        <button class="mobile-showcase-submit" type="submit">Lancar / atualizar vitrine</button>
+        ${canCurrentUser('showcase.launch') ? '<button class="mobile-showcase-submit" type="submit">Lancar / atualizar vitrine</button>' : ''}
       </form>
     </section>
   `;
