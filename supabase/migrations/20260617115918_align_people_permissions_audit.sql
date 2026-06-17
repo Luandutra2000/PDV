@@ -195,8 +195,8 @@ begin
 end;
 $$;
 
-revoke all on function public.update_profile_with_admin_guard(uuid, text, text, boolean) from public;
-grant execute on function public.update_profile_with_admin_guard(uuid, text, text, boolean) to authenticated, service_role;
+revoke execute on function public.update_profile_with_admin_guard(uuid, text, text, boolean) from anon, authenticated;
+grant execute on function public.update_profile_with_admin_guard(uuid, text, text, boolean) to service_role;
 
 drop policy if exists "active users read user permission overrides" on public.user_permission_overrides;
 create policy "active users read user permission overrides" on public.user_permission_overrides
