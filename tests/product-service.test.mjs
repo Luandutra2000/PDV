@@ -21,6 +21,34 @@ const assert = (condition, message) => {
   }
 };
 
+const assertThrows = (callback, expectedMessage, message) => {
+  try {
+    callback();
+  } catch (error) {
+    assert(
+      error.message.includes(expectedMessage),
+      `${message}: expected "${expectedMessage}", got "${error.message}"`
+    );
+    return error;
+  }
+
+  throw new Error(message);
+};
+
+const assertRejects = async (callback, expectedMessage, message) => {
+  try {
+    await callback();
+  } catch (error) {
+    assert(
+      error.message.includes(expectedMessage),
+      `${message}: expected "${expectedMessage}", got "${error.message}"`
+    );
+    return error;
+  }
+
+  throw new Error(message);
+};
+
 const isPromise = (value) => Boolean(value && typeof value.then === 'function');
 
 const storage = await import('../src/services/storage.service.js');
@@ -28,6 +56,7 @@ const { STORAGE_KEYS } = await import('../src/database/schema.js');
 const products = await import('../src/services/product.service.js');
 
 storage.ensureSeedData();
+storage.setItem(STORAGE_KEYS.currentSession, { userId: 'user-admin', startedAt: '2026-06-17T10:00:00.000Z' });
 
 const localLoadedCategories = products.loadCategories();
 const localLoadedProducts = products.loadProducts();
@@ -119,6 +148,7 @@ const repairedCategories = products.getCategories();
 assert(repairedCategories.find((item) => item.id === 'fritos').name === 'Fritos', 'corrupted object category name should fall back to id label');
 assert(repairedCategories.find((item) => item.id === 'assados').name === 'Assados', 'object category name should use nested name');
 storage.resetAppData();
+storage.setItem(STORAGE_KEYS.currentSession, { userId: 'user-admin', startedAt: '2026-06-17T10:05:00.000Z' });
 
 products.deleteCategory(category.id);
 assert(!products.getCategories().some((item) => item.id === category.id), 'deleted category should be removed');
@@ -158,6 +188,93 @@ assert(favoritesCategory.id === 'favoritos', 'real favorites category should use
 assert(realFavoritesCategoryResults.some((product) => product.id === productInFavoritesCategory.id), 'real favorites category search should include products in that category');
 assert(!realFavoritesCategoryResults.some((product) => product.id === aliasProduct.id), 'real favorites category search should not include favorite products from other categories');
 assert(products.getFavoriteProducts().some((product) => product.id === aliasProduct.id), 'favorite products helper should still return favorite products');
+
+storage.setItem(STORAGE_KEYS.users, [
+  { id: 'admin-catalog', name: 'Admin Catalogo', username: 'admin-catalog', password: '1234', role: 'admin', active: true },
+  { id: 'denied-catalog', name: 'Catalogo Negado', username: 'denied-catalog', password: '1234', role: 'operador', active: true },
+  { id: 'product-manager', name: 'Gerente Produto', username: 'product-manager', password: '1234', role: 'operador', active: true },
+  { id: 'category-manager', name: 'Gerente Categoria', username: 'category-manager', password: '1234', role: 'operador', active: true }
+]);
+storage.setItem(STORAGE_KEYS.userPermissionOverrides, {
+  'denied-catalog': {
+    'products.manage': 'deny',
+    'categories.manage': 'deny'
+  },
+  'product-manager': {
+    'products.manage': 'allow',
+    'categories.manage': 'deny'
+  },
+  'category-manager': {
+    'products.manage': 'deny',
+    'categories.manage': 'allow'
+  }
+});
+storage.setItem(STORAGE_KEYS.auditLogs, []);
+storage.setItem(STORAGE_KEYS.currentSession, { userId: 'denied-catalog', startedAt: '2026-06-17T10:10:00.000Z' });
+
+assertThrows(
+  () => products.saveProduct({ name: 'Produto Bloqueado', categoryId: 'lanches', price: 10, active: true }),
+  'Usuario sem permissao para esta acao.',
+  'denied user should not create products through saveProduct'
+);
+assert(!products.getProducts().some((product) => product.id === 'produto-bloqueado'), 'denied product create should not persist');
+
+assertThrows(
+  () => products.saveProduct({ id: aliasProduct.id, name: 'Produto Editado Bloqueado', categoryId: 'lanches', price: 10, active: true }),
+  'Usuario sem permissao para esta acao.',
+  'denied user should not update products through saveProduct'
+);
+assert(products.getProductById(aliasProduct.id).name === 'Coxinha Especial', 'denied product update should not persist');
+
+assertThrows(
+  () => products.removeProduct(aliasProduct.id),
+  'Usuario sem permissao para esta acao.',
+  'denied user should not delete products through removeProduct'
+);
+assert(products.getProductById(aliasProduct.id), 'denied product delete should not persist');
+
+assertThrows(
+  () => products.saveCategory({ name: 'Categoria Bloqueada', showInShowcase: true }),
+  'Usuario sem permissao para esta acao.',
+  'denied user should not create categories through saveCategory'
+);
+assert(!products.getCategories().some((category) => category.id === 'categoria-bloqueada'), 'denied category create should not persist');
+
+assertThrows(
+  () => products.saveCategory({ id: favoritesCategory.id, name: 'Categoria Editada Bloqueada', showInShowcase: true }),
+  'Usuario sem permissao para esta acao.',
+  'denied user should not update categories through saveCategory'
+);
+assert(products.getCategories().find((category) => category.id === favoritesCategory.id).name === 'Favoritos', 'denied category update should not persist');
+
+assertThrows(
+  () => products.removeCategory(favoritesCategory.id),
+  'Usuario sem permissao para esta acao.',
+  'denied user should not delete categories through removeCategory'
+);
+assert(products.getCategories().some((category) => category.id === favoritesCategory.id), 'denied category delete should not persist');
+
+let deniedLogs = storage.getItem(STORAGE_KEYS.auditLogs, []);
+assert(deniedLogs.filter((entry) => entry.action === 'permission.denied' && entry.entityId === 'products.manage').length >= 3, 'denied product attempts should be audited');
+assert(deniedLogs.filter((entry) => entry.action === 'permission.denied' && entry.entityId === 'categories.manage').length >= 3, 'denied category attempts should be audited');
+
+storage.setItem(STORAGE_KEYS.currentSession, { userId: 'product-manager', startedAt: '2026-06-17T10:20:00.000Z' });
+const allowedProduct = products.saveProduct({ name: 'Produto Permitido', categoryId: 'lanches', price: 7, active: true });
+assert(allowedProduct.id === 'produto-permitido', 'user with products.manage should create products');
+products.saveProduct({ id: allowedProduct.id, name: 'Produto Permitido Editado', categoryId: 'lanches', price: 8, active: true });
+assert(products.getProductById(allowedProduct.id).name === 'Produto Permitido Editado', 'user with products.manage should update products');
+products.removeProduct(allowedProduct.id);
+assert(products.getProductById(allowedProduct.id) === null, 'user with products.manage should delete products');
+
+storage.setItem(STORAGE_KEYS.currentSession, { userId: 'category-manager', startedAt: '2026-06-17T10:30:00.000Z' });
+const allowedCategory = products.saveCategory({ name: 'Categoria Permitida', showInShowcase: true });
+assert(allowedCategory.id === 'categoria-permitida', 'user with categories.manage should create categories');
+products.saveCategory({ id: allowedCategory.id, name: 'Categoria Permitida Editada', showInShowcase: false });
+assert(products.getCategories().find((category) => category.id === allowedCategory.id).name === 'Categoria Permitida Editada', 'user with categories.manage should update categories');
+products.removeCategory(allowedCategory.id);
+assert(!products.getCategories().some((category) => category.id === allowedCategory.id), 'user with categories.manage should delete categories');
+
+storage.setItem(STORAGE_KEYS.currentSession, { userId: 'admin-catalog', startedAt: '2026-06-17T10:40:00.000Z' });
 
 globalThis.__PDV_RUNTIME_CONFIG__ = {
   dataProvider: 'supabase',
@@ -203,6 +320,19 @@ localStorage.setItem(STORAGE_KEYS.products, JSON.stringify([
 localStorage.setItem('pdv.syncQueue.categories', JSON.stringify([]));
 localStorage.setItem('pdv.syncQueue.products', JSON.stringify([]));
 
+storage.setItem(STORAGE_KEYS.currentSession, { userId: 'denied-catalog', startedAt: '2026-06-17T10:50:00.000Z' });
+await assertRejects(
+  () => supabaseProductService.saveCategory({ name: 'Categoria Supabase Bloqueada', showInShowcase: true }),
+  'Usuario sem permissao para esta acao.',
+  'denied user should not save Supabase categories'
+);
+await assertRejects(
+  () => supabaseProductService.removeCategory('supabase-cat'),
+  'Usuario sem permissao para esta acao.',
+  'denied user should not remove Supabase categories'
+);
+
+storage.setItem(STORAGE_KEYS.currentSession, { userId: 'admin-catalog', startedAt: '2026-06-17T11:00:00.000Z' });
 await supabaseProductService.removeCategory('supabase-cat');
 
 const queuedProductsAfterCategoryDelete = JSON.parse(localStorage.getItem('pdv.syncQueue.products'));

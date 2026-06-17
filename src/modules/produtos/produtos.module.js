@@ -284,14 +284,22 @@ function bindProdutosEvents(container) {
   container.addEventListener('submit', async (event) => {
     if (event.target.matches('[data-product-form]')) {
       event.preventDefault();
-      await saveProductFromForm(event.target);
-      await loadProductCatalog(container);
+      try {
+        await saveProductFromForm(event.target);
+        await loadProductCatalog(container);
+      } catch (error) {
+        handleProductActionError(error);
+      }
     }
 
     if (event.target.matches('[data-category-form]')) {
       event.preventDefault();
-      await saveCategoryFromForm(event.target);
-      await loadProductCatalog(container);
+      try {
+        await saveCategoryFromForm(event.target);
+        await loadProductCatalog(container);
+      } catch (error) {
+        handleProductActionError(error);
+      }
     }
   });
 
@@ -307,15 +315,23 @@ function bindProdutosEvents(container) {
     if (action === 'new-product') openProductModal(container);
     if (action === 'edit-product') openProductModal(container, actionButton.dataset.productId);
     if (action === 'delete-product') {
-      await removeProduct(actionButton.dataset.productId);
-      await loadProductCatalog(container);
+      try {
+        await removeProduct(actionButton.dataset.productId);
+        await loadProductCatalog(container);
+      } catch (error) {
+        handleProductActionError(error);
+      }
     }
 
     if (action === 'new-category') openCategoryModal(container);
     if (action === 'edit-category') openCategoryModal(container, actionButton.dataset.categoryId);
     if (action === 'delete-category') {
-      await removeCategory(actionButton.dataset.categoryId);
-      await loadProductCatalog(container);
+      try {
+        await removeCategory(actionButton.dataset.categoryId);
+        await loadProductCatalog(container);
+      } catch (error) {
+        handleProductActionError(error);
+      }
     }
 
     if (action === 'sync-catalog') {
@@ -405,6 +421,14 @@ async function saveCategoryFromForm(form) {
   });
   closeModal();
   showNotification({ title: 'Categoria salva', message: 'Categoria registrada com sucesso.', type: 'success' });
+}
+
+function handleProductActionError(error) {
+  showNotification({
+    title: 'Acao nao permitida',
+    message: error.message || 'Nao foi possivel concluir a acao.',
+    type: 'danger'
+  });
 }
 
 function canCurrentUser(permissionId) {

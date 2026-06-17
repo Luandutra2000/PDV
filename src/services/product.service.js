@@ -11,6 +11,8 @@ import {
   saveProductToSupabase,
   startProductCatalogRealtime
 } from './product-sync.service.js';
+import { getCurrentUser } from './auth.service.js';
+import { assertPermission } from './permission.service.js';
 import { getItem, setItem } from './storage.service.js';
 
 export function getProducts() {
@@ -51,6 +53,8 @@ export function loadProducts() {
 }
 
 export function createCategory(name, options = {}) {
+  enforceCatalogPermission('categories.manage', options);
+
   const categories = getCategories();
   const category = normalizeCategory({
     id: createSlugId(name, categories.map((item) => item.id)),
@@ -64,7 +68,9 @@ export function createCategory(name, options = {}) {
   return category;
 }
 
-export function updateCategory(categoryId, data = {}) {
+export function updateCategory(categoryId, data = {}, options = {}) {
+  enforceCatalogPermission('categories.manage', options);
+
   const categories = getCategories();
   const index = categories.findIndex((category) => category.id === categoryId);
 
@@ -87,10 +93,12 @@ export function updateCategory(categoryId, data = {}) {
 }
 
 export function saveCategory(categoryData) {
+  enforceCatalogPermission('categories.manage', { source: 'product-service', action: categoryData.id ? 'update-category' : 'create-category' });
+
   if (!isSupabaseEnabled()) {
     return categoryData.id
-      ? updateCategory(categoryData.id, categoryData)
-      : createCategory(categoryData.name, categoryData);
+      ? updateCategory(categoryData.id, categoryData, { enforcePermission: false })
+      : createCategory(categoryData.name, { ...categoryData, enforcePermission: false });
   }
 
   return saveCategoryToSupabase(normalizeCategory({
@@ -100,7 +108,9 @@ export function saveCategory(categoryData) {
   }));
 }
 
-export function deleteCategory(categoryId) {
+export function deleteCategory(categoryId, options = {}) {
+  enforceCatalogPermission('categories.manage', options);
+
   if (categoryId === 'todos') {
     return;
   }
@@ -113,8 +123,10 @@ export function deleteCategory(categoryId) {
 }
 
 export function removeCategory(categoryId) {
+  enforceCatalogPermission('categories.manage', { source: 'product-service', action: 'delete-category', categoryId });
+
   if (!isSupabaseEnabled()) {
-    return deleteCategory(categoryId);
+    return deleteCategory(categoryId, { enforcePermission: false });
   }
 
   return loadProductsFromSupabase()
@@ -153,7 +165,9 @@ export function getFavoriteProducts() {
   return getActiveProducts().filter((product) => product.favorite);
 }
 
-export function createProduct(productData) {
+export function createProduct(productData, options = {}) {
+  enforceCatalogPermission('products.manage', options);
+
   const products = getProducts();
   const product = normalizeProduct({
     id: createProductId(productData.name),
@@ -166,7 +180,9 @@ export function createProduct(productData) {
   return product;
 }
 
-export function updateProduct(productId, productData) {
+export function updateProduct(productId, productData, options = {}) {
+  enforceCatalogPermission('products.manage', options);
+
   const products = getProducts();
   const index = products.findIndex((product) => product.id === productId);
 
@@ -186,10 +202,12 @@ export function updateProduct(productId, productData) {
 }
 
 export function saveProduct(productData) {
+  enforceCatalogPermission('products.manage', { source: 'product-service', action: productData.id ? 'update-product' : 'create-product' });
+
   if (!isSupabaseEnabled()) {
     return productData.id
-      ? updateProduct(productData.id, productData)
-      : createProduct(productData);
+      ? updateProduct(productData.id, productData, { enforcePermission: false })
+      : createProduct(productData, { enforcePermission: false });
   }
 
   return saveProductToSupabase(normalizeProduct({
@@ -199,14 +217,18 @@ export function saveProduct(productData) {
   }));
 }
 
-export function deleteProduct(productId) {
+export function deleteProduct(productId, options = {}) {
+  enforceCatalogPermission('products.manage', options);
+
   const products = getProducts().filter((product) => product.id !== productId);
   saveProducts(products);
 }
 
 export function removeProduct(productId) {
+  enforceCatalogPermission('products.manage', { source: 'product-service', action: 'delete-product', productId });
+
   if (!isSupabaseEnabled()) {
-    return deleteProduct(productId);
+    return deleteProduct(productId, { enforcePermission: false });
   }
 
   return deleteProductFromSupabase(productId);
@@ -232,6 +254,18 @@ export async function syncCatalogNow() {
 
 function saveProducts(products) {
   setItem(STORAGE_KEYS.products, products);
+}
+
+function enforceCatalogPermission(permissionId, options = {}) {
+  if (options.enforcePermission === false) {
+    return;
+  }
+
+  const { enforcePermission, ...metadata } = options;
+  assertPermission(getCurrentUser(), permissionId, {
+    source: 'product-service',
+    ...metadata
+  });
 }
 
 function normalizeProduct(product) {
