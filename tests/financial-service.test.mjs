@@ -112,6 +112,35 @@ const editedOperatorIncome = finance.upsertFinancialTransaction({
   description: 'Entrada com permissao de edicao'
 });
 assert.equal(editedOperatorIncome.description, 'Entrada com permissao de edicao');
+assert.equal(editedOperatorIncome.id, operatorIncome.id);
+assert.equal(editedOperatorIncome.createdAt, operatorIncome.createdAt);
+const financialTransactionsBeforeInvalidUpsert = finance.getFinancialTransactions().length;
+assert.throws(
+  () => finance.upsertFinancialTransaction({
+    ...operatorIncome,
+    amount: 0,
+    description: 'Entrada invalida'
+  }),
+  /Valor precisa ser maior que zero/
+);
+assert.equal(finance.getFinancialTransactions().length, financialTransactionsBeforeInvalidUpsert);
+assert.equal(
+  finance.getFinancialTransactions().find((transaction) => transaction.id === operatorIncome.id).amount,
+  operatorIncome.amount
+);
+assert.throws(
+  () => finance.upsertFinancialTransaction({
+    ...operatorIncome,
+    amount: -1,
+    description: 'Entrada negativa'
+  }),
+  /Valor precisa ser maior que zero/
+);
+assert.equal(finance.getFinancialTransactions().length, financialTransactionsBeforeInvalidUpsert);
+assert.equal(
+  finance.getFinancialTransactions().find((transaction) => transaction.id === operatorIncome.id).amount,
+  operatorIncome.amount
+);
 
 auth.login({ username: 'admin', password: '1234' });
 

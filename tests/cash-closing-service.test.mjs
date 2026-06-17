@@ -61,6 +61,12 @@ transactions.registerCashMovement({
   description: 'Compra pequena'
 });
 
+transactions.registerCashMovement({
+  type: 'sangria',
+  amount: 4,
+  description: 'Retirada parcial'
+});
+
 estoque.createShowcaseWriteOff({
   productId: burger.id,
   quantity: 1,
@@ -81,12 +87,13 @@ const summary = closing.buildClosingSummary({
   checkedPix: ''
 });
 
-assert(summary.payments.expectedCash === 47, 'expected cash should include cash sales plus entries minus outputs');
+assert(summary.totals.outputs === 9, 'closing totals should include saida and sangria as outputs');
+assert(summary.payments.expectedCash === 43, 'expected cash should include cash sales plus entries minus outputs');
 assert(summary.payments.countedCash === 45, 'counted cash should come from input');
-assert(summary.payments.cashDifference === -2, 'cash difference should compare counted and expected cash');
+assert(summary.payments.cashDifference === 2, 'cash difference should compare counted and expected cash');
 assert(summary.payments.expectedPix === 6, 'expected pix should include pix sales');
 assert(summary.payments.checkedPix === null, 'blank pix check should be null');
-assert(summary.payments.generalDifference === -2, 'general difference should use expected values for unchecked optional methods');
+assert(summary.payments.generalDifference === 2, 'general difference should use expected values for unchecked optional methods');
 
 const burgerRow = summary.showcase.find((item) => item.productId === burger.id);
 assert(burgerRow.producedQuantity === 10, 'showcase should include produced quantity');
@@ -114,8 +121,8 @@ const draft = closing.saveClosingDraft({
       scope: 'payment',
       referenceId: 'dinheiro',
       reason: 'erro-caixa',
-      note: 'Faltou dinheiro',
-      amount: -2
+      note: 'Sobrou dinheiro',
+      amount: 2
     }
   ]
 });
@@ -129,7 +136,7 @@ const missingNoteDraft = closing.saveClosingDraft({
       referenceId: 'dinheiro',
       reason: 'erro-caixa',
       note: '',
-      amount: -2
+      amount: 2
     }
   ]
 });

@@ -311,6 +311,17 @@ assert(comandaCanceledByTransaction.status === 'cancelada', 'canceling sale tran
 assert(transactionCanceledSummary.closedComandas === 2, 'canceling sale transaction should remove matching closed comanda from active count');
 assert(saleCancelAudit.metadata.comandaId === transactionCanceledSale.comandaId, 'sale transaction cancel audit should include comanda id');
 
+const cancelAuditCountBeforeMissing = audit.getAuditLogs()
+  .filter((entry) => entry.action === 'transaction.cancel').length;
+assertThrows(
+  () => transactions.cancelTransaction('movimento-inexistente', { reason: 'Nao existe' }),
+  'Movimentacao nao encontrada.',
+  'canceling nonexistent transaction should throw before side effects'
+);
+const cancelAuditCountAfterMissing = audit.getAuditLogs()
+  .filter((entry) => entry.action === 'transaction.cancel').length;
+assert(cancelAuditCountAfterMissing === cancelAuditCountBeforeMissing, 'canceling nonexistent transaction should not record cancel audit');
+
 const categorizedEntry = transactions.registerCashMovement({
   type: 'entrada',
   amount: 30,
@@ -341,7 +352,8 @@ const cashPermissionOperator = auth.createUser({
 });
 permissions.setUserPermissionOverride(cashPermissionOperator.id, 'cash.movement', 'allow');
 permissions.setUserPermissionOverride(cashPermissionOperator.id, 'cash.withdrawal', 'deny');
-permissions.setUserPermissionOverride(cashPermissionOperator.id, 'financial.income.create', 'allow');
+permissions.setUserPermissionOverride(cashPermissionOperator.id, 'financial.income.create', 'deny');
+permissions.setUserPermissionOverride(cashPermissionOperator.id, 'financial.expense.create', 'deny');
 auth.login({ username: 'operador-caixa-permissao', password: 'operador123' });
 const allowedCashEntry = transactions.registerCashMovement({
   type: 'entrada',
@@ -350,6 +362,10 @@ const allowedCashEntry = transactions.registerCashMovement({
   description: 'Entrada com permissao canonica'
 });
 assert(allowedCashEntry.type === 'entrada', 'cash entrada should use cash.movement permission');
+const linkedOperatorEntry = JSON.parse(localStorage.getItem('pdv.financialTransactions'))
+  .find((transaction) => transaction.cashMovementId === allowedCashEntry.id);
+assert(linkedOperatorEntry, 'cash entrada should create finance mirror without financial income create permission');
+assert(linkedOperatorEntry.type === 'income', 'cash entrada mirror should be income');
 assertThrows(
   () => transactions.registerCashMovement({
     type: 'saida',
@@ -405,7 +421,38 @@ const sangria = transactions.registerCashMovement({
 const sangriaSummary = transactions.getTransactionSummary();
 
 assert(sangria.type === 'sangria', 'sangria should be accepted as movement type');
-assert(sangriaSummary.outputsTotal === outputsBeforeSangria, 'sangria should not change output totals when summaries count only saida');
+assert(sangriaSummary.outputsTotal === outputsBeforeSangria + 7, 'sangria should increase output totals');
+
+const sangriaMirrorOperator = auth.createUser({
+  name: 'Operador Sangria Mirror',
+  username: 'operador-sangria-mirror',
+  password: 'operador123',
+  role: 'operator'
+});
+permissions.setUserPermissionOverride(sangriaMirrorOperator.id, 'cash.withdrawal', 'allow');
+permissions.setUserPermissionOverride(sangriaMirrorOperator.id, 'financial.expense.create', 'deny');
+auth.login({ username: 'operador-sangria-mirror', password: 'operador123' });
+const allowedCashOutput = transactions.registerCashMovement({
+  type: 'saida',
+  amount: 8,
+  category: 'compra-materiais',
+  description: 'Saida com permissao de caixa'
+});
+const linkedOperatorOutput = JSON.parse(localStorage.getItem('pdv.financialTransactions'))
+  .find((transaction) => transaction.cashMovementId === allowedCashOutput.id);
+assert(linkedOperatorOutput, 'cash saida should create finance mirror without financial expense create permission');
+assert(linkedOperatorOutput.type === 'expense', 'cash saida mirror should be expense');
+const allowedSangria = transactions.registerCashMovement({
+  type: 'sangria',
+  amount: 13,
+  category: 'retirada-caixa',
+  description: 'Sangria com permissao de caixa'
+});
+const linkedOperatorSangria = JSON.parse(localStorage.getItem('pdv.financialTransactions'))
+  .find((transaction) => transaction.cashMovementId === allowedSangria.id);
+assert(linkedOperatorSangria, 'cash sangria should create finance mirror without financial expense create permission');
+assert(linkedOperatorSangria.type === 'expense', 'cash sangria mirror should be expense');
+auth.login({ username: 'admin', password: 'admin123' });
 
 const saleAudit = audit.getAuditLogs().find((entry) => entry.action === 'sale.create' && entry.entityId === sale.id);
 assert(saleAudit.userId === adminSession.user.id, 'sale audit should store logged user id');

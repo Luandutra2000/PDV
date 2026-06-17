@@ -147,7 +147,7 @@ export function registerCashMovement({
       movesCashSession: true,
       transactionDate: movement.createdAt.slice(0, 10),
       paidAt: movement.createdAt
-    });
+    }, { enforcePermission: false });
   }
   syncCashMovementToSupabase(movement);
   emit(SYNC_EVENTS.cashMovementRegistered, movement);
@@ -260,10 +260,15 @@ export function cancelTransaction(transactionId, { reason = '' } = {}) {
   const user = getCurrentUser();
   assertPermission(user, 'sales.cancel');
 
+  const currentTransactions = getTransactions();
+  if (!currentTransactions.some((transaction) => transaction.id === transactionId)) {
+    throw new Error('Movimentacao nao encontrada.');
+  }
+
   const canceledAt = new Date().toISOString();
   let canceledSaleComandaId = null;
   let canceledMovementId = null;
-  const transactions = getTransactions().map((transaction) => {
+  const transactions = currentTransactions.map((transaction) => {
     if (transaction.id !== transactionId) {
       return transaction;
     }
@@ -368,7 +373,7 @@ export function getMoneySummary({ period = 'today', customStart = '', customEnd 
   const activeTransactions = getActiveTransactions().filter((transaction) => isInPeriod(transaction.createdAt, period, filters));
   const entriesTotal = sumByType(activeTransactions, 'entrada');
   const salesTotal = sumByType(activeTransactions, 'venda');
-  const outputsTotal = sumByType(activeTransactions, 'saida');
+  const outputsTotal = sumCashOutputs(activeTransactions);
   const paymentTotals = getPaymentMethodTotals(activeTransactions);
   const closedComandas = getClosedComandas().filter((comanda) => comanda.closedAt && isInPeriod(comanda.closedAt, period, filters));
 
@@ -390,7 +395,7 @@ export function getTransactionSummary() {
   return {
     entriesTotal: sumByType(transactions, 'entrada'),
     salesTotal: sumByType(transactions, 'venda'),
-    outputsTotal: sumByType(transactions, 'saida'),
+    outputsTotal: sumCashOutputs(transactions),
     closedComandas: getClosedComandas().filter((comanda) => comanda.status !== 'cancelada').length
   };
 }
@@ -502,6 +507,12 @@ function runShowcaseSync(promise) {
 function sumByType(transactions, type) {
   return transactions
     .filter((transaction) => transaction.type === type && transaction.status !== 'cancelada')
+    .reduce((total, transaction) => total + (transaction.total || transaction.amount || 0), 0);
+}
+
+function sumCashOutputs(transactions) {
+  return transactions
+    .filter((transaction) => ['saida', 'sangria'].includes(transaction.type) && transaction.status !== 'cancelada')
     .reduce((total, transaction) => total + (transaction.total || transaction.amount || 0), 0);
 }
 

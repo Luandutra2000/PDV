@@ -16,7 +16,7 @@ export function buildClosingSummary(input = {}) {
   const transactions = getClosingTransactions();
   const sales = transactions.filter((transaction) => transaction.type === 'venda');
   const entries = transactions.filter((transaction) => transaction.type === 'entrada');
-  const outputs = transactions.filter((transaction) => transaction.type === 'saida');
+  const outputs = transactions.filter(isCashOutput);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -36,7 +36,7 @@ export function buildPaymentConference(input = {}) {
   const transactions = getClosingTransactions();
   const sales = transactions.filter((transaction) => transaction.type === 'venda');
   const entriesTotal = sumTransactions(transactions.filter((transaction) => transaction.type === 'entrada'));
-  const outputsTotal = sumTransactions(transactions.filter((transaction) => transaction.type === 'saida'));
+  const outputsTotal = sumTransactions(transactions.filter(isCashOutput));
   const expectedCash = sumPayment(sales, 'dinheiro') + entriesTotal - outputsTotal;
   const expectedPix = sumPayment(sales, 'pix');
   const expectedDebit = sumPayment(sales, 'debito');
@@ -266,6 +266,10 @@ function sumPayment(sales, paymentMethod) {
 
 function sumTransactions(transactions) {
   return transactions.reduce((total, transaction) => total + Number(transaction.total || transaction.amount || 0), 0);
+}
+
+function isCashOutput(transaction) {
+  return transaction.type === 'saida' || transaction.type === 'sangria';
 }
 
 function hasDifferenceValue(difference) {

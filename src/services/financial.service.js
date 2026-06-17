@@ -67,9 +67,11 @@ export function getFinancialTransactions({ period = 'all', customStart = '', cus
     .filter((transaction) => isInPeriod(transaction.transactionDate || transaction.createdAt, period, { customStart, customEnd }));
 }
 
-export function createFinancialTransaction(input) {
+export function createFinancialTransaction(input, { enforcePermission = true } = {}) {
   const user = getCurrentUser();
-  assertPermission(user, getCreateFinancialTransactionPermission(input));
+  if (enforcePermission) {
+    assertPermission(user, getCreateFinancialTransactionPermission(input));
+  }
 
   const transaction = normalizeFinancialTransaction(input, user);
   const transactions = [transaction, ...getFinancialTransactions()];
@@ -88,20 +90,27 @@ export function createFinancialTransaction(input) {
 }
 
 export function upsertFinancialTransaction(transaction, { enforcePermission = true } = {}) {
+  const user = getCurrentUser();
   if (enforcePermission) {
-    assertPermission(getCurrentUser(), 'financial.entries.edit');
+    assertPermission(user, 'financial.entries.edit');
   }
 
   const transactions = getFinancialTransactions();
-  const exists = transactions.some((candidate) => candidate.id === transaction.id);
-  const nextTransactions = exists
-    ? transactions.map((candidate) => (candidate.id === transaction.id ? transaction : candidate))
-    : [transaction, ...transactions];
+  const existing = transactions.find((candidate) => candidate.id === transaction.id);
+  const normalizedTransaction = normalizeFinancialTransaction({
+    ...transaction,
+    id: existing?.id || transaction.id,
+    createdAt: existing?.createdAt || transaction.createdAt,
+    createdBy: existing?.createdBy || transaction.createdBy
+  }, user);
+  const nextTransactions = existing
+    ? transactions.map((candidate) => (candidate.id === normalizedTransaction.id ? normalizedTransaction : candidate))
+    : [normalizedTransaction, ...transactions];
 
   setItem(STORAGE_KEYS.financialTransactions, sortNewestFirst(nextTransactions));
-  syncFinancialTransaction(transaction);
-  emitFinanceChanged(transaction);
-  return transaction;
+  syncFinancialTransaction(normalizedTransaction);
+  emitFinanceChanged(normalizedTransaction);
+  return normalizedTransaction;
 }
 
 export function markFinancialTransactionPaid(
@@ -272,7 +281,9 @@ export function normalizeFinancialTransaction(input, user = getCurrentUser()) {
     origin: input.origin || 'finance',
     cashMovementId: input.cashMovementId || null,
     movesCashSession: input.movesCashSession === true,
-    createdBy: user?.id || '',
+    canceledAt: input.canceledAt || null,
+    cancelReason: String(input.cancelReason || '').trim(),
+    createdBy: input.createdBy || user?.id || '',
     createdAt: input.createdAt || now,
     updatedAt: now
   };
