@@ -47,7 +47,7 @@ const routePermissions = {
   'fechar-caixa': 'cash.close',
   relatorios: 'reports.view',
   mobile: 'owner_app.view',
-  pessoas: 'users.manage',
+  pessoas: ['users.manage', 'users.edit', 'permissions.manage', 'audit.view'],
   despesas: 'financial.expense.access'
 };
 
@@ -141,7 +141,19 @@ function getAuthorizedInitialView(currentUser) {
 
 function canAccessRoute(currentUser, routeId) {
   const permission = routePermissions[routeId];
-  return !permission || hasPermission(currentUser, permission);
+  return hasAnyPermission(currentUser, permission);
+}
+
+function hasAnyPermission(currentUser, permission) {
+  if (!permission) {
+    return true;
+  }
+
+  if (Array.isArray(permission)) {
+    return permission.some((permissionId) => hasPermission(currentUser, permissionId));
+  }
+
+  return hasPermission(currentUser, permission);
 }
 
 function renderCashStrip(root = document) {

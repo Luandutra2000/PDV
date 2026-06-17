@@ -90,7 +90,7 @@ storage.setItem('pdv.users', [{
   name: 'Usuario Seed',
   username: 'seed',
   password: '1234',
-  role: 'operador',
+  role: 'admin',
   active: true
 }]);
 storage.setItem('pdv.currentSession', { userId: 'user-seed', startedAt: '2026-06-16T10:00:00.000Z' });
@@ -147,5 +147,51 @@ assert(
 dispatchRoleChange(container, 'gerente');
 assert(container.innerHTML.includes('Aplicar desconto'), 'gerente checklist should include discount permission');
 assertPermissionChecked(container.innerHTML, 'sales.discount', 'gerente checklist should check discount by default');
+
+store.clear();
+storage.setItem('pdv.users', [
+  {
+    id: 'viewer-user',
+    name: 'Viewer',
+    username: 'viewer',
+    password: '1234',
+    role: 'operador',
+    active: true
+  },
+  {
+    id: 'target-user',
+    name: 'Alvo',
+    username: 'alvo',
+    password: '1234',
+    role: 'operador',
+    active: true
+  }
+]);
+storage.setItem('pdv.currentSession', { userId: 'viewer-user', startedAt: '2026-06-16T11:00:00.000Z' });
+storage.setItem('pdv.userPermissionOverrides', {
+  'viewer-user': {
+    'users.edit': 'allow',
+    'permissions.manage': 'deny',
+    'audit.view': 'deny'
+  }
+});
+storage.setItem('pdv.auditLogs', [{
+  id: 'audit-1',
+  action: 'user.update',
+  entityType: 'user',
+  entityId: 'target-user',
+  userName: 'Admin',
+  createdAt: '2026-06-16T11:05:00.000Z'
+}]);
+
+const limitedContainer = new FakeElement();
+initPessoasModule(limitedContainer);
+
+assert(limitedContainer.innerHTML.includes('data-action="edit-user"'), 'users.edit should allow editing users from Pessoas');
+assert(!limitedContainer.innerHTML.includes('data-action="new-user"'), 'users.edit alone should not allow creating users');
+assert(!limitedContainer.innerHTML.includes('data-permission-checkbox'), 'permissions.manage should be required for checklist editing');
+assert(limitedContainer.innerHTML.includes('data-permission-select'), 'permission defaults may be visible for review');
+assert(limitedContainer.innerHTML.includes('data-permission-select') && limitedContainer.innerHTML.includes('disabled'), 'permissions.manage should be required to change overrides');
+assert(!limitedContainer.innerHTML.includes('user-audit-list'), 'audit.view should be required to render user audit history');
 
 console.log('pessoas module ok');

@@ -274,6 +274,40 @@ supabaseClient.configureSupabaseClientForTests({
       async setSession(session) {
         supabaseSessionPayload = session;
       }
+    },
+    from(table) {
+      return {
+        select() {
+          return {
+            eq(column, value) {
+              if (table === 'profiles') {
+                return {
+                  async maybeSingle() {
+                    return {
+                      data: {
+                        id: value,
+                        name: 'Luan Gerente',
+                        username: 'luandutra27@gmail.com',
+                        role_id: 'gerente',
+                        active: true
+                      },
+                      error: null
+                    };
+                  }
+                };
+              }
+
+              return Promise.resolve({
+                data: [
+                  { permission_id: 'sales.discount', state: 'allow' },
+                  { permission_id: 'system.export', state: 'deny' }
+                ],
+                error: null
+              });
+            }
+          };
+        }
+      };
     }
   }
 });
@@ -301,9 +335,14 @@ assert(supabaseLoginBody.email === 'luandutra27@gmail.com', 'supabase login shou
 assert(supabaseSessionPayload.access_token === 'access-token', 'supabase login should set SDK access token');
 assert(supabaseSessionPayload.refresh_token === 'refresh-token', 'supabase login should set SDK refresh token');
 assert(supabaseSession.user.username === 'luandutra27@gmail.com', 'supabase login should create local session user');
+assert(supabaseSession.user.name === 'Luan Gerente', 'supabase login should load profile name from database');
+assert(supabaseSession.user.role === 'gerente', 'supabase login should load profile role from database');
 assert(auth.getCurrentUser().id === 'supabase-user', 'supabase login should persist local current session');
 assert(storedSupabaseSession.accessToken === 'access-token', 'supabase login should persist current session access token');
 assert(storedSupabaseSession.refreshToken === 'refresh-token', 'supabase login should persist current session refresh token');
+const storedOverrides = storage.getItem(STORAGE_KEYS.userPermissionOverrides, {});
+assert(storedOverrides['supabase-user']['sales.discount'] === 'allow', 'supabase login should hydrate permission overrides from database');
+assert(storedOverrides['supabase-user']['system.export'] === 'deny', 'supabase login should hydrate denied permission overrides from database');
 
 globalThis.fetch = originalFetch;
 globalThis.__PDV_RUNTIME_CONFIG__ = null;

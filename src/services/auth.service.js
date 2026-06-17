@@ -68,7 +68,7 @@ export async function restoreSupabaseSession() {
       return null;
     }
 
-    return ensureSupabaseLocalSession(data.user, data.session);
+    return await ensureSupabaseLocalSession(data.user, data.session);
   } catch (error) {
     return null;
   }
@@ -211,24 +211,25 @@ async function loginWithSupabase({ email, password }) {
   await setSupabaseAuthSession(data);
 
   return {
-    user: ensureSupabaseLocalSession(data.user, data),
+    user: await ensureSupabaseLocalSession(data.user, data),
     session: data.session
   };
 }
 
-function ensureSupabaseLocalSession(authUser, authSession = null) {
+async function ensureSupabaseLocalSession(authUser, authSession = null) {
   const users = getRawUsers();
   const email = normalizeEmail(authUser.email || '');
   const existingUser = users.find((user) => user.id === authUser.id || user.username === email);
+  const profile = await loadSupabaseProfile(authUser.id);
   const now = new Date().toISOString();
   const user = {
     ...(existingUser || {}),
     id: authUser.id,
-    name: existingUser?.name || authUser.user_metadata?.name || email || 'Usuario',
-    username: email,
+    name: profile.name || authUser.user_metadata?.name || email || 'Usuario',
+    username: normalizeEmail(profile.username || email),
     password: existingUser?.password || '',
-    role: normalizeRoleLocal(existingUser?.role || authUser.user_metadata?.role || 'admin'),
-    active: true,
+    role: normalizeRoleLocal(profile.role_id),
+    active: profile.active !== false,
     createdAt: existingUser?.createdAt || now,
     updatedAt: now
   };
@@ -256,8 +257,65 @@ function ensureSupabaseLocalSession(authUser, authSession = null) {
   }
 
   setItem(STORAGE_KEYS.currentSession, currentSession);
+  await hydrateSupabasePermissionOverrides(user.id);
 
   return sanitizeUser(user);
+}
+
+async function loadSupabaseProfile(userId) {
+  const client = await getSupabaseClient();
+
+  if (!client?.from) {
+    throw new Error('Nao foi possivel carregar o perfil do usuario.');
+  }
+
+  const query = client
+    .from('profiles')
+    .select('id,name,username,role_id,active')
+    .eq('id', userId);
+  const result = typeof query.maybeSingle === 'function'
+    ? await query.maybeSingle()
+    : await query.single();
+  const profile = Array.isArray(result.data) ? result.data[0] : result.data;
+
+  if (result.error || !profile?.role_id) {
+    throw new Error('Nao foi possivel carregar o perfil do usuario.');
+  }
+
+  if (profile.active === false) {
+    throw new Error('Usuario inativo.');
+  }
+
+  return profile;
+}
+
+async function hydrateSupabasePermissionOverrides(userId) {
+  const client = await getSupabaseClient();
+
+  if (!client?.from) {
+    return;
+  }
+
+  const query = client
+    .from('user_permission_overrides')
+    .select('permission_id,state')
+    .eq('user_id', userId);
+  const result = await query;
+
+  if (result.error || !Array.isArray(result.data)) {
+    return;
+  }
+
+  setItem(STORAGE_KEYS.userPermissionOverrides, {
+    ...getItem(STORAGE_KEYS.userPermissionOverrides, {}),
+    [userId]: result.data.reduce((overrides, row) => {
+      if (row.state === 'allow' || row.state === 'deny') {
+        overrides[row.permission_id] = row.state;
+      }
+
+      return overrides;
+    }, {})
+  });
 }
 
 function normalizeEmail(email) {

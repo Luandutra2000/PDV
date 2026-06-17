@@ -1,4 +1,4 @@
-import { getUsers } from '../../services/auth.service.js';
+import { getCurrentUser, getUsers } from '../../services/auth.service.js';
 import { getAuditLogs, recordAudit } from '../../services/audit.service.js';
 import {
   createManagedUser,
@@ -9,6 +9,7 @@ import {
   PERMISSIONS,
   getRolePermissions,
   getUserPermissionOverride,
+  hasPermission,
   setUserPermissionOverride,
   normalizeRole
 } from '../../services/permission.service.js';
@@ -43,6 +44,7 @@ function renderPeople(container) {
   const users = getUsers();
   const selectedUser = users.find((user) => user.id === peopleState.selectedUserId) || users[0] || null;
   const editingUser = users.find((user) => user.id === peopleState.editingUserId) || null;
+  const permissions = getPeoplePermissions();
 
   container.innerHTML = `
     <section class="module-screen people-screen" data-people-screen>
@@ -51,7 +53,7 @@ function renderPeople(container) {
           <h1 class="pdv-title">Pessoas</h1>
           <p class="module-subtitle">Usuarios, perfis e permissoes individuais.</p>
         </div>
-        <button class="button" type="button" data-action="new-user">Novo usuario</button>
+        ${permissions.canCreate ? '<button class="button" type="button" data-action="new-user">Novo usuario</button>' : ''}
       </header>
 
       <div class="people-grid">
@@ -68,11 +70,13 @@ function renderPeople(container) {
           <header class="manager-section__header">
             <strong>${editingUser ? 'Editar usuario' : 'Cadastrar usuario'}</strong>
           </header>
-          ${renderUserForm(editingUser)}
+          ${permissions.canCreate || (editingUser && permissions.canEdit)
+            ? renderUserForm(editingUser, permissions)
+            : '<div class="empty-products">Sem permissao para cadastrar ou editar usuarios.</div>'}
         </section>
       </div>
 
-      ${selectedUser ? renderPermissionPanel(selectedUser) : ''}
+      ${selectedUser ? renderPermissionPanel(selectedUser, permissions) : ''}
     </section>
   `;
 }
@@ -90,6 +94,10 @@ function bindPeopleEvents(container) {
     }
 
     if (button.dataset.action === 'new-user') {
+      if (!getPeoplePermissions().canCreate) {
+        return;
+      }
+
       peopleState.editingUserId = null;
       peopleState.modalRole = 'operador';
       peopleState.modalPermissions = buildRolePermissionState('operador');
@@ -105,6 +113,10 @@ function bindPeopleEvents(container) {
     }
 
     if (button.dataset.action === 'edit-user') {
+      if (!getPeoplePermissions().canEdit) {
+        return;
+      }
+
       peopleState.editingUserId = button.dataset.userId;
       peopleState.selectedUserId = button.dataset.userId;
       const user = getUsers().find((candidate) => candidate.id === button.dataset.userId);
@@ -123,12 +135,23 @@ function bindPeopleEvents(container) {
     event.preventDefault();
     const form = new FormData(event.target);
     const editingUserId = form.get('id') || '';
+    const permissions = getPeoplePermissions();
+
+    if ((!editingUserId && !permissions.canCreate) || (editingUserId && !permissions.canEdit)) {
+      renderFormError(event.target, 'Usuario sem permissao para esta acao.');
+      return;
+    }
+
     const payload = {
       name: form.get('name'),
       username: form.get('username'),
-      role: normalizeRole(form.get('role')),
       active: form.get('active') === 'on'
     };
+    const canManagePermissions = permissions.canManagePermissions;
+
+    if (canManagePermissions) {
+      payload.role = normalizeRole(form.get('role'));
+    }
     const password = String(form.get('password') || '').trim();
 
     if (password || !editingUserId) {
@@ -144,7 +167,9 @@ function bindPeopleEvents(container) {
         ? await updateManagedUser(editingUserId, payload)
         : await createManagedUser(payload);
 
-      await saveManagedPermissionChecklist(user, peopleState.modalPermissions);
+      if (canManagePermissions) {
+        await saveManagedPermissionChecklist(user, peopleState.modalPermissions);
+      }
 
       recordAudit({
         action: editingUserId ? 'user.update' : 'user.create',
@@ -192,6 +217,10 @@ function bindPeopleEvents(container) {
     const roleSelect = event.target.closest('[data-role-select]');
 
     if (roleSelect && event.target.closest('[data-people-screen]')) {
+      if (!getPeoplePermissions().canManagePermissions) {
+        return;
+      }
+
       captureModalDraftFromForm(roleSelect.form);
       peopleState.modalRole = normalizeRole(event.target.value);
       peopleState.modalPermissions = buildRolePermissionState(peopleState.modalRole);
@@ -202,6 +231,10 @@ function bindPeopleEvents(container) {
     const permissionCheckbox = event.target.closest('[data-permission-checkbox]');
 
     if (permissionCheckbox && event.target.closest('[data-people-screen]')) {
+      if (!getPeoplePermissions().canManagePermissions) {
+        return;
+      }
+
       peopleState.modalPermissions = {
         ...peopleState.modalPermissions,
         [permissionCheckbox.dataset.permissionId]: permissionCheckbox.checked
@@ -221,6 +254,10 @@ function bindPeopleEvents(container) {
       return;
     }
 
+    if (!getPeoplePermissions().canManagePermissions) {
+      return;
+    }
+
     const userId = select.dataset.userId;
     const permissionId = select.dataset.permissionId;
     const state = select.value;
@@ -237,6 +274,8 @@ function bindPeopleEvents(container) {
 }
 
 function renderUserList(users) {
+  const permissions = getPeoplePermissions();
+
   if (!users.length) {
     return '<div class="empty-products">Nenhum usuario cadastrado.</div>';
   }
@@ -247,15 +286,16 @@ function renderUserList(users) {
         <strong>${escapeHtml(user.name)}</strong>
         <span>${getRoleLabel(user.role)} - ${user.active ? 'Ativo' : 'Inativo'}</span>
       </button>
-      <button class="button button--ghost" type="button" data-action="edit-user" data-user-id="${user.id}">Editar</button>
+      ${permissions.canEdit ? `<button class="button button--ghost" type="button" data-action="edit-user" data-user-id="${user.id}">Editar</button>` : ''}
     </article>
   `).join('');
 }
 
-function renderUserForm(user) {
+function renderUserForm(user, permissions = getPeoplePermissions()) {
   const role = peopleState.modalRole || normalizeRole(user?.role || 'operador');
   const draft = peopleState.modalDraft || createUserDraft(user);
   const active = typeof draft.active === 'boolean' ? draft.active : user?.active !== false;
+  const canManagePermissions = permissions.canManagePermissions;
 
   return `
     <form class="product-form people-form" data-user-form>
@@ -276,18 +316,19 @@ function renderUserForm(user) {
         </label>
         <label>
           Perfil
-          <select class="field" name="role" data-role-select required>
+          <select class="field" name="role" data-role-select required ${canManagePermissions ? '' : 'disabled'}>
             ${ROLE_OPTIONS.map((option) => `
               <option value="${option.value}"${role === option.value ? ' selected' : ''}>${option.label}</option>
             `).join('')}
           </select>
+          ${canManagePermissions ? '' : `<input type="hidden" name="role" value="${role}">`}
         </label>
         <label class="checkbox-field">
           <input type="checkbox" name="active" ${active ? 'checked' : ''}>
           Usuario ativo
         </label>
       </div>
-      ${renderPermissionChecklist(role)}
+      ${canManagePermissions ? renderPermissionChecklist(role) : ''}
       <div class="form-actions">
         <button class="button" type="submit">${user ? 'Salvar usuario' : 'Cadastrar usuario'}</button>
       </div>
@@ -382,10 +423,11 @@ function renderPermissionCheckbox(role, permission) {
   `;
 }
 
-function renderPermissionPanel(user) {
+function renderPermissionPanel(user, permissions = getPeoplePermissions()) {
   const groups = groupPermissions();
   const rolePermissions = new Set(getRolePermissions(user.role));
   const isAdmin = user.role === 'admin';
+  const canManagePermissions = permissions.canManagePermissions;
 
   return `
     <section class="manager-section permission-panel">
@@ -399,16 +441,16 @@ function renderPermissionPanel(user) {
         ${groups.map(([group, permissions]) => `
           <section class="permission-group">
             <h3>${group}</h3>
-            ${permissions.map((permission) => renderPermissionRow(user, permission, rolePermissions, isAdmin)).join('')}
+            ${permissions.map((permission) => renderPermissionRow(user, permission, rolePermissions, isAdmin, canManagePermissions)).join('')}
           </section>
         `).join('')}
       </div>
-      ${renderUserAudit(user.id)}
+      ${permissions.canViewAudit ? renderUserAudit(user.id) : ''}
     </section>
   `;
 }
 
-function renderPermissionRow(user, permission, rolePermissions, isAdmin) {
+function renderPermissionRow(user, permission, rolePermissions, isAdmin, canManagePermissions) {
   const override = getUserPermissionOverride(user.id, permission.id);
   const defaultState = isAdmin || rolePermissions.has(permission.id) ? 'Liberado no perfil' : 'Bloqueado no perfil';
 
@@ -418,7 +460,7 @@ function renderPermissionRow(user, permission, rolePermissions, isAdmin) {
         <strong>${escapeHtml(permission.label)}</strong>
         <small>${defaultState}</small>
       </span>
-      <select class="field" data-permission-select data-user-id="${user.id}" data-permission-id="${permission.id}" ${isAdmin ? 'disabled' : ''}>
+      <select class="field" data-permission-select data-user-id="${user.id}" data-permission-id="${permission.id}" ${isAdmin || !canManagePermissions ? 'disabled' : ''}>
         <option value="default" ${override === 'default' ? 'selected' : ''}>Padrao</option>
         <option value="allow" ${override === 'allow' ? 'selected' : ''}>Liberado</option>
         <option value="deny" ${override === 'deny' ? 'selected' : ''}>Bloqueado</option>
@@ -454,6 +496,17 @@ function groupPermissions() {
     groups[permission.group].push(permission);
     return groups;
   }, {}));
+}
+
+function getPeoplePermissions() {
+  const currentUser = getCurrentUser();
+
+  return {
+    canCreate: hasPermission(currentUser, 'users.manage'),
+    canEdit: hasPermission(currentUser, 'users.edit') || hasPermission(currentUser, 'users.manage'),
+    canManagePermissions: hasPermission(currentUser, 'permissions.manage'),
+    canViewAudit: hasPermission(currentUser, 'audit.view')
+  };
 }
 
 function buildRolePermissionState(role) {

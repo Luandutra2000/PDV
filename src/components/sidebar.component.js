@@ -13,7 +13,7 @@ const menuGroups = [
     title: 'Gestao',
     items: [
       { id: 'produtos', label: 'Produtos', icon: 'PR', permission: 'products.manage' },
-      { id: 'pessoas', label: 'Pessoas', icon: 'PS', permission: 'users.manage' }
+      { id: 'pessoas', label: 'Pessoas', icon: 'PS', permission: ['users.manage', 'users.edit', 'permissions.manage', 'audit.view'] }
     ]
   },
   {
@@ -41,7 +41,7 @@ const menuGroups = [
 export function renderSidebar(currentUser) {
   const visibleGroups = menuGroups.map((group) => ({
     ...group,
-    items: group.items.filter((item) => !item.permission || hasPermission(currentUser, item.permission))
+    items: group.items.filter((item) => hasAnyPermission(currentUser, item.permission))
   })).filter((group) => group.items.length);
 
   const groups = visibleGroups.map((group) => `
@@ -69,4 +69,16 @@ export function renderSidebar(currentUser) {
       </footer>
     </aside>
   `;
+}
+
+function hasAnyPermission(currentUser, permission) {
+  if (!permission) {
+    return true;
+  }
+
+  if (Array.isArray(permission)) {
+    return permission.some((permissionId) => hasPermission(currentUser, permissionId));
+  }
+
+  return hasPermission(currentUser, permission);
 }
