@@ -296,11 +296,14 @@ globalThis.fetch = async (url, options) => {
 };
 
 const supabaseSession = await auth.login({ username: 'luandutra27@gmail,com', password: '84276331' });
+const storedSupabaseSession = storage.getItem(STORAGE_KEYS.currentSession, null);
 assert(supabaseLoginBody.email === 'luandutra27@gmail.com', 'supabase login should normalize comma email typo');
 assert(supabaseSessionPayload.access_token === 'access-token', 'supabase login should set SDK access token');
 assert(supabaseSessionPayload.refresh_token === 'refresh-token', 'supabase login should set SDK refresh token');
 assert(supabaseSession.user.username === 'luandutra27@gmail.com', 'supabase login should create local session user');
 assert(auth.getCurrentUser().id === 'supabase-user', 'supabase login should persist local current session');
+assert(storedSupabaseSession.accessToken === 'access-token', 'supabase login should persist current session access token');
+assert(storedSupabaseSession.refreshToken === 'refresh-token', 'supabase login should persist current session refresh token');
 
 globalThis.fetch = originalFetch;
 globalThis.__PDV_RUNTIME_CONFIG__ = null;

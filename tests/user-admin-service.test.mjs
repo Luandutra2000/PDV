@@ -125,4 +125,56 @@ assert.throws(
 );
 assert.equal(auth.getUsers().find((user) => user.id === 'admin-1')?.active, true, 'last active admin should remain active');
 
+const originalFetch = globalThis.fetch;
+globalThis.__PDV_RUNTIME_CONFIG__ = {
+  dataProvider: 'supabase',
+  supabaseUrl: 'https://example.supabase.co',
+  supabaseAnonKey: 'anon-key'
+};
+
+resetUsers([
+  makeUser({
+    id: 'admin-1',
+    username: 'admin',
+    password: 'admin123',
+    role: 'admin',
+    active: true
+  })
+]);
+storage.setItem(STORAGE_KEYS.currentSession, {
+  userId: 'admin-1',
+  accessToken: 'test-access-token',
+  startedAt: '2026-06-17T10:00:00.000Z'
+});
+
+let managedUserRequest = null;
+globalThis.fetch = async (url, options) => {
+  managedUserRequest = { url, options };
+  return {
+    ok: true,
+    async json() {
+      return {
+        user: {
+          id: 'admin-1',
+          name: 'Admin',
+          username: 'admin',
+          role: 'operador',
+          active: true
+        }
+      };
+    }
+  };
+};
+
+const supabaseUpdatedUser = await userAdmin.updateManagedUser('admin-1', { role: 'operador' });
+assert.equal(
+  managedUserRequest.options.headers.Authorization,
+  'Bearer test-access-token',
+  'supabase managed-user calls should use the authenticated access token'
+);
+assert.equal(supabaseUpdatedUser.role, 'operador', 'supabase updateManagedUser should return remote updated user');
+
+globalThis.fetch = originalFetch;
+globalThis.__PDV_RUNTIME_CONFIG__ = null;
+
 console.log('user admin service ok');

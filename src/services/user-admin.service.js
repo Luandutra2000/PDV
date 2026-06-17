@@ -25,8 +25,6 @@ export function createManagedUser(input) {
 }
 
 export function updateManagedUser(userId, patch) {
-  assertCanUpdateAdminStatus(userId, patch);
-
   if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
     return updateUser(userId, patch);
   }
@@ -41,6 +39,7 @@ export function updateManagedUser(userId, patch) {
     return invokeAdminUsersFunction('updateUser', { userId, patch: payload }).then(cacheManagedUser);
   }
 
+  assertCanUpdateAdminStatus(userId, payload);
   return updateUser(userId, payload);
 }
 

@@ -68,7 +68,7 @@ export async function restoreSupabaseSession() {
       return null;
     }
 
-    return ensureSupabaseLocalSession(data.user);
+    return ensureSupabaseLocalSession(data.user, data.session);
   } catch (error) {
     return null;
   }
@@ -211,12 +211,12 @@ async function loginWithSupabase({ email, password }) {
   await setSupabaseAuthSession(data);
 
   return {
-    user: ensureSupabaseLocalSession(data.user),
+    user: ensureSupabaseLocalSession(data.user, data),
     session: data.session
   };
 }
 
-function ensureSupabaseLocalSession(authUser) {
+function ensureSupabaseLocalSession(authUser, authSession = null) {
   const users = getRawUsers();
   const email = normalizeEmail(authUser.email || '');
   const existingUser = users.find((user) => user.id === authUser.id || user.username === email);
@@ -240,10 +240,22 @@ function ensureSupabaseLocalSession(authUser) {
       : [...users, user]
   );
 
-  setItem(STORAGE_KEYS.currentSession, {
+  const currentSession = {
     userId: user.id,
     startedAt: now
-  });
+  };
+  const accessToken = authSession?.access_token || authSession?.accessToken;
+  const refreshToken = authSession?.refresh_token || authSession?.refreshToken;
+
+  if (accessToken) {
+    currentSession.accessToken = accessToken;
+  }
+
+  if (refreshToken) {
+    currentSession.refreshToken = refreshToken;
+  }
+
+  setItem(STORAGE_KEYS.currentSession, currentSession);
 
   return sanitizeUser(user);
 }
