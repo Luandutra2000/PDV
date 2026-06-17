@@ -174,6 +174,43 @@ assert.equal(
 );
 assert.equal(supabaseUpdatedUser.role, 'operador', 'supabase updateManagedUser should return remote updated user');
 
+resetUsers([
+  makeUser({
+    id: 'admin-1',
+    username: 'admin',
+    password: 'admin123',
+    role: 'admin',
+    active: true
+  })
+]);
+
+let unauthenticatedFetchCalled = false;
+globalThis.fetch = async () => {
+  unauthenticatedFetchCalled = true;
+  return {
+    ok: true,
+    async json() {
+      return { user: null };
+    }
+  };
+};
+
+await assert.rejects(
+  () => userAdmin.createManagedUser({
+    name: 'Sem Sessao',
+    username: 'sem-sessao',
+    password: '1234',
+    role: 'operador'
+  }),
+  /Sessao administrativa obrigatoria\./,
+  'supabase createManagedUser should require an authenticated session token'
+);
+assert.equal(
+  unauthenticatedFetchCalled,
+  false,
+  'supabase createManagedUser should fail before fetch when session has no access token'
+);
+
 globalThis.fetch = originalFetch;
 globalThis.__PDV_RUNTIME_CONFIG__ = null;
 

@@ -129,7 +129,7 @@ async function invokeAdminUsersFunction(action, payload) {
     method: 'POST',
     headers: {
       apikey: config.supabaseAnonKey,
-      Authorization: `Bearer ${getBearerToken(config)}`,
+      Authorization: `Bearer ${getBearerToken()}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
@@ -146,12 +146,15 @@ async function invokeAdminUsersFunction(action, payload) {
   return data?.user || null;
 }
 
-function getBearerToken(config) {
+function getBearerToken() {
   const session = getItem(STORAGE_KEYS.currentSession, null);
-  return session?.access_token
-    || session?.accessToken
-    || session?.token
-    || config.supabaseAnonKey;
+  const token = session?.access_token || session?.accessToken;
+
+  if (!token) {
+    throw new Error('Sessao administrativa obrigatoria.');
+  }
+
+  return token;
 }
 
 function cacheManagedUser(user) {
