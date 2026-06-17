@@ -199,6 +199,10 @@ assert(
   loadedUsers.some((user) => user.id === 'remote-user' && user.username === 'remote@example.test'),
   'loadManagedUsers should cache remote Supabase users for Pessoas'
 );
+assert(
+  !loadedUsers.some((user) => user.id === 'admin-1' && user.username === 'admin'),
+  'loadManagedUsers should replace stale local-only users with the remote Supabase list'
+);
 
 const supabaseUpdatedUser = await userAdmin.updateManagedUser('admin-1', { role: 'operador' });
 assert.equal(
@@ -236,13 +240,36 @@ await assert.rejects(
     password: '1234',
     role: 'operador'
   }),
-  /Sessao administrativa obrigatoria\./,
+  /Entre novamente com seu usuario Supabase para cadastrar usuarios\./,
   'supabase createManagedUser should require an authenticated session token'
 );
 assert.equal(
   unauthenticatedFetchCalled,
   false,
   'supabase createManagedUser should fail before fetch when session has no access token'
+);
+
+storage.setItem(STORAGE_KEYS.currentSession, {
+  userId: 'admin-1',
+  accessToken: 'test-access-token',
+  startedAt: '2026-06-17T11:00:00.000Z'
+});
+globalThis.fetch = async () => ({
+  ok: false,
+  async json() {
+    return { error: 'Email ja cadastrado no Supabase.' };
+  }
+});
+
+await assert.rejects(
+  () => userAdmin.createManagedUser({
+    name: 'Email Duplicado',
+    username: 'duplicado@example.test',
+    password: '12345678',
+    role: 'operador'
+  }),
+  /Email ja cadastrado no Supabase\./,
+  'supabase createManagedUser should surface Edge Function error messages'
 );
 
 globalThis.fetch = originalFetch;

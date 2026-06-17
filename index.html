@@ -38,7 +38,7 @@
   </div>
   <div class="toast-root" aria-live="polite"></div>
   <script type="module">
-    const LOCAL_CACHE_VERSION = '20260617-02-pessoas-lista-remota';
+    const LOCAL_CACHE_VERSION = '20260617-03-pessoas-erros-supabase';
 
     async function clearStaleClientCaches() {
       try {
@@ -74,7 +74,7 @@
 
     try {
       await clearStaleClientCaches();
-      await import('./src/app.js?v=20260617-02');
+      await import('./src/app.js?v=20260617-03');
     } catch (error) {
       console.error('Nao foi possivel iniciar o PDV.', error);
       const app = document.getElementById('app');

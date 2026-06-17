@@ -152,11 +152,12 @@ async function invokeAdminUsersFunction(action, payload) {
     })
   });
 
+  const data = await readJsonResponse(response);
+
   if (!response.ok) {
-    throw new Error('Nao foi possivel salvar o usuario.');
+    throw new Error(data?.error || 'Nao foi possivel salvar o usuario.');
   }
 
-  const data = await response.json();
   return data || null;
 }
 
@@ -165,10 +166,18 @@ function getBearerToken() {
   const token = session?.access_token || session?.accessToken;
 
   if (!token) {
-    throw new Error('Sessao administrativa obrigatoria.');
+    throw new Error('Entre novamente com seu usuario Supabase para cadastrar usuarios.');
   }
 
   return token;
+}
+
+async function readJsonResponse(response) {
+  try {
+    return await response.json();
+  } catch (error) {
+    return null;
+  }
 }
 
 function cacheManagedUser(user) {
@@ -198,19 +207,13 @@ function cacheManagedUsers(remoteUsers) {
     return;
   }
 
-  const cachedById = new Map(getItem(STORAGE_KEYS.users, []).map((user) => [user.id, user]));
-
-  remoteUsers.forEach((user) => {
-    if (!user?.id) {
-      return;
-    }
-
-    cachedById.set(user.id, {
-      ...(cachedById.get(user.id) || {}),
-      ...user,
-      role: normalizeRole(user.role)
-    });
-  });
-
-  setItem(STORAGE_KEYS.users, Array.from(cachedById.values()));
+  setItem(
+    STORAGE_KEYS.users,
+    remoteUsers
+      .filter((user) => user?.id)
+      .map((user) => ({
+        ...user,
+        role: normalizeRole(user.role)
+      }))
+  );
 }
