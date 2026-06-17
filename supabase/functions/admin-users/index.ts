@@ -26,6 +26,7 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const VALID_PERMISSION_ID_PATTERN = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
 
 const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: {
@@ -112,16 +113,21 @@ async function createManagedUser(actor: Profile, body: Record<string, unknown>) 
     throw new HttpError(400, error?.message ?? 'Nao foi possivel criar usuario.');
   }
 
-  const user = await upsertProfile(data.user.id, { name, role_id: role, is_active: true });
+  try {
+    const user = await upsertProfile(data.user.id, { name, role_id: role, is_active: true });
 
-  await recordAudit(actor, {
-    action: 'user.create',
-    entityType: 'user',
-    entityId: user.id,
-    metadata: { role }
-  });
+    await recordAudit(actor, {
+      action: 'user.create',
+      entityType: 'user',
+      entityId: user.id,
+      metadata: { role }
+    });
 
-  return toUser(user, email);
+    return toUser(user, email);
+  } catch (error) {
+    await cleanupCreatedAuthUser(data.user.id);
+    throw error;
+  }
 }
 
 async function updateManagedUser(actor: Profile, body: Record<string, unknown>) {
@@ -202,14 +208,16 @@ async function savePermissionOverrides(actor: Profile, body: Record<string, unkn
 
   const overrides = normalizeOverrides(body.overrides);
 
-  await throwIfError(
-    adminClient
-      .from('user_permission_overrides')
-      .delete()
-      .eq('user_id', userId)
-  );
+  const { data: existingRows, error: existingError } = await adminClient
+    .from('user_permission_overrides')
+    .select('permission_id,state')
+    .eq('user_id', userId);
 
-  const rows = Object.entries(overrides)
+  if (existingError) {
+    throw existingError;
+  }
+
+  const desiredRows = Object.entries(overrides)
     .filter(([, state]) => state === 'allow' || state === 'deny')
     .map(([permission_id, state]) => ({
       user_id: userId,
@@ -217,8 +225,27 @@ async function savePermissionOverrides(actor: Profile, body: Record<string, unkn
       state
     }));
 
-  if (rows.length) {
-    await throwIfError(adminClient.from('user_permission_overrides').insert(rows));
+  if (desiredRows.length) {
+    await throwIfError(
+      adminClient
+        .from('user_permission_overrides')
+        .upsert(desiredRows, { onConflict: 'user_id,permission_id' })
+    );
+  }
+
+  const desiredPermissionIds = new Set(desiredRows.map((row) => row.permission_id));
+  const stalePermissionIds = (existingRows ?? [])
+    .map((row) => String(row.permission_id))
+    .filter((permissionId) => !desiredPermissionIds.has(permissionId));
+
+  if (stalePermissionIds.length) {
+    await throwIfError(
+      adminClient
+        .from('user_permission_overrides')
+        .delete()
+        .eq('user_id', userId)
+        .in('permission_id', stalePermissionIds)
+    );
   }
 
   await recordAudit(actor, {
@@ -294,26 +321,19 @@ async function hasPermission(actor: Profile, permissionId: string) {
 }
 
 async function assertNotLastActiveAdmin(userId: string, nextRole: RoleId, nextActive: boolean) {
-  const currentProfile = await loadProfile(userId);
-
-  if (currentProfile?.role_id !== 'admin' || !currentProfile.is_active || (nextRole === 'admin' && nextActive)) {
-    return;
-  }
-
-  const { count, error } = await adminClient
-    .from('profiles')
-    .select('id', { count: 'exact', head: true })
-    .eq('role_id', 'admin')
-    .eq('is_active', true)
-    .neq('id', userId);
+  const { error } = await adminClient.rpc('assert_can_change_admin_profile', {
+    _profile_id: userId,
+    _next_role: nextRole,
+    _next_active: nextActive
+  });
 
   if (error) {
-    throw error;
+    throw new HttpError(400, error.message);
   }
+}
 
-  if (!count) {
-    throw new HttpError(400, 'Nao e permitido desativar o ultimo administrador ativo.');
-  }
+async function cleanupCreatedAuthUser(userId: string) {
+  await adminClient.auth.admin.deleteUser(userId);
 }
 
 async function loadProfile(userId: string): Promise<Profile | null> {
@@ -419,6 +439,10 @@ function normalizeOverrides(value: unknown): Record<string, OverrideState> {
   }
 
   return Object.entries(value).reduce<Record<string, OverrideState>>((overrides, [permissionId, state]) => {
+    if (!VALID_PERMISSION_ID_PATTERN.test(permissionId)) {
+      throw new HttpError(400, 'Permissao invalida.');
+    }
+
     if (state === 'allow' || state === 'deny' || state === 'default') {
       overrides[permissionId] = state;
     }

@@ -21,6 +21,7 @@ assert(
   'savePermissionOverrides should require permissions.manage'
 );
 assert(source.includes('assertNotLastActiveAdmin'), 'function should protect last active admin');
+assert(source.includes(".rpc('assert_can_change_admin_profile'"), 'function should call DB-side admin profile guard');
 assert(source.includes('user_permission_overrides'), 'function should use user_permission_overrides');
 assert(source.includes('permission.denied'), 'function should record permission.denied');
 assert(!source.includes('user_metadata.role'), 'function should not authorize from user_metadata.role');
@@ -38,6 +39,30 @@ assert(
 assert(
   compactSource.includes("if (error) { throw error; }"),
   'recordAudit should throw when audit_logs insert fails'
+);
+assert(
+  compactSource.includes('await cleanupCreatedAuthUser(data.user.id)'),
+  'createUser should delete newly created Auth user when profile or audit persistence fails'
+);
+assert(
+  !compactSource.includes(".from('user_permission_overrides') .delete() .eq('user_id', userId) const rows"),
+  'savePermissionOverrides should not blanket delete existing overrides before inserting replacements'
+);
+assert(
+  compactSource.includes(".from('user_permission_overrides') .select('permission_id,state') .eq('user_id', userId)"),
+  'savePermissionOverrides should fetch existing overrides before applying a diff'
+);
+assert(
+  source.includes('.upsert(desiredRows'),
+  'savePermissionOverrides should upsert desired overrides before deleting stale rows'
+);
+assert(
+  compactSource.includes(".delete() .eq('user_id', userId) .in('permission_id', stalePermissionIds)"),
+  'savePermissionOverrides should delete only stale override rows after successful upsert'
+);
+assert(
+  source.includes('const VALID_PERMISSION_ID_PATTERN'),
+  'function should validate override permission ids before writing them'
 );
 
 console.log('admin users function ok');

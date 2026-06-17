@@ -100,7 +100,6 @@ create table if not exists public.user_permission_overrides (
 
 alter table public.user_permission_overrides enable row level security;
 
-grant select on public.user_permission_overrides to anon;
 grant select, insert, update, delete on public.user_permission_overrides to authenticated;
 
 create or replace function private.current_profile_has_permission(_permission_id text)
@@ -128,6 +127,71 @@ as $$
 $$;
 
 grant execute on function private.current_profile_has_permission(text) to authenticated;
+
+create or replace function private.assert_can_change_admin_profile(
+  _profile_id uuid,
+  _next_role text,
+  _next_active boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  _current_role text;
+  _current_active boolean;
+  _other_active_admin_count integer;
+begin
+  perform pg_advisory_xact_lock(hashtext('pvd.admin-profile-guard'));
+
+  select role_id, is_active
+    into _current_role, _current_active
+  from public.profiles
+  where id = _profile_id
+  for update;
+
+  if not found then
+    raise exception 'Usuario nao encontrado.' using errcode = 'P0002';
+  end if;
+
+  if _current_role is distinct from 'admin'
+    or _current_active is not true
+    or (_next_role = 'admin' and _next_active is true) then
+    return;
+  end if;
+
+  select count(*)
+    into _other_active_admin_count
+  from public.profiles
+  where role_id = 'admin'
+    and is_active = true
+    and id <> _profile_id;
+
+  if coalesce(_other_active_admin_count, 0) = 0 then
+    raise exception 'Nao e permitido desativar o ultimo administrador ativo.' using errcode = 'P0001';
+  end if;
+end;
+$$;
+
+revoke all on function private.assert_can_change_admin_profile(uuid, text, boolean) from public;
+grant execute on function private.assert_can_change_admin_profile(uuid, text, boolean) to authenticated, service_role;
+
+create or replace function public.assert_can_change_admin_profile(
+  _profile_id uuid,
+  _next_role text,
+  _next_active boolean
+)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  select private.assert_can_change_admin_profile(_profile_id, _next_role, _next_active);
+$$;
+
+revoke all on function public.assert_can_change_admin_profile(uuid, text, boolean) from public;
+grant execute on function public.assert_can_change_admin_profile(uuid, text, boolean) to authenticated, service_role;
 
 drop policy if exists "active users read user permission overrides" on public.user_permission_overrides;
 create policy "active users read user permission overrides" on public.user_permission_overrides

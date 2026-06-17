@@ -49,6 +49,9 @@ const requiredSnippets = [
   'create table if not exists public.user_permission_overrides',
   'alter table public.user_permission_overrides enable row level security',
   'create or replace function private.current_profile_has_permission',
+  'create or replace function private.assert_can_change_admin_profile',
+  'create or replace function public.assert_can_change_admin_profile',
+  'pg_advisory_xact_lock',
   "p.role_id = 'admin'",
   "upo.state = 'allow'",
   "upo.state is distinct from 'deny'",
@@ -57,7 +60,7 @@ const requiredSnippets = [
   "private.current_profile_has_permission('permissions.manage')",
   "update public.profiles set role_id = 'operador' where role_id in ('caixa', 'operator')",
   'grant select, insert, update, delete on public.user_permission_overrides to authenticated',
-  'grant select on public.user_permission_overrides to anon',
+  'grant execute on function public.assert_can_change_admin_profile(uuid, text, boolean) to authenticated',
   'create policy "user managers read profiles" on public.profiles for select to authenticated'
 ];
 
@@ -74,6 +77,16 @@ assert(
 assert(
   !normalizedSql.includes('create policy "user managers manage profiles" on public.profiles for all to authenticated'),
   'migration should not allow direct profile writes through a broad manager policy'
+);
+
+assert(
+  !normalizedSql.includes('grant select on public.user_permission_overrides to anon'),
+  'migration should not expose user_permission_overrides to anon'
+);
+
+assert(
+  normalizedSql.includes('for update') || normalizedSql.includes('lock table'),
+  'admin profile guard should lock the profile row or table while checking last admin'
 );
 
 console.log(`people permissions migration ok: ${migrationFile}`);
