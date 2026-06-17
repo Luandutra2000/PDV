@@ -150,6 +150,34 @@ storage.setItem(STORAGE_KEYS.currentSession, {
 let managedUserRequest = null;
 globalThis.fetch = async (url, options) => {
   managedUserRequest = { url, options };
+  const body = JSON.parse(options.body);
+
+  if (body.action === 'listUsers') {
+    return {
+      ok: true,
+      async json() {
+        return {
+          users: [
+            {
+              id: 'admin-1',
+              name: 'Admin',
+              username: 'admin@example.test',
+              role: 'admin',
+              active: true
+            },
+            {
+              id: 'remote-user',
+              name: 'Usuario Remoto',
+              username: 'remote@example.test',
+              role: 'operador',
+              active: true
+            }
+          ]
+        };
+      }
+    };
+  }
+
   return {
     ok: true,
     async json() {
@@ -165,6 +193,12 @@ globalThis.fetch = async (url, options) => {
     }
   };
 };
+
+const loadedUsers = await userAdmin.loadManagedUsers();
+assert(
+  loadedUsers.some((user) => user.id === 'remote-user' && user.username === 'remote@example.test'),
+  'loadManagedUsers should cache remote Supabase users for Pessoas'
+);
 
 const supabaseUpdatedUser = await userAdmin.updateManagedUser('admin-1', { role: 'operador' });
 assert.equal(

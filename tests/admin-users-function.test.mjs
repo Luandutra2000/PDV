@@ -9,6 +9,12 @@ const source = readFileSync(
 const compactSource = source.replace(/\s+/g, ' ');
 
 assert(source.includes("case 'createUser'"), 'function should handle createUser action');
+assert(source.includes("case 'listUsers'"), 'function should handle listUsers action');
+assert(
+  source.includes("await requireAnyPermission(actor, ['users.manage', 'users.edit', 'permissions.manage', 'audit.view'])"),
+  'listUsers should require access to at least one Pessoas permission'
+);
+assert(source.includes('adminClient.auth.admin.listUsers'), 'listUsers should include Auth emails in the response');
 assert(source.includes("await requirePermission(actor, 'users.manage')"), 'createUser should require users.manage');
 assert(source.includes("case 'updateUser'"), 'function should handle updateUser action');
 assert(

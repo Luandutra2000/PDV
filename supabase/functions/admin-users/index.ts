@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-type AdminAction = 'createUser' | 'updateUser' | 'savePermissionOverrides';
+type AdminAction = 'listUsers' | 'createUser' | 'updateUser' | 'savePermissionOverrides';
 type RoleId = 'admin' | 'gerente' | 'operador' | 'dono';
 type OverrideState = 'allow' | 'deny' | 'default';
 
@@ -50,6 +50,9 @@ Deno.serve(async (request) => {
     const action = body?.action as AdminAction;
 
     switch (action) {
+      case 'listUsers':
+        await requireAnyPermission(actor, ['users.manage', 'users.edit', 'permissions.manage', 'audit.view']);
+        return jsonResponse({ users: await listManagedUsers() });
       case 'createUser':
         await requirePermission(actor, 'users.manage');
         return jsonResponse({ user: await createManagedUser(actor, body) });
@@ -91,6 +94,32 @@ async function getActor(request: Request): Promise<Profile> {
   }
 
   return profile;
+}
+
+async function listManagedUsers() {
+  const { data: profiles, error: profileError } = await adminClient
+    .from('profiles')
+    .select('id,name,role_id,is_active')
+    .order('created_at', { ascending: true });
+
+  if (profileError) {
+    throw profileError;
+  }
+
+  const { data: authUsers, error: authError } = await adminClient.auth.admin.listUsers();
+
+  if (authError) {
+    throw authError;
+  }
+
+  const emailById = new Map((authUsers.users ?? []).map((user) => [user.id, user.email ?? '']));
+
+  return (profiles ?? []).map((profile) => toUser({
+    id: profile.id,
+    name: profile.name,
+    role_id: normalizeRole(profile.role_id),
+    is_active: profile.is_active
+  }, emailById.get(profile.id)));
 }
 
 async function createManagedUser(actor: Profile, body: Record<string, unknown>) {

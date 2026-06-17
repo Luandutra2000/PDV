@@ -11,6 +11,18 @@ import { getItem, setItem } from './storage.service.js';
 
 const LAST_ADMIN_ERROR = 'Nao e permitido desativar o ultimo administrador ativo.';
 
+export function loadManagedUsers() {
+  if (isSupabaseEnabled()) {
+    return invokeAdminUsersFunction('listUsers', {}).then((result) => {
+      const users = Array.isArray(result?.users) ? result.users : [];
+      cacheManagedUsers(users);
+      return getUsers();
+    });
+  }
+
+  return Promise.resolve(getUsers());
+}
+
 export function createManagedUser(input) {
   const payload = {
     ...input,
@@ -18,7 +30,7 @@ export function createManagedUser(input) {
   };
 
   if (isSupabaseEnabled()) {
-    return invokeAdminUsersFunction('createUser', payload).then(cacheManagedUser);
+    return invokeAdminUsersFunction('createUser', payload).then((result) => cacheManagedUser(result?.user || result));
   }
 
   return createUser(payload);
@@ -36,7 +48,7 @@ export function updateManagedUser(userId, patch) {
   }
 
   if (isSupabaseEnabled()) {
-    return invokeAdminUsersFunction('updateUser', { userId, patch: payload }).then(cacheManagedUser);
+    return invokeAdminUsersFunction('updateUser', { userId, patch: payload }).then((result) => cacheManagedUser(result?.user || result));
   }
 
   assertCanUpdateAdminStatus(userId, payload);
@@ -56,7 +68,9 @@ export function saveManagedPermissionChecklist(user, checklist) {
     return invokeAdminUsersFunction('savePermissionOverrides', {
       userId: user.id,
       overrides
-    }).then((returnedUser) => {
+    }).then((result) => {
+      const returnedUser = result?.user || result;
+
       if (returnedUser) {
         return cacheManagedUser(returnedUser);
       }
@@ -143,7 +157,7 @@ async function invokeAdminUsersFunction(action, payload) {
   }
 
   const data = await response.json();
-  return data?.user || null;
+  return data || null;
 }
 
 function getBearerToken() {
@@ -177,4 +191,26 @@ function cacheManagedUser(user) {
   );
 
   return cachedUser;
+}
+
+function cacheManagedUsers(remoteUsers) {
+  if (!Array.isArray(remoteUsers)) {
+    return;
+  }
+
+  const cachedById = new Map(getItem(STORAGE_KEYS.users, []).map((user) => [user.id, user]));
+
+  remoteUsers.forEach((user) => {
+    if (!user?.id) {
+      return;
+    }
+
+    cachedById.set(user.id, {
+      ...(cachedById.get(user.id) || {}),
+      ...user,
+      role: normalizeRole(user.role)
+    });
+  });
+
+  setItem(STORAGE_KEYS.users, Array.from(cachedById.values()));
 }

@@ -194,4 +194,66 @@ assert(limitedContainer.innerHTML.includes('data-permission-select'), 'permissio
 assert(limitedContainer.innerHTML.includes('data-permission-select') && limitedContainer.innerHTML.includes('disabled'), 'permissions.manage should be required to change overrides');
 assert(!limitedContainer.innerHTML.includes('user-audit-list'), 'audit.view should be required to render user audit history');
 
+store.clear();
+globalThis.__PDV_RUNTIME_CONFIG__ = {
+  dataProvider: 'supabase',
+  supabaseUrl: 'https://example.supabase.co',
+  supabaseAnonKey: 'anon-key'
+};
+storage.setItem('pdv.users', [{
+  id: 'admin-online',
+  name: 'Admin Online',
+  username: 'admin@example.test',
+  password: '',
+  role: 'admin',
+  active: true
+}]);
+storage.setItem('pdv.currentSession', {
+  userId: 'admin-online',
+  accessToken: 'admin-token',
+  startedAt: '2026-06-17T12:00:00.000Z'
+});
+storage.setItem('pdv.userPermissionOverrides', {});
+storage.setItem('pdv.auditLogs', []);
+
+const originalFetch = globalThis.fetch;
+globalThis.fetch = async (url, options) => {
+  assert.equal(url, 'https://example.supabase.co/functions/v1/admin-users', 'Pessoas should load users through admin-users function');
+  assert.equal(options.headers.Authorization, 'Bearer admin-token', 'Pessoas should use the authenticated admin token');
+
+  return {
+    ok: true,
+    async json() {
+      return {
+        users: [
+          {
+            id: 'admin-online',
+            name: 'Admin Online',
+            username: 'admin@example.test',
+            role: 'admin',
+            active: true
+          },
+          {
+            id: 'remote-created-user',
+            name: 'Novo Remoto',
+            username: 'novo@example.test',
+            role: 'operador',
+            active: true
+          }
+        ]
+      };
+    }
+  };
+};
+
+const onlineContainer = new FakeElement();
+initPessoasModule(onlineContainer);
+await new Promise((resolve) => setTimeout(resolve, 0));
+
+assert(onlineContainer.innerHTML.includes('Novo Remoto'), 'Pessoas should render users loaded from Supabase');
+assert(onlineContainer.innerHTML.includes('Operador/Caixa - Ativo'), 'remote user should use the loaded role in the list');
+
+globalThis.fetch = originalFetch;
+globalThis.__PDV_RUNTIME_CONFIG__ = null;
+
 console.log('pessoas module ok');

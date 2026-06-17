@@ -2,6 +2,7 @@ import { getCurrentUser, getUsers } from '../../services/auth.service.js';
 import { getAuditLogs, recordAudit } from '../../services/audit.service.js';
 import {
   createManagedUser,
+  loadManagedUsers,
   updateManagedUser,
   saveManagedPermissionChecklist
 } from '../../services/user-admin.service.js';
@@ -33,6 +34,14 @@ const boundContainers = new WeakSet();
 export function initPessoasModule(container) {
   ensureSelectedUser();
   renderPeople(container);
+  loadManagedUsers()
+    .then(() => {
+      ensureSelectedUser();
+      renderPeople(container);
+    })
+    .catch((error) => {
+      renderPeople(container, error.message || 'Nao foi possivel carregar usuarios.');
+    });
 
   if (!boundContainers.has(container)) {
     bindPeopleEvents(container);
@@ -40,7 +49,7 @@ export function initPessoasModule(container) {
   }
 }
 
-function renderPeople(container) {
+function renderPeople(container, loadError = '') {
   const users = getUsers();
   const selectedUser = users.find((user) => user.id === peopleState.selectedUserId) || users[0] || null;
   const editingUser = users.find((user) => user.id === peopleState.editingUserId) || null;
@@ -62,6 +71,7 @@ function renderPeople(container) {
             <strong>Usuarios</strong>
           </header>
           <div class="manager-list people-list">
+            ${loadError ? `<p class="form-error">${escapeHtml(loadError)}</p>` : ''}
             ${renderUserList(users)}
           </div>
         </section>
