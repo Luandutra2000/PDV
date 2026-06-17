@@ -45,6 +45,7 @@ const admin = { id: 'admin-1', role: 'admin', active: true };
 const gerente = { id: 'gerente-1', role: 'gerente', active: true };
 const caixa = { id: 'caixa-1', role: 'caixa', active: true };
 const operator = { id: 'operator-1', role: 'operador', active: true };
+const legacyOverrideOperator = { id: 'operator-legacy-1', role: 'operador', active: true };
 const owner = { id: 'owner-1', role: 'dono', active: true };
 const inactive = { id: 'operator-2', role: 'operador', active: false };
 
@@ -88,6 +89,38 @@ assert(!overrides['operator-1']['showcase.launch'], 'default override should rem
 permissions.setUserPermissionOverride('operator-1', 'owner_app.view', 'default');
 overrides = storage.getItem(STORAGE_KEYS.userPermissionOverrides, {});
 assert(!overrides['operator-1'], 'default override should remove empty user override object');
+
+storage.setItem(STORAGE_KEYS.userPermissionOverrides, {
+  'operator-legacy-1': {
+    'financial.transaction.create': 'allow'
+  }
+});
+assert(
+  permissions.hasPermission(legacyOverrideOperator, 'financial.transaction.create'),
+  'legacy override allow should grant permission through alias checks'
+);
+assert(
+  permissions.can('financial.transaction.create', legacyOverrideOperator),
+  'can should honor legacy override allow through alias checks'
+);
+
+storage.setItem(STORAGE_KEYS.userPermissionOverrides, {
+  'operator-legacy-1': {
+    'financial.income.create': 'deny',
+    'financial.transaction.create': 'allow'
+  }
+});
+assert(
+  !permissions.hasPermission(legacyOverrideOperator, 'financial.transaction.create'),
+  'canonical deny override should beat legacy allow override'
+);
+
+permissions.setUserPermissionOverride('operator-legacy-1', 'financial.income.create', 'default');
+overrides = storage.getItem(STORAGE_KEYS.userPermissionOverrides, {});
+assert(
+  !overrides['operator-legacy-1']?.['financial.transaction.create'],
+  'canonical default should remove stale legacy alias override'
+);
 
 assertThrows(
   () => permissions.setUserPermissionOverride('operator-1', 'sales.discount', 'denied'),

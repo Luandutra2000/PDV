@@ -351,7 +351,16 @@ export function getUserPermissionOverride(userId, permissionId) {
   assertKnownPermission(resolvedPermissionId);
 
   const overrides = getItem(STORAGE_KEYS.userPermissionOverrides, {});
-  return overrides[userId]?.[resolvedPermissionId] || 'default';
+  const userOverrides = overrides[userId] || {};
+
+  if (userOverrides[resolvedPermissionId]) {
+    return userOverrides[resolvedPermissionId];
+  }
+
+  const legacyPermissionId = getLegacyPermissionIds(resolvedPermissionId)
+    .find((aliasPermissionId) => userOverrides[aliasPermissionId]);
+
+  return legacyPermissionId ? userOverrides[legacyPermissionId] : 'default';
 }
 
 export function setUserPermissionOverride(userId, permissionId, state) {
@@ -364,10 +373,16 @@ export function setUserPermissionOverride(userId, permissionId, state) {
 
   const overrides = getItem(STORAGE_KEYS.userPermissionOverrides, {});
   const userOverrides = { ...(overrides[userId] || {}) };
+  const permissionKeys = [resolvedPermissionId, ...getLegacyPermissionIds(resolvedPermissionId)];
 
   if (state === 'default') {
-    delete userOverrides[resolvedPermissionId];
+    permissionKeys.forEach((permissionKey) => {
+      delete userOverrides[permissionKey];
+    });
   } else {
+    getLegacyPermissionIds(resolvedPermissionId).forEach((permissionKey) => {
+      delete userOverrides[permissionKey];
+    });
     userOverrides[resolvedPermissionId] = state;
   }
 
@@ -401,6 +416,12 @@ function getPermissionRole(role) {
   }
 
   return normalizeRole(role);
+}
+
+function getLegacyPermissionIds(permissionId) {
+  return Object.entries(PERMISSION_ALIASES)
+    .filter(([, canonicalPermissionId]) => canonicalPermissionId === permissionId)
+    .map(([aliasPermissionId]) => aliasPermissionId);
 }
 
 function recordPermissionDenied(user, permissionId, metadata) {
