@@ -1,5 +1,10 @@
-import { createUser, getUsers, updateUser } from '../../services/auth.service.js';
+import { getUsers } from '../../services/auth.service.js';
 import { getAuditLogs, recordAudit } from '../../services/audit.service.js';
+import {
+  createManagedUser,
+  updateManagedUser,
+  saveManagedPermissionChecklist
+} from '../../services/user-admin.service.js';
 import {
   PERMISSIONS,
   getRolePermissions,
@@ -110,7 +115,7 @@ function bindPeopleEvents(container) {
     }
   });
 
-  container.addEventListener('submit', (event) => {
+  container.addEventListener('submit', async (event) => {
     if (!event.target.closest('[data-people-screen]') || !event.target.matches('[data-user-form]')) {
       return;
     }
@@ -131,9 +136,15 @@ function bindPeopleEvents(container) {
     }
 
     try {
+      const oldUser = editingUserId
+        ? getUsers().find((candidate) => candidate.id === editingUserId)
+        : null;
+      const oldRole = normalizeRole(oldUser?.role || '');
       const user = editingUserId
-        ? updateUser(editingUserId, payload)
-        : createUser(payload);
+        ? await updateManagedUser(editingUserId, payload)
+        : await createManagedUser(payload);
+
+      await saveManagedPermissionChecklist(user, peopleState.modalPermissions);
 
       recordAudit({
         action: editingUserId ? 'user.update' : 'user.create',
@@ -145,6 +156,18 @@ function bindPeopleEvents(container) {
           active: user.active
         }
       });
+
+      if (editingUserId && oldRole && oldRole !== normalizeRole(user.role)) {
+        recordAudit({
+          action: 'user.role.change',
+          entityType: 'user',
+          entityId: user.id,
+          metadata: {
+            fromRole: oldRole,
+            toRole: normalizeRole(user.role)
+          }
+        });
+      }
 
       peopleState.editingUserId = user.id;
       peopleState.selectedUserId = user.id;
@@ -508,6 +531,7 @@ function getAuditLabel(action) {
   const labels = {
     'user.create': 'Usuario criado',
     'user.update': 'Usuario editado',
+    'user.role.change': 'Perfil alterado',
     'permission.override': 'Permissao alterada'
   };
 

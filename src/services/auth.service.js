@@ -3,7 +3,7 @@ import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js';
 import { getSupabaseClient, setSupabaseAuthSession } from './supabase-client.service.js';
 import { getItem, setItem } from './storage.service.js';
 
-const VALID_ROLES = new Set(['admin', 'operator']);
+const VALID_ROLES = new Set(['admin', 'gerente', 'operador', 'dono']);
 const REQUIRED_FIELDS_ERROR = 'Preencha nome, usuario, senha e perfil.';
 
 export function getUsers() {
@@ -79,7 +79,7 @@ export function createUser(input) {
   const name = String(input.name || '').trim();
   const username = String(input.username || '').trim();
   const password = String(input.password || '').trim();
-  const role = String(input.role || '').trim();
+  const role = normalizeRoleLocal(input.role);
 
   if (!name || !username || !password || !isValidRole(role)) {
     throw new Error(REQUIRED_FIELDS_ERROR);
@@ -151,7 +151,7 @@ export function updateUser(userId, patch) {
   }
 
   if (Object.hasOwn(patch, 'role')) {
-    const role = String(patch.role || '').trim();
+    const role = normalizeRoleLocal(patch.role);
     if (!isValidRole(role)) {
       throw new Error(REQUIRED_FIELDS_ERROR);
     }
@@ -227,7 +227,7 @@ function ensureSupabaseLocalSession(authUser) {
     name: existingUser?.name || authUser.user_metadata?.name || email || 'Usuario',
     username: email,
     password: existingUser?.password || '',
-    role: existingUser?.role || authUser.user_metadata?.role || 'admin',
+    role: normalizeRoleLocal(existingUser?.role || authUser.user_metadata?.role || 'admin'),
     active: true,
     createdAt: existingUser?.createdAt || now,
     updatedAt: now
@@ -254,6 +254,16 @@ function normalizeEmail(email) {
 
 function isValidRole(role) {
   return VALID_ROLES.has(role);
+}
+
+function normalizeRoleLocal(role) {
+  const normalizedRole = String(role || '').trim();
+
+  if (normalizedRole === 'caixa' || normalizedRole === 'operator') {
+    return 'operador';
+  }
+
+  return normalizedRole;
 }
 
 function createId(prefix) {

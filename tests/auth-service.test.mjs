@@ -244,7 +244,7 @@ assert(!auth.getUsers().some((user) => user.id === 'changed-user-id'), 'stored u
 
 auth.logout();
 auth.login({ username: 'caixa', password: '1234' });
-assert(auth.getCurrentUser().role === 'operator', 'operator should log in');
+assert(auth.getCurrentUser().role === 'operador', 'operator should log in with normalized role');
 assertNoPassword(auth.getCurrentUser(), 'current operator should not expose password');
 
 auth.updateUser(operator.id, { active: false });
