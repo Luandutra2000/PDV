@@ -444,7 +444,7 @@ function updateProductStock(productId, quantityDelta) {
 
   updateProduct(productId, {
     stock: Math.max(0, Number(product.stock || 0) + quantityDelta)
-  });
+  }, { enforcePermission: false, source: 'estoque-service', action: 'update-stock-from-showcase' });
 }
 
 function runShowcaseSync(promise) {
