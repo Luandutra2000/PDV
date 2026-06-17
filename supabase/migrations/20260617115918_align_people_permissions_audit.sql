@@ -128,12 +128,21 @@ $$;
 
 grant execute on function private.current_profile_has_permission(text) to authenticated;
 
-create or replace function private.assert_can_change_admin_profile(
+drop function if exists public.assert_can_change_admin_profile(uuid, text, boolean);
+drop function if exists private.assert_can_change_admin_profile(uuid, text, boolean);
+
+create or replace function public.update_profile_with_admin_guard(
   _profile_id uuid,
-  _next_role text,
-  _next_active boolean
+  _name text,
+  _role_id text,
+  _is_active boolean
 )
-returns void
+returns table (
+  id uuid,
+  name text,
+  role_id text,
+  is_active boolean
+)
 language plpgsql
 security definer
 set search_path = ''
@@ -145,53 +154,49 @@ declare
 begin
   perform pg_advisory_xact_lock(hashtext('pvd.admin-profile-guard'));
 
-  select role_id, is_active
+  select p.role_id, p.is_active
     into _current_role, _current_active
-  from public.profiles
-  where id = _profile_id
+  from public.profiles p
+  where p.id = _profile_id
   for update;
 
   if not found then
     raise exception 'Usuario nao encontrado.' using errcode = 'P0002';
   end if;
 
-  if _current_role is distinct from 'admin'
-    or _current_active is not true
-    or (_next_role = 'admin' and _next_active is true) then
-    return;
+  if _current_role = 'admin'
+    and _current_active is true
+    and (_role_id is distinct from 'admin' or _is_active is not true) then
+    select count(*)
+      into _other_active_admin_count
+    from (
+      select 1
+      from public.profiles p
+      where p.role_id = 'admin'
+        and p.is_active = true
+        and p.id <> _profile_id
+      for update
+    ) other_active_admins;
+
+    if coalesce(_other_active_admin_count, 0) = 0 then
+      raise exception 'Nao e permitido desativar o ultimo administrador ativo.' using errcode = 'P0001';
+    end if;
   end if;
 
-  select count(*)
-    into _other_active_admin_count
-  from public.profiles
-  where role_id = 'admin'
-    and is_active = true
-    and id <> _profile_id;
-
-  if coalesce(_other_active_admin_count, 0) = 0 then
-    raise exception 'Nao e permitido desativar o ultimo administrador ativo.' using errcode = 'P0001';
-  end if;
+  return query
+    update public.profiles p
+    set
+      name = _name,
+      role_id = _role_id,
+      is_active = _is_active,
+      updated_at = now()
+    where p.id = _profile_id
+    returning p.id, p.name, p.role_id, p.is_active;
 end;
 $$;
 
-revoke all on function private.assert_can_change_admin_profile(uuid, text, boolean) from public;
-grant execute on function private.assert_can_change_admin_profile(uuid, text, boolean) to authenticated, service_role;
-
-create or replace function public.assert_can_change_admin_profile(
-  _profile_id uuid,
-  _next_role text,
-  _next_active boolean
-)
-returns void
-language sql
-security definer
-set search_path = ''
-as $$
-  select private.assert_can_change_admin_profile(_profile_id, _next_role, _next_active);
-$$;
-
-revoke all on function public.assert_can_change_admin_profile(uuid, text, boolean) from public;
-grant execute on function public.assert_can_change_admin_profile(uuid, text, boolean) to authenticated, service_role;
+revoke all on function public.update_profile_with_admin_guard(uuid, text, text, boolean) from public;
+grant execute on function public.update_profile_with_admin_guard(uuid, text, text, boolean) to authenticated, service_role;
 
 drop policy if exists "active users read user permission overrides" on public.user_permission_overrides;
 create policy "active users read user permission overrides" on public.user_permission_overrides

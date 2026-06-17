@@ -49,9 +49,11 @@ const requiredSnippets = [
   'create table if not exists public.user_permission_overrides',
   'alter table public.user_permission_overrides enable row level security',
   'create or replace function private.current_profile_has_permission',
-  'create or replace function private.assert_can_change_admin_profile',
-  'create or replace function public.assert_can_change_admin_profile',
+  'create or replace function public.update_profile_with_admin_guard',
+  'returns table',
   'pg_advisory_xact_lock',
+  'update public.profiles',
+  'returning p.id, p.name, p.role_id, p.is_active',
   "p.role_id = 'admin'",
   "upo.state = 'allow'",
   "upo.state is distinct from 'deny'",
@@ -60,7 +62,7 @@ const requiredSnippets = [
   "private.current_profile_has_permission('permissions.manage')",
   "update public.profiles set role_id = 'operador' where role_id in ('caixa', 'operator')",
   'grant select, insert, update, delete on public.user_permission_overrides to authenticated',
-  'grant execute on function public.assert_can_change_admin_profile(uuid, text, boolean) to authenticated',
+  'grant execute on function public.update_profile_with_admin_guard(uuid, text, text, boolean) to authenticated',
   'create policy "user managers read profiles" on public.profiles for select to authenticated'
 ];
 
@@ -86,7 +88,21 @@ assert(
 
 assert(
   normalizedSql.includes('for update') || normalizedSql.includes('lock table'),
-  'admin profile guard should lock the profile row or table while checking last admin'
+  'admin profile update guard should lock the profile row or table while checking last admin'
+);
+
+assert(
+  !normalizedSql.includes('create or replace function public.assert_can_change_admin_profile'),
+  'migration should not expose a preflight-only admin guard RPC'
+);
+
+const updateProfileFunctionSql = normalizedSql.slice(
+  normalizedSql.indexOf('create or replace function public.update_profile_with_admin_guard')
+);
+
+assert(
+  updateProfileFunctionSql.indexOf('pg_advisory_xact_lock') < updateProfileFunctionSql.indexOf('update public.profiles'),
+  'admin profile update RPC should take the transaction lock before updating profiles'
 );
 
 console.log(`people permissions migration ok: ${migrationFile}`);

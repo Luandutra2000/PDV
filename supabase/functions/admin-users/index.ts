@@ -151,7 +151,7 @@ async function updateManagedUser(actor: Profile, body: Record<string, unknown>) 
       ? Boolean(patch.is_active)
       : currentProfile.is_active;
 
-  await assertNotLastActiveAdmin(userId, nextRole, nextActive);
+  const nextName = typeof patch.name === 'string' && patch.name.trim() ? patch.name.trim() : currentProfile.name;
 
   const authPatch: Record<string, unknown> = {};
   if (typeof patch.email === 'string' && patch.email.trim()) {
@@ -169,8 +169,8 @@ async function updateManagedUser(actor: Profile, body: Record<string, unknown>) 
     }
   }
 
-  const user = await upsertProfile(userId, {
-    name: typeof patch.name === 'string' && patch.name.trim() ? patch.name.trim() : currentProfile.name,
+  const user = await updateProfileWithAdminGuard(userId, {
+    name: nextName,
     role_id: nextRole,
     is_active: nextActive
   });
@@ -320,16 +320,27 @@ async function hasPermission(actor: Profile, permissionId: string) {
   return Boolean(rolePermission);
 }
 
-async function assertNotLastActiveAdmin(userId: string, nextRole: RoleId, nextActive: boolean) {
-  const { error } = await adminClient.rpc('assert_can_change_admin_profile', {
+async function updateProfileWithAdminGuard(
+  userId: string,
+  patch: { name: string; role_id: RoleId; is_active: boolean }
+) {
+  const { data, error } = await adminClient.rpc('update_profile_with_admin_guard', {
     _profile_id: userId,
-    _next_role: nextRole,
-    _next_active: nextActive
-  });
+    _name: patch.name,
+    _role_id: patch.role_id,
+    _is_active: patch.is_active
+  }).single();
 
   if (error) {
     throw new HttpError(400, error.message);
   }
+
+  return {
+    id: data.id,
+    name: data.name,
+    role_id: normalizeRole(data.role_id),
+    is_active: data.is_active !== false
+  };
 }
 
 async function cleanupCreatedAuthUser(userId: string) {

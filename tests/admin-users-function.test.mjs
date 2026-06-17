@@ -20,8 +20,10 @@ assert(
   source.includes("await requirePermission(actor, 'permissions.manage')"),
   'savePermissionOverrides should require permissions.manage'
 );
-assert(source.includes('assertNotLastActiveAdmin'), 'function should protect last active admin');
-assert(source.includes(".rpc('assert_can_change_admin_profile'"), 'function should call DB-side admin profile guard');
+assert(source.includes('updateProfileWithAdminGuard'), 'function should update profiles through the DB-side admin guard');
+assert(source.includes(".rpc('update_profile_with_admin_guard'"), 'function should call the atomic DB-side admin profile update RPC');
+assert(!source.includes('assertNotLastActiveAdmin'), 'function should not use a preflight-only last active admin guard');
+assert(!source.includes(".rpc('assert_can_change_admin_profile'"), 'function should not call the preflight-only admin profile guard RPC');
 assert(source.includes('user_permission_overrides'), 'function should use user_permission_overrides');
 assert(source.includes('permission.denied'), 'function should record permission.denied');
 assert(!source.includes('user_metadata.role'), 'function should not authorize from user_metadata.role');
@@ -63,6 +65,14 @@ assert(
 assert(
   source.includes('const VALID_PERMISSION_ID_PATTERN'),
   'function should validate override permission ids before writing them'
+);
+assert(
+  !compactSource.includes('await assertNotLastActiveAdmin(userId, nextRole, nextActive); const authPatch'),
+  'updateUser should not preflight guard before a later profile upsert'
+);
+assert(
+  !compactSource.includes('const user = await upsertProfile(userId,'),
+  'updateUser should not update profiles through the non-guarded upsert helper'
 );
 
 console.log('admin users function ok');
