@@ -333,6 +333,36 @@ const categorizedOutput = transactions.registerCashMovement({
 assert(categorizedOutput.category === 'compra-ingredientes', 'cash output should store category');
 assert(categorizedOutput.userName === 'Administrador', 'cash output should store responsible user');
 
+const cashPermissionOperator = auth.createUser({
+  name: 'Operador Caixa Permissao',
+  username: 'operador-caixa-permissao',
+  password: 'operador123',
+  role: 'operator'
+});
+permissions.setUserPermissionOverride(cashPermissionOperator.id, 'cash.movement', 'allow');
+permissions.setUserPermissionOverride(cashPermissionOperator.id, 'cash.withdrawal', 'deny');
+permissions.setUserPermissionOverride(cashPermissionOperator.id, 'financial.income.create', 'allow');
+auth.login({ username: 'operador-caixa-permissao', password: 'operador123' });
+const allowedCashEntry = transactions.registerCashMovement({
+  type: 'entrada',
+  amount: 11,
+  category: 'reforco-caixa',
+  description: 'Entrada com permissao canonica'
+});
+assert(allowedCashEntry.type === 'entrada', 'cash entrada should use cash.movement permission');
+assertThrows(
+  () => transactions.registerCashMovement({
+    type: 'saida',
+    amount: 9,
+    category: 'compra-ingredientes',
+    description: 'Saida sem permissao canonica',
+    createFinancialTransaction: false
+  }),
+  'Usuario sem permissao',
+  'cash saida should use cash.withdrawal permission'
+);
+auth.login({ username: 'admin', password: 'admin123' });
+
 const linkedMovement = transactions.registerCashMovement({
   type: 'saida',
   amount: 100,

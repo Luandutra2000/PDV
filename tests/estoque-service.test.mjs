@@ -29,6 +29,7 @@ const estoque = await import('../src/services/estoque.service.js');
 const showcaseStock = await import('../src/services/showcase-stock.service.js');
 const auth = await import('../src/services/auth.service.js');
 const audit = await import('../src/services/audit.service.js');
+const permissions = await import('../src/services/permission.service.js');
 
 storage.ensureSeedData();
 const adminSession = auth.login({ username: 'admin', password: 'admin123' });
@@ -183,5 +184,48 @@ try {
   rejectedTooLarge = error.message === 'Quantidade maior que a sobra disponivel na vitrine.';
 }
 assert(rejectedTooLarge, 'write-off should reject quantity greater than available showcase leftover');
+
+const showcaseOperator = auth.createUser({
+  name: 'Operador Vitrine',
+  username: 'operador-vitrine',
+  password: 'operador123',
+  role: 'operator'
+});
+permissions.setUserPermissionOverride(showcaseOperator.id, 'showcase.launch', 'allow');
+permissions.setUserPermissionOverride(showcaseOperator.id, 'showcase.edit', 'deny');
+permissions.setUserPermissionOverride(showcaseOperator.id, 'stock.writeoff', 'deny');
+auth.login({ username: 'operador-vitrine', password: 'operador123' });
+const operatorLaunch = estoque.createStockLaunch({
+  produtoId: writeOffProduct.id,
+  quantidade: 1
+});
+
+let rejectedEditPermission = false;
+try {
+  estoque.updateStockLaunch(operatorLaunch.id, { quantidade: 2 });
+} catch (error) {
+  rejectedEditPermission = error.message === 'Usuario sem permissao para esta acao.';
+}
+assert(rejectedEditPermission, 'editing launch should require showcase.edit permission');
+
+let rejectedCancelPermission = false;
+try {
+  estoque.cancelStockLaunch(operatorLaunch.id);
+} catch (error) {
+  rejectedCancelPermission = error.message === 'Usuario sem permissao para esta acao.';
+}
+assert(rejectedCancelPermission, 'canceling launch should require showcase.edit permission');
+
+let rejectedWriteOffPermission = false;
+try {
+  estoque.createShowcaseWriteOff({
+    productId: writeOffProduct.id,
+    quantity: 1,
+    reason: 'quebra'
+  });
+} catch (error) {
+  rejectedWriteOffPermission = error.message === 'Usuario sem permissao para esta acao.';
+}
+assert(rejectedWriteOffPermission, 'write-off should require stock.writeoff permission');
 
 console.log('estoque service ok');

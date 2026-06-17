@@ -48,7 +48,7 @@ const routePermissions = {
   relatorios: 'reports.view',
   mobile: 'owner_app.view',
   pessoas: 'users.manage',
-  despesas: 'financial.view'
+  despesas: 'financial.expense.access'
 };
 
 const AUTH_SESSION_VERSION = '20260602-01-login-boot';

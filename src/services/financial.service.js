@@ -69,7 +69,7 @@ export function getFinancialTransactions({ period = 'all', customStart = '', cus
 
 export function createFinancialTransaction(input) {
   const user = getCurrentUser();
-  assertPermission(user, 'financial.transaction.create');
+  assertPermission(user, getCreateFinancialTransactionPermission(input));
 
   const transaction = normalizeFinancialTransaction(input, user);
   const transactions = [transaction, ...getFinancialTransactions()];
@@ -87,7 +87,11 @@ export function createFinancialTransaction(input) {
   return transaction;
 }
 
-export function upsertFinancialTransaction(transaction) {
+export function upsertFinancialTransaction(transaction, { enforcePermission = true } = {}) {
+  if (enforcePermission) {
+    assertPermission(getCurrentUser(), 'financial.entries.edit');
+  }
+
   const transactions = getFinancialTransactions();
   const exists = transactions.some((candidate) => candidate.id === transaction.id);
   const nextTransactions = exists
@@ -105,7 +109,7 @@ export function markFinancialTransactionPaid(
   { paidAt = new Date().toISOString(), paymentMethod = 'dinheiro', cashMovementId = null, movesCashSession = false } = {}
 ) {
   const user = getCurrentUser();
-  assertPermission(user, 'financial.payable.pay');
+  assertPermission(user, 'financial.bill.pay');
 
   const transaction = getFinancialTransactions().find((candidate) => candidate.id === transactionId);
 
@@ -123,7 +127,7 @@ export function markFinancialTransactionPaid(
     updatedAt: new Date().toISOString()
   };
 
-  upsertFinancialTransaction(nextTransaction);
+  upsertFinancialTransaction(nextTransaction, { enforcePermission: false });
   recordAudit({
     action: 'financial.payable.paid',
     entityType: 'financial_transaction',
@@ -137,7 +141,7 @@ export function markFinancialTransactionPaid(
 
 export function cancelFinancialTransaction(transactionId, { reason = '' } = {}) {
   const user = getCurrentUser();
-  assertPermission(user, 'financial.transaction.cancel');
+  assertPermission(user, 'financial.entries.delete');
   const cancelReason = String(reason || '').trim();
 
   if (!cancelReason) {
@@ -157,7 +161,7 @@ export function cancelFinancialTransaction(transactionId, { reason = '' } = {}) 
     cancelReason,
     updatedAt: new Date().toISOString()
   };
-  upsertFinancialTransaction(canceled);
+  upsertFinancialTransaction(canceled, { enforcePermission: false });
   syncFinancialTransactionCancellation(canceled);
   recordAudit({
     action: 'financial.transaction.cancel',
@@ -279,6 +283,13 @@ function emitFinanceChanged(payload) {
   emit(UI_EVENTS.financeChanged, payload);
   emit(UI_EVENTS.financialDataChanged, payload);
   emit(UI_EVENTS.cashSummaryChanged, payload);
+}
+
+function getCreateFinancialTransactionPermission(input = {}) {
+  const type = String(input.type || '').trim();
+  return type === 'income' || type === 'entrada'
+    ? 'financial.income.create'
+    : 'financial.expense.create';
 }
 
 function normalizeStatus(status) {

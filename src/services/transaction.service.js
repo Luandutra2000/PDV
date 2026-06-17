@@ -103,14 +103,15 @@ export function registerCashMovement({
   createFinancialTransaction = true
 }) {
   const user = getCurrentUser();
-  assertPermission(user, 'cash.movement');
-
-  const normalizedAmount = Number(amount) || 0;
-  const normalizedDescription = String(description || '').trim();
 
   if (!['entrada', 'saida', 'sangria'].includes(type)) {
     throw new Error('Tipo de movimento invalido.');
   }
+
+  assertPermission(user, type === 'entrada' ? 'cash.movement' : 'cash.withdrawal');
+
+  const normalizedAmount = Number(amount) || 0;
+  const normalizedDescription = String(description || '').trim();
 
   if (normalizedAmount <= 0) {
     throw new Error('Valor precisa ser maior que zero.');

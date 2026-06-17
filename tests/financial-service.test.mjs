@@ -17,6 +17,8 @@ globalThis.localStorage = {
 };
 
 const storage = await import('../src/services/storage.service.js');
+const auth = await import('../src/services/auth.service.js');
+const permissions = await import('../src/services/permission.service.js');
 storage.setItem('pdv.users', [{
   id: 'admin-1',
   name: 'Administrador',
@@ -33,6 +35,39 @@ finance.seedFinancialCategories();
 
 const expenseCategory = finance.getFinancialCategories().find((category) => category.id === 'compra-materiais');
 assert.equal(expenseCategory.name, 'Compra de materiais');
+
+const financeOperator = auth.createUser({
+  name: 'Operador Financeiro',
+  username: 'operador-financeiro',
+  password: '1234',
+  role: 'operator'
+});
+permissions.setUserPermissionOverride(financeOperator.id, 'financial.income.create', 'allow');
+permissions.setUserPermissionOverride(financeOperator.id, 'financial.expense.create', 'deny');
+auth.login({ username: 'operador-financeiro', password: '1234' });
+
+const operatorIncome = finance.createFinancialTransaction({
+  type: 'income',
+  amount: 75,
+  categoryId: 'reforco-caixa',
+  description: 'Entrada autorizada',
+  paymentMethod: 'pix',
+  status: 'paid'
+});
+assert.equal(operatorIncome.type, 'income');
+assert.throws(
+  () => finance.createFinancialTransaction({
+    type: 'expense',
+    amount: 25,
+    categoryId: expenseCategory.id,
+    description: 'Despesa bloqueada',
+    paymentMethod: 'dinheiro',
+    status: 'paid'
+  }),
+  /Usuario sem permissao/
+);
+
+auth.login({ username: 'admin', password: '1234' });
 
 assert.throws(
   () => finance.createFinancialTransaction({ type: 'expense', amount: 100, categoryId: expenseCategory.id, description: '' }),
@@ -70,8 +105,42 @@ const paid = finance.markFinancialTransactionPaid(bill.id, { paidAt: '2026-06-11
 assert.equal(paid.status, 'paid');
 assert.equal(paid.paymentMethod, 'pix');
 
+const unpaidBill = finance.createFinancialTransaction({
+  type: 'expense',
+  amount: 180,
+  categoryId: 'fornecedor',
+  description: 'Conta bloqueada para pagamento',
+  paymentMethod: 'boleto',
+  status: 'pending',
+  transactionDate: '2026-06-10',
+  dueDate: '2026-06-18'
+});
+auth.login({ username: 'operador-financeiro', password: '1234' });
+assert.throws(
+  () => finance.markFinancialTransactionPaid(unpaidBill.id, { paidAt: '2026-06-11T10:00:00.000Z', paymentMethod: 'pix' }),
+  /Usuario sem permissao/
+);
+auth.login({ username: 'admin', password: '1234' });
+
+const cancelCandidate = finance.createFinancialTransaction({
+  type: 'expense',
+  amount: 90,
+  categoryId: 'fornecedor',
+  description: 'Conta bloqueada para cancelamento',
+  paymentMethod: 'boleto',
+  status: 'pending',
+  transactionDate: '2026-06-10',
+  dueDate: '2026-06-19'
+});
+auth.login({ username: 'operador-financeiro', password: '1234' });
+assert.throws(
+  () => finance.cancelFinancialTransaction(cancelCandidate.id, { reason: 'Teste permissao' }),
+  /Usuario sem permissao/
+);
+auth.login({ username: 'admin', password: '1234' });
+
 const summary = finance.getFinancialSummary({ period: 'all' });
-assert.equal(summary.entriesTotal, 0);
+assert.equal(summary.entriesTotal, 75);
 assert.equal(summary.outputsTotal, 320);
 assert.equal(summary.paidBillsCount, 1);
 

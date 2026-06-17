@@ -73,7 +73,7 @@ export function createStockLaunch({ produtoId, quantidade, note = '' }) {
 
 export function deleteStockComparisonRow(produtoId, filters = {}) {
   const user = getCurrentUser();
-  assertPermission(user, 'showcase.launch');
+  assertPermission(user, 'showcase.edit');
 
   const activeLaunches = getActiveLaunches(filters).filter((launch) => launch.produtoId === produtoId);
 
@@ -88,7 +88,7 @@ export function deleteStockComparisonRow(produtoId, filters = {}) {
 
 export function updateStockLaunch(launchId, data) {
   const user = getCurrentUser();
-  assertPermission(user, 'showcase.launch');
+  assertPermission(user, 'showcase.edit');
 
   const currentLaunch = getStockLaunches().find((launch) => launch.id === launchId);
 
@@ -128,7 +128,7 @@ export function updateStockLaunch(launchId, data) {
 
 export function cancelStockLaunch(launchId) {
   const user = getCurrentUser();
-  assertPermission(user, 'showcase.launch');
+  assertPermission(user, 'showcase.edit');
 
   const currentLaunch = getStockLaunches().find((launch) => launch.id === launchId);
 
@@ -167,7 +167,7 @@ export function getTodayShowcaseProducts() {
 
 export function createShowcaseWriteOff({ productId, quantity, reason, note = '' }) {
   const user = getCurrentUser();
-  assertPermission(user, 'showcase.launch');
+  assertPermission(user, 'stock.writeoff');
 
   const product = getProductById(productId);
   const normalizedQuantity = Number(quantity) || 0;
