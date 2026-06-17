@@ -361,6 +361,17 @@ assertThrows(
   'Usuario sem permissao',
   'cash saida should use cash.withdrawal permission'
 );
+assertThrows(
+  () => transactions.registerCashMovement({
+    type: 'sangria',
+    amount: 9,
+    category: 'retirada-caixa',
+    description: 'Sangria sem permissao canonica',
+    createFinancialTransaction: false
+  }),
+  'Usuario sem permissao',
+  'cash sangria should use cash.withdrawal permission'
+);
 auth.login({ username: 'admin', password: 'admin123' });
 
 const linkedMovement = transactions.registerCashMovement({

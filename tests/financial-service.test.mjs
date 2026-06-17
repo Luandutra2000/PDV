@@ -55,6 +55,15 @@ const operatorIncome = finance.createFinancialTransaction({
   status: 'paid'
 });
 assert.equal(operatorIncome.type, 'income');
+const operatorAliasIncome = finance.createFinancialTransaction({
+  type: 'entrada',
+  amount: 40,
+  categoryId: 'reforco-caixa',
+  description: 'Entrada alias autorizada',
+  paymentMethod: 'pix',
+  status: 'paid'
+});
+assert.equal(operatorAliasIncome.type, 'income');
 assert.throws(
   () => finance.createFinancialTransaction({
     type: 'expense',
@@ -66,6 +75,43 @@ assert.throws(
   }),
   /Usuario sem permissao/
 );
+assert.throws(
+  () => finance.createFinancialTransaction({
+    type: 'saida',
+    amount: 25,
+    categoryId: expenseCategory.id,
+    description: 'Saida alias bloqueada',
+    paymentMethod: 'dinheiro',
+    status: 'paid'
+  }),
+  /Usuario sem permissao/
+);
+assert.throws(
+  () => finance.createFinancialTransaction({
+    type: 'expense',
+    amount: 120,
+    categoryId: 'fornecedor',
+    description: 'Boleto bloqueado',
+    paymentMethod: 'boleto',
+    status: 'pending',
+    transactionDate: '2026-06-10',
+    dueDate: '2026-06-15'
+  }),
+  /Usuario sem permissao/
+);
+assert.throws(
+  () => finance.upsertFinancialTransaction({
+    ...operatorIncome,
+    description: 'Entrada sem permissao de edicao'
+  }),
+  /Usuario sem permissao/
+);
+permissions.setUserPermissionOverride(financeOperator.id, 'financial.entries.edit', 'allow');
+const editedOperatorIncome = finance.upsertFinancialTransaction({
+  ...operatorIncome,
+  description: 'Entrada com permissao de edicao'
+});
+assert.equal(editedOperatorIncome.description, 'Entrada com permissao de edicao');
 
 auth.login({ username: 'admin', password: '1234' });
 
@@ -140,7 +186,7 @@ assert.throws(
 auth.login({ username: 'admin', password: '1234' });
 
 const summary = finance.getFinancialSummary({ period: 'all' });
-assert.equal(summary.entriesTotal, 75);
+assert.equal(summary.entriesTotal, 115);
 assert.equal(summary.outputsTotal, 320);
 assert.equal(summary.paidBillsCount, 1);
 
