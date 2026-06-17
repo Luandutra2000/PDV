@@ -688,18 +688,43 @@ function renderBestSellers() {
   const bestSellers = getFilteredBestSellers();
 
   if (!bestSellers.length) {
-    return '<div class="empty-products product-empty-large">NENHUMA VENDA NO PERIODO</div>';
+    return '<div class="empty-products product-empty-large">Nenhuma venda no periodo.</div>';
   }
 
-  const maxQuantity = Math.max(...bestSellers.map((item) => item.quantity));
+  const mostSold = bestSellers.slice(0, 6);
+  const leastSold = [...bestSellers]
+    .sort((a, b) => {
+      if (a.quantity !== b.quantity) {
+        return a.quantity - b.quantity;
+      }
+
+      return a.revenue - b.revenue;
+    })
+    .slice(0, 6);
 
   return `
-    <div class="best-seller-chart">
-      ${bestSellers.slice(0, 8).map((item, index) => {
+    <div class="product-crm-grid">
+      ${renderBestSellerRanking('Mais vendidos', mostSold)}
+      ${renderBestSellerRanking('Menos vendidos', leastSold)}
+    </div>
+  `;
+}
+
+function renderBestSellerRanking(title, rows) {
+  const maxQuantity = Math.max(...rows.map((item) => item.quantity), 1);
+
+  return `
+    <section class="product-ranking-panel">
+      <header>
+        <h3>${title}</h3>
+        <span>${rows.length} produtos</span>
+      </header>
+      <div class="product-ranking-list">
+        ${rows.map((item, index) => {
         const percent = Math.max((item.quantity / maxQuantity) * 100, 8);
         return `
-          <article class="best-seller-row">
-            <div class="best-seller-row__info">
+          <article class="product-ranking-row">
+            <div class="product-ranking-row__info">
               <strong>${index + 1}. ${item.name}</strong>
               <span>${item.quantity} vendidos - ${formatCurrency(item.revenue)}</span>
             </div>
@@ -709,7 +734,8 @@ function renderBestSellers() {
           </article>
         `;
       }).join('')}
-    </div>
+      </div>
+    </section>
   `;
 }
 
@@ -739,10 +765,12 @@ function renderBestSellerPeriodOptions() {
   const options = [
     ['today', 'Hoje'],
     ['yesterday', 'Ontem'],
+    ['last7', '7 dias'],
+    ['last30', '30 dias'],
     ['month', 'Este mes'],
     ['year', 'Este ano'],
     ['all', 'Todo periodo'],
-    ['custom', 'Periodo personalizado']
+    ['custom', 'Personalizado']
   ];
 
   return options.map(([value, label]) => `
