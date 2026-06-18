@@ -21,6 +21,7 @@ export const STORAGE_KEYS = {
   financialCategories: 'pdv.financialCategories',
   financialTransactions: 'pdv.financialTransactions',
   financialSyncQueue: 'pdv.syncQueue.financial',
+  companySettings: 'pdv.companySettings',
   syncQueue: 'pdv.syncQueue'
 };
 
@@ -46,5 +47,6 @@ export const UI_EVENTS = {
   showcaseSyncStatusChanged: 'SHOWCASE_SYNC_STATUS_CHANGED',
   financeChanged: 'FINANCE_CHANGED',
   usersChanged: 'USERS_CHANGED',
-  permissionsChanged: 'PERMISSIONS_CHANGED'
+  permissionsChanged: 'PERMISSIONS_CHANGED',
+  companySettingsChanged: 'COMPANY_SETTINGS_CHANGED'
 };

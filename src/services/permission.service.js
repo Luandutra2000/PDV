@@ -245,6 +245,14 @@ const PERMISSION_DEFINITIONS = [
     defaultRoles: []
   },
   {
+    id: 'company_settings.manage',
+    label: 'Configurar empresa',
+    group: 'Sistema',
+    module: 'company_settings',
+    description: 'Permite alterar logo, nome e cores do sistema.',
+    defaultRoles: ['dono']
+  },
+  {
     id: 'audit.view',
     label: 'Ver auditoria',
     group: 'Sistema',

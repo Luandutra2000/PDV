@@ -72,6 +72,22 @@ assert(permissions.hasPermission(owner, 'owner_app.view'), 'owner should access 
 assert(permissions.hasPermission(owner, 'financial.view'), 'owner should view finance in owner app');
 assert(permissions.hasPermission(owner, 'financial.transaction.create'), 'owner should create finance transactions from owner app');
 assert(permissions.hasPermission(owner, 'financial.payable.pay'), 'owner should mark payables as paid from owner app');
+assert(
+  permissions.hasPermission(admin, 'company_settings.manage'),
+  'admin should manage company settings'
+);
+assert(
+  permissions.hasPermission({ id: 'dono-1', role: 'dono', active: true }, 'company_settings.manage'),
+  'dono should manage company settings'
+);
+assert(
+  !permissions.hasPermission(gerente, 'company_settings.manage'),
+  'gerente should not manage company settings by default'
+);
+assert(
+  permissions.PERMISSIONS.some((permission) => permission.id === 'company_settings.manage'),
+  'permission catalog should include company settings management'
+);
 assert(!permissions.hasPermission(inactive, 'sales.create'), 'inactive user should not have permissions');
 
 permissions.setUserPermissionOverride('operator-1', 'owner_app.view', 'allow');
@@ -221,6 +237,7 @@ const expectedPermissionIds = [
   'users.edit',
   'users.delete',
   'permissions.manage',
+  'company_settings.manage',
   'audit.view',
   'data.export'
 ];
