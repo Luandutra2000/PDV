@@ -1,5 +1,5 @@
 import { getCurrentUser, getUsers } from '../../services/auth.service.js';
-import { getAuditLogs, recordAudit } from '../../services/audit.service.js';
+import { recordAudit } from '../../services/audit.service.js';
 import {
   createManagedUser,
   loadManagedUsers,
@@ -11,7 +11,6 @@ import {
   getRolePermissions,
   getUserPermissionOverride,
   hasPermission,
-  setUserPermissionOverride,
   normalizeRole
 } from '../../services/permission.service.js';
 
@@ -86,7 +85,6 @@ function renderPeople(container, loadError = '') {
         </section>
       </div>
 
-      ${selectedUser ? renderPermissionPanel(selectedUser, permissions) : ''}
     </section>
   `;
 }
@@ -258,28 +256,6 @@ function bindPeopleEvents(container) {
       return;
     }
 
-    const select = event.target.closest('[data-permission-select]');
-
-    if (!select || !event.target.closest('[data-people-screen]')) {
-      return;
-    }
-
-    if (!getPeoplePermissions().canManagePermissions) {
-      return;
-    }
-
-    const userId = select.dataset.userId;
-    const permissionId = select.dataset.permissionId;
-    const state = select.value;
-
-    setUserPermissionOverride(userId, permissionId, state);
-    recordAudit({
-      action: 'permission.override',
-      entityType: 'user',
-      entityId: userId,
-      metadata: { permissionId, state }
-    });
-    renderPeople(container);
   });
 }
 
@@ -433,73 +409,6 @@ function renderPermissionCheckbox(role, permission) {
   `;
 }
 
-function renderPermissionPanel(user, permissions = getPeoplePermissions()) {
-  const groups = groupPermissions();
-  const rolePermissions = new Set(getRolePermissions(user.role));
-  const isAdmin = user.role === 'admin';
-  const canManagePermissions = permissions.canManagePermissions;
-
-  return `
-    <section class="manager-section permission-panel">
-      <header class="manager-section__header">
-        <div>
-          <strong>Permissoes de ${escapeHtml(user.name)}</strong>
-          <span>${isAdmin ? 'Administrador tem acesso total nesta versao.' : 'Ajustes individuais vencem o perfil base.'}</span>
-        </div>
-      </header>
-      <div class="permission-grid">
-        ${groups.map(([group, permissions]) => `
-          <section class="permission-group">
-            <h3>${group}</h3>
-            ${permissions.map((permission) => renderPermissionRow(user, permission, rolePermissions, isAdmin, canManagePermissions)).join('')}
-          </section>
-        `).join('')}
-      </div>
-      ${permissions.canViewAudit ? renderUserAudit(user.id) : ''}
-    </section>
-  `;
-}
-
-function renderPermissionRow(user, permission, rolePermissions, isAdmin, canManagePermissions) {
-  const override = getUserPermissionOverride(user.id, permission.id);
-  const defaultState = isAdmin || rolePermissions.has(permission.id) ? 'Liberado no perfil' : 'Bloqueado no perfil';
-
-  return `
-    <label class="permission-row">
-      <span>
-        <strong>${escapeHtml(permission.label)}</strong>
-        <small>${defaultState}</small>
-      </span>
-      <select class="field" data-permission-select data-user-id="${user.id}" data-permission-id="${permission.id}" ${isAdmin || !canManagePermissions ? 'disabled' : ''}>
-        <option value="default" ${override === 'default' ? 'selected' : ''}>Padrao</option>
-        <option value="allow" ${override === 'allow' ? 'selected' : ''}>Liberado</option>
-        <option value="deny" ${override === 'deny' ? 'selected' : ''}>Bloqueado</option>
-      </select>
-    </label>
-  `;
-}
-
-function renderUserAudit(userId) {
-  const logs = getAuditLogs()
-    .filter((entry) => entry.entityType === 'user' && entry.entityId === userId)
-    .slice(0, 6);
-
-  if (!logs.length) {
-    return '<div class="empty-products">Nenhuma alteracao registrada para este usuario.</div>';
-  }
-
-  return `
-    <div class="user-audit-list">
-      ${logs.map((entry) => `
-        <div>
-          <strong>${getAuditLabel(entry.action)}</strong>
-          <span>${formatDate(entry.createdAt)} - ${escapeHtml(entry.userName)}</span>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
 function groupPermissions() {
   return Object.entries(PERMISSIONS.reduce((groups, permission) => {
     groups[permission.group] = groups[permission.group] || [];
@@ -514,8 +423,7 @@ function getPeoplePermissions() {
   return {
     canCreate: hasPermission(currentUser, 'users.manage'),
     canEdit: hasPermission(currentUser, 'users.edit') || hasPermission(currentUser, 'users.manage'),
-    canManagePermissions: hasPermission(currentUser, 'permissions.manage'),
-    canViewAudit: hasPermission(currentUser, 'audit.view')
+    canManagePermissions: hasPermission(currentUser, 'permissions.manage')
   };
 }
 
@@ -588,27 +496,6 @@ function getRoleLabel(role) {
   const option = ROLE_OPTIONS.find((candidate) => candidate.value === normalizedRole);
 
   return option?.label || 'Operador/Caixa';
-}
-
-function getAuditLabel(action) {
-  const labels = {
-    'user.create': 'Usuario criado',
-    'user.update': 'Usuario editado',
-    'user.role.change': 'Perfil alterado',
-    'permission.override': 'Permissao alterada'
-  };
-
-  return labels[action] || action;
-}
-
-function formatDate(value) {
-  return new Date(value).toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
 }
 
 function escapeHtml(value) {

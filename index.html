@@ -38,7 +38,7 @@
   </div>
   <div class="toast-root" aria-live="polite"></div>
   <script type="module">
-    const LOCAL_CACHE_VERSION = '20260617-05-login-profile-schema';
+    const LOCAL_CACHE_VERSION = '20260618-01-remove-people-permission-panel';
 
     async function clearStaleClientCaches() {
       try {
@@ -74,7 +74,7 @@
 
     try {
       await clearStaleClientCaches();
-      await import('./src/app.js?v=20260617-05');
+      await import('./src/app.js?v=20260618-01');
     } catch (error) {
       console.error('Nao foi possivel iniciar o PDV.', error);
       const app = document.getElementById('app');

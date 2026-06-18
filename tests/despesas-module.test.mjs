@@ -24,6 +24,7 @@ globalThis.document = {
 
 const storage = await import('../src/services/storage.service.js');
 const { initDespesasModule, renderFinanceiroMarkup } = await import('../src/modules/despesas/despesas.module.js');
+const today = new Date().toISOString().slice(0, 10);
 
 function seedUser({ role = 'admin', overrides = {} } = {}) {
   const user = {
@@ -247,7 +248,7 @@ storage.setItem('pdv.financialTransactions', [
     amount: 100,
     categoryId: 'reforco-caixa',
     status: 'paid',
-    transactionDate: '2026-06-17'
+    transactionDate: today
   },
   {
     id: 'fin-expense-change',
@@ -256,7 +257,7 @@ storage.setItem('pdv.financialTransactions', [
     amount: 150,
     categoryId: 'fornecedor',
     status: 'paid',
-    transactionDate: '2026-06-17'
+    transactionDate: today
   }
 ]);
 

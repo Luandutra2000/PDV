@@ -110,6 +110,8 @@ assert(container.innerHTML.includes('>Operador/Caixa</option>'), 'role select sh
 assert(container.innerHTML.includes('<option value="dono"'), 'role select should include dono');
 assert(container.innerHTML.includes('>Visualizador/Dono</option>'), 'role select should label dono');
 assert(container.innerHTML.includes('data-permission-checkbox'), 'permission checklist should expose data-permission-checkbox');
+assert(!container.innerHTML.includes('Permissoes de'), 'people screen should not render the individual permissions panel');
+assert(!container.innerHTML.includes('data-permission-select'), 'people screen should not render individual permission override selects');
 
 dispatchFieldChange(container, 'name', 'Maria Gerente');
 dispatchFieldChange(container, 'username', 'maria@example.test');
@@ -190,8 +192,8 @@ initPessoasModule(limitedContainer);
 assert(limitedContainer.innerHTML.includes('data-action="edit-user"'), 'users.edit should allow editing users from Pessoas');
 assert(!limitedContainer.innerHTML.includes('data-action="new-user"'), 'users.edit alone should not allow creating users');
 assert(!limitedContainer.innerHTML.includes('data-permission-checkbox'), 'permissions.manage should be required for checklist editing');
-assert(limitedContainer.innerHTML.includes('data-permission-select'), 'permission defaults may be visible for review');
-assert(limitedContainer.innerHTML.includes('data-permission-select') && limitedContainer.innerHTML.includes('disabled'), 'permissions.manage should be required to change overrides');
+assert(!limitedContainer.innerHTML.includes('data-permission-select'), 'individual permission override selects should not be rendered');
+assert(!limitedContainer.innerHTML.includes('Permissoes de'), 'individual permissions panel should not be rendered');
 assert(!limitedContainer.innerHTML.includes('user-audit-list'), 'audit.view should be required to render user audit history');
 
 store.clear();
