@@ -47,6 +47,7 @@ const assertThrows = (callback, expectedMessage, message) => {
 
 const storage = await import('../src/services/storage.service.js');
 const { STORAGE_KEYS } = await import('../src/database/schema.js');
+const supabaseClient = await import('../src/services/supabase-client.service.js');
 const company = await import('../src/services/empresa-config.service.js');
 
 storage.ensureSeedData();
@@ -95,5 +96,63 @@ assert(documentStyle.get('--crm-orange-soft') === '#dbeafe', 'accent variable sh
 
 const restored = company.resetCompanySettingsLocal();
 assert(restored.nomeSistema === 'Zelo PDV', 'reset should restore default system name');
+
+globalThis.__PDV_RUNTIME_CONFIG__ = {
+  dataProvider: 'supabase',
+  supabaseUrl: 'https://example.supabase.co',
+  supabaseAnonKey: 'anon-key'
+};
+
+supabaseClient.configureSupabaseClientForTests({
+  client: {
+    from(tableName) {
+      assert(tableName === 'empresa_configuracoes', 'save should target company settings table');
+      return {
+        upsert() {
+          return {
+            select() {
+              return {
+                single() {
+                  return { data: null, error: new Error('network down') };
+                }
+              };
+            }
+          };
+        }
+      };
+    }
+  }
+});
+
+const originalWarn = console.warn;
+const warnings = [];
+console.warn = (...args) => {
+  warnings.push(args);
+};
+
+let fallbackSaved;
+try {
+  fallbackSaved = await company.saveCompanySettings({
+    nomeSistema: 'Offline Caixa',
+    nomeFantasia: 'Offline Loja',
+    corPrimaria: '#16a34a',
+    corSecundaria: '#15803d',
+    corDestaque: '#dcfce7'
+  });
+} finally {
+  console.warn = originalWarn;
+  supabaseClient.configureSupabaseClientForTests();
+  globalThis.__PDV_RUNTIME_CONFIG__ = null;
+}
+
+assert(fallbackSaved.nomeSistema === 'Offline Caixa', 'supabase save error should return local settings');
+assert(
+  storage.getItem(STORAGE_KEYS.companySettings).nomeSistema === 'Offline Caixa',
+  'supabase save error should persist settings locally'
+);
+assert(
+  warnings.some(([message, error]) => message.includes('Nao foi possivel salvar configuracoes da empresa.') && error.message === 'network down'),
+  'supabase save error should warn before local fallback'
+);
 
 console.log('empresa config service ok');

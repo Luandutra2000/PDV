@@ -160,7 +160,8 @@ export async function saveCompanySettings(input) {
     .single();
 
   if (error) {
-    throw error;
+    console.warn('Nao foi possivel salvar configuracoes da empresa.', error);
+    return saveCompanySettingsLocal(settings);
   }
 
   return saveCompanySettingsLocal(unmapCompanySettings(data));
