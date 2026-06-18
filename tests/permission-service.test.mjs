@@ -219,6 +219,7 @@ const expectedPermissionIds = [
   'financial.bill.pay',
   'users.manage',
   'users.edit',
+  'users.delete',
   'permissions.manage',
   'audit.view',
   'data.export'

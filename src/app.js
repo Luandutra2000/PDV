@@ -47,7 +47,7 @@ const routePermissions = {
   'fechar-caixa': 'cash.close',
   relatorios: 'reports.view',
   mobile: 'owner_app.view',
-  pessoas: ['users.manage', 'users.edit', 'permissions.manage', 'audit.view'],
+  pessoas: ['users.manage', 'users.edit', 'users.delete', 'permissions.manage', 'audit.view'],
   despesas: 'financial.expense.access'
 };
 

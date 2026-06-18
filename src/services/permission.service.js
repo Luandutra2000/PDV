@@ -229,6 +229,14 @@ const PERMISSION_DEFINITIONS = [
     defaultRoles: []
   },
   {
+    id: 'users.delete',
+    label: 'Excluir usuarios',
+    group: 'Sistema',
+    module: 'users',
+    description: 'Permite remover usuarios cadastrados.',
+    defaultRoles: []
+  },
+  {
     id: 'permissions.manage',
     label: 'Editar permissoes',
     group: 'Sistema',

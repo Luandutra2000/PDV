@@ -125,6 +125,16 @@ assert.throws(
 );
 assert.equal(auth.getUsers().find((user) => user.id === 'admin-1')?.active, true, 'last active admin should remain active');
 
+assert.throws(
+  () => userAdmin.deleteManagedUser('admin-1'),
+  /Nao e permitido desativar o ultimo administrador ativo\./,
+  'deleteManagedUser should not delete the last active admin'
+);
+
+const deletedOperator = userAdmin.deleteManagedUser('operator-1');
+assert.equal(deletedOperator.id, 'operator-1', 'deleteManagedUser should return the deleted local user');
+assert(!auth.getUsers().some((user) => user.id === 'operator-1'), 'deleteManagedUser should remove local users');
+
 const originalFetch = globalThis.fetch;
 globalThis.__PDV_RUNTIME_CONFIG__ = {
   dataProvider: 'supabase',

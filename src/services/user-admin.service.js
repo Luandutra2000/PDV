@@ -1,6 +1,6 @@
 import { STORAGE_KEYS } from '../database/schema.js';
 import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js';
-import { createUser, getUsers, updateUser } from './auth.service.js';
+import { createUser, deleteUser, getUsers, updateUser } from './auth.service.js';
 import {
   PERMISSIONS,
   getRolePermissions,
@@ -102,6 +102,21 @@ export function saveManagedPermissionChecklist(user, checklist) {
   return user;
 }
 
+export function deleteManagedUser(userId) {
+  if (isSupabaseEnabled()) {
+    return invokeAdminUsersFunction('deleteUser', { userId }).then((result) => {
+      const deletedUser = result?.user || result;
+      removeCachedManagedUser(userId);
+      return deletedUser;
+    });
+  }
+
+  assertCanDeleteUser(userId);
+  const deletedUser = deleteUser(userId);
+  removeCachedPermissionOverrides(userId);
+  return deletedUser;
+}
+
 function assertCanUpdateAdminStatus(userId, patch) {
   if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
     return;
@@ -118,6 +133,29 @@ function assertCanUpdateAdminStatus(userId, patch) {
   const existingUser = users.find((user) => user.id === userId);
 
   if (normalizeRole(existingUser?.role) !== 'admin' || existingUser.active === false) {
+    return;
+  }
+
+  const activeAdminCount = users.filter((user) => (
+    user.id !== userId
+      && user.active !== false
+      && normalizeRole(user.role) === 'admin'
+  )).length;
+
+  if (activeAdminCount === 0) {
+    throw new Error(LAST_ADMIN_ERROR);
+  }
+}
+
+function assertCanDeleteUser(userId) {
+  const users = getUsers();
+  const existingUser = users.find((user) => user.id === userId);
+
+  if (!existingUser) {
+    throw new Error('Usuario nao encontrado.');
+  }
+
+  if (existingUser.active === false || normalizeRole(existingUser.role) !== 'admin') {
     return;
   }
 
@@ -234,4 +272,22 @@ function cacheManagedUsers(remoteUsers) {
         role: normalizeRole(user.role)
       }))
   );
+}
+
+function removeCachedManagedUser(userId) {
+  const users = getItem(STORAGE_KEYS.users, []);
+  setItem(STORAGE_KEYS.users, users.filter((user) => user.id !== userId));
+  removeCachedPermissionOverrides(userId);
+}
+
+function removeCachedPermissionOverrides(userId) {
+  const overrides = getItem(STORAGE_KEYS.userPermissionOverrides, {});
+
+  if (!overrides || typeof overrides !== 'object') {
+    return;
+  }
+
+  const nextOverrides = { ...overrides };
+  delete nextOverrides[userId];
+  setItem(STORAGE_KEYS.userPermissionOverrides, nextOverrides);
 }

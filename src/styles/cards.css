@@ -147,6 +147,13 @@
   font-size: 12px;
 }
 
+.people-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .permission-panel {
   margin-top: 16px;
 }

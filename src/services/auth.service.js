@@ -170,6 +170,19 @@ export function updateUser(userId, patch) {
   return sanitizeUser(updatedUser);
 }
 
+export function deleteUser(userId) {
+  const users = getRawUsers();
+  const existingUser = users.find((user) => user.id === userId);
+
+  if (!existingUser) {
+    throw new Error('Usuario nao encontrado.');
+  }
+
+  setItem(STORAGE_KEYS.users, users.filter((user) => user.id !== userId));
+
+  return sanitizeUser(existingUser);
+}
+
 export function sanitizeUser(user) {
   if (!user) {
     return null;

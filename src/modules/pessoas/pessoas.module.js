@@ -2,6 +2,7 @@ import { getCurrentUser, getUsers } from '../../services/auth.service.js';
 import { recordAudit } from '../../services/audit.service.js';
 import {
   createManagedUser,
+  deleteManagedUser,
   loadManagedUsers,
   updateManagedUser,
   saveManagedPermissionChecklist
@@ -132,6 +133,11 @@ function bindPeopleEvents(container) {
       peopleState.modalPermissions = buildUserPermissionState(user);
       peopleState.modalDraft = createUserDraft(user);
       renderPeople(container);
+      return;
+    }
+
+    if (button.dataset.action === 'delete-user') {
+      handleDeleteUser(container, button.dataset.userId);
     }
   });
 
@@ -272,9 +278,62 @@ function renderUserList(users) {
         <strong>${escapeHtml(user.name)}</strong>
         <span>${getRoleLabel(user.role)} - ${user.active ? 'Ativo' : 'Inativo'}</span>
       </button>
-      ${permissions.canEdit ? `<button class="button button--ghost" type="button" data-action="edit-user" data-user-id="${user.id}">Editar</button>` : ''}
+      <div class="people-row__actions">
+        ${permissions.canEdit ? `<button class="button button--ghost" type="button" data-action="edit-user" data-user-id="${user.id}">Editar</button>` : ''}
+        ${permissions.canDelete ? `<button class="button button--danger" type="button" data-action="delete-user" data-user-id="${user.id}">Excluir</button>` : ''}
+      </div>
     </article>
   `).join('');
+}
+
+async function handleDeleteUser(container, userId) {
+  const permissions = getPeoplePermissions();
+
+  if (!permissions.canDelete) {
+    renderPeople(container, 'Usuario sem permissao para esta acao.');
+    return;
+  }
+
+  const user = getUsers().find((candidate) => candidate.id === userId);
+
+  if (!user) {
+    renderPeople(container, 'Usuario nao encontrado.');
+    return;
+  }
+
+  const confirmed = typeof globalThis.window?.confirm === 'function'
+    ? globalThis.window.confirm(`Excluir o usuario ${user.name}? Esta acao nao pode ser desfeita.`)
+    : true;
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const deletedUser = await deleteManagedUser(userId);
+    recordAudit({
+      action: 'user.delete',
+      entityType: 'user',
+      entityId: userId,
+      metadata: {
+        username: deletedUser?.username || user.username,
+        role: deletedUser?.role || user.role
+      }
+    });
+
+    if (peopleState.editingUserId === userId) {
+      peopleState.editingUserId = null;
+      peopleState.modalRole = 'operador';
+      peopleState.modalPermissions = buildRolePermissionState('operador');
+      peopleState.modalDraft = createBlankUserDraft();
+    }
+
+    peopleState.selectedUserId = null;
+    ensureSelectedUser();
+    renderPeople(container);
+  } catch (error) {
+    renderPeople(container, error.message || 'Nao foi possivel excluir o usuario.');
+  }
 }
 
 function renderUserForm(user, permissions = getPeoplePermissions()) {
@@ -423,6 +482,7 @@ function getPeoplePermissions() {
   return {
     canCreate: hasPermission(currentUser, 'users.manage'),
     canEdit: hasPermission(currentUser, 'users.edit') || hasPermission(currentUser, 'users.manage'),
+    canDelete: hasPermission(currentUser, 'users.delete'),
     canManagePermissions: hasPermission(currentUser, 'permissions.manage')
   };
 }

@@ -2,11 +2,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const migrationFile = '20260617115918_align_people_permissions_audit.sql';
-const sql = readFileSync(
+const migrationFiles = [
+  '20260617115918_align_people_permissions_audit.sql',
+  '20260618194000_add_user_delete_permission.sql'
+];
+const sql = migrationFiles.map((migrationFile) => readFileSync(
   fileURLToPath(new URL(`../supabase/migrations/${migrationFile}`, import.meta.url)),
   'utf8'
-);
+)).join('\n');
 const normalizedSql = sql.replace(/\s+/g, ' ').toLowerCase();
 
 const canonicalPermissionIds = [
@@ -36,6 +39,7 @@ const canonicalPermissionIds = [
   'financial.bill.pay',
   'users.manage',
   'users.edit',
+  'users.delete',
   'permissions.manage',
   'audit.view',
   'data.export'
@@ -112,4 +116,4 @@ assert(
   'admin profile update RPC should take the transaction lock before updating profiles'
 );
 
-console.log(`people permissions migration ok: ${migrationFile}`);
+console.log(`people permissions migration ok: ${migrationFiles.join(', ')}`);

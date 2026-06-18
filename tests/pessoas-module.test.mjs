@@ -101,6 +101,7 @@ const container = new FakeElement();
 initPessoasModule(container);
 
 assert(container.innerHTML.includes('data-role-select'), 'role select should expose data-role-select');
+assert(container.innerHTML.includes('data-action="delete-user"'), 'users.delete should render delete buttons for admin');
 assert(container.innerHTML.includes('<option value="admin"'), 'role select should include admin');
 assert(container.innerHTML.includes('>Administrador</option>'), 'role select should label admin');
 assert(container.innerHTML.includes('<option value="gerente"'), 'role select should include gerente');
@@ -191,6 +192,7 @@ initPessoasModule(limitedContainer);
 
 assert(limitedContainer.innerHTML.includes('data-action="edit-user"'), 'users.edit should allow editing users from Pessoas');
 assert(!limitedContainer.innerHTML.includes('data-action="new-user"'), 'users.edit alone should not allow creating users');
+assert(!limitedContainer.innerHTML.includes('data-action="delete-user"'), 'users.edit alone should not allow deleting users');
 assert(!limitedContainer.innerHTML.includes('data-permission-checkbox'), 'permissions.manage should be required for checklist editing');
 assert(!limitedContainer.innerHTML.includes('data-permission-select'), 'individual permission override selects should not be rendered');
 assert(!limitedContainer.innerHTML.includes('Permissoes de'), 'individual permissions panel should not be rendered');

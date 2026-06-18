@@ -13,7 +13,7 @@ assert(source.includes('isValidEmail(email)'), 'createUser should reject usernam
 assert(source.includes('password.length < 6'), 'createUser should validate Supabase minimum password length');
 assert(source.includes("case 'listUsers'"), 'function should handle listUsers action');
 assert(
-  source.includes("await requireAnyPermission(actor, ['users.manage', 'users.edit', 'permissions.manage', 'audit.view'])"),
+  source.includes("await requireAnyPermission(actor, ['users.manage', 'users.edit', 'users.delete', 'permissions.manage', 'audit.view'])"),
   'listUsers should require access to at least one Pessoas permission'
 );
 assert(source.includes('adminClient.auth.admin.listUsers'), 'listUsers should include Auth emails in the response');
@@ -23,6 +23,13 @@ assert(
   source.includes("await requireAnyPermission(actor, ['users.edit', 'users.manage'])"),
   'updateUser should require users.edit or users.manage'
 );
+assert(source.includes("case 'deleteUser'"), 'function should handle deleteUser action');
+assert(source.includes("await requirePermission(actor, 'users.delete')"), 'deleteUser should require users.delete');
+assert(source.includes('deleteManagedUser(actor, body)'), 'deleteUser should call deleteManagedUser');
+assert(source.includes('Nao e permitido excluir o usuario logado.'), 'deleteUser should block deleting the current actor');
+assert(source.includes('assertCanDeleteProfile'), 'deleteUser should guard last active admin deletion');
+assert(source.includes('clearAuditActorReference'), 'deleteUser should clear audit profile references before Auth deletion');
+assert(source.includes('adminClient.auth.admin.deleteUser(userId)'), 'deleteUser should remove the Supabase Auth user');
 assert(source.includes("case 'savePermissionOverrides'"), 'function should handle savePermissionOverrides action');
 assert(
   source.includes("await requirePermission(actor, 'permissions.manage')"),

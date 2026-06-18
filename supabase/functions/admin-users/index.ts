@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-type AdminAction = 'listUsers' | 'createUser' | 'updateUser' | 'savePermissionOverrides';
+type AdminAction = 'listUsers' | 'createUser' | 'updateUser' | 'deleteUser' | 'savePermissionOverrides';
 type RoleId = 'admin' | 'gerente' | 'operador' | 'dono';
 type OverrideState = 'allow' | 'deny' | 'default';
 
@@ -51,7 +51,7 @@ Deno.serve(async (request) => {
 
     switch (action) {
       case 'listUsers':
-        await requireAnyPermission(actor, ['users.manage', 'users.edit', 'permissions.manage', 'audit.view']);
+        await requireAnyPermission(actor, ['users.manage', 'users.edit', 'users.delete', 'permissions.manage', 'audit.view']);
         return jsonResponse({ users: await listManagedUsers() });
       case 'createUser':
         await requirePermission(actor, 'users.manage');
@@ -59,6 +59,9 @@ Deno.serve(async (request) => {
       case 'updateUser':
         await requireAnyPermission(actor, ['users.edit', 'users.manage']);
         return jsonResponse({ user: await updateManagedUser(actor, body) });
+      case 'deleteUser':
+        await requirePermission(actor, 'users.delete');
+        return jsonResponse({ user: await deleteManagedUser(actor, body) });
       case 'savePermissionOverrides':
         await requirePermission(actor, 'permissions.manage');
         return jsonResponse({ user: await savePermissionOverrides(actor, body) });
@@ -295,6 +298,46 @@ async function savePermissionOverrides(actor: Profile, body: Record<string, unkn
   return toUser(target);
 }
 
+async function deleteManagedUser(actor: Profile, body: Record<string, unknown>) {
+  const userId = String(body.userId ?? body.id ?? '').trim();
+
+  if (!userId) {
+    throw new HttpError(400, 'Usuario obrigatorio.');
+  }
+
+  if (userId === actor.id) {
+    throw new HttpError(400, 'Nao e permitido excluir o usuario logado.');
+  }
+
+  const target = await loadProfile(userId);
+
+  if (!target) {
+    throw new HttpError(404, 'Usuario nao encontrado.');
+  }
+
+  await assertCanDeleteProfile(target);
+
+  await recordAudit(actor, {
+    action: 'user.delete',
+    entityType: 'user',
+    entityId: userId,
+    metadata: {
+      role: target.role_id,
+      isActive: target.is_active
+    }
+  });
+
+  await clearAuditActorReference(userId);
+
+  const { error } = await adminClient.auth.admin.deleteUser(userId);
+
+  if (error) {
+    throw new HttpError(400, error.message);
+  }
+
+  return toUser(target);
+}
+
 async function requireAnyPermission(actor: Profile, permissionIds: string[]) {
   for (const permissionId of permissionIds) {
     if (await hasPermission(actor, permissionId)) {
@@ -378,6 +421,38 @@ async function updateProfileWithAdminGuard(
     role_id: normalizeRole(data.role_id),
     is_active: data.is_active !== false
   };
+}
+
+async function assertCanDeleteProfile(target: Profile) {
+  if (!target.is_active || target.role_id !== 'admin') {
+    return;
+  }
+
+  const { count, error } = await adminClient
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .eq('role_id', 'admin')
+    .eq('is_active', true)
+    .neq('id', target.id);
+
+  if (error) {
+    throw error;
+  }
+
+  if ((count ?? 0) === 0) {
+    throw new HttpError(400, 'Nao e permitido desativar o ultimo administrador ativo.');
+  }
+}
+
+async function clearAuditActorReference(userId: string) {
+  const { error } = await adminClient
+    .from('audit_logs')
+    .update({ user_id: null })
+    .eq('user_id', userId);
+
+  if (error) {
+    throw error;
+  }
 }
 
 async function cleanupCreatedAuthUser(userId: string) {
