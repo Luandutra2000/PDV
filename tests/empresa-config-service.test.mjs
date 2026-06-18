@@ -97,6 +97,15 @@ assert(documentStyle.get('--crm-orange-soft') === '#dbeafe', 'accent variable sh
 const restored = company.resetCompanySettingsLocal();
 assert(restored.nomeSistema === 'Zelo PDV', 'reset should restore default system name');
 
+const localAsyncSaved = await company.saveCompanySettings({
+  nomeSistema: 'Caixa Local Async',
+  nomeFantasia: 'Loja Local Async',
+  corPrimaria: '#64748b',
+  corSecundaria: '#475569',
+  corDestaque: '#f1f5f9'
+});
+assert(localAsyncSaved.syncStatus === 'local-only', 'local async save should mark local-only status');
+
 const scopedLocal = company.saveCompanySettingsLocal({
   empresaId: 'empresa-42',
   nomeSistema: 'Loja Escopada',
@@ -313,6 +322,81 @@ try {
   assert(emptyRemoteSaved.nomeSistema === 'Caixa Sem Linha', 'empty remote save should keep validated settings');
   assert(emptyRemoteSaved.syncStatus === 'synced', 'empty remote save should still mark synced status');
 } finally {
+  supabaseClient.configureSupabaseClientForTests();
+  globalThis.__PDV_RUNTIME_CONFIG__ = null;
+}
+
+const thrownLoadLocal = company.saveCompanySettingsLocal({
+  nomeSistema: 'Caixa Load Local',
+  nomeFantasia: 'Loja Load Local',
+  corPrimaria: '#0ea5e9',
+  corSecundaria: '#0284c7',
+  corDestaque: '#e0f2fe'
+});
+
+globalThis.__PDV_RUNTIME_CONFIG__ = {
+  dataProvider: 'supabase',
+  supabaseUrl: 'https://example.supabase.co',
+  supabaseAnonKey: 'anon-key'
+};
+
+supabaseClient.configureSupabaseClientForTests({
+  client: {
+    from() {
+      throw new Error('load query exploded');
+    }
+  }
+});
+
+const originalWarnForThrownLoad = console.warn;
+console.warn = () => {};
+
+try {
+  const thrownLoadFallback = await company.loadCompanySettings();
+  assert(
+    thrownLoadFallback.nomeSistema === thrownLoadLocal.nomeSistema,
+    'thrown supabase load failure should return local settings'
+  );
+} finally {
+  console.warn = originalWarnForThrownLoad;
+  supabaseClient.configureSupabaseClientForTests();
+  globalThis.__PDV_RUNTIME_CONFIG__ = null;
+}
+
+globalThis.__PDV_RUNTIME_CONFIG__ = {
+  dataProvider: 'supabase',
+  supabaseUrl: 'https://example.supabase.co',
+  supabaseAnonKey: 'anon-key'
+};
+
+supabaseClient.configureSupabaseClientForTests({
+  client: {
+    from() {
+      return {
+        upsert() {
+          throw new Error('save query exploded');
+        }
+      };
+    }
+  }
+});
+
+const originalWarnForThrownSave = console.warn;
+console.warn = () => {};
+
+try {
+  const thrownSaveFallback = await company.saveCompanySettings({
+    nomeSistema: 'Caixa Save Local',
+    nomeFantasia: 'Loja Save Local',
+    corPrimaria: '#f59e0b',
+    corSecundaria: '#d97706',
+    corDestaque: '#fef3c7'
+  });
+
+  assert(thrownSaveFallback.nomeSistema === 'Caixa Save Local', 'thrown supabase save failure should return local settings');
+  assert(thrownSaveFallback.syncStatus === 'local-only', 'thrown supabase save failure should mark local-only status');
+} finally {
+  console.warn = originalWarnForThrownSave;
   supabaseClient.configureSupabaseClientForTests();
   globalThis.__PDV_RUNTIME_CONFIG__ = null;
 }

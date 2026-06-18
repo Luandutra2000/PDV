@@ -119,58 +119,68 @@ export async function loadCompanySettings() {
     return localSettings;
   }
 
-  const client = await getSupabaseClient();
+  try {
+    const client = await getSupabaseClient();
 
-  if (!client) {
-    return localSettings;
-  }
+    if (!client) {
+      return localSettings;
+    }
 
-  const { data, error } = await client
-    .from('empresa_configuracoes')
-    .select('*')
-    .eq('empresa_id', localSettings.empresaId)
-    .maybeSingle();
+    const { data, error } = await client
+      .from('empresa_configuracoes')
+      .select('*')
+      .eq('empresa_id', localSettings.empresaId)
+      .maybeSingle();
 
-  if (error) {
+    if (error) {
+      console.warn('Nao foi possivel carregar configuracoes da empresa.', error);
+      return localSettings;
+    }
+
+    const settings = data ? unmapCompanySettings(data) : localSettings;
+    setItem(STORAGE_KEYS.companySettings, settings);
+    applyCompanyIdentity(settings);
+    return settings;
+  } catch (error) {
     console.warn('Nao foi possivel carregar configuracoes da empresa.', error);
     return localSettings;
   }
-
-  const settings = data ? unmapCompanySettings(data) : localSettings;
-  setItem(STORAGE_KEYS.companySettings, settings);
-  applyCompanyIdentity(settings);
-  return settings;
 }
 
 export async function saveCompanySettings(input) {
   const settings = validateCompanySettings(input);
 
   if (!isSupabaseEnabled()) {
-    return saveCompanySettingsLocal(settings);
+    return saveCompanySettingsLocalOnly(settings);
   }
 
-  const client = await getSupabaseClient();
+  try {
+    const client = await getSupabaseClient();
 
-  if (!client) {
-    return saveCompanySettingsLocal(settings);
-  }
+    if (!client) {
+      return saveCompanySettingsLocalOnly(settings);
+    }
 
-  const row = mapCompanySettings(settings);
-  const { data, error } = await client
-    .from('empresa_configuracoes')
-    .upsert(row, { onConflict: 'empresa_id' })
-    .select()
-    .single();
+    const row = mapCompanySettings(settings);
+    const { data, error } = await client
+      .from('empresa_configuracoes')
+      .upsert(row, { onConflict: 'empresa_id' })
+      .select()
+      .single();
 
-  if (error) {
+    if (error) {
+      console.warn('Nao foi possivel salvar configuracoes da empresa.', error);
+      return saveCompanySettingsLocalOnly(settings);
+    }
+
+    return {
+      ...saveCompanySettingsLocal(data ? unmapCompanySettings(data) : settings),
+      syncStatus: 'synced'
+    };
+  } catch (error) {
     console.warn('Nao foi possivel salvar configuracoes da empresa.', error);
-    return { ...saveCompanySettingsLocal(settings), syncStatus: 'local-only' };
+    return saveCompanySettingsLocalOnly(settings);
   }
-
-  return {
-    ...saveCompanySettingsLocal(data ? unmapCompanySettings(data) : settings),
-    syncStatus: 'synced'
-  };
 }
 
 export function mapCompanySettings(settings) {
@@ -225,4 +235,8 @@ function assertHex(value, message) {
 
 function onlyDigits(value) {
   return String(value || '').replace(/\D/g, '');
+}
+
+function saveCompanySettingsLocalOnly(settings) {
+  return { ...saveCompanySettingsLocal(settings), syncStatus: 'local-only' };
 }
