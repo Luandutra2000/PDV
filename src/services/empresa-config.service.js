@@ -113,27 +113,30 @@ export function applyCompanyIdentity(input = loadCompanySettingsLocal()) {
 }
 
 export async function loadCompanySettings() {
+  const localSettings = loadCompanySettingsLocal();
+
   if (!isSupabaseEnabled()) {
-    return loadCompanySettingsLocal();
+    return localSettings;
   }
 
   const client = await getSupabaseClient();
 
   if (!client) {
-    return loadCompanySettingsLocal();
+    return localSettings;
   }
 
   const { data, error } = await client
     .from('empresa_configuracoes')
     .select('*')
+    .eq('empresa_id', localSettings.empresaId)
     .maybeSingle();
 
   if (error) {
     console.warn('Nao foi possivel carregar configuracoes da empresa.', error);
-    return loadCompanySettingsLocal();
+    return localSettings;
   }
 
-  const settings = data ? unmapCompanySettings(data) : loadCompanySettingsLocal();
+  const settings = data ? unmapCompanySettings(data) : localSettings;
   setItem(STORAGE_KEYS.companySettings, settings);
   applyCompanyIdentity(settings);
   return settings;
@@ -161,10 +164,13 @@ export async function saveCompanySettings(input) {
 
   if (error) {
     console.warn('Nao foi possivel salvar configuracoes da empresa.', error);
-    return saveCompanySettingsLocal(settings);
+    return { ...saveCompanySettingsLocal(settings), syncStatus: 'local-only' };
   }
 
-  return saveCompanySettingsLocal(unmapCompanySettings(data));
+  return {
+    ...saveCompanySettingsLocal(data ? unmapCompanySettings(data) : settings),
+    syncStatus: 'synced'
+  };
 }
 
 export function mapCompanySettings(settings) {
