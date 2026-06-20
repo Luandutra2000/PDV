@@ -13,7 +13,8 @@ const menuGroups = [
     title: 'Gestao',
     items: [
       { id: 'produtos', label: 'Produtos', icon: 'PR', permission: 'products.manage' },
-      { id: 'pessoas', label: 'Pessoas', icon: 'PS', permission: ['users.manage', 'users.edit', 'users.delete', 'permissions.manage', 'audit.view'] }
+      { id: 'pessoas', label: 'Pessoas', icon: 'PS', permission: ['users.manage', 'users.edit', 'users.delete', 'permissions.manage', 'audit.view'] },
+      { id: 'empresa-config', label: 'Configurações da Empresa', icon: 'CE', permission: 'company_settings.manage' }
     ]
   },
   {
@@ -38,7 +39,13 @@ const menuGroups = [
   }
 ];
 
-export function renderSidebar(currentUser) {
+export function renderSidebar(currentUser, companySettings = {}) {
+  const systemName = companySettings.nomeSistema || 'Zelo PDV';
+  const companyName = companySettings.nomeFantasia || 'Lanchonete';
+  const logo = companySettings.logoUrl
+    ? `<img class="sidebar__logo" src="${companySettings.logoUrl}" alt="">`
+    : '<span class="sidebar__badge">PDV</span>';
+
   const visibleGroups = menuGroups.map((group) => ({
     ...group,
     items: group.items.filter((item) => hasAnyPermission(currentUser, item.permission))
@@ -59,12 +66,12 @@ export function renderSidebar(currentUser) {
   return `
     <aside class="sidebar">
       <div class="sidebar__brand">
-        <span>Zelo</span>
-        <span class="sidebar__badge">PDV</span>
+        ${logo}
+        <span class="sidebar__brand-name">${systemName}</span>
       </div>
       <div class="sidebar__content">${groups}</div>
       <footer class="sidebar__footer">
-        <div class="sidebar__store">Lanchonete</div>
+        <div class="sidebar__store">${companyName}</div>
         <button class="sidebar__exit" type="button" data-action="logout">Sair</button>
       </footer>
     </aside>
