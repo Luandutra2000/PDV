@@ -36,6 +36,13 @@ assert(indexHtml.includes('navigator.serviceWorker.addEventListener(\'controller
 assert(appJs.includes('AUTH_SESSION_VERSION'), 'auth updates should force one fresh login after deploy');
 assert(!appJs.includes('restoreSupabaseSession() || getCurrentUser()'), 'login screen should not wait for Supabase session restore before rendering');
 assert(appJs.includes('./modules/mobile/mobile-dashboard.module.js?v=20260608-15'), 'mobile dashboard import should use the latest cache-busting version');
+assert(appJs.includes('loadCompanySettingsLocal'), 'app shell should render with local company settings before remote settings load');
+assert(appJs.includes('companySettingsChanged'), 'app shell should refresh branding when company settings change');
+assert(
+  appJs.includes('renderSidebar(getCurrentUser(), settings)'),
+  'app shell should re-render the sidebar with refreshed company settings'
+);
+assert(appJs.includes("'empresa-config': 'company_settings.manage'"), 'company settings route should require manage permission');
 assert(mobileDashboardJs.includes('../../services/mobile-notifications.service.js?v=20260616-04'), 'mobile feed service import should use the latest cache-busting version');
 assert(mobileDashboardJs.includes('mobile-crm-chart'), 'mobile CRM should render chart panels');
 assert(mobileDashboardJs.includes('renderMobileSalesChart'), 'mobile CRM should include sales chart renderer');

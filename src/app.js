@@ -24,7 +24,7 @@ import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.
 import { getDailyMoneySummary } from './services/transaction.service.js';
 import { getCurrentUser, login, logout } from './services/auth.service.js';
 import { hasPermission } from './services/permission.service.js';
-import { applyCompanyIdentity, loadCompanySettings } from './services/empresa-config.service.js';
+import { applyCompanyIdentity, loadCompanySettings, loadCompanySettingsLocal } from './services/empresa-config.service.js';
 import { renderLoginModule } from './modules/auth/login.module.js';
 import { on } from './services/event-bus.service.js';
 import { UI_EVENTS } from './database/schema.js';
@@ -93,7 +93,7 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   initSyncService();
   initRealtimeService();
   initNotificationService(document.querySelector('.toast-root'));
-  const companySettings = await loadCompanySettings();
+  const companySettings = loadCompanySettingsLocal();
   applyCompanyIdentity(companySettings);
 
   app.innerHTML = `
@@ -123,6 +123,8 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   setActiveMenu(app, initialView);
   bindNavigation(app, workspace);
   bindCashUpdates(app);
+  bindCompanySettingsUpdates(app, workspace);
+  refreshCompanySettingsAsync(app, workspace);
 }
 
 function getInitialView() {
@@ -194,6 +196,39 @@ function renderCashMetric(label, value, signed = false, fixedClass = '') {
 
 function bindCashUpdates(app) {
   on(UI_EVENTS.cashSummaryChanged, () => renderCashStrip(app));
+}
+
+function bindCompanySettingsUpdates(app, workspace) {
+  on(UI_EVENTS.companySettingsChanged, (settings) => {
+    applyCompanyIdentity(settings);
+    refreshSidebar(app, workspace, settings);
+  });
+}
+
+function refreshCompanySettingsAsync(app, workspace) {
+  loadCompanySettings()
+    .then((settings) => {
+      applyCompanyIdentity(settings);
+      refreshSidebar(app, workspace, settings);
+    })
+    .catch((error) => {
+      console.warn('Nao foi possivel atualizar a identidade da empresa.', error);
+    });
+}
+
+function refreshSidebar(app, workspace, settings) {
+  const currentSidebar = app.querySelector('.sidebar');
+
+  if (!currentSidebar) {
+    return;
+  }
+
+  const activeRoute = workspace?.dataset.activeRoute || '';
+  currentSidebar.outerHTML = renderSidebar(getCurrentUser(), settings);
+
+  if (activeRoute) {
+    setActiveMenu(app, activeRoute);
+  }
 }
 
 bootstrap();
