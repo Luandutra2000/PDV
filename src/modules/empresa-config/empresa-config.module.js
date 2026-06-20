@@ -42,7 +42,7 @@ function renderEmpresaConfigScreen(workspace) {
 
             <label class="field-group empresa-config-logo-field">
               <span>Logo da empresa</span>
-              <input class="field" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-field="logoFile">
+              <input class="field" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-field="logoFile" title="Upload sera habilitado na etapa de logo" aria-label="Logo da empresa. Upload sera habilitado na etapa de logo" disabled>
             </label>
 
             <div class="empresa-config-logo-preview">
