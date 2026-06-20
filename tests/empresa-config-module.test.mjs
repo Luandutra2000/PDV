@@ -132,6 +132,20 @@ async function dispatchClick(workspace, action, scoped = true) {
   });
 }
 
+async function dispatchLogoChange(workspace, file, fields = getValidFormFields()) {
+  await workspace.listeners.change({
+    target: {
+      files: [file],
+      matches(selector) {
+        return selector === '[data-field="logoFile"]';
+      },
+      closest(selector) {
+        return selector === '[data-company-settings-form]' ? createForm(fields) : null;
+      }
+    }
+  });
+}
+
 store.clear();
 const workspace = createWorkspace();
 initEmpresaConfigModule(workspace);
@@ -257,6 +271,59 @@ assert(errorWorkspace.errorTarget.hidden === false, 'validation error should sho
 assert(
   errorWorkspace.errorTarget.textContent.includes('Nome do programa'),
   'validation error should be written to the existing error area'
+);
+
+const originalFileReader = globalThis.FileReader;
+
+class TestFileReader {
+  constructor() {
+    this.listeners = {};
+    this.result = '';
+  }
+
+  addEventListener(type, listener) {
+    this.listeners[type] = listener;
+  }
+
+  readAsDataURL(file) {
+    this.result = `data:${file.type};base64,bW9kdWxlLWxvZ28=`;
+    this.listeners.load?.();
+  }
+}
+
+globalThis.FileReader = TestFileReader;
+
+try {
+  store.clear();
+  const logoChangeWorkspace = createWorkspace();
+  initEmpresaConfigModule(logoChangeWorkspace);
+  await dispatchLogoChange(
+    logoChangeWorkspace,
+    { type: 'image/png', size: 1024 },
+    getValidFormFields({ nomeSistema: 'Caixa Logo', nomeFantasia: 'Loja Logo' })
+  );
+  const logoSettings = getStoredCompanySettings();
+  assert(
+    logoSettings.logoUrl === 'data:image/png;base64,bW9kdWxlLWxvZ28=',
+    'logo file change should persist returned logo URL'
+  );
+  assert(logoSettings.nomeSistema === 'Caixa Logo', 'logo file change should preserve current form settings');
+  assert(
+    logoChangeWorkspace.innerHTML.includes('data:image/png;base64,bW9kdWxlLWxvZ28='),
+    'logo file change should re-render with uploaded logo URL'
+  );
+} finally {
+  globalThis.FileReader = originalFileReader;
+}
+
+store.clear();
+const logoErrorWorkspace = createWorkspace();
+initEmpresaConfigModule(logoErrorWorkspace);
+await dispatchLogoChange(logoErrorWorkspace, { type: 'text/plain', size: 100 });
+assert(logoErrorWorkspace.errorTarget.hidden === false, 'logo upload failure should show the existing error area');
+assert(
+  logoErrorWorkspace.errorTarget.textContent.includes('Arquivo de logo invalido.'),
+  'logo upload failure should write upload error to the existing error area'
 );
 
 console.log('empresa config module ok');

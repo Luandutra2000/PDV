@@ -205,8 +205,12 @@ export function validateLogoFile(file) {
 export function readLogoAsDataUrl(file) {
   validateLogoFile(file);
 
+  if (typeof globalThis.FileReader !== 'function') {
+    throw new Error('Leitura de logo nao esta disponivel neste ambiente.');
+  }
+
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+    const reader = new globalThis.FileReader();
 
     reader.addEventListener('load', () => {
       resolve(String(reader.result || ''));
@@ -227,21 +231,21 @@ export async function uploadCompanyLogo(file, empresaId) {
     return readLogoAsDataUrl(file);
   }
 
-  const client = await getSupabaseClient();
-
-  if (!client?.storage?.from) {
-    return readLogoAsDataUrl(file);
-  }
-
-  const extension = getLogoExtension(file.type);
-  const safeEmpresaId = String(empresaId || 'local-company').trim() || 'local-company';
-  const path = `${safeEmpresaId}/logo-${Date.now()}.${extension}`;
-
   try {
+    const client = await getSupabaseClient();
+
+    if (!client?.storage?.from) {
+      return readLogoAsDataUrl(file);
+    }
+
+    const extension = getLogoExtension(file.type);
+    const safeEmpresaId = sanitizeLogoPathSegment(empresaId);
+    const path = `${safeEmpresaId}/logo-${Date.now()}.${extension}`;
+
     const bucket = client.storage.from('logos');
     const { error } = await bucket.upload(path, file, {
       upsert: true,
-      cacheControl: 3600
+      cacheControl: '3600'
     });
 
     if (error) {
@@ -317,6 +321,14 @@ function onlyDigits(value) {
 
 function getLogoExtension(mimeType) {
   return LOGO_EXTENSIONS_BY_MIME[mimeType] || 'png';
+}
+
+function sanitizeLogoPathSegment(value) {
+  const segment = String(value || '')
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]/g, '-');
+
+  return segment || 'local-company';
 }
 
 function saveCompanySettingsLocalOnly(settings) {

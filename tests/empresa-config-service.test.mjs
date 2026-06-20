@@ -45,6 +45,16 @@ const assertThrows = (callback, expectedMessage, message) => {
   throw new Error(message);
 };
 
+const assertRejects = async (callback, expectedMessage, message) => {
+  try {
+    await callback();
+  } catch (error) {
+    assert(error.message.includes(expectedMessage), `${message}: got "${error.message}"`);
+    return error;
+  }
+  throw new Error(message);
+};
+
 const storage = await import('../src/services/storage.service.js');
 const { STORAGE_KEYS } = await import('../src/database/schema.js');
 const supabaseClient = await import('../src/services/supabase-client.service.js');
@@ -414,5 +424,148 @@ assertThrows(
 );
 
 assert(company.validateLogoFile({ type: 'image/png', size: 1024 }) === true, 'valid logo should pass');
+
+const originalFileReader = globalThis.FileReader;
+
+class TestFileReader {
+  constructor() {
+    this.listeners = {};
+    this.result = '';
+  }
+
+  addEventListener(type, listener) {
+    this.listeners[type] = listener;
+  }
+
+  readAsDataURL(file) {
+    this.result = `data:${file.type};base64,ZmFrZS1sb2dv`;
+    this.listeners.load?.();
+  }
+}
+
+globalThis.FileReader = TestFileReader;
+
+try {
+  const dataUrl = await company.readLogoAsDataUrl({ type: 'image/png', size: 1024 });
+  assert(dataUrl === 'data:image/png;base64,ZmFrZS1sb2dv', 'readLogoAsDataUrl should resolve FileReader data URL');
+
+  globalThis.__PDV_RUNTIME_CONFIG__ = null;
+  supabaseClient.configureSupabaseClientForTests();
+  const localLogoUrl = await company.uploadCompanyLogo({ type: 'image/png', size: 1024 }, 'empresa-local');
+  assert(localLogoUrl === 'data:image/png;base64,ZmFrZS1sb2dv', 'local logo upload fallback should return data URL');
+
+  globalThis.__PDV_RUNTIME_CONFIG__ = {
+    dataProvider: 'supabase',
+    supabaseUrl: 'https://example.supabase.co',
+    supabaseAnonKey: 'anon-key'
+  };
+  supabaseClient.configureSupabaseClientForTests({ client: {} });
+  const noStorageLogoUrl = await company.uploadCompanyLogo({ type: 'image/webp', size: 1024 }, 'empresa-sem-storage');
+  assert(noStorageLogoUrl === 'data:image/webp;base64,ZmFrZS1sb2dv', 'no-storage logo upload fallback should return data URL');
+} finally {
+  supabaseClient.configureSupabaseClientForTests();
+  globalThis.__PDV_RUNTIME_CONFIG__ = null;
+  globalThis.FileReader = originalFileReader;
+}
+
+assertThrows(
+  () => company.readLogoAsDataUrl({ type: 'image/png', size: 1024 }),
+  'Leitura de logo nao esta disponivel neste ambiente.',
+  'missing FileReader should fail clearly'
+);
+
+globalThis.__PDV_RUNTIME_CONFIG__ = {
+  dataProvider: 'supabase',
+  supabaseUrl: 'https://example.supabase.co',
+  supabaseAnonKey: 'anon-key'
+};
+
+let selectedBucket = '';
+let uploadedPath = '';
+let uploadedOptions = null;
+supabaseClient.configureSupabaseClientForTests({
+  client: {
+    storage: {
+      from(bucketName) {
+        selectedBucket = bucketName;
+        return {
+          async upload(path, file, options) {
+            uploadedPath = path;
+            uploadedOptions = options;
+            assert(file.type === 'image/svg+xml', 'upload should receive original logo file');
+            return { error: null };
+          },
+          getPublicUrl(path) {
+            return { data: { publicUrl: `https://cdn.example/${path}` } };
+          }
+        };
+      }
+    }
+  }
+});
+
+try {
+  const publicLogoUrl = await company.uploadCompanyLogo({ type: 'image/svg+xml', size: 1024 }, 'Loja 42/@Filial');
+  assert(selectedBucket === 'logos', 'supabase logo upload should target logos bucket');
+  assert(uploadedPath.startsWith('Loja-42--Filial/logo-'), `supabase logo upload should sanitize path: ${uploadedPath}`);
+  assert(uploadedPath.endsWith('.svg'), 'supabase logo upload should use MIME extension');
+  assert(uploadedOptions.upsert === true, 'supabase logo upload should use upsert');
+  assert(uploadedOptions.cacheControl === '3600', 'supabase logo upload should set cache control');
+  assert(publicLogoUrl === `https://cdn.example/${uploadedPath}`, 'supabase logo upload should return public URL');
+} finally {
+  supabaseClient.configureSupabaseClientForTests();
+  globalThis.__PDV_RUNTIME_CONFIG__ = null;
+}
+
+globalThis.__PDV_RUNTIME_CONFIG__ = {
+  dataProvider: 'supabase',
+  supabaseUrl: 'https://example.supabase.co',
+  supabaseAnonKey: 'anon-key'
+};
+
+supabaseClient.configureSupabaseClientForTests({
+  client: {
+    storage: {
+      from() {
+        return {
+          async upload() {
+            return { error: new Error('bucket denied') };
+          },
+          getPublicUrl() {
+            return { data: { publicUrl: 'https://cdn.example/logo.png' } };
+          }
+        };
+      }
+    }
+  }
+});
+
+try {
+  await assertRejects(
+    () => company.uploadCompanyLogo({ type: 'image/png', size: 1024 }, 'empresa-erro'),
+    'Nao foi possivel enviar logo da empresa.',
+    'upload error should fail with clear company logo error'
+  );
+} finally {
+  supabaseClient.configureSupabaseClientForTests();
+  globalThis.__PDV_RUNTIME_CONFIG__ = null;
+}
+
+globalThis.__PDV_RUNTIME_CONFIG__ = {
+  dataProvider: 'supabase',
+  supabaseUrl: 'https://example.supabase.co',
+  supabaseAnonKey: 'anon-key'
+};
+
+try {
+  await assertRejects(
+    () => company.uploadCompanyLogo({ type: 'image/png', size: 1024 }, 'empresa-client-error'),
+    'Nao foi possivel enviar logo da empresa.',
+    'client acquisition failure should fail with clear company logo error'
+  );
+} finally {
+  supabaseClient.configureSupabaseClientForTests();
+  globalThis.__PDV_RUNTIME_CONFIG__ = null;
+}
 
 console.log('empresa config service ok');
