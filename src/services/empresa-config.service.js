@@ -3,7 +3,9 @@ import { getItem, setItem } from './storage.service.js';
 import { emit } from './event-bus.service.js';
 import { getSupabaseClient } from './supabase-client.service.js';
 import { isSupabaseEnabled } from './app-config.service.js';
+import { getCurrentUser } from './auth.service.js';
 
+const LOCAL_COMPANY_ID = 'local-company';
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const LOGO_MAX_SIZE_BYTES = 2 * 1024 * 1024;
@@ -15,7 +17,7 @@ const LOGO_EXTENSIONS_BY_MIME = {
 };
 const DEFAULT_COMPANY_SETTINGS = {
   id: '',
-  empresaId: 'local-company',
+  empresaId: LOCAL_COMPANY_ID,
   nomeSistema: 'Zelo PDV',
   nomeFantasia: 'Lanchonete',
   razaoSocial: '',
@@ -43,6 +45,8 @@ export function normalizeCompanySettings(input = {}) {
 
   return {
     ...merged,
+    id: String(merged.id || '').trim(),
+    empresaId: String(merged.empresaId || LOCAL_COMPANY_ID).trim() || LOCAL_COMPANY_ID,
     nomeSistema: String(merged.nomeSistema || '').trim(),
     nomeFantasia: String(merged.nomeFantasia || '').trim(),
     razaoSocial: String(merged.razaoSocial || '').trim(),
@@ -121,41 +125,49 @@ export function applyCompanyIdentity(input = loadCompanySettingsLocal()) {
 
 export async function loadCompanySettings() {
   const localSettings = loadCompanySettingsLocal();
+  const empresaId = resolveCompanyEmpresaId(localSettings.empresaId);
+  const scopedLocalSettings = normalizeCompanySettings({
+    ...localSettings,
+    empresaId
+  });
 
   if (!isSupabaseEnabled()) {
-    return localSettings;
+    return scopedLocalSettings;
   }
 
   try {
     const client = await getSupabaseClient();
 
     if (!client) {
-      return localSettings;
+      return scopedLocalSettings;
     }
 
     const { data, error } = await client
       .from('empresa_configuracoes')
       .select('*')
-      .eq('empresa_id', localSettings.empresaId)
+      .eq('empresa_id', empresaId)
       .maybeSingle();
 
     if (error) {
       console.warn('Nao foi possivel carregar configuracoes da empresa.', error);
-      return localSettings;
+      return scopedLocalSettings;
     }
 
-    const settings = data ? unmapCompanySettings(data) : localSettings;
+    const settings = data ? unmapCompanySettings(data) : scopedLocalSettings;
     setItem(STORAGE_KEYS.companySettings, settings);
     applyCompanyIdentity(settings);
     return settings;
   } catch (error) {
     console.warn('Nao foi possivel carregar configuracoes da empresa.', error);
-    return localSettings;
+    return scopedLocalSettings;
   }
 }
 
 export async function saveCompanySettings(input) {
-  const settings = validateCompanySettings(input);
+  const settings = validateCompanySettings({
+    ...input,
+    empresaId: resolveCompanyEmpresaId(input?.empresaId)
+  });
 
   if (!isSupabaseEnabled()) {
     return saveCompanySettingsLocalOnly(settings);
@@ -226,6 +238,7 @@ export function readLogoAsDataUrl(file) {
 
 export async function uploadCompanyLogo(file, empresaId) {
   validateLogoFile(file);
+  const resolvedEmpresaId = resolveCompanyEmpresaId(empresaId);
 
   if (!isSupabaseEnabled()) {
     return readLogoAsDataUrl(file);
@@ -239,7 +252,7 @@ export async function uploadCompanyLogo(file, empresaId) {
     }
 
     const extension = getLogoExtension(file.type);
-    const safeEmpresaId = sanitizeLogoPathSegment(empresaId);
+    const safeEmpresaId = sanitizeLogoPathSegment(resolvedEmpresaId);
     const path = `${safeEmpresaId}/logo-${Date.now()}.${extension}`;
 
     const bucket = client.storage.from('logos');
@@ -287,7 +300,7 @@ export function mapCompanySettings(settings) {
 export function unmapCompanySettings(row = {}) {
   return normalizeCompanySettings({
     id: row.id || '',
-    empresaId: row.empresa_id || 'local-company',
+    empresaId: row.empresa_id || LOCAL_COMPANY_ID,
     nomeSistema: row.nome_sistema,
     nomeFantasia: row.nome_fantasia,
     razaoSocial: row.razao_social,
@@ -328,9 +341,21 @@ function sanitizeLogoPathSegment(value) {
     .trim()
     .replace(/[^a-zA-Z0-9_-]/g, '-');
 
-  return segment || 'local-company';
+  return segment || LOCAL_COMPANY_ID;
 }
 
 function saveCompanySettingsLocalOnly(settings) {
   return { ...saveCompanySettingsLocal(settings), syncStatus: 'local-only' };
+}
+
+function resolveCompanyEmpresaId(value) {
+  const candidate = String(value || '').trim();
+
+  if (candidate && candidate !== LOCAL_COMPANY_ID) {
+    return candidate;
+  }
+
+  const currentUserEmpresaId = String(getCurrentUser()?.empresaId || '').trim();
+
+  return currentUserEmpresaId || LOCAL_COMPANY_ID;
 }

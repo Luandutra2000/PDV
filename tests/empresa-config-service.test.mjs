@@ -116,8 +116,23 @@ const localAsyncSaved = await company.saveCompanySettings({
 });
 assert(localAsyncSaved.syncStatus === 'local-only', 'local async save should mark local-only status');
 
-const scopedLocal = company.saveCompanySettingsLocal({
-  empresaId: 'empresa-42',
+const currentEmpresaId = '11111111-1111-4111-8111-111111111111';
+storage.setItem(STORAGE_KEYS.users, [{
+  id: 'user-company-settings',
+  name: 'Dono da Loja',
+  username: 'dono@example.com',
+  password: '',
+  role: 'dono',
+  empresaId: currentEmpresaId,
+  active: true
+}]);
+storage.setItem(STORAGE_KEYS.currentSession, {
+  userId: 'user-company-settings',
+  startedAt: '2026-06-20T12:00:00.000Z'
+});
+
+company.saveCompanySettingsLocal({
+  empresaId: 'local-company',
   nomeSistema: 'Loja Escopada',
   nomeFantasia: 'Filial 42',
   corPrimaria: '#0f766e',
@@ -147,7 +162,7 @@ supabaseClient.configureSupabaseClientForTests({
             maybeSingle() {
               return {
                 data: {
-                  empresa_id: 'empresa-42',
+                  empresa_id: currentEmpresaId,
                   nome_sistema: 'Loja Remota',
                   nome_fantasia: 'Filial Remota',
                   cor_primaria: '#0f766e',
@@ -168,8 +183,8 @@ try {
   const remoteLoaded = await company.loadCompanySettings();
   assert(remoteLoaded.nomeSistema === 'Loja Remota', 'supabase load should return remote settings');
   assert(
-    loadFilters.some(([column, value]) => column === 'empresa_id' && value === scopedLocal.empresaId),
-    'supabase load should filter by normalized local empresaId'
+    loadFilters.some(([column, value]) => column === 'empresa_id' && value === currentEmpresaId),
+    'supabase load should filter by the logged-in user empresaId when local settings are unscoped'
   );
 } finally {
   supabaseClient.configureSupabaseClientForTests();
@@ -512,6 +527,42 @@ try {
   assert(uploadedOptions.upsert === true, 'supabase logo upload should use upsert');
   assert(uploadedOptions.cacheControl === '3600', 'supabase logo upload should set cache control');
   assert(publicLogoUrl === `https://cdn.example/${uploadedPath}`, 'supabase logo upload should return public URL');
+} finally {
+  supabaseClient.configureSupabaseClientForTests();
+  globalThis.__PDV_RUNTIME_CONFIG__ = null;
+}
+
+globalThis.__PDV_RUNTIME_CONFIG__ = {
+  dataProvider: 'supabase',
+  supabaseUrl: 'https://example.supabase.co',
+  supabaseAnonKey: 'anon-key'
+};
+
+uploadedPath = '';
+supabaseClient.configureSupabaseClientForTests({
+  client: {
+    storage: {
+      from() {
+        return {
+          async upload(path) {
+            uploadedPath = path;
+            return { error: null };
+          },
+          getPublicUrl(path) {
+            return { data: { publicUrl: `https://cdn.example/${path}` } };
+          }
+        };
+      }
+    }
+  }
+});
+
+try {
+  await company.uploadCompanyLogo({ type: 'image/png', size: 1024 }, 'local-company');
+  assert(
+    uploadedPath.startsWith(`${currentEmpresaId}/logo-`),
+    `supabase logo upload should use logged-in empresaId instead of local-company: ${uploadedPath}`
+  );
 } finally {
   supabaseClient.configureSupabaseClientForTests();
   globalThis.__PDV_RUNTIME_CONFIG__ = null;

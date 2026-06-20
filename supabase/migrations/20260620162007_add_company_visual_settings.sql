@@ -142,6 +142,9 @@ create policy "company settings managers upsert own settings" on public.empresa_
     )
   );
 
+-- Logos are public brand assets so the PWA can render them by URL without
+-- refreshing signed links. Write policies below still restrict upload and
+-- changes to managers from the matching empresa_id folder.
 insert into storage.buckets (id, name, public)
 values ('logos', 'logos', true)
 on conflict (id) do update set
@@ -149,18 +152,6 @@ on conflict (id) do update set
   public = excluded.public;
 
 drop policy if exists "company users read own logos" on storage.objects;
-create policy "company users read own logos" on storage.objects
-  for select to authenticated
-  using (
-    bucket_id = 'logos'
-    and exists (
-      select 1
-      from public.profiles p
-      where p.id = (select auth.uid())
-        and p.is_active = true
-        and (storage.foldername(name))[1] = p.empresa_id::text
-    )
-  );
 
 drop policy if exists "company settings managers insert own logos" on storage.objects;
 create policy "company settings managers insert own logos" on storage.objects

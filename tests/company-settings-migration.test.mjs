@@ -49,6 +49,16 @@ assert(
 );
 
 assert(
+  normalizedSql.includes('logos are public brand assets'),
+  'migration should document why logo URLs are public'
+);
+
+assert(
+  !normalizedSql.includes('create policy "company users read own logos"'),
+  'public logos bucket should not rely on an ineffective read isolation policy'
+);
+
+assert(
   normalizedSql.includes('alter column empresa_id set default'),
   'profiles.empresa_id should have a default for future profile inserts'
 );

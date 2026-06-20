@@ -277,7 +277,11 @@ supabaseClient.configureSupabaseClientForTests({
     },
     from(table) {
       return {
-        select() {
+        select(columns) {
+          if (table === 'profiles') {
+            assert(columns.includes('empresa_id'), 'supabase profile load should select empresa_id');
+          }
+
           return {
             eq(column, value) {
               if (table === 'profiles') {
@@ -288,6 +292,7 @@ supabaseClient.configureSupabaseClientForTests({
                         id: value,
                         name: 'Luan Gerente',
                         role_id: 'gerente',
+                        empresa_id: '11111111-1111-4111-8111-111111111111',
                         is_active: true
                       },
                       error: null
@@ -336,6 +341,10 @@ assert(supabaseSessionPayload.refresh_token === 'refresh-token', 'supabase login
 assert(supabaseSession.user.username === 'luandutra27@gmail.com', 'supabase login should create local session user');
 assert(supabaseSession.user.name === 'Luan Gerente', 'supabase login should load profile name from database');
 assert(supabaseSession.user.role === 'gerente', 'supabase login should load profile role from database');
+assert(
+  supabaseSession.user.empresaId === '11111111-1111-4111-8111-111111111111',
+  'supabase login should persist profile empresa_id on the local user'
+);
 assert(auth.getCurrentUser().id === 'supabase-user', 'supabase login should persist local current session');
 assert(storedSupabaseSession.accessToken === 'access-token', 'supabase login should persist current session access token');
 assert(storedSupabaseSession.refreshToken === 'refresh-token', 'supabase login should persist current session refresh token');

@@ -242,6 +242,7 @@ async function ensureSupabaseLocalSession(authUser, authSession = null) {
     username: email,
     password: existingUser?.password || '',
     role: normalizeRoleLocal(profile.role_id),
+    empresaId: profile.empresa_id || existingUser?.empresaId || '',
     active: profile.active !== false,
     createdAt: existingUser?.createdAt || now,
     updatedAt: now
@@ -284,7 +285,7 @@ async function loadSupabaseProfile(userId) {
 
   const query = client
     .from('profiles')
-    .select('id,name,role_id,is_active')
+    .select('id,name,role_id,is_active,empresa_id')
     .eq('id', userId);
   const result = typeof query.maybeSingle === 'function'
     ? await query.maybeSingle()
