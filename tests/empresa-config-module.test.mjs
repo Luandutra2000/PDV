@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 const store = new Map();
 
@@ -45,6 +46,7 @@ const {
 } = await import('../src/services/empresa-config.service.js');
 
 const logoFileInputPattern = /<input\b(?=[^>]*type="file")(?=[^>]*data-field="logoFile")(?=[^>]*disabled)[^>]*>/s;
+const empresaConfigCss = readFileSync(new URL('../src/styles/empresa-config.css', import.meta.url), 'utf8');
 
 function createWorkspace() {
   const listeners = {};
@@ -151,6 +153,18 @@ assert(
 assert(logoFileInputPattern.test(workspace.innerHTML), 'logo file input should exist and stay disabled until upload task');
 assert(workspace.innerHTML.includes('data-action="restore-defaults"'), 'should render restore defaults action');
 assert(workspace.innerHTML.includes('data-action="remove-logo"'), 'should render remove logo action');
+assert(
+  /\.empresa-config-preview__brand\s*{[^}]*min-width:\s*0;/s.test(empresaConfigCss),
+  'preview brand row should be allowed to shrink inside the preview card'
+);
+assert(
+  /\.empresa-config-preview__brand\s*>\s*div\s*{[^}]*min-width:\s*0;[^}]*overflow:\s*hidden;/s.test(empresaConfigCss),
+  'preview brand text container should clip long company names'
+);
+assert(
+  /\.empresa-config-preview__brand\s+(?:strong|span),[\s\S]*?\.empresa-config-preview__brand\s+(?:strong|span)\s*{[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/s.test(empresaConfigCss),
+  'preview brand text should truncate instead of overflowing'
+);
 
 store.clear();
 saveCompanySettingsLocal({
