@@ -16,6 +16,7 @@ import { initCaixaModule } from './modules/caixa/caixa.module.js';
 import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js?v=20260608-15';
 import { initPessoasModule } from './modules/pessoas/pessoas.module.js';
 import { initDespesasModule } from './modules/despesas/despesas.module.js';
+import { initEmpresaConfigModule } from './modules/empresa-config/empresa-config.module.js';
 import { formatCurrency } from './utils/currency.js';
 import { initNotificationService } from './services/notification.service.js';
 import { initRealtimeService } from './services/realtime.service.js';
@@ -23,6 +24,7 @@ import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.
 import { getDailyMoneySummary } from './services/transaction.service.js';
 import { getCurrentUser, login, logout } from './services/auth.service.js';
 import { hasPermission } from './services/permission.service.js';
+import { applyCompanyIdentity, loadCompanySettings } from './services/empresa-config.service.js';
 import { renderLoginModule } from './modules/auth/login.module.js';
 import { on } from './services/event-bus.service.js';
 import { UI_EVENTS } from './database/schema.js';
@@ -36,7 +38,8 @@ const routes = {
   relatorios: renderRelatoriosModule,
   mobile: initMobileDashboardModule,
   pessoas: initPessoasModule,
-  despesas: initDespesasModule
+  despesas: initDespesasModule,
+  'empresa-config': initEmpresaConfigModule
 };
 
 const routePermissions = {
@@ -48,7 +51,8 @@ const routePermissions = {
   relatorios: 'reports.view',
   mobile: 'owner_app.view',
   pessoas: ['users.manage', 'users.edit', 'users.delete', 'permissions.manage', 'audit.view'],
-  despesas: 'financial.expense.access'
+  despesas: 'financial.expense.access',
+  'empresa-config': 'company_settings.manage'
 };
 
 const AUTH_SESSION_VERSION = '20260602-01-login-boot';
@@ -89,10 +93,12 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   initSyncService();
   initRealtimeService();
   initNotificationService(document.querySelector('.toast-root'));
+  const companySettings = await loadCompanySettings();
+  applyCompanyIdentity(companySettings);
 
   app.innerHTML = `
     <div class="pdv-layout">
-      ${renderSidebar(currentUser)}
+      ${renderSidebar(currentUser, companySettings)}
       <section class="workspace">
         <header class="topbar">
           <div class="cash-strip" aria-label="Resumo do caixa" data-cash-strip></div>

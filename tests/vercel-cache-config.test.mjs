@@ -25,7 +25,7 @@ assert(indexHtml.includes('Nao foi possivel iniciar o PDV.'), 'startup should sh
 assert(indexHtml.includes('Nao foi possivel limpar service workers antigos.'), 'startup should not block app boot when browser cache cleanup fails');
 assert(serviceWorkerJs.includes('pdv-v59'), 'service worker cache name should change when app modules change');
 assert(serviceWorkerJs.includes('./src/app.js?v=20260618-02'), 'service worker should precache the latest app entrypoint');
-assert(!serviceWorkerJs.includes('./src/app.js?v=20260602-06'), 'service worker should not keep the stale app entrypoint');
+assert(!serviceWorkerJs.includes('./src/app.js?v=20260610-03'), 'service worker should not keep the stale app entrypoint');
 assert(indexHtml.includes('clearStaleClientCaches'), 'stale app caches should be cleared before boot');
 assert(indexHtml.includes('LOCAL_CACHE_VERSION'), 'local development cache clearing should be versioned');
 assert(!indexHtml.includes('await new Promise(() => {})'), 'local cache clearing should not block app boot');
