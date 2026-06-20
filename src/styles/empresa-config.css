@@ -1,0 +1,187 @@
+.empresa-config-screen {
+  gap: 20px;
+}
+
+.empresa-config-header {
+  align-items: flex-start;
+}
+
+.empresa-config-form {
+  display: grid;
+  gap: 16px;
+}
+
+.empresa-config-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.empresa-config-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--surface-color, #ffffff);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.empresa-config-card header {
+  display: grid;
+  gap: 4px;
+}
+
+.empresa-config-card header span {
+  color: var(--muted-color, #64748b);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.empresa-config-card header strong {
+  color: var(--text-color, #0f172a);
+  font-size: 1rem;
+}
+
+.empresa-config-logo-field input[type="file"] {
+  padding: 10px;
+}
+
+.empresa-config-logo-preview {
+  display: grid;
+  min-height: 96px;
+  place-items: center;
+  border: 1px dashed var(--border-color, #cbd5e1);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.empresa-config-logo-image {
+  display: block;
+  width: min(160px, 100%);
+  max-height: 84px;
+  object-fit: contain;
+}
+
+.empresa-config-logo-empty {
+  display: grid;
+  width: 84px;
+  height: 84px;
+  place-items: center;
+  border-radius: 8px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.empresa-config-color-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.empresa-config-color-field input[type="color"] {
+  min-height: 44px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.empresa-config-two-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.empresa-config-preview-card {
+  align-self: stretch;
+}
+
+.empresa-config-preview {
+  display: grid;
+  gap: 14px;
+  overflow: hidden;
+  border: 1px solid var(--preview-accent);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.empresa-config-preview__bar {
+  height: 10px;
+  background: linear-gradient(90deg, var(--preview-primary), var(--preview-secondary));
+}
+
+.empresa-config-preview__brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 0 14px;
+}
+
+.empresa-config-preview__brand .empresa-config-logo-empty,
+.empresa-config-preview__brand .empresa-config-logo-image {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  max-height: 56px;
+}
+
+.empresa-config-preview__brand strong,
+.empresa-config-preview__brand span,
+.empresa-config-preview__body span,
+.empresa-config-preview__body small {
+  display: block;
+}
+
+.empresa-config-preview__brand strong {
+  color: var(--preview-secondary);
+  font-size: 1.1rem;
+}
+
+.empresa-config-preview__brand span {
+  color: #475569;
+}
+
+.empresa-config-preview__body {
+  display: grid;
+  gap: 4px;
+  margin: 0 14px 14px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--preview-accent);
+  color: #334155;
+}
+
+.empresa-config-preview__body small {
+  color: #64748b;
+}
+
+.empresa-config-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 14px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--surface-color, #ffffff);
+}
+
+@media (max-width: 900px) {
+  .empresa-config-grid,
+  .empresa-config-two-columns,
+  .empresa-config-color-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .empresa-config-actions {
+    justify-content: stretch;
+  }
+
+  .empresa-config-actions .button {
+    width: 100%;
+  }
+}
