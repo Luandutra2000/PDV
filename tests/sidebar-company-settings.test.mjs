@@ -44,4 +44,24 @@ const operatorHtml = renderSidebar({ id: 'op-1', role: 'operador', active: true 
 
 assert(!operatorHtml.includes('data-menu-id="empresa-config"'), 'operator should not see company settings menu item');
 
+const maliciousHtml = renderSidebar(admin, {
+  nomeSistema: '<img src=x onerror=alert(1)>',
+  nomeFantasia: '<script>alert(1)</script>',
+  logoUrl: 'x" onerror="alert(1)'
+});
+
+assert(!maliciousHtml.includes('<img src=x onerror=alert(1)>'), 'sidebar should not render raw system name tags');
+assert(!maliciousHtml.includes('<script>alert(1)</script>'), 'sidebar should not render raw company name scripts');
+assert(!maliciousHtml.includes('onerror="alert(1)'), 'sidebar should not render injected logo attributes');
+assert(
+  maliciousHtml.includes('&lt;img src=x onerror=alert(1)&gt;'),
+  'sidebar should escape configured system name text'
+);
+assert(
+  maliciousHtml.includes('&lt;script&gt;alert(1)&lt;/script&gt;'),
+  'sidebar should escape configured company name text'
+);
+assert(maliciousHtml.includes('class="sidebar__badge"'), 'invalid logo should fall back to PDV badge');
+assert(!maliciousHtml.includes('class="sidebar__logo"'), 'invalid logo should not render image tag');
+
 console.log('sidebar company settings ok');

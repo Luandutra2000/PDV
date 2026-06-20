@@ -40,11 +40,9 @@ const menuGroups = [
 ];
 
 export function renderSidebar(currentUser, companySettings = {}) {
-  const systemName = companySettings.nomeSistema || 'Zelo PDV';
-  const companyName = companySettings.nomeFantasia || 'Lanchonete';
-  const logo = companySettings.logoUrl
-    ? `<img class="sidebar__logo" src="${companySettings.logoUrl}" alt="">`
-    : '<span class="sidebar__badge">PDV</span>';
+  const systemName = escapeHtml(companySettings.nomeSistema || 'Zelo PDV');
+  const companyName = escapeHtml(companySettings.nomeFantasia || 'Lanchonete');
+  const logo = renderLogo(companySettings.logoUrl);
 
   const visibleGroups = menuGroups.map((group) => ({
     ...group,
@@ -88,4 +86,42 @@ function hasAnyPermission(currentUser, permission) {
   }
 
   return hasPermission(currentUser, permission);
+}
+
+function renderLogo(logoUrl) {
+  if (!isAllowedLogoUrl(logoUrl)) {
+    return '<span class="sidebar__badge">PDV</span>';
+  }
+
+  return `<img class="sidebar__logo" src="${escapeHtml(logoUrl.trim())}" alt="">`;
+}
+
+function isAllowedLogoUrl(logoUrl) {
+  if (!logoUrl || typeof logoUrl !== 'string') {
+    return false;
+  }
+
+  const value = logoUrl.trim();
+  const allowedDataImagePattern = /^data:image\/(?:png|jpe?g|webp|svg\+xml);base64,[A-Za-z0-9+/]+={0,2}$/i;
+
+  if (allowedDataImagePattern.test(value)) {
+    return true;
+  }
+
+  try {
+    const parsedUrl = new URL(value);
+    return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+  } catch (error) {
+    return false;
+  }
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character]);
 }
