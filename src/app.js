@@ -55,7 +55,7 @@ const routePermissions = {
   'empresa-config': 'company_settings.manage'
 };
 
-const AUTH_SESSION_VERSION = '20260602-01-login-boot';
+const AUTH_SESSION_VERSION = '20260620-02-company-profile';
 
 async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   ensureSeedData();
