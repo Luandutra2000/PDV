@@ -48,4 +48,26 @@ assert(
   'migration should use WITH CHECK for writes'
 );
 
+assert(
+  normalizedSql.includes('alter column empresa_id set default'),
+  'profiles.empresa_id should have a default for future profile inserts'
+);
+
+const optionalCompanySettingsFields = [
+  'razao_social',
+  'cnpj',
+  'telefone',
+  'whatsapp',
+  'email',
+  'endereco',
+  'logo_url'
+];
+
+for (const field of optionalCompanySettingsFields) {
+  assert(
+    !new RegExp(`${field}\\s+text\\s+not\\s+null`).test(normalizedSql),
+    `empresa_configuracoes.${field} should be nullable`
+  );
+}
+
 console.log('company settings migration ok');

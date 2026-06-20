@@ -21,6 +21,7 @@ update public.profiles
 set empresa_id = '00000000-0000-0000-0000-000000000001'
 where empresa_id is null;
 
+alter table public.profiles alter column empresa_id set default '00000000-0000-0000-0000-000000000001';
 alter table public.profiles alter column empresa_id set not null;
 
 create table if not exists public.empresa_configuracoes (
@@ -28,13 +29,13 @@ create table if not exists public.empresa_configuracoes (
   empresa_id uuid not null unique references public.empresas(id) on delete cascade,
   nome_sistema text not null default 'PVD Lanchonete',
   nome_fantasia text not null default 'Lanchonete',
-  razao_social text not null default '',
-  cnpj text not null default '',
-  telefone text not null default '',
-  whatsapp text not null default '',
-  email text not null default '',
-  endereco text not null default '',
-  logo_url text not null default '',
+  razao_social text,
+  cnpj text,
+  telefone text,
+  whatsapp text,
+  email text,
+  endereco text,
+  logo_url text,
   cor_primaria text not null default '#2563eb' check (cor_primaria ~ '^#[0-9a-fA-F]{6}$'),
   cor_secundaria text not null default '#0f172a' check (cor_secundaria ~ '^#[0-9a-fA-F]{6}$'),
   cor_destaque text not null default '#f97316' check (cor_destaque ~ '^#[0-9a-fA-F]{6}$'),
