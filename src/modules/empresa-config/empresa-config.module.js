@@ -1,7 +1,7 @@
 import {
+  getDefaultCompanySettings,
   loadCompanySettingsLocal,
   saveCompanySettings,
-  resetCompanySettingsLocal,
   validateCompanySettings
 } from '../../services/empresa-config.service.js';
 
@@ -122,13 +122,13 @@ function bindEmpresaConfigEvents(workspace) {
   workspace.addEventListener('click', async (event) => {
     const actionButton = event.target.closest('[data-action]');
 
-    if (!actionButton) {
+    if (!actionButton || !actionButton.closest('[data-empresa-config-screen]')) {
       return;
     }
 
     try {
       if (actionButton.dataset.action === 'restore-defaults') {
-        resetCompanySettingsLocal();
+        await saveCompanySettings(getRestoreDefaultsPayload());
         renderEmpresaConfigScreen(workspace);
       }
 
@@ -141,6 +141,17 @@ function bindEmpresaConfigEvents(workspace) {
       showError(workspace, error.message || 'Nao foi possivel atualizar as configuracoes.');
     }
   });
+}
+
+function getRestoreDefaultsPayload() {
+  const currentSettings = loadCompanySettingsLocal();
+  const defaultSettings = getDefaultCompanySettings();
+
+  return {
+    ...defaultSettings,
+    id: currentSettings.id || defaultSettings.id,
+    empresaId: currentSettings.empresaId || defaultSettings.empresaId
+  };
 }
 
 function renderTextField(name, label, value, placeholder = '', required = false, type = 'text') {
