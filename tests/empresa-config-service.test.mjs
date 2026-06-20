@@ -401,4 +401,18 @@ try {
   globalThis.__PDV_RUNTIME_CONFIG__ = null;
 }
 
+assertThrows(
+  () => company.validateLogoFile({ type: 'text/plain', size: 100 }),
+  'Arquivo de logo invalido.',
+  'invalid logo type should fail'
+);
+
+assertThrows(
+  () => company.validateLogoFile({ type: 'image/png', size: 3 * 1024 * 1024 }),
+  'Logo deve ter no maximo 2 MB.',
+  'oversized logo should fail'
+);
+
+assert(company.validateLogoFile({ type: 'image/png', size: 1024 }) === true, 'valid logo should pass');
+
 console.log('empresa config service ok');

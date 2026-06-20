@@ -6,6 +6,13 @@ import { isSupabaseEnabled } from './app-config.service.js';
 
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const LOGO_MAX_SIZE_BYTES = 2 * 1024 * 1024;
+const LOGO_EXTENSIONS_BY_MIME = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+  'image/svg+xml': 'svg'
+};
 const DEFAULT_COMPANY_SETTINGS = {
   id: '',
   empresaId: 'local-company',
@@ -183,6 +190,77 @@ export async function saveCompanySettings(input) {
   }
 }
 
+export function validateLogoFile(file) {
+  if (!file || !LOGO_EXTENSIONS_BY_MIME[file.type]) {
+    throw new Error('Arquivo de logo invalido.');
+  }
+
+  if (Number(file.size || 0) > LOGO_MAX_SIZE_BYTES) {
+    throw new Error('Logo deve ter no maximo 2 MB.');
+  }
+
+  return true;
+}
+
+export function readLogoAsDataUrl(file) {
+  validateLogoFile(file);
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.addEventListener('load', () => {
+      resolve(String(reader.result || ''));
+    });
+
+    reader.addEventListener('error', () => {
+      reject(new Error('Nao foi possivel ler o arquivo de logo.'));
+    });
+
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function uploadCompanyLogo(file, empresaId) {
+  validateLogoFile(file);
+
+  if (!isSupabaseEnabled()) {
+    return readLogoAsDataUrl(file);
+  }
+
+  const client = await getSupabaseClient();
+
+  if (!client?.storage?.from) {
+    return readLogoAsDataUrl(file);
+  }
+
+  const extension = getLogoExtension(file.type);
+  const safeEmpresaId = String(empresaId || 'local-company').trim() || 'local-company';
+  const path = `${safeEmpresaId}/logo-${Date.now()}.${extension}`;
+
+  try {
+    const bucket = client.storage.from('logos');
+    const { error } = await bucket.upload(path, file, {
+      upsert: true,
+      cacheControl: 3600
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    const publicUrlResult = bucket.getPublicUrl(path);
+    const publicUrl = publicUrlResult?.data?.publicUrl || '';
+
+    if (!publicUrl) {
+      throw new Error('URL publica do logo nao foi retornada.');
+    }
+
+    return publicUrl;
+  } catch (error) {
+    throw new Error(`Nao foi possivel enviar logo da empresa. ${error.message || ''}`.trim());
+  }
+}
+
 export function mapCompanySettings(settings) {
   return {
     id: settings.id || undefined,
@@ -235,6 +313,10 @@ function assertHex(value, message) {
 
 function onlyDigits(value) {
   return String(value || '').replace(/\D/g, '');
+}
+
+function getLogoExtension(mimeType) {
+  return LOGO_EXTENSIONS_BY_MIME[mimeType] || 'png';
 }
 
 function saveCompanySettingsLocalOnly(settings) {

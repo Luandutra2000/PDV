@@ -2,6 +2,7 @@ import {
   getDefaultCompanySettings,
   loadCompanySettingsLocal,
   saveCompanySettings,
+  uploadCompanyLogo,
   validateCompanySettings
 } from '../../services/empresa-config.service.js';
 
@@ -42,7 +43,7 @@ function renderEmpresaConfigScreen(workspace) {
 
             <label class="field-group empresa-config-logo-field">
               <span>Logo da empresa</span>
-              <input class="field" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-field="logoFile" title="Upload sera habilitado na etapa de logo" aria-label="Logo da empresa. Upload sera habilitado na etapa de logo" disabled>
+              <input class="field" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-field="logoFile" aria-label="Logo da empresa">
             </label>
 
             <div class="empresa-config-logo-preview">
@@ -139,6 +140,28 @@ function bindEmpresaConfigEvents(workspace) {
       }
     } catch (error) {
       showError(workspace, error.message || 'Nao foi possivel atualizar as configuracoes.');
+    }
+  });
+
+  workspace.addEventListener('change', async (event) => {
+    if (!event.target.matches('[data-field="logoFile"]')) {
+      return;
+    }
+
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const form = event.target.closest?.('[data-company-settings-form]');
+      const currentSettings = form ? collectSettings(form) : loadCompanySettingsLocal();
+      const logoUrl = await uploadCompanyLogo(file, currentSettings.empresaId);
+      await saveCompanySettings({ ...currentSettings, logoUrl });
+      renderEmpresaConfigScreen(workspace);
+    } catch (error) {
+      showError(workspace, error.message || 'Nao foi possivel enviar o logo.');
     }
   });
 }

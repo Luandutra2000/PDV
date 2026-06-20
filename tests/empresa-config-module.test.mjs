@@ -45,7 +45,7 @@ const {
   saveCompanySettingsLocal
 } = await import('../src/services/empresa-config.service.js');
 
-const logoFileInputPattern = /<input\b(?=[^>]*type="file")(?=[^>]*data-field="logoFile")(?=[^>]*disabled)[^>]*>/s;
+const logoFileInputPattern = /<input\b(?=[^>]*type="file")(?=[^>]*data-field="logoFile")[^>]*>/s;
 const empresaConfigCss = readFileSync(new URL('../src/styles/empresa-config.css', import.meta.url), 'utf8');
 
 function createWorkspace() {
@@ -150,7 +150,8 @@ assert(
   workspace.innerHTML.includes('Salvar configurações') || workspace.innerHTML.includes('Salvar configuracoes'),
   'should render save action'
 );
-assert(logoFileInputPattern.test(workspace.innerHTML), 'logo file input should exist and stay disabled until upload task');
+assert(logoFileInputPattern.test(workspace.innerHTML), 'logo file input should exist');
+assert(!/<input\b(?=[^>]*type="file")(?=[^>]*data-field="logoFile")(?=[^>]*disabled)[^>]*>/s.test(workspace.innerHTML), 'logo file input should be enabled');
 assert(workspace.innerHTML.includes('data-action="restore-defaults"'), 'should render restore defaults action');
 assert(workspace.innerHTML.includes('data-action="remove-logo"'), 'should render remove logo action');
 assert(
