@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('sidebar component renders navigation behavior', async () => {
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
@@ -10,3 +13,4 @@ assert(html.includes('data-action="logout"'), 'sidebar exit button should expose
 assert(html.includes('Sair'), 'sidebar should render exit label');
 
 console.log('sidebar component ok');
+});

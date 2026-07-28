@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('auth service preserves authentication behavior', async () => {
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
@@ -34,3 +37,4 @@ assert(currentUser.id === 'user-1', 'current user should come from session');
 await auth.logout();
 
 console.log('auth service ok');
+});

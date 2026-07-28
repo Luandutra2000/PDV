@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('cash closing service handles closing data', async () => {
 const store = new Map();
 
 globalThis.localStorage = {
@@ -131,3 +134,4 @@ assert(afterClosing.length === 1, 'sales after closing should be listed separate
 assert(closing.getCashClosings()[0].totals.sales === confirmed.totals.sales, 'confirmed closing totals should not change after later sale');
 
 console.log('cash closing service ok');
+});

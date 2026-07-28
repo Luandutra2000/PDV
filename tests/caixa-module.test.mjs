@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('caixa module handles its workflow', async () => {
 const store = new Map();
 
 globalThis.localStorage = {
@@ -52,3 +55,4 @@ assert(!uncheckedDifferences.some((difference) => difference.referenceId === 'de
 assert(!uncheckedDifferences.some((difference) => difference.referenceId === 'credito'), 'unchecked credit should not require a reason');
 
 console.log('caixa module ok');
+});

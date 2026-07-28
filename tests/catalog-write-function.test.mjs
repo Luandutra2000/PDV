@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('catalog write function persists protected catalog data', async () => {
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
@@ -44,6 +47,7 @@ const categoryCall = calls.find((call) => call.url.endsWith('/rest/v1/categories
 assert(categoryCall.options.headers.Authorization === 'Bearer service-key', 'catalog writes should use service role');
 
 console.log('catalog write function ok');
+});
 
 function jsonResponse(data, ok = true, status = 200) {
   return {

@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('create user function creates users safely', async () => {
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
@@ -64,6 +67,7 @@ const profileCall = calls.find((call) => call.url.endsWith('/rest/v1/profiles'))
 assert(profileCall.options.headers.Prefer.includes('resolution=merge-duplicates'), 'profile write should upsert');
 
 console.log('create user function ok');
+});
 
 function jsonResponse(data, ok = true, status = 200) {
   return {

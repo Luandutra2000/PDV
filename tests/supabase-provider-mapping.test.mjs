@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('Supabase provider maps data correctly', async () => {
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
@@ -25,3 +28,4 @@ assert(mapped.categoryId === 'lanches', 'product category should map to camel ca
 assert(mapped.favorite === true, 'favorite should map');
 
 console.log('supabase provider mapping ok');
+});

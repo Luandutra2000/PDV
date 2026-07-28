@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('product service manages products', async () => {
 const store = new Map();
 
 globalThis.localStorage = {
@@ -154,3 +157,4 @@ assert(!realFavoritesCategoryResults.some((product) => product.id === aliasProdu
 assert(products.getFavoriteProducts().some((product) => product.id === aliasProduct.id), 'favorite products helper should still return favorite products');
 
 console.log('product service crud ok');
+});

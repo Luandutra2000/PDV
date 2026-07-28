@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('inventory service handles stock data', async () => {
 const store = new Map();
 
 globalThis.localStorage = {
@@ -161,3 +164,4 @@ try {
 assert(rejectedTooLarge, 'write-off should reject quantity greater than available showcase leftover');
 
 console.log('estoque service ok');
+});
