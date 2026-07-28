@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('transaction service handles transactions', async () => {
 const store = new Map();
 
 globalThis.localStorage = {
@@ -207,3 +210,4 @@ assert(movement.category === 'reforco-caixa', 'movement should keep category');
 assert(transactions.getTransactions()[0].id === movement.id, 'movement should be persisted');
 
 console.log('transaction service ok');
+});

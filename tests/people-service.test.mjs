@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('people service manages people data', async () => {
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
@@ -111,3 +114,4 @@ assert(listedPeople.length === 2, 'listPeople should return users from function'
 assert(listedPeople[0].active === true, 'listPeople should map active status');
 
 console.log('people service ok');
+});

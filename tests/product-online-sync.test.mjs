@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('product online sync manages synchronization', async () => {
 const store = new Map();
 
 globalThis.localStorage = {
@@ -115,3 +118,4 @@ await productService.deleteProductOnline('suco');
 assert(functionCalls.some((call) => call.body.resource === 'products' && call.body.action === 'delete' && call.body.id === 'suco'), 'online product delete should call secure product delete function');
 
 console.log('product online sync ok');
+});

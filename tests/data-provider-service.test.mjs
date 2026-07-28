@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('data provider service handles provider data', async () => {
 const store = new Map();
 
 globalThis.localStorage = {
@@ -92,3 +95,4 @@ globalThis.__PDV_RUNTIME_CONFIG__ = { dataProvider: 'local' };
 assert(getDataProvider().mode === 'local', 'resetDataProviderForTests should reset active provider');
 
 console.log('data provider service ok');
+});

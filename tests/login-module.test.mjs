@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('login module handles authentication flow', async () => {
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
@@ -39,3 +42,4 @@ assert(container.innerHTML.includes('Zelo Lanchonete'), 'login should render sto
 assert(listeners.has('[data-login-form]:submit'), 'login should bind submit handler');
 
 console.log('login module ok');
+});

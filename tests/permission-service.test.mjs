@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('permission service enforces permissions', async () => {
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
@@ -22,3 +25,4 @@ permissions.setCurrentProfileForTests({
 assert(permissions.can('users.manage') === true, 'admin wildcard should allow users');
 
 console.log('permission service ok');
+});

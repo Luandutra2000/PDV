@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('catalog read function returns protected catalog data', async () => {
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
@@ -43,6 +46,7 @@ const categoryCall = calls.find((call) => call.url.includes('/rest/v1/categories
 assert(categoryCall.options.headers.Authorization === 'Bearer service-key', 'catalog read should use service role');
 
 console.log('catalog read function ok');
+});
 
 function jsonResponse(data, ok = true, status = 200) {
   return {

@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('crm dashboard service produces its dashboard data', async () => {
 const store = new Map();
 
 globalThis.localStorage = {
@@ -77,3 +80,4 @@ const movements = crm.getFinancialMovements(period);
 assert(movements.length === 4, 'financial movements should include sales, entries and outputs');
 
 console.log('crm dashboard service ok');
+});
