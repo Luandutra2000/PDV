@@ -121,8 +121,9 @@ export function clearComanda() {
 }
 
 export function startNewComanda(number) {
+  const randomValue = globalThis.crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
   const newComanda = {
-    id: `comanda-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    id: `comanda-${Date.now()}-${randomValue}`,
     number,
     status: 'aberta',
     items: [],
