@@ -2,6 +2,15 @@ create extension if not exists "pgcrypto";
 
 create schema if not exists private;
 
+create or replace function private.operator_role_id()
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select 'operador';
+$$;
+
 create table if not exists public.roles (
   id text primary key,
   name text not null,
@@ -22,7 +31,7 @@ create table if not exists public.role_permissions (
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   name text not null,
-  role text not null default 'operador' references public.roles(id),
+  role text not null default private.operator_role_id() references public.roles(id),
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -165,7 +174,7 @@ alter table public.stock_items
 
 insert into public.roles (id, name) values
   ('admin', 'Administrador'),
-  ('operador', 'Operador')
+  (private.operator_role_id(), 'Operador')
 on conflict (id) do update set name = excluded.name;
 
 do $$
@@ -201,12 +210,12 @@ select 'admin', id from public.permissions
 on conflict do nothing;
 
 insert into public.role_permissions (role_id, permission_id) values
-  ('operador', 'cashier.access'),
-  ('operador', 'sale.create'),
-  ('operador', 'cash.movement.create'),
-  ('operador', 'stock.view'),
-  ('operador', 'stock.create'),
-  ('operador', 'products.view')
+  (private.operator_role_id(), 'cashier.access'),
+  (private.operator_role_id(), 'sale.create'),
+  (private.operator_role_id(), 'cash.movement.create'),
+  (private.operator_role_id(), 'stock.view'),
+  (private.operator_role_id(), 'stock.create'),
+  (private.operator_role_id(), 'products.view')
 on conflict do nothing;
 
 create or replace function private.current_profile_is_active()
