@@ -11,6 +11,15 @@ as $$
   select 'operador';
 $$;
 
+create or replace function private.active_status()
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select 'ativa';
+$$;
+
 create table if not exists public.roles (
   id text primary key,
   name text not null,
@@ -61,7 +70,7 @@ create table if not exists public.products (
 
 create table if not exists public.sales (
   id text primary key,
-  status text not null default 'ativa',
+  status text not null default private.active_status(),
   comanda_id text,
   comanda_number integer,
   total numeric(12,2) not null default 0,
@@ -86,7 +95,7 @@ create table if not exists public.sale_items (
 create table if not exists public.cash_movements (
   id text primary key,
   type text not null check (type in ('entrada', 'saida')),
-  status text not null default 'ativa',
+  status text not null default private.active_status(),
   amount numeric(12,2) not null,
   category text not null default 'sem-categoria',
   description text not null default '',
@@ -136,7 +145,7 @@ create table if not exists public.stock_items (
   total_value numeric(12,2) not null,
   reason text not null,
   note text not null default '',
-  status text not null default 'ativa',
+  status text not null default private.active_status(),
   created_by uuid not null default auth.uid() references public.profiles(id),
   created_at timestamptz not null default now()
 );
