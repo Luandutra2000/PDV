@@ -33,16 +33,21 @@ export function getItem(key, fallback = null) {
   }
 
   try {
-    return JSON.parse(rawValue);
+    return JSON.parse(decodeURIComponent(rawValue));
   } catch (error) {
-    console.warn(`Valor local invalido para ${key}. Usando fallback.`, error);
-    return fallback;
+    try {
+      // Mantem compatibilidade com valores gravados antes da codificacao.
+      return JSON.parse(rawValue);
+    } catch {
+      console.warn(`Valor local invalido para ${key}. Usando fallback.`, error);
+      return fallback;
+    }
   }
 }
 
 export function setItem(key, value) {
   const sanitizedValue = sanitizeForStorage(value);
-  localStorage.setItem(key, JSON.stringify(sanitizedValue));
+  localStorage.setItem(key, encodeURIComponent(JSON.stringify(sanitizedValue)));
   return sanitizedValue;
 }
 

@@ -24,4 +24,5 @@ test('storage service sanitizes values before persisting them', async () => {
   assert.equal(savedValue.link, 'alert(1)');
   assert.equal(savedValue.nested[0], 'bseguro/b');
   assert.equal(store.get('pdv.test').includes('<'), false);
+  assert.deepEqual(storage.getItem('pdv.test'), savedValue);
 });
