@@ -108,7 +108,7 @@ export function getCurrentClosingDraft() {
 }
 
 export function confirmClosing(draft) {
-  if (!draft || !draft.payments) {
+  if (!draft?.payments) {
     throw new Error('Rascunho de fechamento invalido.');
   }
 
