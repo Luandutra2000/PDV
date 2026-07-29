@@ -4,7 +4,7 @@ const JSON_HEADERS = {
 
 const VALID_ROLES = new Set(['admin', 'operador']);
 
-export async function handler(event, _context = {}, deps = {}) {
+export async function handler(event, _context, deps = {}) {
   if (event.httpMethod === 'OPTIONS') {
     return json(204, {});
   }
