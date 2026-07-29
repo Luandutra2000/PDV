@@ -217,7 +217,7 @@ function updateSelectedProductFields(select) {
 
 function saveStockLaunch(form, container) {
   const formData = new FormData(form);
-  const produtoId = String(formData.get('produtoId') || '');
+  const produtoId = getTextFormValue(formData, 'produtoId');
   const quantidade = Number(formData.get('quantidade') || 0);
 
   try {
@@ -249,6 +249,11 @@ function saveStockLaunch(form, container) {
       type: 'danger'
     });
   }
+}
+
+function getTextFormValue(formData, fieldName) {
+  const value = formData.get(fieldName);
+  return typeof value === 'string' ? value : '';
 }
 
 function renderStockForm() {
