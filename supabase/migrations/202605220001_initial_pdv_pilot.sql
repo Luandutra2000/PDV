@@ -92,6 +92,15 @@ as $$
   select 'cash.movement.create';
 $$;
 
+create or replace function private.cash_close_permission_id()
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select 'cash.close';
+$$;
+
 create table if not exists public.roles (
   id text primary key,
   name text not null,
@@ -277,7 +286,7 @@ insert into public.permissions (id, description) values
   (private.sale_create_permission_id(), 'Finalizar vendas'),
   (private.sale_cancel_permission_id(), 'Cancelar vendas'),
   (private.cash_movement_create_permission_id(), 'Criar entradas e saidas'),
-  ('cash.close', 'Fechar caixa'),
+  (private.cash_close_permission_id(), 'Fechar caixa'),
   ('stock.view', 'Ver estoque'),
   ('stock.create', 'Criar lancamentos de estoque'),
   (private.products_view_permission_id(), 'Ver produtos'),
@@ -513,11 +522,11 @@ create policy "cash movement creators update cash movements" on public.cash_move
   for update to authenticated using (private.current_profile_has_permission(private.cash_movement_create_permission_id()) and created_by = auth.uid()) with check (private.current_profile_has_permission(private.cash_movement_create_permission_id()) and created_by = auth.uid());
 
 create policy "cash closers or dashboard read cash closings" on public.cash_closings
-  for select to authenticated using (private.current_profile_has_permission(private.dashboard_view_permission_id()) or private.current_profile_has_permission('cash.close'));
+  for select to authenticated using (private.current_profile_has_permission(private.dashboard_view_permission_id()) or private.current_profile_has_permission(private.cash_close_permission_id()));
 create policy "cash closers insert cash closings" on public.cash_closings
-  for insert to authenticated with check (private.current_profile_has_permission('cash.close') and created_by = auth.uid());
+  for insert to authenticated with check (private.current_profile_has_permission(private.cash_close_permission_id()) and created_by = auth.uid());
 create policy "cash closers update cash closings" on public.cash_closings
-  for update to authenticated using (private.current_profile_has_permission('cash.close') and created_by = auth.uid()) with check (private.current_profile_has_permission('cash.close') and created_by = auth.uid());
+  for update to authenticated using (private.current_profile_has_permission(private.cash_close_permission_id()) and created_by = auth.uid()) with check (private.current_profile_has_permission(private.cash_close_permission_id()) and created_by = auth.uid());
 
 create policy "stock viewers read stock production" on public.stock_production
   for select to authenticated using (private.current_profile_has_permission('stock.view'));
