@@ -19,6 +19,7 @@ const files = [
   'src/modules/mobile/mobile-dashboard.module.js',
   'src/modules/pessoas/pessoas.module.js',
   'src/modules/produtos/produtos.module.js',
+  'src/modules/relatorios/relatorios.module.js',
   'src/modules/vendas/vendas.module.js'
 ];
 const riskyProperty = /\$\{[^}\n]*\.(?:name|description|notes|note|reason|categoryName|userName|produtoNome|categoriaNome)\b/;
@@ -31,7 +32,10 @@ files.forEach((relativePath) => {
       riskyProperty.test(line)
       && !line.includes('escapeHtml(')
       && !line.includes('renderTextRow(')
+      && !line.includes('renderAuditSelect(')
       && !line.includes('globalThis.confirm(')
+      && !line.includes('globalThis.window?.confirm(')
+      && !line.includes('globalThis.window.confirm(')
     ) {
       offenders.push(`${relativePath}:${index + 1}`);
     }

@@ -1,21 +1,21 @@
-import { renderOrderPanel } from '../../components/order-panel.component.js';
-import { renderProductCard } from '../../components/product-card.component.js';
-import { renderFechamentoRapidoModal } from '../../components/fechamento-rapido-modal.component.js';
-import { buildClosingSummary, buildShowcaseConference, confirmClosing, saveClosingDraft } from '../../services/cash-closing.service.js';
-import { getActiveComanda, addItem, addItemQuantity, clearComanda, removeItem, updateQuantity } from '../../services/comanda.service.js';
-import { createPeriodFilter, getCrmSummary } from '../../services/crm-dashboard.service.js';
-import { getCategories, getFavoriteProducts, getProductById, searchProducts } from '../../services/product.service.js';
-import { finalizeComandaPayment, getBestSellingProducts, registerCashMovement } from '../../services/transaction.service.js';
-import { formatCurrency } from '../../utils/currency.js';
-import { escapeHtml, qs } from '../../utils/dom.js';
-import { showNotification } from '../../services/notification.service.js';
-import { createShowcaseWriteOff, getTodayShowcaseProducts } from '../../services/estoque.service.js';
-import { getFinancialCategories } from '../../services/financial.service.js';
-import { getShowcaseStockByProductId } from '../../services/showcase-stock.service.js';
-import { on } from '../../services/event-bus.service.js';
-import { UI_EVENTS } from '../../database/schema.js';
-import { getCurrentUser } from '../../services/auth.service.js';
-import { hasPermission } from '../../services/permission.service.js';
+import { renderOrderPanel } from '../../components/order-panel.component.js?v=20260729-12';
+import { renderProductCard } from '../../components/product-card.component.js?v=20260729-12';
+import { renderFechamentoRapidoModal } from '../../components/fechamento-rapido-modal.component.js?v=20260729-12';
+import { buildClosingSummary, buildShowcaseConference, confirmClosing, saveClosingDraft } from '../../services/cash-closing.service.js?v=20260729-12';
+import { getActiveComanda, addItem, addItemQuantity, clearComanda, removeItem, updateQuantity } from '../../services/comanda.service.js?v=20260729-12';
+import { createPeriodFilter, getCrmSummary } from '../../services/crm-dashboard.service.js?v=20260729-12';
+import { getCategories, getFavoriteProducts, getProductById, searchProducts } from '../../services/product.service.js?v=20260729-12';
+import { finalizeComandaPayment, getBestSellingProducts, registerCashMovement } from '../../services/transaction.service.js?v=20260729-12';
+import { formatCurrency } from '../../utils/currency.js?v=20260729-12';
+import { escapeHtml, qs } from '../../utils/dom.js?v=20260729-12';
+import { showNotification } from '../../services/notification.service.js?v=20260729-12';
+import { createShowcaseWriteOff, getTodayShowcaseProducts } from '../../services/estoque.service.js?v=20260729-12';
+import { getFinancialCategories } from '../../services/financial.service.js?v=20260729-12';
+import { getShowcaseStockByProductId } from '../../services/showcase-stock.service.js?v=20260729-12';
+import { on } from '../../services/event-bus.service.js?v=20260729-12';
+import { UI_EVENTS } from '../../database/schema.js?v=20260729-12';
+import { getCurrentUser } from '../../services/auth.service.js?v=20260729-12';
+import { hasPermission } from '../../services/permission.service.js?v=20260729-12';
 
 const CATEGORY_ALL = 'todos';
 const CATEGORY_FAVORITES = '__favoritos';
@@ -108,6 +108,7 @@ function bindEvents(container) {
     const actionButton = event.target.closest('[data-action]');
 
     if (categoryButton) {
+      event.stopPropagation();
       state.categoryId = categoryButton.dataset.categoryId;
       renderCategories(container);
       renderProducts(container);
@@ -153,6 +154,7 @@ function bindEvents(container) {
     }
 
     if (actionButton) {
+      event.stopPropagation();
       handleOrderAction(actionButton, container);
     }
   });
@@ -541,15 +543,16 @@ function renderModal(container) {
   }
 
   if (state.modal === 'quick-closing') {
-    const closingSummary = buildClosingSummary({
+    const summary = getCrmSummary(createPeriodFilter('today'));
+    const closingSummary = buildClosingSummary(buildQuickClosingInput(summary, {
       countedCash: state.quickClosing.countedCash,
       checkedPix: state.quickClosing.checkedPix,
       checkedDebit: state.quickClosing.checkedDebit,
       checkedCredit: state.quickClosing.checkedCredit,
       leftovers: state.quickClosing.leftovers
-    });
+    }));
     target.innerHTML = renderFechamentoRapidoModal({
-      summary: getCrmSummary(createPeriodFilter('today')),
+      summary,
       closingSummary,
       showcase: buildShowcaseConference(state.quickClosing.leftovers),
       state
@@ -613,14 +616,18 @@ function renderSaleSuccessLine(label, value, className = '') {
 
 function confirmQuickClosing(container) {
   try {
-    const draft = saveClosingDraft({
+    const summary = getCrmSummary(createPeriodFilter('today'));
+    const closingInput = buildQuickClosingInput(summary, {
       countedCash: state.quickClosing.countedCash,
       checkedPix: state.quickClosing.checkedPix,
       checkedDebit: state.quickClosing.checkedDebit,
       checkedCredit: state.quickClosing.checkedCredit,
       leftovers: state.quickClosing.leftovers,
-      differences: buildQuickClosingDifferences(),
       note: state.quickClosing.note
+    });
+    const draft = saveClosingDraft({
+      ...closingInput,
+      differences: buildQuickClosingDifferences()
     });
     confirmClosing(draft);
     showNotification({
@@ -643,13 +650,14 @@ function confirmQuickClosing(container) {
 }
 
 function buildQuickClosingDifferences() {
-  const summary = buildClosingSummary({
+  const crmSummary = getCrmSummary(createPeriodFilter('today'));
+  const summary = buildClosingSummary(buildQuickClosingInput(crmSummary, {
     countedCash: state.quickClosing.countedCash,
     checkedPix: state.quickClosing.checkedPix,
     checkedDebit: state.quickClosing.checkedDebit,
     checkedCredit: state.quickClosing.checkedCredit,
     leftovers: state.quickClosing.leftovers
-  });
+  }));
   const differences = [];
 
   if (summary.payments.generalDifference) {
@@ -678,6 +686,22 @@ function buildQuickClosingDifferences() {
   });
 
   return differences;
+}
+
+export function buildQuickClosingInput(summary, input = {}) {
+  return {
+    ...input,
+    expectedCash: normalizeClosingMoney(Number(summary?.paymentTotals?.dinheiro || 0)
+      + Number(summary?.entriesTotal || 0)
+      - Number(summary?.outputsTotal || 0)),
+    expectedPix: normalizeClosingMoney(summary?.paymentTotals?.pix),
+    expectedDebit: normalizeClosingMoney(summary?.paymentTotals?.debito),
+    expectedCredit: normalizeClosingMoney(summary?.paymentTotals?.credito)
+  };
+}
+
+function normalizeClosingMoney(value) {
+  return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
 }
 
 function createEmptyQuickClosing() {

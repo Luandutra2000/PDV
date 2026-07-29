@@ -16,7 +16,7 @@ globalThis.localStorage = {
   }
 };
 
-const storage = await import('../src/services/storage.service.js');
+const storage = await import('../src/services/storage.service.js?v=20260729-12');
 storage.setItem('pdv.users', [{
   id: 'admin-1',
   name: 'Administrador',
@@ -27,7 +27,7 @@ storage.setItem('pdv.users', [{
 }]);
 storage.setItem('pdv.currentSession', { userId: 'admin-1', startedAt: '2026-06-10T10:00:00.000Z' });
 
-const finance = await import('../src/services/financial.service.js');
+const finance = await import('../src/services/financial.service.js?v=20260729-12');
 
 finance.seedFinancialCategories();
 

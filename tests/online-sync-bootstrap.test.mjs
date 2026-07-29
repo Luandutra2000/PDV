@@ -6,12 +6,12 @@ const assert = (condition, message) => {
   }
 };
 
-const appSource = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
-const onlineDataSource = await readFile(new URL('../src/services/online-data.service.js', import.meta.url), 'utf8');
-const dashboardSource = await readFile(new URL('../src/modules/dashboard/dashboard.module.js', import.meta.url), 'utf8');
-const estoqueSource = await readFile(new URL('../src/modules/estoque/estoque.module.js', import.meta.url), 'utf8');
-const mobileSource = await readFile(new URL('../src/modules/mobile/mobile-dashboard.module.js', import.meta.url), 'utf8');
-const supabaseProviderSource = await readFile(new URL('../src/services/providers/supabase.provider.js', import.meta.url), 'utf8');
+const appSource = await readFile(new URL('../src/app.js?v=20260729-12', import.meta.url), 'utf8');
+const onlineDataSource = await readFile(new URL('../src/services/online-data.service.js?v=20260729-12', import.meta.url), 'utf8');
+const dashboardSource = await readFile(new URL('../src/modules/dashboard/dashboard.module.js?v=20260729-12', import.meta.url), 'utf8');
+const estoqueSource = await readFile(new URL('../src/modules/estoque/estoque.module.js?v=20260729-12', import.meta.url), 'utf8');
+const mobileSource = await readFile(new URL('../src/modules/mobile/mobile-dashboard.module.js?v=20260729-12', import.meta.url), 'utf8');
+const supabaseProviderSource = await readFile(new URL('../src/services/providers/supabase.provider.js?v=20260729-12', import.meta.url), 'utf8');
 const realtimeMigration = await readFile(new URL('../supabase/migrations/202606030001_enable_financial_realtime.sql', import.meta.url), 'utf8')
   .catch(() => '');
 

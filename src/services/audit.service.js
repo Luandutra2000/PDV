@@ -1,6 +1,6 @@
-import { STORAGE_KEYS } from '../database/schema.js';
-import { getItem, setItem } from './storage.service.js';
-import { getCurrentUser } from './auth.service.js';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260729-12';
+import { getItem, setItem } from './storage.service.js?v=20260729-12';
+import { getCurrentUser } from './auth.service.js?v=20260729-12';
 
 const REQUIRED_FIELDS_ERROR = 'Acao e tipo da entidade sao obrigatorios.';
 

@@ -1,38 +1,39 @@
-import { UI_EVENTS } from '../../database/schema.js';
-import { on } from '../../services/event-bus.service.js';
+import { UI_EVENTS } from '../../database/schema.js?v=20260729-12';
+import { on } from '../../services/event-bus.service.js?v=20260729-12';
 import {
   createPeriodFilter,
   getCategoryRanking,
   getCrmSummary,
   getProductRanking,
   getSalesSeries
-} from '../../services/crm-dashboard.service.js';
-import { getMobileCashFlowSummary } from '../../services/mobile-cash-flow.service.js';
-import { getMobileClosingSummary, previewMobileClosing, submitMobileClosing } from '../../services/mobile-closing.service.js';
+} from '../../services/crm-dashboard.service.js?v=20260729-12';
+import { getMobileCashFlowSummary } from '../../services/mobile-cash-flow.service.js?v=20260729-12';
+import { getMobileClosingSummary, previewMobileClosing, submitMobileClosing } from '../../services/mobile-closing.service.js?v=20260729-12';
 import {
   createMobileFinancialTransaction,
   getMobileFinancialSummary,
   markMobileFinancialTransactionPaid
-} from '../../services/mobile-financial.service.js';
+} from '../../services/mobile-financial.service.js?v=20260729-12';
 import {
   getMobileFeedEvents,
   getMobileFeedFilters,
   getMobileFeedPeriodFilters
-} from '../../services/mobile-notifications.service.js?v=20260616-04';
-import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js';
+} from '../../services/mobile-notifications.service.js?v=20260729-12';
+import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js?v=20260729-12';
 import {
   createStockLaunch,
   getProductionSalesComparison
-} from '../../services/estoque.service.js';
-import { getShowcaseCategories, getShowcaseProducts, getProductById, syncCatalogNow } from '../../services/product.service.js';
-import { getTransactionSyncStatus } from '../../services/transaction.service.js';
-import { getCatalogSyncStatus } from '../../services/product.service.js';
-import { getCurrentUser, logout } from '../../services/auth.service.js';
-import { hydrateOnlineOperationalData, syncOnlineOperationalData } from '../../services/online-data.service.js';
-import { isSupabaseEnabled } from '../../services/app-config.service.js';
-import { getThemeLabel, toggleTheme } from '../../services/theme.service.js';
-import { formatCurrency } from '../../utils/currency.js';
-import { hasPermission } from '../../services/permission.service.js';
+} from '../../services/estoque.service.js?v=20260729-12';
+import { getShowcaseCategories, getShowcaseProducts, getProductById, syncCatalogNow } from '../../services/product.service.js?v=20260729-12';
+import { getTransactionSyncStatus } from '../../services/transaction.service.js?v=20260729-12';
+import { getCatalogSyncStatus } from '../../services/product.service.js?v=20260729-12';
+import { getCurrentUser, logout } from '../../services/auth.service.js?v=20260729-12';
+import { hydrateOnlineOperationalData, syncOnlineOperationalData } from '../../services/online-data.service.js?v=20260729-12';
+import { isSupabaseEnabled } from '../../services/app-config.service.js?v=20260729-12';
+import { getThemeLabel, toggleTheme } from '../../services/theme.service.js?v=20260729-12';
+import { formatCurrency } from '../../utils/currency.js?v=20260729-12';
+import { hasPermission } from '../../services/permission.service.js?v=20260729-12';
+import { escapeHtml } from '../../utils/dom.js?v=20260729-12';
 
 const tabs = [
   { id: 'home', label: 'Inicio', icon: 'IN' },
@@ -560,8 +561,8 @@ function renderMobileComparisonRow(item) {
   return `
     <article class="mobile-comparison-row ${isExpanded ? 'is-expanded' : ''}">
       <header>
-        <strong>${item.produtoNome}</strong>
-        <span>${item.categoriaNome}</span>
+        <strong>${escapeHtml(item.produtoNome)}</strong>
+        <span>${escapeHtml(item.categoriaNome)}</span>
       </header>
       <div class="mobile-comparison-summary">
         <div>
@@ -616,10 +617,10 @@ function renderCanceledShowcaseLaunch(launch) {
   return `
     <article class="mobile-canceled-card">
       <header>
-        <strong>${launch.produtoNome}</strong>
+        <strong>${escapeHtml(launch.produtoNome)}</strong>
         <span>Cancelado</span>
       </header>
-      <p>${launch.categoriaNome} - ${launch.quantidade} un. - ${formatDateTime(launch.canceledAt || launch.dataHora)}</p>
+      <p>${escapeHtml(launch.categoriaNome)} - ${launch.quantidade} un. - ${formatDateTime(launch.canceledAt || launch.dataHora)}</p>
       <strong>${formatCurrency(launch.valorTotal)}</strong>
     </article>
   `;
@@ -688,7 +689,7 @@ function renderCrmTab() {
         <h2>Producao x vendido</h2>
         ${comparison.slice(0, 5).map((item) => `
           <div class="mobile-row">
-            <span>${item.produtoNome}</span>
+            <span>${escapeHtml(item.produtoNome)}</span>
             <strong>${item.quantidadeVendida}/${item.quantidadeProduzida} - ${item.percentualVendido}%</strong>
           </div>
         `).join('') || '<p class="mobile-empty">Sem vitrine no periodo.</p>'}
@@ -764,7 +765,7 @@ function renderMobileProductionChart(comparison) {
         ${rows.map((item) => `
           <div class="mobile-crm-hbar mobile-crm-hbar--warning">
             <div class="mobile-crm-hbar__label">
-              <span>${item.produtoNome}</span>
+              <span>${escapeHtml(item.produtoNome)}</span>
               <strong>${item.percentualVendido}%</strong>
             </div>
             <div class="mobile-crm-hbar__track">
@@ -826,7 +827,7 @@ function renderMobileClosingForm(values) {
         </div>
         <label>
           Observacao
-          <textarea class="field" name="note" rows="3" data-mobile-closing-field>${values.note}</textarea>
+          <textarea class="field" name="note" rows="3" data-mobile-closing-field>${escapeHtml(values.note)}</textarea>
         </label>
         ${canCurrentUser('cash.close') ? '<button class="mobile-showcase-submit" type="submit">Fechar Caixa</button>' : ''}
       </form>
@@ -954,7 +955,7 @@ function renderMobileFinanceForm(type, categories) {
         <label>
           Categoria
           <select class="field" name="categoryId" required>
-            ${filteredCategories.map((category) => `<option value="${category.id}">${category.name}</option>`).join('')}
+            ${filteredCategories.map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`).join('')}
           </select>
         </label>
       </div>
@@ -992,8 +993,8 @@ function renderMobileFinanceTransaction(transaction, categories) {
   return `
     <article class="mobile-finance-row">
       <div>
-        <strong>${transaction.description}</strong>
-        <span>${formatDate(transaction.transactionDate || transaction.createdAt)} - ${category?.name || 'Sem categoria'} - ${formatFinanceStatus(transaction.status)}</span>
+        <strong>${escapeHtml(transaction.description)}</strong>
+        <span>${formatDate(transaction.transactionDate || transaction.createdAt)} - ${escapeHtml(category?.name || 'Sem categoria')} - ${formatFinanceStatus(transaction.status)}</span>
       </div>
       <strong class="${isIncome ? 'money-positive' : 'money-negative'}">${isIncome ? '+' : '-'} ${formatCurrency(transaction.amount)}</strong>
     </article>
@@ -1004,7 +1005,7 @@ function renderMobilePayable(transaction) {
   return `
     <article class="mobile-finance-row">
       <div>
-        <strong>${transaction.description}</strong>
+        <strong>${escapeHtml(transaction.description)}</strong>
         <span>${formatFinanceStatus(transaction.status)} - Venc. ${formatDate(transaction.dueDate)}</span>
       </div>
       <div class="mobile-finance-row__actions">
@@ -1071,7 +1072,7 @@ function renderMobileShowcaseForm(summary) {
           <select class="field" data-mobile-showcase-category name="categoryId">
             <option value="">Todas</option>
             ${categories.map((category) => `
-              <option value="${category.id}" ${state.showcaseCategoryId === category.id ? 'selected' : ''}>${category.name}</option>
+              <option value="${escapeHtml(category.id)}" ${state.showcaseCategoryId === category.id ? 'selected' : ''}>${escapeHtml(category.name)}</option>
             `).join('')}
           </select>
         </label>
@@ -1080,7 +1081,7 @@ function renderMobileShowcaseForm(summary) {
           <select class="field" data-mobile-showcase-product name="produtoId" required>
             <option value="">Escolha o produto</option>
             ${products.map((product) => `
-              <option value="${product.id}" ${state.showcaseProductId === product.id ? 'selected' : ''}>${product.name}</option>
+              <option value="${escapeHtml(product.id)}" ${state.showcaseProductId === product.id ? 'selected' : ''}>${escapeHtml(product.name)}</option>
             `).join('')}
           </select>
         </label>
@@ -1369,8 +1370,8 @@ export function renderFeedEvent(event, selectedEventId = state.selectedFeedEvent
     <article class="mobile-feed-event mobile-feed-event--${event.level} ${isClickable ? 'is-clickable' : ''} ${isOpen ? 'is-open' : ''}" ${isClickable ? `data-feed-event-id="${event.id}" role="button" tabindex="0"` : ''}>
       <div class="mobile-feed-icon">${event.icon}</div>
       <div>
-        <strong>${event.title}</strong>
-        <p>${event.description}${event.amount ? ` - ${formatCurrency(event.amount)}` : ''}</p>
+        <strong>${escapeHtml(event.title)}</strong>
+        <p>${escapeHtml(event.description)}${event.amount ? ` - ${formatCurrency(event.amount)}` : ''}</p>
         <time>${formatRelativeTime(event.createdAt)}</time>
         ${isClickable ? `<span class="mobile-feed-hint">${isOpen ? 'Ocultar detalhes' : 'Ver detalhes da comanda'}</span>` : ''}
       </div>
@@ -1389,7 +1390,7 @@ function renderFeedEventDetails(details) {
       <div class="mobile-feed-detail__items">
         ${details.items.map((item) => `
           <div>
-            <span>${item.quantity}x ${item.name}</span>
+            <span>${item.quantity}x ${escapeHtml(item.name)}</span>
             <strong>${formatCurrency(item.total)}</strong>
           </div>
         `).join('')}

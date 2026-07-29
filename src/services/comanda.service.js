@@ -1,6 +1,6 @@
-import { STORAGE_KEYS, SYNC_EVENTS } from '../database/schema.js';
-import { emit } from './event-bus.service.js';
-import { getItem, setItem } from './storage.service.js';
+import { STORAGE_KEYS, SYNC_EVENTS } from '../database/schema.js?v=20260729-12';
+import { emit } from './event-bus.service.js?v=20260729-12';
+import { getItem, setItem } from './storage.service.js?v=20260729-12';
 
 export function getActiveComanda() {
   return getItem(STORAGE_KEYS.activeComanda, {

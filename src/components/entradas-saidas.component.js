@@ -1,5 +1,5 @@
-import { formatCurrency } from '../utils/currency.js';
-import { escapeHtml } from '../utils/dom.js';
+import { formatCurrency } from '../utils/currency.js?v=20260729-12';
+import { escapeHtml } from '../utils/dom.js?v=20260729-12';
 
 export function renderEntradasSaidas(movements) {
   return `

@@ -1,5 +1,5 @@
-import { STORAGE_KEYS } from '../src/database/schema.js';
-import { createSupabaseProvider } from '../src/services/providers/supabase.provider.js';
+import { STORAGE_KEYS } from '../src/database/schema.js?v=20260729-12';
+import { createSupabaseProvider } from '../src/services/providers/supabase.provider.js?v=20260729-12';
 
 const calls = [];
 const reads = [];

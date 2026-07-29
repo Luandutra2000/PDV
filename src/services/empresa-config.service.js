@@ -1,9 +1,9 @@
-import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js';
-import { getItem, setItem } from './storage.service.js';
-import { emit } from './event-bus.service.js';
-import { getSupabaseClient } from './supabase-client.service.js';
-import { isSupabaseEnabled } from './app-config.service.js';
-import { getCurrentUser } from './auth.service.js';
+import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260729-12';
+import { getItem, setItem } from './storage.service.js?v=20260729-12';
+import { emit } from './event-bus.service.js?v=20260729-12';
+import { getSupabaseClient } from './supabase-client.service.js?v=20260729-12';
+import { isSupabaseEnabled } from './app-config.service.js?v=20260729-12';
+import { getCurrentUser } from './auth.service.js?v=20260729-12';
 
 const LOCAL_COMPANY_ID = 'local-company';
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;

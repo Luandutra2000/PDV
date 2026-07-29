@@ -21,15 +21,15 @@ const assert = (condition, message) => {
   }
 };
 
-const storage = await import('../src/services/storage.service.js');
-const products = await import('../src/services/product.service.js');
-const comandas = await import('../src/services/comanda.service.js');
-const transactions = await import('../src/services/transaction.service.js');
-const estoque = await import('../src/services/estoque.service.js');
-const notifications = await import('../src/services/mobile-notifications.service.js');
-const auth = await import('../src/services/auth.service.js');
-const { STORAGE_KEYS } = await import('../src/database/schema.js');
-const { seedTestAdmin } = await import('./test-auth-fixture.mjs');
+const storage = await import('../src/services/storage.service.js?v=20260729-12');
+const products = await import('../src/services/product.service.js?v=20260729-12');
+const comandas = await import('../src/services/comanda.service.js?v=20260729-12');
+const transactions = await import('../src/services/transaction.service.js?v=20260729-12');
+const estoque = await import('../src/services/estoque.service.js?v=20260729-12');
+const notifications = await import('../src/services/mobile-notifications.service.js?v=20260729-12');
+const auth = await import('../src/services/auth.service.js?v=20260729-12');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260729-12');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260729-12');
 
 storage.resetAppData();
 seedTestAdmin(storage, STORAGE_KEYS);
@@ -65,7 +65,7 @@ const today = new Date();
 const yesterday = new Date(today);
 yesterday.setDate(today.getDate() - 1);
 
-storage.setItem((await import('../src/database/schema.js')).STORAGE_KEYS.transactions, [
+storage.setItem((await import('../src/database/schema.js?v=20260729-12')).STORAGE_KEYS.transactions, [
   {
     id: 'sale-yesterday',
     type: 'venda',
@@ -85,7 +85,7 @@ storage.setItem((await import('../src/database/schema.js')).STORAGE_KEYS.transac
     createdAt: today.toISOString()
   }
 ]);
-storage.setItem((await import('../src/database/schema.js')).STORAGE_KEYS.stockLaunches, []);
+storage.setItem((await import('../src/database/schema.js?v=20260729-12')).STORAGE_KEYS.stockLaunches, []);
 
 const liveEvents = notifications.getMobileFeedEvents({ now: today });
 assert(liveEvents.some((event) => event.id === 'sale-sale-today'), 'live feed should include current-day events');
@@ -104,7 +104,7 @@ currentMonthDate.setDate(Math.max(1, today.getDate() - 2));
 const previousMonthDate = new Date(today);
 previousMonthDate.setMonth(today.getMonth() - 1);
 
-storage.setItem((await import('../src/database/schema.js')).STORAGE_KEYS.transactions, [
+storage.setItem((await import('../src/database/schema.js?v=20260729-12')).STORAGE_KEYS.transactions, [
   {
     id: 'sale-current-month',
     type: 'venda',

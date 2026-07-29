@@ -1,4 +1,4 @@
-import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js';
+import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260729-12';
 
 let clientPromise = null;
 let clientOverride = null;

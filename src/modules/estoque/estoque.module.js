@@ -1,5 +1,5 @@
-import { getCurrentUser, getUsers } from '../../services/auth.service.js';
-import { getCategories, getProductById, getShowcaseCategories, getShowcaseProducts } from '../../services/product.service.js';
+import { getCurrentUser, getUsers } from '../../services/auth.service.js?v=20260729-12';
+import { getCategories, getProductById, getShowcaseCategories, getShowcaseProducts } from '../../services/product.service.js?v=20260729-12';
 import {
   cancelStockLaunch,
   createStockLaunch,
@@ -8,20 +8,21 @@ import {
   getStockLaunches,
   getStockSummary,
   updateStockLaunch
-} from '../../services/estoque.service.js';
-import { showNotification } from '../../services/notification.service.js';
-import { hydrateOnlineOperationalData } from '../../services/online-data.service.js';
-import { on } from '../../services/event-bus.service.js';
+} from '../../services/estoque.service.js?v=20260729-12';
+import { showNotification } from '../../services/notification.service.js?v=20260729-12';
+import { hydrateOnlineOperationalData } from '../../services/online-data.service.js?v=20260729-12';
+import { on } from '../../services/event-bus.service.js?v=20260729-12';
 import {
   getActiveOutOfStockSales,
   getShowcaseMovements,
   getShowcaseStock,
   getShowcaseStockByProductId
-} from '../../services/showcase-stock.service.js';
-import { UI_EVENTS } from '../../database/schema.js';
-import { getClosedComandas, getTransactions } from '../../services/transaction.service.js';
-import { formatCurrency } from '../../utils/currency.js';
-import { hasPermission } from '../../services/permission.service.js';
+} from '../../services/showcase-stock.service.js?v=20260729-12';
+import { UI_EVENTS } from '../../database/schema.js?v=20260729-12';
+import { getClosedComandas, getTransactions } from '../../services/transaction.service.js?v=20260729-12';
+import { formatCurrency } from '../../utils/currency.js?v=20260729-12';
+import { hasPermission } from '../../services/permission.service.js?v=20260729-12';
+import { escapeHtml } from '../../utils/dom.js?v=20260729-12';
 
 const estoqueState = {
   period: 'today',
@@ -303,8 +304,8 @@ function renderStockForm() {
       <select class="field" name="produtoId" required ${launch ? 'disabled' : ''}>
         <option value="">Selecione um produto</option>
         ${getLaunchableProducts(launch).map((product) => `
-          <option value="${product.id}" ${launch?.produtoId === product.id ? 'selected' : ''}>
-            ${product.name}
+          <option value="${escapeHtml(product.id)}" ${launch?.produtoId === product.id ? 'selected' : ''}>
+            ${escapeHtml(product.name)}
           </option>
         `).join('')}
       </select>
@@ -339,8 +340,8 @@ function renderLaunchRows(launches) {
   return launches.map((launch) => `
     <article class="manager-row ${launch.status === 'cancelado' ? 'is-canceled' : ''}">
       <div>
-        <strong>${launch.produtoNome}</strong>
-        <span>${launch.categoriaNome} - ${launch.quantidade} un. x ${formatCurrency(launch.valorUnitario)} - ${formatDate(launch.dataHora)} - ${launch.usuarioNome}</span>
+        <strong>${escapeHtml(launch.produtoNome)}</strong>
+        <span>${escapeHtml(launch.categoriaNome)} - ${launch.quantidade} un. x ${formatCurrency(launch.valorUnitario)} - ${formatDate(launch.dataHora)} - ${escapeHtml(resolveStockLaunchUserName(launch))}</span>
       </div>
       <div class="row-actions">
         <strong class="stock-entry-total">${formatCurrency(launch.valorTotal)}</strong>
@@ -374,8 +375,8 @@ function renderLiveShowcase(liveSummary) {
         ${liveSummary.stockRows.map((item) => `
           <article class="live-stock-row ${item.quantityAvailable <= 0 ? 'live-stock-row--empty' : ''}">
             <div>
-              <strong>${item.productName}</strong>
-              <span>${item.categoryName}</span>
+              <strong>${escapeHtml(item.productName)}</strong>
+              <span>${escapeHtml(item.categoryName)}</span>
             </div>
             <div>
               <strong>${item.quantityAvailable}</strong>
@@ -426,8 +427,8 @@ function renderComparison(filters) {
       <tbody>
         ${comparison.map((item) => `
           <tr>
-            <td><strong>${item.produtoNome}</strong></td>
-            <td>${item.categoriaNome}</td>
+            <td><strong>${escapeHtml(item.produtoNome)}</strong></td>
+            <td>${escapeHtml(item.categoriaNome)}</td>
             <td>${item.quantidadeProduzida}</td>
             <td>${formatCurrency(item.valorProduzido)}</td>
             <td>${item.quantidadeVendida}</td>
@@ -501,13 +502,13 @@ function renderMovementHistory(movements) {
           <tbody>
             ${visibleMovements.map((movement) => `
               <tr>
-                <td><strong>${movement.productName}</strong></td>
-                <td>${formatMovementType(movement.movementType)}</td>
+                <td><strong>${escapeHtml(movement.productName)}</strong></td>
+                <td>${escapeHtml(formatMovementType(movement.movementType))}</td>
                 <td>${movement.quantity}</td>
                 <td>${movement.previousQuantity}</td>
                 <td>${movement.newQuantity}</td>
-                <td>${resolveShowcaseMovementCommandReference(movement)}</td>
-                <td>${resolveShowcaseMovementUserName(movement.userId)}</td>
+                <td>${escapeHtml(resolveShowcaseMovementCommandReference(movement))}</td>
+                <td>${escapeHtml(resolveShowcaseMovementUserName(movement.userId))}</td>
                 <td>${formatDate(movement.createdAt)}</td>
               </tr>
             `).join('')}
@@ -611,6 +612,16 @@ export function resolveShowcaseMovementUserName(userId) {
   return user?.name || userId;
 }
 
+export function resolveStockLaunchUserName(launch = {}) {
+  const explicitName = String(launch.usuarioNome || '').trim();
+
+  if (explicitName && explicitName !== 'undefined') {
+    return explicitName;
+  }
+
+  return resolveShowcaseMovementUserName(launch.usuarioId || launch.createdBy || '');
+}
+
 export function resolveShowcaseMovementCommandReference(movement = {}) {
   const commandId = movement.commandId || '';
   const saleId = movement.saleId || '';
@@ -686,7 +697,7 @@ function renderFilterDropdown(label, type, items, selectedIds) {
               data-filter-type="${type}"
               ${selectedIds.includes(item.id) ? 'checked' : ''}
             >
-            ${item.name}
+            ${escapeHtml(item.name)}
           </label>
         `).join('')}
       </div>

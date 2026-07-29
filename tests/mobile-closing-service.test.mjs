@@ -21,16 +21,16 @@ const assert = (condition, message) => {
   }
 };
 
-const storage = await import('../src/services/storage.service.js');
-const products = await import('../src/services/product.service.js');
-const comandas = await import('../src/services/comanda.service.js');
-const transactions = await import('../src/services/transaction.service.js');
-const closing = await import('../src/services/cash-closing.service.js');
-const financialSync = await import('../src/services/financial-sync.service.js');
-const mobileClosing = await import('../src/services/mobile-closing.service.js');
-const auth = await import('../src/services/auth.service.js');
-const { STORAGE_KEYS } = await import('../src/database/schema.js');
-const { seedTestAdmin } = await import('./test-auth-fixture.mjs');
+const storage = await import('../src/services/storage.service.js?v=20260729-12');
+const products = await import('../src/services/product.service.js?v=20260729-12');
+const comandas = await import('../src/services/comanda.service.js?v=20260729-12');
+const transactions = await import('../src/services/transaction.service.js?v=20260729-12');
+const closing = await import('../src/services/cash-closing.service.js?v=20260729-12');
+const financialSync = await import('../src/services/financial-sync.service.js?v=20260729-12');
+const mobileClosing = await import('../src/services/mobile-closing.service.js?v=20260729-12');
+const auth = await import('../src/services/auth.service.js?v=20260729-12');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260729-12');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260729-12');
 
 storage.resetAppData();
 seedTestAdmin(storage, STORAGE_KEYS);

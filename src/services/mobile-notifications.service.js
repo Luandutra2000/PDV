@@ -1,6 +1,6 @@
-import { getProductionSalesComparison } from './estoque.service.js';
-import { getFinancialTransactions } from './financial.service.js';
-import { getTransactions } from './transaction.service.js';
+import { getProductionSalesComparison } from './estoque.service.js?v=20260729-12';
+import { getFinancialTransactions } from './financial.service.js?v=20260729-12';
+import { getTransactions } from './transaction.service.js?v=20260729-12';
 
 const FILTERS = {
   all: () => true,

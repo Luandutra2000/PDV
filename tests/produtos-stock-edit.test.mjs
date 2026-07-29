@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
 const moduleSource = fs.readFileSync(
-  new URL('../src/modules/produtos/produtos.module.js', import.meta.url),
+  new URL('../src/modules/produtos/produtos.module.js?v=20260729-12', import.meta.url),
   'utf8'
 );
 

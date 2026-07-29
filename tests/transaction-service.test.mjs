@@ -35,16 +35,16 @@ const assertThrows = (callback, expectedMessage, message) => {
   throw new Error(message);
 };
 
-const storage = await import('../src/services/storage.service.js');
-const schema = await import('../src/database/schema.js');
-const products = await import('../src/services/product.service.js');
-const comandas = await import('../src/services/comanda.service.js');
-const auth = await import('../src/services/auth.service.js');
-const permissions = await import('../src/services/permission.service.js');
-const audit = await import('../src/services/audit.service.js');
-const financial = await import('../src/services/financial-sync.service.js');
-const transactions = await import('../src/services/transaction.service.js');
-const { seedTestAdmin, setTestUserSession } = await import('./test-auth-fixture.mjs');
+const storage = await import('../src/services/storage.service.js?v=20260729-12');
+const schema = await import('../src/database/schema.js?v=20260729-12');
+const products = await import('../src/services/product.service.js?v=20260729-12');
+const comandas = await import('../src/services/comanda.service.js?v=20260729-12');
+const auth = await import('../src/services/auth.service.js?v=20260729-12');
+const permissions = await import('../src/services/permission.service.js?v=20260729-12');
+const audit = await import('../src/services/audit.service.js?v=20260729-12');
+const financial = await import('../src/services/financial-sync.service.js?v=20260729-12');
+const transactions = await import('../src/services/transaction.service.js?v=20260729-12');
+const { seedTestAdmin, setTestUserSession } = await import('./test-auth-fixture.mjs?v=20260729-12');
 
 seedTestAdmin(storage, schema.STORAGE_KEYS);
 storage.ensureSeedData();

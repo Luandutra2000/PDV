@@ -1,15 +1,15 @@
-import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js';
-import { emit } from './event-bus.service.js';
-import { getSupabaseClient } from './supabase-client.service.js';
-import { getSupabaseRestClient } from './supabase-rest-client.service.js';
-import { saleAdapter } from './repositories/sale.adapter.js';
-import { saleItemAdapter } from './repositories/sale-item.adapter.js';
-import { cashMovementAdapter } from './repositories/cash-movement.adapter.js';
-import { commandAdapter } from './repositories/command.adapter.js';
-import { commandItemAdapter } from './repositories/command-item.adapter.js';
-import { cashClosingAdapter } from './repositories/cash-closing.adapter.js';
-import { financialCategoryAdapter } from './repositories/financial-category.adapter.js';
-import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js';
+import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260729-12';
+import { emit } from './event-bus.service.js?v=20260729-12';
+import { getSupabaseClient } from './supabase-client.service.js?v=20260729-12';
+import { getSupabaseRestClient } from './supabase-rest-client.service.js?v=20260729-12';
+import { saleAdapter } from './repositories/sale.adapter.js?v=20260729-12';
+import { saleItemAdapter } from './repositories/sale-item.adapter.js?v=20260729-12';
+import { cashMovementAdapter } from './repositories/cash-movement.adapter.js?v=20260729-12';
+import { commandAdapter } from './repositories/command.adapter.js?v=20260729-12';
+import { commandItemAdapter } from './repositories/command-item.adapter.js?v=20260729-12';
+import { cashClosingAdapter } from './repositories/cash-closing.adapter.js?v=20260729-12';
+import { financialCategoryAdapter } from './repositories/financial-category.adapter.js?v=20260729-12';
+import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js?v=20260729-12';
 
 const FINANCIAL_TABLES = [
   commandAdapter.table,
@@ -202,11 +202,10 @@ export async function saveFinancialTransactionToSupabaseStrict(transaction) {
 
 export async function updateFinancialTransactionInSupabaseStrict(transaction) {
   const nextTransaction = { ...transaction };
-  const { id, ...patch } = financialTransactionAdapter.toRow(nextTransaction);
 
   setStatus({ state: 'syncing', error: '' });
   const client = await getWriteClient();
-  await updateById(client, financialTransactionAdapter.table, id, patch);
+  await upsertRows(client, financialTransactionAdapter.table, [financialTransactionAdapter.toRow(nextTransaction)]);
   upsertFinancialTransactionCache(nextTransaction);
   setStatusFromQueue(readQueue());
   return nextTransaction;

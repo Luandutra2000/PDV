@@ -1,6 +1,6 @@
-import { formatCurrency } from '../utils/currency.js';
-import { getSubtotal } from '../services/comanda.service.js';
-import { escapeHtml } from '../utils/dom.js';
+import { formatCurrency } from '../utils/currency.js?v=20260729-12';
+import { getSubtotal } from '../services/comanda.service.js?v=20260729-12';
+import { escapeHtml } from '../utils/dom.js?v=20260729-12';
 
 export function renderOrderPanel(comanda) {
   const subtotal = getSubtotal(comanda);
@@ -31,21 +31,24 @@ export function renderOrderPanel(comanda) {
 }
 
 function renderOrderItems(items) {
-  return items.map((item) => `
+  return items.map((item) => {
+    const productId = escapeHtml(item.productId);
+    return `
     <article class="order-item">
       <div>
         <h3 class="order-item__name">${escapeHtml(item.name)}</h3>
         <div class="order-item__price">${formatCurrency(item.unitPrice)} cada</div>
         <div class="order-item__controls">
-          <button class="icon-button" type="button" data-action="decrease" data-product-id="${item.productId}">-</button>
+          <button class="icon-button" type="button" data-action="decrease" data-product-id="${productId}">-</button>
           <span class="quantity">${item.quantity}</span>
-          <button class="icon-button" type="button" data-action="increase" data-product-id="${item.productId}">+</button>
-          <button class="icon-button" type="button" data-action="remove" data-product-id="${item.productId}">x</button>
+          <button class="icon-button" type="button" data-action="increase" data-product-id="${productId}">+</button>
+          <button class="icon-button" type="button" data-action="remove" data-product-id="${productId}">x</button>
         </div>
       </div>
       <strong class="order-item__total">${formatCurrency(item.total)}</strong>
     </article>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderEmptyState() {

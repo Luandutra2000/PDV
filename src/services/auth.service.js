@@ -1,7 +1,7 @@
-import { STORAGE_KEYS } from '../database/schema.js';
-import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js';
-import { getSupabaseClient, setSupabaseAuthSession } from './supabase-client.service.js';
-import { getItem, setItem } from './storage.service.js';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260729-12';
+import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260729-12';
+import { getSupabaseClient, setSupabaseAuthSession } from './supabase-client.service.js?v=20260729-12';
+import { getItem, setItem } from './storage.service.js?v=20260729-12';
 
 const VALID_ROLES = new Set(['admin', 'gerente', 'operador', 'dono']);
 const REQUIRED_FIELDS_ERROR = 'Preencha nome, usuario, senha e perfil.';
@@ -31,7 +31,7 @@ export function login({ username, password }) {
     return loginWithSupabase({ email: normalizedUsername, password });
   }
 
-  throw new Error('Autenticacao local desativada. Configure o Supabase Auth.');
+  throw new Error('Autenticacao central obrigatoria. Configure o Supabase.');
 }
 
 export function logout() {
@@ -59,7 +59,7 @@ export async function restoreSupabaseSession() {
 
 export function createUser(input) {
   if (!isSupabaseEnabled()) {
-    throw new Error('Criacao local de credenciais desativada.');
+    throw new Error('Gerenciamento de usuarios exige autenticacao central.');
   }
   const users = getRawUsers();
   const name = String(input.name || '').trim();
@@ -94,7 +94,7 @@ export function createUser(input) {
 
 export function updateUser(userId, patch) {
   if (!isSupabaseEnabled()) {
-    throw new Error('Alteracao local de credenciais desativada.');
+    throw new Error('Gerenciamento de usuarios exige autenticacao central.');
   }
   if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
     throw new Error('Dados do usuario invalidos.');
@@ -229,7 +229,6 @@ async function ensureSupabaseLocalSession(authUser, authSession = null) {
     id: authUser.id,
     name: profile.name || authUser.user_metadata?.name || email || 'Usuario',
     username: email,
-    password: existingUser?.password || '',
     role: normalizeRoleLocal(profile.role_id),
     empresaId: profile.empresa_id || existingUser?.empresaId || '',
     active: profile.active !== false,

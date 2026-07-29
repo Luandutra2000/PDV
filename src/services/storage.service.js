@@ -1,6 +1,6 @@
-import { mockActiveComanda, mockCaixa, mockCategories, mockProducts } from '../database/mock-data.js';
-import { STORAGE_KEYS } from '../database/schema.js';
-import { getDataProvider } from './data-provider.service.js';
+import { mockActiveComanda, mockCaixa, mockCategories, mockProducts } from '../database/mock-data.js?v=20260729-12';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260729-12';
+import { getDataProvider } from './data-provider.service.js?v=20260729-12';
 
 export function getItem(key, fallback = null) {
   return getDataProvider().read(key, fallback);
@@ -80,6 +80,18 @@ export function ensureSeedData() {
   if (!getItem(STORAGE_KEYS.showcaseWriteOffs)) {
     setItem(STORAGE_KEYS.showcaseWriteOffs, []);
   }
+
+  if (!getItem(STORAGE_KEYS.paymentAttempts)) {
+    setItem(STORAGE_KEYS.paymentAttempts, []);
+  }
+
+  if (!getItem(STORAGE_KEYS.kitchenOrders)) {
+    setItem(STORAGE_KEYS.kitchenOrders, []);
+  }
+
+  if (!getItem(STORAGE_KEYS.printJobs)) {
+    setItem(STORAGE_KEYS.printJobs, []);
+  }
 }
 
 export function resetAppData() {
@@ -100,6 +112,9 @@ export function resetAppData() {
   provider.write(STORAGE_KEYS.cashClosings, []);
   provider.write(STORAGE_KEYS.cashClosingDraft, null);
   provider.write(STORAGE_KEYS.showcaseWriteOffs, []);
+  provider.write(STORAGE_KEYS.paymentAttempts, []);
+  provider.write(STORAGE_KEYS.kitchenOrders, []);
+  provider.write(STORAGE_KEYS.printJobs, []);
 }
 
 function removeStoredPassword(user) {

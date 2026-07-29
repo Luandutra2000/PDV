@@ -1,12 +1,12 @@
-import { STORAGE_KEYS } from '../database/schema.js';
-import { getCategories, getProductById, getProducts, updateProduct } from './product.service.js';
-import { getTransactions } from './transaction.service.js';
-import { getCurrentUser } from './auth.service.js';
-import { assertPermission } from './permission.service.js';
-import { recordAudit } from './audit.service.js';
-import { getItem, setItem } from './storage.service.js';
-import { getShowcaseStockByProductId } from './showcase-stock.service.js';
-import { adjustShowcaseStockOnline, processShowcaseProduction } from './showcase-sync.service.js';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260729-12';
+import { getCategories, getProductById, getProducts, updateProduct } from './product.service.js?v=20260729-12';
+import { getTransactions } from './transaction.service.js?v=20260729-12';
+import { getCurrentUser } from './auth.service.js?v=20260729-12';
+import { assertPermission } from './permission.service.js?v=20260729-12';
+import { recordAudit } from './audit.service.js?v=20260729-12';
+import { getItem, setItem } from './storage.service.js?v=20260729-12';
+import { getShowcaseStockByProductId } from './showcase-stock.service.js?v=20260729-12';
+import { adjustShowcaseStockOnline, processShowcaseProduction } from './showcase-sync.service.js?v=20260729-12';
 
 export function createStockLaunch({ produtoId, quantidade, note = '' }) {
   const user = getCurrentUser();
@@ -79,6 +79,18 @@ export function deleteStockComparisonRow(produtoId, filters = {}) {
 
   activeLaunches.forEach((launch) => cancelStockLaunch(launch.id));
   hideStockComparisonProduct(produtoId);
+  const product = getProductById(produtoId);
+  recordAudit({
+    action: 'showcase.delete',
+    entityType: 'product',
+    entityId: produtoId,
+    user,
+    metadata: {
+      productName: product?.name || '',
+      totalQuantity: activeLaunches.reduce((total, launch) => total + Number(launch.quantidade || 0), 0),
+      launchIds: activeLaunches.map((launch) => launch.id)
+    }
+  });
 
   return {
     canceledLaunches: activeLaunches.length,
@@ -156,6 +168,17 @@ export function cancelStockLaunch(launchId) {
       note: `Lancamento ${currentLaunch.id} cancelado`,
       userId: user?.id || '',
       createdAt: new Date().toISOString()
+    });
+    recordAudit({
+      action: 'showcase.launch.cancel',
+      entityType: 'stockLaunch',
+      entityId: currentLaunch.id,
+      user,
+      metadata: {
+        productId: currentLaunch.produtoId,
+        productName: currentLaunch.produtoNome,
+        quantity: currentLaunch.quantidade
+      }
     });
   }
 }

@@ -1,4 +1,4 @@
-import { formatCurrency } from '../../utils/currency.js';
+import { formatCurrency } from '../../utils/currency.js?v=20260729-12';
 import {
   buildFinancialCrm,
   createFinancialTransaction,
@@ -9,10 +9,11 @@ import {
   markFinancialTransactionPaid,
   seedFinancialCategories,
   upsertFinancialTransaction
-} from '../../services/financial.service.js';
-import { showNotification } from '../../services/notification.service.js';
-import { getCurrentUser } from '../../services/auth.service.js';
-import { hasPermission } from '../../services/permission.service.js';
+} from '../../services/financial.service.js?v=20260729-12';
+import { showNotification } from '../../services/notification.service.js?v=20260729-12';
+import { getCurrentUser } from '../../services/auth.service.js?v=20260729-12';
+import { hasPermission } from '../../services/permission.service.js?v=20260729-12';
+import { escapeHtml } from '../../utils/dom.js?v=20260729-12';
 
 const DEFAULT_FILTERS = {
   period: 'today',
@@ -345,7 +346,7 @@ function renderCategoryFilter(categories, filters) {
   return `
     <select class="field" style="width: auto; min-width: 118px; min-height: 34px; padding: 0 12px; font-size: 13px; font-weight: 800;" name="categoryId" data-finance-filter="categoryId">
       <option value="all"${isSelected(filters.categoryId, 'all')}>Categoria</option>
-      ${categories.map((category) => `<option value="${category.id}"${isSelected(filters.categoryId, category.id)}>${category.name}</option>`).join('')}
+      ${categories.map((category) => `<option value="${escapeHtml(category.id)}"${isSelected(filters.categoryId, category.id)}>${escapeHtml(category.name)}</option>`).join('')}
     </select>
   `;
 }
@@ -384,15 +385,15 @@ function renderFinancialRow(transaction, categories, permissions) {
     <tr data-finance-row="${transaction.id}">
       <td>${formatDate(transaction.transactionDate || transaction.createdAt)}</td>
       <td>
-        <strong>${getFinancialHistoryTitle(transaction)}</strong>
+        <strong>${escapeHtml(getFinancialHistoryTitle(transaction))}</strong>
         <div class="finance-row-details">
-          <small>Observacao: ${getFinancialHistoryObservation(transaction)}</small><br>
+          <small>Observacao: ${escapeHtml(getFinancialHistoryObservation(transaction))}</small><br>
           <small>Origem: ${transaction.origin === 'cashier' ? 'Frente de Caixa' : 'Financeiro'}</small><br>
           <small>Vencimento: ${formatDate(transaction.dueDate)}</small>
         </div>
       </td>
       <td><strong class="${isIncome ? 'money-positive' : 'money-negative'}">${isIncome ? 'Entrada' : 'Saida'}</strong></td>
-      <td>${category?.name || transaction.categoryId || 'Sem categoria'}</td>
+      <td>${escapeHtml(category?.name || transaction.categoryId || 'Sem categoria')}</td>
       <td><strong class="${isIncome ? 'money-positive' : 'money-negative'}">${isIncome ? '+' : '-'} ${formatCurrency(transaction.amount)}</strong></td>
       <td>${formatStatus(transaction.status)}</td>
       <td>
@@ -439,11 +440,11 @@ function renderPayableCard(transaction, permissions) {
   return `
     <article class="manager-row ${statusClass}">
       <div>
-        <strong>${transaction.description}</strong>
+        <strong>${escapeHtml(transaction.description)}</strong>
         <span class="${transaction.status === 'overdue' ? 'money-negative' : 'money-primary'}">${formatStatus(transaction.status)}</span>
         <span>Data: ${formatDate(transaction.transactionDate || transaction.createdAt)}</span>
         <span>Vencimento: ${formatDate(transaction.dueDate)}</span>
-        <span>Descricao: ${transaction.notes || transaction.description}</span>
+        <span>Descricao: ${escapeHtml(transaction.notes || transaction.description)}</span>
       </div>
       <div class="money-row__right">
         <strong class="money-negative">${formatCurrency(transaction.amount)}</strong>
@@ -478,7 +479,7 @@ function renderCrmCard(title, totals, categories, stateClass) {
       <span>${title}</span>
       ${entries.length ? entries.map(([id, value]) => `
         <div class="money-row">
-          <strong>${categories.find((category) => category.id === id)?.name || id}</strong>
+          <strong>${escapeHtml(categories.find((category) => category.id === id)?.name || id)}</strong>
           <strong class="${stateClass}">${formatCurrency(value)}</strong>
         </div>
       `).join('') : '<small>Sem dados no periodo.</small>'}
@@ -506,7 +507,7 @@ function renderFinancialModal(modal, categories) {
         </header>
         <form class="product-form" data-finance-form>
           <input type="hidden" name="formType" value="${modal.type}">
-          ${modal.transaction ? `<input type="hidden" name="transactionId" value="${modal.transaction.id}">` : ''}
+          ${modal.transaction ? `<input type="hidden" name="transactionId" value="${escapeHtml(modal.transaction.id)}">` : ''}
           ${isBill ? renderBillFields(filteredCategories, modal.transaction) : renderQuickFields(modal.type, filteredCategories, modal.transaction)}
         </form>
       </div>
@@ -526,7 +527,7 @@ function renderQuickFields(type, categories, transaction = {}) {
     </label>
     <label class="stacked-label">
       Descricao obrigatoria
-      <input class="field" name="description" value="${transaction.description || ''}" placeholder="${type === 'income' ? 'Ex: Reforco para troco do caixa' : 'Ex: Retirada para pagar fornecedor'}" required>
+      <input class="field" name="description" value="${escapeHtml(transaction.description || '')}" placeholder="${type === 'income' ? 'Ex: Reforco para troco do caixa' : 'Ex: Retirada para pagar fornecedor'}" required>
     </label>
     <input type="hidden" name="transactionDate" value="${transaction.transactionDate || ''}">
     <input type="hidden" name="paymentMethod" value="${transaction.paymentMethod || (type === 'income' ? 'dinheiro' : 'dinheiro')}">
@@ -542,7 +543,7 @@ function renderBillFields(categories, transaction = {}) {
   return `
     <label class="stacked-label">
       Descricao obrigatoria
-      <input class="field" name="description" value="${transaction.description || ''}" placeholder="Ex: Boleto fornecedor" required>
+      <input class="field" name="description" value="${escapeHtml(transaction.description || '')}" placeholder="Ex: Boleto fornecedor" required>
     </label>
     <div class="closing-form-grid closing-form-grid--compact">
       <label class="stacked-label">
@@ -573,7 +574,7 @@ function renderBillFields(categories, transaction = {}) {
     </label>
     <label class="stacked-label">
       Observacao
-      <textarea class="field" name="notes" rows="3">${transaction.notes || ''}</textarea>
+      <textarea class="field" name="notes" rows="3">${escapeHtml(transaction.notes || '')}</textarea>
     </label>
     <div class="form-actions">
       <button class="button button--ghost" type="button" data-finance-action="close-modal">Cancelar</button>
@@ -583,7 +584,7 @@ function renderBillFields(categories, transaction = {}) {
 }
 
 function renderCategoryOptions(categories, selectedId = '') {
-  return categories.map((category) => `<option value="${category.id}" ${category.id === selectedId ? 'selected' : ''}>${category.name}</option>`).join('');
+  return categories.map((category) => `<option value="${escapeHtml(category.id)}" ${category.id === selectedId ? 'selected' : ''}>${escapeHtml(category.name)}</option>`).join('');
 }
 
 function getModalTypeFromTransaction(transaction) {

@@ -1,5 +1,5 @@
-import { STORAGE_KEYS } from '../database/schema.js';
-import { getItem } from './storage.service.js';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260729-12';
+import { getItem } from './storage.service.js?v=20260729-12';
 
 export function getCaixaSummary() {
   return getItem(STORAGE_KEYS.caixa, {

@@ -1,0 +1,2 @@
+-- Migration already applied to production before this repository was synchronized.
+-- Kept as a version marker so future pushes preserve the remote migration history.

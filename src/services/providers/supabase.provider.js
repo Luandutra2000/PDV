@@ -1,5 +1,5 @@
-import { STORAGE_KEYS } from '../../database/schema.js';
-import { createLocalProvider } from './local.provider.js';
+import { STORAGE_KEYS } from '../../database/schema.js?v=20260729-12';
+import { createLocalProvider } from './local.provider.js?v=20260729-12';
 
 const TABLE_MAPPERS = {
   [STORAGE_KEYS.categories]: {
@@ -60,7 +60,7 @@ const TABLE_MAPPERS = {
   },
   [STORAGE_KEYS.stockLaunches]: {
     table: 'stock_production',
-    select: 'id,product_id,product_name,category_id,category_name,quantity,unit_value,total_value,note,status,created_at,canceled_at',
+    select: 'id,product_id,product_name,category_id,category_name,quantity,unit_value,total_value,note,status,created_by,created_at,canceled_at',
     map: (launch) => ({
       id: launch.id,
       product_id: launch.produtoId || launch.productId,
@@ -72,6 +72,7 @@ const TABLE_MAPPERS = {
       total_value: Number(launch.valorTotal || launch.totalValue) || 0,
       note: launch.note || launch.observacao || '',
       status: launch.status || 'ativo',
+      created_by: launch.usuarioId || launch.createdBy || null,
       created_at: launch.dataHora || launch.createdAt || new Date().toISOString(),
       canceled_at: launch.canceledAt || null
     }),
@@ -85,6 +86,8 @@ const TABLE_MAPPERS = {
       valorUnitario: Number(row.unit_value) || 0,
       valorTotal: Number(row.total_value) || 0,
       note: row.note || '',
+      usuarioId: row.created_by || '',
+      usuarioNome: '',
       dataHora: row.created_at,
       status: row.status || 'ativo',
       canceledAt: row.canceled_at || null
@@ -122,6 +125,47 @@ const TABLE_MAPPERS = {
       status: row.status || 'ativa',
       createdAt: row.created_at,
       canceledAt: row.canceled_at || null
+    })
+  },
+  [STORAGE_KEYS.users]: {
+    table: 'profiles',
+    select: 'id,name,role_id,is_active,empresa_id,created_at,updated_at',
+    unmap: (row) => ({
+      id: row.id,
+      name: row.name,
+      username: row.email || '',
+      role: row.role_id,
+      empresaId: row.empresa_id || '',
+      active: row.is_active !== false,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    })
+  },
+  [STORAGE_KEYS.userPermissionOverrides]: {
+    table: 'user_permission_overrides',
+    select: 'user_id,permission_id,state',
+    unmapCollection: (rows) => rows.reduce((result, row) => {
+      if (!result[row.user_id]) {
+        result[row.user_id] = {};
+      }
+      result[row.user_id][row.permission_id] = row.state;
+      return result;
+    }, {})
+  },
+  [STORAGE_KEYS.auditLogs]: {
+    table: 'audit_logs',
+    select: 'id,action,entity_type,entity_id,user_id,user_name,metadata,created_at',
+    unmap: (row) => ({
+      id: row.id,
+      action: row.action,
+      entityType: row.entity_type,
+      entityId: row.entity_id,
+      userId: row.user_id,
+      userName: row.user_name,
+      metadata: row.metadata || {},
+      module: row.metadata?.module || '',
+      details: row.metadata?.details || '',
+      createdAt: row.created_at
     })
   },
 };
@@ -171,7 +215,7 @@ export function createSupabaseProvider({ getClient, localProvider = createLocalP
 async function hydrateCollection(client, localProvider, key) {
   const mapper = TABLE_MAPPERS[key];
 
-  if (!mapper?.unmap) {
+  if (!mapper?.unmap && !mapper?.unmapCollection) {
     return;
   }
 
@@ -182,7 +226,10 @@ async function hydrateCollection(client, localProvider, key) {
   }
 
   if (Array.isArray(data)) {
-    localProvider.write(key, data.map(mapper.unmap));
+    localProvider.write(
+      key,
+      mapper.unmapCollection ? mapper.unmapCollection(data) : data.map(mapper.unmap)
+    );
   }
 }
 

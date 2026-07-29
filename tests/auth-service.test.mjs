@@ -21,10 +21,10 @@ const assert = (condition, message) => {
   }
 };
 
-const storage = await import('../src/services/storage.service.js');
-const auth = await import('../src/services/auth.service.js');
-const supabaseClient = await import('../src/services/supabase-client.service.js');
-const { STORAGE_KEYS } = await import('../src/database/schema.js');
+const storage = await import('../src/services/storage.service.js?v=20260729-12');
+const auth = await import('../src/services/auth.service.js?v=20260729-12');
+const supabaseClient = await import('../src/services/supabase-client.service.js?v=20260729-12');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260729-12');
 
 globalThis.__PDV_RUNTIME_CONFIG__ = {
   dataProvider: 'local',
@@ -84,6 +84,33 @@ supabaseClient.configureSupabaseClientForTests({
       async setSession(session) {
         supabaseSessionPayload = session;
       }
+    },
+    from(table) {
+      return {
+        select() {
+          return {
+            eq() {
+              if (table === 'profiles') {
+                return {
+                  async maybeSingle() {
+                    return {
+                      data: {
+                        id: 'supabase-user',
+                        name: 'Luan Dutra',
+                        role_id: 'admin',
+                        is_active: true,
+                        empresa_id: 'empresa-qa'
+                      },
+                      error: null
+                    };
+                  }
+                };
+              }
+              return Promise.resolve({ data: [], error: null });
+            }
+          };
+        }
+      };
     }
   }
 });

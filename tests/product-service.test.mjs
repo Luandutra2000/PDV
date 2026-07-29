@@ -23,11 +23,13 @@ const assert = (condition, message) => {
 
 const isPromise = (value) => Boolean(value && typeof value.then === 'function');
 
-const storage = await import('../src/services/storage.service.js');
-const { STORAGE_KEYS } = await import('../src/database/schema.js');
-const products = await import('../src/services/product.service.js');
+const storage = await import('../src/services/storage.service.js?v=20260729-12');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260729-12');
+const products = await import('../src/services/product.service.js?v=20260729-12');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260729-12');
 
 storage.ensureSeedData();
+seedTestAdmin(storage, STORAGE_KEYS);
 
 const localLoadedCategories = products.loadCategories();
 const localLoadedProducts = products.loadProducts();
@@ -119,6 +121,7 @@ const repairedCategories = products.getCategories();
 assert(repairedCategories.find((item) => item.id === 'fritos').name === 'Fritos', 'corrupted object category name should fall back to id label');
 assert(repairedCategories.find((item) => item.id === 'assados').name === 'Assados', 'object category name should use nested name');
 storage.resetAppData();
+seedTestAdmin(storage, STORAGE_KEYS);
 
 products.deleteCategory(category.id);
 assert(!products.getCategories().some((item) => item.id === category.id), 'deleted category should be removed');

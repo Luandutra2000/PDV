@@ -1,5 +1,5 @@
-import { getDashboardResumo } from './dashboard-resumo.service.js';
-import { getMoneySummary } from './transaction.service.js';
+import { getDashboardResumo } from './dashboard-resumo.service.js?v=20260729-12';
+import { getMoneySummary } from './transaction.service.js?v=20260729-12';
 
 export function getMobileCashFlowSummary({ period = 'today', customStart = '', customEnd = '' } = {}) {
   const resumo = getDashboardResumo({ period, customStart, customEnd });

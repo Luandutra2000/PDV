@@ -1,19 +1,19 @@
-import { getCurrentUser, getUsers } from '../../services/auth.service.js';
-import { getAuditLogs, recordAudit } from '../../services/audit.service.js';
+import { getCurrentUser, getUsers } from '../../services/auth.service.js?v=20260729-12';
+import { getAuditLogs, recordAudit } from '../../services/audit.service.js?v=20260729-12';
 import {
   createManagedUser,
   deleteManagedUser,
   loadManagedUsers,
   updateManagedUser,
   saveManagedPermissionChecklist
-} from '../../services/user-admin.service.js';
+} from '../../services/user-admin.service.js?v=20260729-12';
 import {
   PERMISSIONS,
   getRolePermissions,
   getUserPermissionOverride,
   hasPermission,
   normalizeRole
-} from '../../services/permission.service.js';
+} from '../../services/permission.service.js?v=20260729-12';
 
 const ROLE_OPTIONS = [
   { value: 'admin', label: 'Administrador' },
@@ -357,7 +357,7 @@ function renderUserList(users) {
   return users.map((user) => `
     <article class="people-row ${user.id === peopleState.selectedUserId ? 'is-selected' : ''}">
       <button class="people-row__main" type="button" data-action="select-user" data-user-id="${user.id}">
-        <span class="people-avatar">${getInitials(user.name)}</span>
+        <span class="people-avatar">${escapeHtml(getInitials(user.name))}</span>
         <span>
           <strong>${escapeHtml(user.name)}</strong>
           <small>${escapeHtml(user.username || 'E-mail nao informado')} · ${getRoleLabel(user.role)} - ${user.active === false ? 'Inativo' : 'Ativo'}</small>
@@ -678,10 +678,11 @@ function renderAuditPanel(users, logs) {
 }
 
 function renderAuditSelect(key, label, options) {
+  const legacyUserHook = key === 'user' ? ' data-audit-user-filter' : '';
   return `
     <label>
       ${label}
-      <select class="field" data-audit-filter="${key}">
+      <select class="field" data-audit-filter="${key}"${legacyUserHook}>
         <option value="">Todos</option>
         ${options.map((option) => `<option value="${escapeHtml(option.value)}" ${peopleState.auditFilters[key] === option.value ? 'selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}
       </select>

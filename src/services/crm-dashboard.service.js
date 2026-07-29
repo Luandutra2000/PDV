@@ -1,6 +1,6 @@
-import { getCategories, getProductById } from './product.service.js';
-import { getActiveComanda } from './comanda.service.js';
-import { getClosedComandas, getTransactions } from './transaction.service.js';
+import { getCategories, getProductById } from './product.service.js?v=20260729-12';
+import { getActiveComanda } from './comanda.service.js?v=20260729-12';
+import { getClosedComandas, getTransactions } from './transaction.service.js?v=20260729-12';
 
 export function createPeriodFilter(period = 'today', customStart = '', customEnd = '') {
   const now = new Date();

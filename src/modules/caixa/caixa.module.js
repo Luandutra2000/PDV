@@ -5,18 +5,19 @@ import {
   getFinancialMovements,
   getProductRanking,
   getSalesSeries
-} from '../../services/crm-dashboard.service.js';
-import { buildClosingSummary, confirmClosing, getCashClosings, getSalesAfterClosing, saveClosingDraft } from '../../services/cash-closing.service.js';
-import { renderDashboardResumo } from '../../components/dashboard-resumo.component.js';
-import { renderGraficosFinanceiros } from '../../components/graficos-financeiros.component.js';
-import { renderAnaliseProdutos } from '../../components/analise-produtos.component.js';
-import { renderEntradasSaidas } from '../../components/entradas-saidas.component.js';
-import { renderHistoricoFechamentos } from '../../components/historico-fechamentos.component.js';
-import { formatCurrency } from '../../utils/currency.js';
-import { showNotification } from '../../services/notification.service.js';
-import { getTransactionSyncStatus } from '../../services/transaction.service.js';
-import { UI_EVENTS } from '../../database/schema.js';
-import { on } from '../../services/event-bus.service.js';
+} from '../../services/crm-dashboard.service.js?v=20260729-12';
+import { buildClosingSummary, confirmClosing, getCashClosings, getSalesAfterClosing, saveClosingDraft } from '../../services/cash-closing.service.js?v=20260729-12';
+import { renderDashboardResumo } from '../../components/dashboard-resumo.component.js?v=20260729-12';
+import { renderGraficosFinanceiros } from '../../components/graficos-financeiros.component.js?v=20260729-12';
+import { renderAnaliseProdutos } from '../../components/analise-produtos.component.js?v=20260729-12';
+import { renderEntradasSaidas } from '../../components/entradas-saidas.component.js?v=20260729-12';
+import { renderHistoricoFechamentos } from '../../components/historico-fechamentos.component.js?v=20260729-12';
+import { formatCurrency } from '../../utils/currency.js?v=20260729-12';
+import { showNotification } from '../../services/notification.service.js?v=20260729-12';
+import { getTransactionSyncStatus } from '../../services/transaction.service.js?v=20260729-12';
+import { UI_EVENTS } from '../../database/schema.js?v=20260729-12';
+import { on } from '../../services/event-bus.service.js?v=20260729-12';
+import { escapeHtml } from '../../utils/dom.js?v=20260729-12';
 
 const caixaState = {
   period: 'today',
@@ -52,12 +53,12 @@ function renderCaixa(container) {
   const series = getSalesSeries(filter);
   const movements = getFinancialMovements(filter);
   const closings = getCashClosings();
-  const closingSummary = buildClosingSummary({
+  const closingSummary = buildClosingSummary(buildCrmClosingInput(summary, {
     countedCash: caixaState.countedCash,
     checkedPix: caixaState.checkedPix,
     checkedDebit: caixaState.checkedDebit,
     checkedCredit: caixaState.checkedCredit
-  });
+  }));
 
   container.innerHTML = `
     <section class="module-screen crm-screen" data-caixa-screen>
@@ -164,7 +165,7 @@ function renderPeriodFilters() {
 }
 
 function renderClosingPanel(summary, closingSummary) {
-  const expectedCash = summary.paymentTotals.dinheiro + summary.entriesTotal - summary.outputsTotal;
+  const expectedCash = closingSummary.payments.expectedCash;
 
   return `
     <section class="crm-panel crm-closing-card">
@@ -186,7 +187,7 @@ function renderClosingPanel(summary, closingSummary) {
       </div>
       <label class="stacked-label">
         Observacao do fechamento
-        <input class="field" data-crm-closing-input="note" value="${caixaState.note}" placeholder="Obrigatoria se houver diferenca">
+        <input class="field" data-crm-closing-input="note" value="${escapeHtml(caixaState.note)}" placeholder="Obrigatoria se houver diferenca">
       </label>
       <div class="crm-payment-row">
         <span>Diferenca geral</span>
@@ -198,23 +199,30 @@ function renderClosingPanel(summary, closingSummary) {
 }
 
 function renderClosingInput(name, label, value) {
+  const minimum = name === 'countedCash' ? '' : ' min="0"';
+
   return `
     <label class="stacked-label closing-field">
       ${label}
-      <input class="field" data-crm-closing-input="${name}" type="number" min="0" step="0.01" value="${value}">
+      <input class="field" data-crm-closing-input="${name}" type="number"${minimum} step="0.01" value="${value}">
     </label>
   `;
 }
 
 function confirmCrmClosing(container) {
   try {
-    const draft = saveClosingDraft({
+    const summary = getCrmSummary(createPeriodFilter(caixaState.period, caixaState.customStart, caixaState.customEnd));
+    const closingInput = buildCrmClosingInput(summary, {
       countedCash: caixaState.countedCash,
       checkedPix: caixaState.checkedPix,
       checkedDebit: caixaState.checkedDebit,
       checkedCredit: caixaState.checkedCredit,
-      differences: getClosingDifferences(),
       note: caixaState.note
+    });
+    const closingSummary = buildClosingSummary(closingInput);
+    const draft = saveClosingDraft({
+      ...closingInput,
+      differences: buildDifferences(closingSummary, caixaState.note)
     });
     confirmClosing(draft);
     showNotification({
@@ -234,14 +242,31 @@ function confirmCrmClosing(container) {
 }
 
 function getClosingDifferences() {
-  const summary = buildClosingSummary({
+  const crmSummary = getCrmSummary(createPeriodFilter(caixaState.period, caixaState.customStart, caixaState.customEnd));
+  const summary = buildClosingSummary(buildCrmClosingInput(crmSummary, {
     countedCash: caixaState.countedCash,
     checkedPix: caixaState.checkedPix,
     checkedDebit: caixaState.checkedDebit,
     checkedCredit: caixaState.checkedCredit
-  });
+  }));
 
   return buildDifferences(summary, caixaState.note);
+}
+
+export function buildCrmClosingInput(summary, input = {}) {
+  return {
+    ...input,
+    expectedCash: normalizeReportMoney(Number(summary?.paymentTotals?.dinheiro || 0)
+      + Number(summary?.entriesTotal || 0)
+      - Number(summary?.outputsTotal || 0)),
+    expectedPix: normalizeReportMoney(summary?.paymentTotals?.pix),
+    expectedDebit: normalizeReportMoney(summary?.paymentTotals?.debito),
+    expectedCredit: normalizeReportMoney(summary?.paymentTotals?.credito)
+  };
+}
+
+function normalizeReportMoney(value) {
+  return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
 }
 
 function resetClosingFields() {

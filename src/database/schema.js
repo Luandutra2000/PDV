@@ -22,6 +22,9 @@ export const STORAGE_KEYS = {
   financialTransactions: 'pdv.financialTransactions',
   financialSyncQueue: 'pdv.syncQueue.financial',
   companySettings: 'pdv.companySettings',
+  paymentAttempts: 'pdv.paymentAttempts',
+  kitchenOrders: 'pdv.kitchenOrders',
+  printJobs: 'pdv.printJobs',
   syncQueue: 'pdv.syncQueue'
 };
 

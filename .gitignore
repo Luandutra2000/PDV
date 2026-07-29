@@ -6,3 +6,12 @@
 
 .vercel
 supabase/.temp/
+
+# Segredos e configuracoes locais
+.env
+.env.*
+!.env.example
+
+# Backups e artefatos de QA com dados de producao
+backups/
+reports/

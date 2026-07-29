@@ -1,14 +1,14 @@
-import { STORAGE_KEYS } from '../database/schema.js';
-import { getProductionSalesComparison } from './estoque.service.js';
-import { getCategories, getProductById } from './product.service.js';
-import { getCurrentUser } from './auth.service.js';
-import { assertPermission } from './permission.service.js';
-import { recordAudit } from './audit.service.js';
-import { getItem, setItem } from './storage.service.js';
-import { getClosedComandas, getTransactions } from './transaction.service.js';
-import { isSupabaseEnabled } from './app-config.service.js';
-import { saveCashClosingToSupabase } from './financial-sync.service.js';
-import { getActiveOutOfStockSales } from './showcase-stock.service.js';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260729-12';
+import { getProductionSalesComparison } from './estoque.service.js?v=20260729-12';
+import { getCategories, getProductById } from './product.service.js?v=20260729-12';
+import { getCurrentUser } from './auth.service.js?v=20260729-12';
+import { assertPermission } from './permission.service.js?v=20260729-12';
+import { recordAudit } from './audit.service.js?v=20260729-12';
+import { getItem, setItem } from './storage.service.js?v=20260729-12';
+import { getClosedComandas, getTransactions } from './transaction.service.js?v=20260729-12';
+import { isSupabaseEnabled } from './app-config.service.js?v=20260729-12';
+import { saveCashClosingToSupabase } from './financial-sync.service.js?v=20260729-12';
+import { getActiveOutOfStockSales } from './showcase-stock.service.js?v=20260729-12';
 
 export function buildClosingSummary(input = {}) {
   const payments = buildPaymentConference(input);
@@ -37,36 +37,36 @@ export function buildPaymentConference(input = {}) {
   const sales = transactions.filter((transaction) => transaction.type === 'venda');
   const entriesTotal = sumTransactions(transactions.filter((transaction) => transaction.type === 'entrada'));
   const outputsTotal = sumTransactions(transactions.filter(isCashOutput));
-  const expectedCash = sumPayment(sales, 'dinheiro') + entriesTotal - outputsTotal;
-  const expectedPix = sumPayment(sales, 'pix');
-  const expectedDebit = sumPayment(sales, 'debito');
-  const expectedCredit = sumPayment(sales, 'credito');
-  const countedCash = normalizeRequiredNumber(input.countedCash);
-  const checkedPix = normalizeOptionalNumber(input.checkedPix);
-  const checkedDebit = normalizeOptionalNumber(input.checkedDebit);
-  const checkedCredit = normalizeOptionalNumber(input.checkedCredit);
-  const comparableExpected = expectedCash + expectedPix + expectedDebit + expectedCredit;
-  const comparableActual = countedCash
+  const expectedCash = normalizeMoney(input.expectedCash, sumPayment(sales, 'dinheiro') + entriesTotal - outputsTotal);
+  const expectedPix = normalizeMoney(input.expectedPix, sumPayment(sales, 'pix'));
+  const expectedDebit = normalizeMoney(input.expectedDebit, sumPayment(sales, 'debito'));
+  const expectedCredit = normalizeMoney(input.expectedCredit, sumPayment(sales, 'credito'));
+  const countedCash = normalizeMoney(normalizeRequiredNumber(input.countedCash));
+  const checkedPix = normalizeOptionalMoney(input.checkedPix);
+  const checkedDebit = normalizeOptionalMoney(input.checkedDebit);
+  const checkedCredit = normalizeOptionalMoney(input.checkedCredit);
+  const comparableExpected = normalizeMoney(expectedCash + expectedPix + expectedDebit + expectedCredit);
+  const comparableActual = normalizeMoney(countedCash
     + (checkedPix ?? expectedPix)
     + (checkedDebit ?? expectedDebit)
-    + (checkedCredit ?? expectedCredit);
+    + (checkedCredit ?? expectedCredit));
 
   return {
     expectedCash,
     countedCash,
-    cashDifference: countedCash - expectedCash,
+    cashDifference: normalizeMoney(countedCash - expectedCash),
     expectedPix,
     checkedPix,
-    pixDifference: checkedPix === null ? null : checkedPix - expectedPix,
+    pixDifference: checkedPix === null ? null : normalizeMoney(checkedPix - expectedPix),
     expectedDebit,
     checkedDebit,
-    debitDifference: checkedDebit === null ? null : checkedDebit - expectedDebit,
+    debitDifference: checkedDebit === null ? null : normalizeMoney(checkedDebit - expectedDebit),
     expectedCredit,
     checkedCredit,
-    creditDifference: checkedCredit === null ? null : checkedCredit - expectedCredit,
+    creditDifference: checkedCredit === null ? null : normalizeMoney(checkedCredit - expectedCredit),
     expectedTotal: comparableExpected,
     actualComparableTotal: comparableActual,
-    generalDifference: comparableActual - comparableExpected
+    generalDifference: normalizeMoney(comparableActual - comparableExpected)
   };
 }
 
@@ -287,6 +287,19 @@ function normalizeOptionalNumber(value) {
 
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
+}
+
+function normalizeOptionalMoney(value) {
+  const number = normalizeOptionalNumber(value);
+  return number === null ? null : normalizeMoney(number);
+}
+
+function normalizeMoney(value, fallback = 0) {
+  const number = value === '' || value === null || value === undefined
+    ? Number(fallback)
+    : Number(value);
+  const normalized = Number.isFinite(number) ? number : Number(fallback) || 0;
+  return Math.round((normalized + Number.EPSILON) * 100) / 100;
 }
 
 function getUnitValue(item) {

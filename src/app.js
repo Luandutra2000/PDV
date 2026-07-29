@@ -1,34 +1,35 @@
-import './config/runtime-config.js';
-import { renderSidebar } from './components/sidebar.component.js?v=20260526-03';
-import { ensureSeedData } from './services/storage.service.js';
-import { hydrateDataProvider } from './services/data-provider.service.js';
-import { loadCategories, loadProducts, startCatalogRealtime, syncCatalogNow } from './services/product.service.js';
-import { hydrateFinancialData, startFinancialRealtime } from './services/financial-sync.service.js';
-import { isSupabaseEnabled } from './services/app-config.service.js';
-import { hydrateOnlineOperationalData } from './services/online-data.service.js';
-import { getDashboardResumo } from './services/dashboard-resumo.service.js';
-import { initSyncService } from './services/sync.service.js';
-import { initVendasModule } from './modules/vendas/vendas.module.js';
-import { initProdutosModule } from './modules/produtos/produtos.module.js';
-import { initDashboardModule } from './modules/dashboard/dashboard.module.js';
-import { initEstoqueModule } from './modules/estoque/estoque.module.js';
-import { initCaixaModule } from './modules/caixa/caixa.module.js';
-import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js?v=20260608-15';
-import { initPessoasModule } from './modules/pessoas/pessoas.module.js';
-import { initDespesasModule } from './modules/despesas/despesas.module.js';
-import { initEmpresaConfigModule } from './modules/empresa-config/empresa-config.module.js';
-import { formatCurrency } from './utils/currency.js';
-import { initNotificationService } from './services/notification.service.js';
-import { initRealtimeService } from './services/realtime.service.js';
-import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js';
-import { getDailyMoneySummary } from './services/transaction.service.js';
-import { getCurrentUser, login, logout } from './services/auth.service.js';
-import { hasPermission } from './services/permission.service.js';
-import { applyCompanyIdentity, loadCompanySettings, loadCompanySettingsLocal } from './services/empresa-config.service.js';
-import { renderLoginModule } from './modules/auth/login.module.js';
-import { on } from './services/event-bus.service.js';
-import { UI_EVENTS } from './database/schema.js';
-import { escapeHtml } from './utils/dom.js';
+import './config/runtime-config.js?v=20260729-12';
+import { renderSidebar } from './components/sidebar.component.js?v=20260729-12';
+import { ensureSeedData } from './services/storage.service.js?v=20260729-12';
+import { hydrateDataProvider } from './services/data-provider.service.js?v=20260729-12';
+import { loadCategories, loadProducts, startCatalogRealtime, syncCatalogNow } from './services/product.service.js?v=20260729-12';
+import { hydrateFinancialData, startFinancialRealtime } from './services/financial-sync.service.js?v=20260729-12';
+import { isSupabaseEnabled } from './services/app-config.service.js?v=20260729-12';
+import { hydrateOnlineOperationalData } from './services/online-data.service.js?v=20260729-12';
+import { getDashboardResumo } from './services/dashboard-resumo.service.js?v=20260729-12';
+import { initSyncService } from './services/sync.service.js?v=20260729-12';
+import { initVendasModule } from './modules/vendas/vendas.module.js?v=20260729-12';
+import { initProdutosModule } from './modules/produtos/produtos.module.js?v=20260729-12';
+import { initDashboardModule } from './modules/dashboard/dashboard.module.js?v=20260729-12';
+import { initEstoqueModule } from './modules/estoque/estoque.module.js?v=20260729-12';
+import { initCaixaModule } from './modules/caixa/caixa.module.js?v=20260729-12';
+import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js?v=20260729-12';
+import { initPessoasModule } from './modules/pessoas/pessoas.module.js?v=20260729-12';
+import { initDespesasModule } from './modules/despesas/despesas.module.js?v=20260729-12';
+import { initEmpresaConfigModule } from './modules/empresa-config/empresa-config.module.js?v=20260729-12';
+import { initRelatoriosModule } from './modules/relatorios/relatorios.module.js?v=20260729-12';
+import { formatCurrency } from './utils/currency.js?v=20260729-12';
+import { initNotificationService } from './services/notification.service.js?v=20260729-12';
+import { initRealtimeService } from './services/realtime.service.js?v=20260729-12';
+import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js?v=20260729-12';
+import { getDailyMoneySummary } from './services/transaction.service.js?v=20260729-12';
+import { getCurrentUser, login, logout, restoreSupabaseSession } from './services/auth.service.js?v=20260729-12';
+import { hasPermission } from './services/permission.service.js?v=20260729-12';
+import { applyCompanyIdentity, loadCompanySettings, loadCompanySettingsLocal } from './services/empresa-config.service.js?v=20260729-12';
+import { renderLoginModule } from './modules/auth/login.module.js?v=20260729-12';
+import { on } from './services/event-bus.service.js?v=20260729-12';
+import { UI_EVENTS } from './database/schema.js?v=20260729-12';
+import { escapeHtml } from './utils/dom.js?v=20260729-12';
 
 const routes = {
   'frente-caixa': initVendasModule,
@@ -36,7 +37,7 @@ const routes = {
   produtos: initProdutosModule,
   estoque: initEstoqueModule,
   'fechar-caixa': initCaixaModule,
-  relatorios: renderRelatoriosModule,
+  relatorios: initRelatoriosModule,
   mobile: initMobileDashboardModule,
   pessoas: initPessoasModule,
   despesas: initDespesasModule,
@@ -57,6 +58,7 @@ const routePermissions = {
 };
 
 const AUTH_SESSION_VERSION = '20260620-02-company-profile';
+let sessionRestorePromise = null;
 
 async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   ensureSeedData();
@@ -67,11 +69,16 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
 
   const app = document.getElementById('app');
 
-  const queryLoginResult = await loginFromQueryString(app);
-  const currentUser = queryLoginResult?.user || getCurrentUser();
+  const legacyLoginError = removeLegacyCredentialsFromUrl();
+  const currentUser = getCurrentUser();
 
   if (!currentUser) {
-    renderLoginModule(app, () => bootstrap({ skipFreshLoginCheck: true }), queryLoginResult?.error ? { message: queryLoginResult.error } : {});
+    renderLoginModule(
+      app,
+      () => bootstrap({ skipFreshLoginCheck: true }),
+      legacyLoginError ? { message: legacyLoginError } : {}
+    );
+    restoreSessionInBackground(app);
     return;
   }
 
@@ -234,16 +241,42 @@ function refreshSidebar(app, workspace, settings) {
 
 bootstrap();
 
-async function loginFromQueryString(app) {
+function restoreSessionInBackground(app) {
+  if (!isSupabaseEnabled() || sessionRestorePromise) {
+    return sessionRestorePromise;
+  }
+
+  sessionRestorePromise = restoreSupabaseSession()
+    .then((restoredUser) => {
+      if (restoredUser && document.getElementById('app') === app) {
+        return bootstrap({ skipFreshLoginCheck: true });
+      }
+      return null;
+    })
+    .catch((error) => {
+      console.warn('Nao foi possivel restaurar a sessao autenticada.', error);
+      return null;
+    })
+    .finally(() => {
+      sessionRestorePromise = null;
+    });
+
+  return sessionRestorePromise;
+}
+
+function removeLegacyCredentialsFromUrl() {
   const params = new URLSearchParams(window.location.search);
   const hasLegacyCredentials = params.has('username') || params.has('password');
 
   if (!hasLegacyCredentials) {
-    return null;
+    return '';
   }
 
-  window.history.replaceState(null, '', window.location.pathname);
-  return { error: 'Por seguranca, informe suas credenciais na tela de login.' };
+  params.delete('username');
+  params.delete('password');
+  const query = params.toString();
+  window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+  return 'Por seguranca, informe suas credenciais na tela de login.';
 }
 
 function ensureFreshLoginAfterAuthUpdate() {
@@ -346,28 +379,6 @@ function renderModulePlaceholder(workspace, label) {
         <h1 class="pdv-title">${label}</h1>
       </header>
       <div class="empty-products">Modulo preparado para a proxima etapa.</div>
-    </section>
-  `;
-}
-
-function renderRelatoriosModule(workspace) {
-  workspace.innerHTML = `
-    <section class="module-screen">
-      <header class="module-header">
-        <div>
-          <h1 class="pdv-title">Relatorios</h1>
-          <p class="module-subtitle">Acompanhe a operacao e abra o painel mobile do dono.</p>
-        </div>
-      </header>
-      <div class="report-actions">
-        <button class="report-action-card" type="button" data-menu-id="mobile">
-          <span class="report-action-card__icon">AD</span>
-          <span>
-            <strong>App do Dono</strong>
-            <small>Dashboard mobile com vendas, caixa, vitrine, CRM e feed ao vivo.</small>
-          </span>
-        </button>
-      </div>
     </section>
   `;
 }

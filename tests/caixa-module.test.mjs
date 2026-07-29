@@ -21,7 +21,7 @@ const assert = (condition, message) => {
   }
 };
 
-const { buildDifferences } = await import('../src/modules/caixa/caixa.module.js');
+const { buildCrmClosingInput, buildDifferences } = await import('../src/modules/caixa/caixa.module.js?v=20260729-12');
 
 const differences = buildDifferences({
   payments: {
@@ -50,5 +50,19 @@ const uncheckedDifferences = buildDifferences({
 assert(!uncheckedDifferences.some((difference) => difference.referenceId === 'pix'), 'unchecked pix should not require a reason');
 assert(!uncheckedDifferences.some((difference) => difference.referenceId === 'debito'), 'zero debit difference should not require a reason');
 assert(!uncheckedDifferences.some((difference) => difference.referenceId === 'credito'), 'unchecked credit should not require a reason');
+
+const closingInput = buildCrmClosingInput({
+  entriesTotal: 10.01,
+  outputsTotal: 469.21,
+  paymentTotals: {
+    dinheiro: 7.35,
+    pix: 42.35,
+    debito: 130.35,
+    credito: 65.35
+  }
+}, { countedCash: '-451.85' });
+
+assert(closingInput.expectedCash === -451.85, 'CRM closing should use the same cash total displayed by the report');
+assert(closingInput.expectedPix === 42.35, 'CRM closing should use the displayed Pix total');
 
 console.log('caixa module ok');

@@ -1,13 +1,13 @@
-import { STORAGE_KEYS } from '../database/schema.js';
-import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js';
-import { createUser, deleteUser, getUsers, updateUser } from './auth.service.js';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260729-12';
+import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260729-12';
+import { createUser, deleteUser, getUsers, updateUser } from './auth.service.js?v=20260729-12';
 import {
   PERMISSIONS,
   getRolePermissions,
   normalizeRole,
   setUserPermissionOverride
-} from './permission.service.js';
-import { getItem, setItem } from './storage.service.js';
+} from './permission.service.js?v=20260729-12';
+import { getItem, setItem } from './storage.service.js?v=20260729-12';
 
 const LAST_ADMIN_ERROR = 'Nao e permitido desativar o ultimo administrador ativo.';
 
@@ -208,7 +208,7 @@ async function invokeAdminUsersFunction(action, payload) {
     },
     body: JSON.stringify({
       action,
-      ...payload
+      payload
     })
   });
 

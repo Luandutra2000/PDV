@@ -22,8 +22,12 @@ globalThis.document = {
   }
 };
 
-const storage = await import('../src/services/storage.service.js');
-const { initDespesasModule, renderFinanceiroMarkup } = await import('../src/modules/despesas/despesas.module.js');
+const storage = await import('../src/services/storage.service.js?v=20260729-12');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260729-12');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260729-12');
+const { initDespesasModule, renderFinanceiroMarkup } = await import('../src/modules/despesas/despesas.module.js?v=20260729-12');
+
+seedTestAdmin(storage, STORAGE_KEYS);
 
 const html = renderFinanceiroMarkup({
   summary: {

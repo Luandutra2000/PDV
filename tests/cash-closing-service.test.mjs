@@ -21,17 +21,17 @@ const assert = (condition, message) => {
   }
 };
 
-const storage = await import('../src/services/storage.service.js');
-const products = await import('../src/services/product.service.js');
-const comandas = await import('../src/services/comanda.service.js');
-const transactions = await import('../src/services/transaction.service.js');
-const estoque = await import('../src/services/estoque.service.js');
-const closing = await import('../src/services/cash-closing.service.js');
-const auth = await import('../src/services/auth.service.js');
-const audit = await import('../src/services/audit.service.js');
-const financial = await import('../src/services/financial-sync.service.js');
-const { STORAGE_KEYS } = await import('../src/database/schema.js');
-const { seedTestAdmin } = await import('./test-auth-fixture.mjs');
+const storage = await import('../src/services/storage.service.js?v=20260729-12');
+const products = await import('../src/services/product.service.js?v=20260729-12');
+const comandas = await import('../src/services/comanda.service.js?v=20260729-12');
+const transactions = await import('../src/services/transaction.service.js?v=20260729-12');
+const estoque = await import('../src/services/estoque.service.js?v=20260729-12');
+const closing = await import('../src/services/cash-closing.service.js?v=20260729-12');
+const auth = await import('../src/services/auth.service.js?v=20260729-12');
+const audit = await import('../src/services/audit.service.js?v=20260729-12');
+const financial = await import('../src/services/financial-sync.service.js?v=20260729-12');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260729-12');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260729-12');
 
 seedTestAdmin(storage, STORAGE_KEYS);
 storage.ensureSeedData();
@@ -82,6 +82,19 @@ assert(summary.payments.cashDifference === -2, 'cash difference should compare c
 assert(summary.payments.expectedPix === 6, 'expected pix should include pix sales');
 assert(summary.payments.checkedPix === null, 'blank pix check should be null');
 assert(summary.payments.generalDifference === -2, 'general difference should use expected values for unchecked optional methods');
+
+const authoritativeConference = closing.buildPaymentConference({
+  expectedCash: -451.85,
+  expectedPix: 42.35,
+  expectedDebit: 130.35,
+  expectedCredit: 65.35,
+  countedCash: -451.85,
+  checkedPix: 42.35,
+  checkedDebit: 130.35,
+  checkedCredit: 65.35
+});
+assert(authoritativeConference.generalDifference === 0, 'authoritative displayed totals should close with zero difference');
+assert(authoritativeConference.cashDifference === 0, 'negative expected cash should be supported without distortion');
 
 const burgerRow = summary.showcase.find((item) => item.productId === burger.id);
 assert(burgerRow.producedQuantity === 10, 'showcase should include produced quantity');

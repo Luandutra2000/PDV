@@ -1,5 +1,5 @@
-import { formatCurrency } from '../utils/currency.js';
-import { escapeHtml } from '../utils/dom.js';
+import { formatCurrency } from '../utils/currency.js?v=20260729-12';
+import { escapeHtml } from '../utils/dom.js?v=20260729-12';
 
 export function renderFechamentoRapidoModal({ summary, closingSummary, showcase, state }) {
   const cards = [
@@ -96,11 +96,13 @@ function renderPayments(summary, closingSummary, state, cardTotals) {
 }
 
 function renderPaymentInput(name, label, expected, value) {
+  const minimum = name === 'countedCash' ? '' : ' min="0"';
+
   return `
     <label class="stacked-label">
       ${label}
       <span>Esperado: ${formatCurrency(expected)}</span>
-      <input class="field" data-quick-payment="${name}" type="number" min="0" step="0.01" value="${value}">
+      <input class="field" data-quick-payment="${name}" type="number"${minimum} step="0.01" value="${value}">
     </label>
   `;
 }
