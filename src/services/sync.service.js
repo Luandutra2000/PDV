@@ -23,8 +23,9 @@ export function getSyncQueue() {
 
 function appendSyncEvent(type, payload) {
   const queue = getSyncQueue();
+  const randomValue = globalThis.crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
   const syncEvent = {
-    id: `${type}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    id: `${type}-${Date.now()}-${randomValue}`,
     type,
     payload,
     createdAt: new Date().toISOString(),
