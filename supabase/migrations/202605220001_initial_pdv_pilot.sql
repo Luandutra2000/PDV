@@ -47,6 +47,15 @@ as $$
   select 'products.manage';
 $$;
 
+create or replace function private.dashboard_view_permission_id()
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select 'dashboard.view';
+$$;
+
 create table if not exists public.roles (
   id text primary key,
   name text not null,
@@ -227,7 +236,7 @@ begin
 end $$;
 
 insert into public.permissions (id, description) values
-  ('dashboard.view', 'Ver dashboard e CRM gerencial'),
+  (private.dashboard_view_permission_id(), 'Ver dashboard e CRM gerencial'),
   ('cashier.access', 'Acessar frente de caixa'),
   ('sale.create', 'Finalizar vendas'),
   ('sale.cancel', 'Cancelar vendas'),
@@ -423,14 +432,14 @@ create policy "product managers delete products" on public.products
   for delete to authenticated using (private.current_profile_has_permission(private.products_manage_permission_id()));
 
 create policy "cashier or dashboard read sales" on public.sales
-  for select to authenticated using (private.current_profile_has_permission('dashboard.view') or private.current_profile_has_permission('cashier.access'));
+  for select to authenticated using (private.current_profile_has_permission(private.dashboard_view_permission_id()) or private.current_profile_has_permission('cashier.access'));
 create policy "sale creators insert sales" on public.sales
   for insert to authenticated with check (private.current_profile_has_permission('sale.create') and created_by = auth.uid());
 create policy "sale cancelers update own sales" on public.sales
   for update to authenticated using (private.current_profile_has_permission('sale.cancel') and created_by = auth.uid()) with check (private.current_profile_has_permission('sale.cancel') and created_by = auth.uid());
 
 create policy "cashier or dashboard read sale items" on public.sale_items
-  for select to authenticated using (private.current_profile_has_permission('dashboard.view') or private.current_profile_has_permission('cashier.access'));
+  for select to authenticated using (private.current_profile_has_permission(private.dashboard_view_permission_id()) or private.current_profile_has_permission('cashier.access'));
 create policy "sale creators insert sale items" on public.sale_items
   for insert to authenticated with check (
     private.current_profile_has_permission('sale.create')
@@ -461,14 +470,14 @@ create policy "sale creators update sale items" on public.sale_items
   );
 
 create policy "cashier or dashboard read cash movements" on public.cash_movements
-  for select to authenticated using (private.current_profile_has_permission('dashboard.view') or private.current_profile_has_permission('cashier.access'));
+  for select to authenticated using (private.current_profile_has_permission(private.dashboard_view_permission_id()) or private.current_profile_has_permission('cashier.access'));
 create policy "cash movement creators insert cash movements" on public.cash_movements
   for insert to authenticated with check (private.current_profile_has_permission('cash.movement.create') and created_by = auth.uid());
 create policy "cash movement creators update cash movements" on public.cash_movements
   for update to authenticated using (private.current_profile_has_permission('cash.movement.create') and created_by = auth.uid()) with check (private.current_profile_has_permission('cash.movement.create') and created_by = auth.uid());
 
 create policy "cash closers or dashboard read cash closings" on public.cash_closings
-  for select to authenticated using (private.current_profile_has_permission('dashboard.view') or private.current_profile_has_permission('cash.close'));
+  for select to authenticated using (private.current_profile_has_permission(private.dashboard_view_permission_id()) or private.current_profile_has_permission('cash.close'));
 create policy "cash closers insert cash closings" on public.cash_closings
   for insert to authenticated with check (private.current_profile_has_permission('cash.close') and created_by = auth.uid());
 create policy "cash closers update cash closings" on public.cash_closings
