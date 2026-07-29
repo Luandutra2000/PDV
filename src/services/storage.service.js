@@ -42,8 +42,17 @@ export function ensureSeedData() {
     setItem(STORAGE_KEYS.products, isSupabaseEnabled() ? [] : mockProducts);
   }
 
-  if (!getItem(STORAGE_KEYS.activeComanda)) {
+  const activeComanda = getItem(STORAGE_KEYS.activeComanda);
+
+  if (!activeComanda) {
     setItem(STORAGE_KEYS.activeComanda, createActiveComanda());
+  } else if (activeComanda.id === 'comanda-local') {
+    const replacement = createActiveComanda();
+    setItem(STORAGE_KEYS.activeComanda, {
+      ...activeComanda,
+      id: replacement.id,
+      updatedAt: replacement.updatedAt
+    });
   }
 
   if (!getItem(STORAGE_KEYS.caixa)) {
