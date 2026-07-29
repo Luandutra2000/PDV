@@ -7,7 +7,7 @@ const TABLES = {
   products: 'products'
 };
 
-export async function handler(event, _context = {}, deps = {}) {
+export async function handler(event, _context, deps = {}) {
   if (event.httpMethod === 'OPTIONS') {
     return json(204, {});
   }
