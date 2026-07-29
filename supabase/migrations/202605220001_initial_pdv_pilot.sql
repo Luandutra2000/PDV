@@ -65,6 +65,15 @@ as $$
   select 'cashier.access';
 $$;
 
+create or replace function private.sale_create_permission_id()
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select 'sale.create';
+$$;
+
 create table if not exists public.roles (
   id text primary key,
   name text not null,
@@ -247,7 +256,7 @@ end $$;
 insert into public.permissions (id, description) values
   (private.dashboard_view_permission_id(), 'Ver dashboard e CRM gerencial'),
   (private.cashier_access_permission_id(), 'Acessar frente de caixa'),
-  ('sale.create', 'Finalizar vendas'),
+  (private.sale_create_permission_id(), 'Finalizar vendas'),
   ('sale.cancel', 'Cancelar vendas'),
   ('cash.movement.create', 'Criar entradas e saidas'),
   ('cash.close', 'Fechar caixa'),
@@ -265,7 +274,7 @@ on conflict do nothing;
 
 insert into public.role_permissions (role_id, permission_id) values
   (private.operator_role_id(), private.cashier_access_permission_id()),
-  (private.operator_role_id(), 'sale.create'),
+  (private.operator_role_id(), private.sale_create_permission_id()),
   (private.operator_role_id(), 'cash.movement.create'),
   (private.operator_role_id(), 'stock.view'),
   (private.operator_role_id(), 'stock.create'),
@@ -443,7 +452,7 @@ create policy "product managers delete products" on public.products
 create policy "cashier or dashboard read sales" on public.sales
   for select to authenticated using (private.current_profile_has_permission(private.dashboard_view_permission_id()) or private.current_profile_has_permission(private.cashier_access_permission_id()));
 create policy "sale creators insert sales" on public.sales
-  for insert to authenticated with check (private.current_profile_has_permission('sale.create') and created_by = auth.uid());
+  for insert to authenticated with check (private.current_profile_has_permission(private.sale_create_permission_id()) and created_by = auth.uid());
 create policy "sale cancelers update own sales" on public.sales
   for update to authenticated using (private.current_profile_has_permission('sale.cancel') and created_by = auth.uid()) with check (private.current_profile_has_permission('sale.cancel') and created_by = auth.uid());
 
@@ -451,7 +460,7 @@ create policy "cashier or dashboard read sale items" on public.sale_items
   for select to authenticated using (private.current_profile_has_permission(private.dashboard_view_permission_id()) or private.current_profile_has_permission(private.cashier_access_permission_id()));
 create policy "sale creators insert sale items" on public.sale_items
   for insert to authenticated with check (
-    private.current_profile_has_permission('sale.create')
+    private.current_profile_has_permission(private.sale_create_permission_id())
     and exists (
       select 1
       from public.sales s
@@ -461,7 +470,7 @@ create policy "sale creators insert sale items" on public.sale_items
   );
 create policy "sale creators update sale items" on public.sale_items
   for update to authenticated using (
-    private.current_profile_has_permission('sale.create')
+    private.current_profile_has_permission(private.sale_create_permission_id())
     and exists (
       select 1
       from public.sales s
@@ -469,7 +478,7 @@ create policy "sale creators update sale items" on public.sale_items
         and s.created_by = auth.uid()
     )
   ) with check (
-    private.current_profile_has_permission('sale.create')
+    private.current_profile_has_permission(private.sale_create_permission_id())
     and exists (
       select 1
       from public.sales s
