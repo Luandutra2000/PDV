@@ -210,8 +210,8 @@ export function getFavoriteProducts() {
 export function createProduct(productData) {
   const products = getProducts();
   const product = normalizeProduct({
-    id: createProductId(productData.name),
-    ...productData
+    ...productData,
+    id: createProductId(productData.name)
   });
 
   products.push(product);
@@ -278,7 +278,11 @@ export async function deleteProductOnline(productId) {
 }
 
 function saveProducts(products) {
-  getDataProvider().setCollection('products', products);
+  const sanitizedProducts = Array.isArray(products)
+    ? products.map((product) => normalizeProduct(product))
+    : [];
+
+  getDataProvider().setCollection('products', sanitizedProducts);
 }
 
 async function saveProductToOnlineDatabase(product) {
