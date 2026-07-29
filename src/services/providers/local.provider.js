@@ -1,5 +1,5 @@
 import { STORAGE_KEYS } from '../../database/schema.js';
-import { getItem, setItem } from '../storage.service.js';
+import { getItem, sanitizeForStorage, setItem } from '../storage.service.js';
 
 const COLLECTION_KEYS = {
   products: STORAGE_KEYS.products,
@@ -33,15 +33,17 @@ export function createLocalProvider() {
       return getItem(getStorageKey(name), fallback);
     },
     setCollection(name, value) {
-      setItem(getStorageKey(name), value);
-      return value;
+      const sanitizedValue = sanitizeForStorage(value);
+      setItem(getStorageKey(name), sanitizedValue);
+      return sanitizedValue;
     },
     getItem(name, fallback = null) {
       return getItem(getStorageKey(name), fallback);
     },
     setItem(name, value) {
-      setItem(getStorageKey(name), value);
-      return value;
+      const sanitizedValue = sanitizeForStorage(value);
+      setItem(getStorageKey(name), sanitizedValue);
+      return sanitizedValue;
     }
   };
 }
