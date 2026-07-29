@@ -1,3 +1,6 @@
+import test from 'node:test';
+
+test('list users function returns active profiles for an admin', async () => {
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
@@ -46,6 +49,7 @@ const listCall = calls.find((call) => call.url.includes('/rest/v1/profiles?selec
 assert(listCall.options.headers.Authorization === 'Bearer service-key', 'profile list should use service role key');
 
 console.log('list users function ok');
+});
 
 function jsonResponse(data, ok = true, status = 200) {
   return {
