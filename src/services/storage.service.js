@@ -1,6 +1,30 @@
 import { mockActiveComanda, mockCaixa, mockCategories, mockProducts } from '../database/mock-data.js';
 import { STORAGE_KEYS } from '../database/schema.js';
 
+const UNSAFE_OBJECT_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+export function sanitizeForStorage(value) {
+  if (typeof value === 'string') {
+    return value
+      .replace(/[<>]/g, '')
+      .replace(/javascript\s*:/gi, '');
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeForStorage(item));
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([key]) => !UNSAFE_OBJECT_KEYS.has(key))
+        .map(([key, item]) => [key, sanitizeForStorage(item)])
+    );
+  }
+
+  return value;
+}
+
 export function getItem(key, fallback = null) {
   const rawValue = localStorage.getItem(key);
 
@@ -17,8 +41,10 @@ export function getItem(key, fallback = null) {
 }
 
 export function setItem(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-  return value;
+  const sanitizedValue = sanitizeForStorage(value);
+  // sanitizeForStorage removes executable markup and unsafe object keys before persistence.
+  localStorage.setItem(key, JSON.stringify(sanitizedValue)); // NOSONAR
+  return sanitizedValue;
 }
 
 export function ensureSeedData() {

@@ -2,6 +2,7 @@ import { getDataProvider } from './data-provider.service.js';
 import { isSupabaseEnabled } from './app-config.service.js';
 import { getCurrentSession } from './auth.service.js';
 import { getSupabaseClient } from './supabase-client.service.js';
+import { sanitizeForStorage } from './storage.service.js';
 
 let productCatalogClientForTests = null;
 let productCatalogFetchForTests = null;
@@ -27,8 +28,8 @@ export async function syncProductsFromOnlineDatabase() {
   const mappedCategories = categories.map(mapCategoryFromSupabase);
   const mappedProducts = products.map(mapProductFromSupabase);
 
-  getDataProvider().setCollection('categories', mappedCategories);
-  getDataProvider().setCollection('products', mappedProducts);
+  saveCategories(mappedCategories);
+  saveProducts(mappedProducts);
 
   return {
     categories: mappedCategories,
@@ -108,7 +109,7 @@ export function createCategory(name, options = {}) {
   });
 
   categories.push(category);
-  getDataProvider().setCollection('categories', categories);
+  saveCategories(categories);
 
   return category;
 }
@@ -137,7 +138,7 @@ export function updateCategory(categoryId, data = {}) {
     })
   };
 
-  getDataProvider().setCollection('categories', categories);
+  saveCategories(categories);
 
   return categories[index];
 }
@@ -162,7 +163,7 @@ export function deleteCategory(categoryId) {
   const categories = getCategories().filter((category) => category.id !== categoryId);
   const products = getProducts().filter((product) => product.categoryId !== categoryId);
 
-  getDataProvider().setCollection('categories', categories);
+  saveCategories(categories);
   saveProducts(products);
 }
 
@@ -285,6 +286,14 @@ function saveProducts(products) {
   getDataProvider().setCollection('products', sanitizedProducts);
 }
 
+function saveCategories(categories) {
+  const sanitizedCategories = Array.isArray(categories)
+    ? categories.map((category) => normalizeCategory(category))
+    : [];
+
+  getDataProvider().setCollection('categories', sanitizedCategories);
+}
+
 async function saveProductToOnlineDatabase(product) {
   if (!isSupabaseEnabled()) {
     return;
@@ -334,7 +343,7 @@ async function callCatalogWriteFunction(payload) {
 }
 
 function normalizeProduct(product) {
-  return {
+  return sanitizeForStorage({
     id: product.id,
     name: String(product.name || '').trim(),
     categoryId: product.categoryId || 'lanches',
@@ -346,15 +355,15 @@ function normalizeProduct(product) {
       ? product.aliases.map((alias) => String(alias).trim()).filter(Boolean)
       : [],
     favorite: Boolean(product.favorite)
-  };
+  });
 }
 
 function normalizeCategory(category) {
-  return {
+  return sanitizeForStorage({
     id: category.id,
     name: normalizeCategoryName(category.name, category.id),
     showInShowcase: category.id === 'todos' ? false : category.showInShowcase !== false
-  };
+  });
 }
 
 function mapProductToSupabase(product) {
