@@ -256,8 +256,7 @@ function renderStockForm() {
     ? getStockLaunches({ period: 'all' }).find((item) => item.id === estoqueState.editingId)
     : null;
   const selectedProduct = launch ? getProductById(launch.produtoId) : null;
-  const categoryName = launch ? launch.categoriaNome : selectedProduct ? getCategoryName(selectedProduct.categoryId) : 'Categoria automatica';
-  const unitValue = launch ? launch.valorUnitario : selectedProduct ? selectedProduct.price : '';
+  const { categoryName, unitValue } = getStockFormProductDetails(launch, selectedProduct);
 
   return `
     <label>
@@ -289,6 +288,27 @@ function renderStockForm() {
       <button class="button" type="submit">${launch ? 'Salvar edicao' : 'Lancar no estoque'}</button>
     </div>
   `;
+}
+
+function getStockFormProductDetails(launch, selectedProduct) {
+  if (launch) {
+    return {
+      categoryName: launch.categoriaNome,
+      unitValue: launch.valorUnitario
+    };
+  }
+
+  if (selectedProduct) {
+    return {
+      categoryName: getCategoryName(selectedProduct.categoryId),
+      unitValue: selectedProduct.price
+    };
+  }
+
+  return {
+    categoryName: 'Categoria automatica',
+    unitValue: ''
+  };
 }
 
 function renderLaunchRows(launches) {
