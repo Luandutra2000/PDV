@@ -225,7 +225,7 @@ function closeModal() {
 async function saveProductFromForm(form) {
   const formData = new FormData(form);
   const selectedCategory = formData.get('categoryId');
-  const newCategoryName = String(formData.get('newCategoryName') || '').trim();
+  const newCategoryName = getTextFormValue(formData, 'newCategoryName');
   const isEditing = Boolean(productState.editingProductId);
 
   if (selectedCategory === '__new__' && !newCategoryName) {
@@ -275,7 +275,7 @@ async function saveProductFromForm(form) {
 
 async function saveCategoryFromForm(form) {
   const formData = new FormData(form);
-  const name = String(formData.get('name') || '').trim();
+  const name = getTextFormValue(formData, 'name');
   const showInShowcase = formData.get('showInShowcase') === 'on';
   const isEditing = Boolean(productState.editingCategoryId);
 
@@ -309,6 +309,11 @@ async function saveCategoryFromForm(form) {
       type: 'danger'
     });
   }
+}
+
+function getTextFormValue(formData, fieldName) {
+  const value = formData.get(fieldName);
+  return typeof value === 'string' ? value.trim() : '';
 }
 
 async function saveProduct(productId, productData) {
