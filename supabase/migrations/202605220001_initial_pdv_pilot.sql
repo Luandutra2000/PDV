@@ -101,6 +101,15 @@ as $$
   select 'cash.close';
 $$;
 
+create or replace function private.stock_create_permission_id()
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select 'stock.create';
+$$;
+
 create table if not exists public.roles (
   id text primary key,
   name text not null,
@@ -288,7 +297,7 @@ insert into public.permissions (id, description) values
   (private.cash_movement_create_permission_id(), 'Criar entradas e saidas'),
   (private.cash_close_permission_id(), 'Fechar caixa'),
   ('stock.view', 'Ver estoque'),
-  ('stock.create', 'Criar lancamentos de estoque'),
+  (private.stock_create_permission_id(), 'Criar lancamentos de estoque'),
   (private.products_view_permission_id(), 'Ver produtos'),
   (private.products_manage_permission_id(), 'Gerenciar produtos'),
   ('users.manage', 'Gerenciar usuarios'),
@@ -304,7 +313,7 @@ insert into public.role_permissions (role_id, permission_id) values
   (private.operator_role_id(), private.sale_create_permission_id()),
   (private.operator_role_id(), private.cash_movement_create_permission_id()),
   (private.operator_role_id(), 'stock.view'),
-  (private.operator_role_id(), 'stock.create'),
+  (private.operator_role_id(), private.stock_create_permission_id()),
   (private.operator_role_id(), private.products_view_permission_id())
 on conflict do nothing;
 
@@ -531,16 +540,16 @@ create policy "cash closers update cash closings" on public.cash_closings
 create policy "stock viewers read stock production" on public.stock_production
   for select to authenticated using (private.current_profile_has_permission('stock.view'));
 create policy "stock creators insert stock production" on public.stock_production
-  for insert to authenticated with check (private.current_profile_has_permission('stock.create') and created_by = auth.uid());
+  for insert to authenticated with check (private.current_profile_has_permission(private.stock_create_permission_id()) and created_by = auth.uid());
 create policy "stock creators update stock production" on public.stock_production
-  for update to authenticated using (private.current_profile_has_permission('stock.create') and created_by = auth.uid()) with check (private.current_profile_has_permission('stock.create') and created_by = auth.uid());
+  for update to authenticated using (private.current_profile_has_permission(private.stock_create_permission_id()) and created_by = auth.uid()) with check (private.current_profile_has_permission(private.stock_create_permission_id()) and created_by = auth.uid());
 
 create policy "stock viewers read stock items" on public.stock_items
   for select to authenticated using (private.current_profile_has_permission('stock.view'));
 create policy "stock creators insert stock items" on public.stock_items
-  for insert to authenticated with check (private.current_profile_has_permission('stock.create') and created_by = auth.uid());
+  for insert to authenticated with check (private.current_profile_has_permission(private.stock_create_permission_id()) and created_by = auth.uid());
 create policy "stock creators update stock items" on public.stock_items
-  for update to authenticated using (private.current_profile_has_permission('stock.create') and created_by = auth.uid()) with check (private.current_profile_has_permission('stock.create') and created_by = auth.uid());
+  for update to authenticated using (private.current_profile_has_permission(private.stock_create_permission_id()) and created_by = auth.uid()) with check (private.current_profile_has_permission(private.stock_create_permission_id()) and created_by = auth.uid());
 
 create policy "active users insert own audit logs" on public.audit_logs
   for insert to authenticated with check (private.current_profile_is_active() and user_id = auth.uid());
