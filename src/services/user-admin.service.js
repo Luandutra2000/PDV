@@ -1,5 +1,6 @@
 import { STORAGE_KEYS } from '../database/schema.js';
 import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js';
+import { getSupabaseClient } from './supabase-client.service.js';
 import { createUser, deleteUser, getUsers, updateUser } from './auth.service.js';
 import {
   PERMISSIONS,
@@ -203,7 +204,7 @@ async function invokeAdminUsersFunction(action, payload) {
     method: 'POST',
     headers: {
       apikey: config.supabaseAnonKey,
-      Authorization: `Bearer ${getBearerToken()}`,
+      Authorization: `Bearer ${await getBearerToken()}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
@@ -221,7 +222,20 @@ async function invokeAdminUsersFunction(action, payload) {
   return data || null;
 }
 
-function getBearerToken() {
+async function getBearerToken() {
+  try {
+    const client = await getSupabaseClient();
+    const { data } = await client?.auth?.getSession?.();
+    const freshToken = data?.session?.access_token;
+
+    if (freshToken) {
+      return freshToken;
+    }
+  } catch (error) {
+    // The stored application session remains a fallback for offline tests and
+    // browsers that have not initialized the Supabase client yet.
+  }
+
   const session = getItem(STORAGE_KEYS.currentSession, null);
   const token = session?.access_token || session?.accessToken;
 
