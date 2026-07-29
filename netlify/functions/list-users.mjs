@@ -2,7 +2,7 @@ const JSON_HEADERS = {
   'Content-Type': 'application/json'
 };
 
-export async function handler(event, _context = {}, deps = {}) {
+export async function handler(event, _context, deps = {}) {
   if (event.httpMethod === 'OPTIONS') {
     return json(204, {});
   }
