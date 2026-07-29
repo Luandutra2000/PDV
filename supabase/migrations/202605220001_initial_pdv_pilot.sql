@@ -119,6 +119,15 @@ as $$
   select 'stock.view';
 $$;
 
+create or replace function private.users_manage_permission_id()
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select 'users.manage';
+$$;
+
 create table if not exists public.roles (
   id text primary key,
   name text not null,
@@ -309,7 +318,7 @@ insert into public.permissions (id, description) values
   (private.stock_create_permission_id(), 'Criar lancamentos de estoque'),
   (private.products_view_permission_id(), 'Ver produtos'),
   (private.products_manage_permission_id(), 'Gerenciar produtos'),
-  ('users.manage', 'Gerenciar usuarios'),
+  (private.users_manage_permission_id(), 'Gerenciar usuarios'),
   ('audit.view', 'Ver auditoria')
 on conflict (id) do update set description = excluded.description;
 
@@ -453,28 +462,28 @@ drop policy if exists "audit viewers read audit logs" on public.audit_logs;
 create policy "active users read own profile" on public.profiles
   for select to authenticated using (id = auth.uid() and is_active = true);
 create policy "user managers read profiles" on public.profiles
-  for select to authenticated using (private.current_profile_has_permission('users.manage'));
+  for select to authenticated using (private.current_profile_has_permission(private.users_manage_permission_id()));
 create policy "user managers insert profiles" on public.profiles
-  for insert to authenticated with check (private.current_profile_has_permission('users.manage'));
+  for insert to authenticated with check (private.current_profile_has_permission(private.users_manage_permission_id()));
 create policy "user managers update profiles" on public.profiles
-  for update to authenticated using (private.current_profile_has_permission('users.manage')) with check (private.current_profile_has_permission('users.manage'));
+  for update to authenticated using (private.current_profile_has_permission(private.users_manage_permission_id())) with check (private.current_profile_has_permission(private.users_manage_permission_id()));
 create policy "user managers delete profiles" on public.profiles
-  for delete to authenticated using (private.current_profile_has_permission('users.manage'));
+  for delete to authenticated using (private.current_profile_has_permission(private.users_manage_permission_id()));
 
 create policy "user managers read roles" on public.roles
-  for select to authenticated using (private.current_profile_has_permission('users.manage'));
+  for select to authenticated using (private.current_profile_has_permission(private.users_manage_permission_id()));
 create policy "user managers write roles" on public.roles
-  for all to authenticated using (private.current_profile_has_permission('users.manage')) with check (private.current_profile_has_permission('users.manage'));
+  for all to authenticated using (private.current_profile_has_permission(private.users_manage_permission_id())) with check (private.current_profile_has_permission(private.users_manage_permission_id()));
 
 create policy "user managers read permissions" on public.permissions
-  for select to authenticated using (private.current_profile_has_permission('users.manage'));
+  for select to authenticated using (private.current_profile_has_permission(private.users_manage_permission_id()));
 create policy "user managers write permissions" on public.permissions
-  for all to authenticated using (private.current_profile_has_permission('users.manage')) with check (private.current_profile_has_permission('users.manage'));
+  for all to authenticated using (private.current_profile_has_permission(private.users_manage_permission_id())) with check (private.current_profile_has_permission(private.users_manage_permission_id()));
 
 create policy "user managers read role permissions" on public.role_permissions
-  for select to authenticated using (private.current_profile_has_permission('users.manage'));
+  for select to authenticated using (private.current_profile_has_permission(private.users_manage_permission_id()));
 create policy "user managers write role permissions" on public.role_permissions
-  for all to authenticated using (private.current_profile_has_permission('users.manage')) with check (private.current_profile_has_permission('users.manage'));
+  for all to authenticated using (private.current_profile_has_permission(private.users_manage_permission_id())) with check (private.current_profile_has_permission(private.users_manage_permission_id()));
 
 create policy "product viewers read categories" on public.categories
   for select to authenticated using (private.current_profile_has_permission(private.products_view_permission_id()));
