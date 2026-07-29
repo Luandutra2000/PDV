@@ -34,7 +34,7 @@ const html = renderSidebar(admin, {
 assert(html.includes('Meu Caixa'), 'sidebar should render configured system name');
 assert(html.includes('Padaria Sao Joao'), 'sidebar should render configured company name in footer');
 assert(html.includes('https://example.com/logo.png'), 'sidebar should render configured logo');
-assert(html.includes('Configurações da Empresa') || html.includes('Configuracoes da Empresa'), 'sidebar should include company settings menu item');
+assert(html.includes('Design de Layout'), 'sidebar should include the approved layout menu item');
 assert(html.includes('data-menu-id="empresa-config"'), 'company settings item should use expected route id');
 
 const operatorHtml = renderSidebar({ id: 'op-1', role: 'operador', active: true }, {

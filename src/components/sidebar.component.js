@@ -13,8 +13,7 @@ const menuGroups = [
     title: 'Gestao',
     items: [
       { id: 'produtos', label: 'Produtos', icon: 'PR', permission: 'products.manage' },
-      { id: 'pessoas', label: 'Pessoas', icon: 'PS', permission: ['users.manage', 'users.edit', 'users.delete', 'permissions.manage', 'audit.view'] },
-      { id: 'empresa-config', label: 'Configurações da Empresa', icon: 'CE', permission: 'company_settings.manage' }
+      { id: 'pessoas', label: 'Pessoas', icon: 'PS', permission: ['users.manage', 'users.edit', 'users.delete', 'permissions.manage', 'audit.view'] }
     ]
   },
   {
@@ -28,7 +27,8 @@ const menuGroups = [
     title: 'Outros',
     items: [
       { id: 'relatorios', label: 'Relatorios', icon: 'RE', permission: 'reports.view' },
-      { id: 'mobile', label: 'App do Dono', icon: 'AD', permission: 'owner_app.view' }
+      { id: 'mobile', label: 'App do Dono', icon: 'AD', permission: 'owner_app.view' },
+      { id: 'empresa-config', label: 'Design de Layout', icon: 'CE', permission: 'company_settings.manage' }
     ]
   },
   {
