@@ -233,10 +233,30 @@ function getBearerToken() {
 }
 
 async function readJsonResponse(response) {
+  if (typeof response.text !== 'function') {
+    try {
+      return await response.json();
+    } catch (error) {
+      return null;
+    }
+  }
+
+  const text = await response.text();
+
+  if (!text) {
+    return response.ok
+      ? null
+      : { error: `Falha no serviço de usuários (HTTP ${response.status}).` };
+  }
+
   try {
-    return await response.json();
+    return JSON.parse(text);
   } catch (error) {
-    return null;
+    return {
+      error: response.ok
+        ? 'O serviço de usuários retornou uma resposta inválida.'
+        : `Falha no serviço de usuários (HTTP ${response.status}).`
+    };
   }
 }
 
