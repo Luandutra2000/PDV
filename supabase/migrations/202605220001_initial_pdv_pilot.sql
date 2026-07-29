@@ -11,6 +11,15 @@ as $$
   select 'operador';
 $$;
 
+create or replace function private.admin_role_id()
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select 'admin';
+$$;
+
 create or replace function private.active_status()
 returns text
 language sql
@@ -200,7 +209,7 @@ alter table public.stock_items
   alter column created_by set not null;
 
 insert into public.roles (id, name) values
-  ('admin', 'Administrador'),
+  (private.admin_role_id(), 'Administrador'),
   (private.operator_role_id(), 'Operador')
 on conflict (id) do update set name = excluded.name;
 
@@ -233,7 +242,7 @@ insert into public.permissions (id, description) values
 on conflict (id) do update set description = excluded.description;
 
 insert into public.role_permissions (role_id, permission_id)
-select 'admin', id from public.permissions
+select private.admin_role_id(), id from public.permissions
 on conflict do nothing;
 
 insert into public.role_permissions (role_id, permission_id) values
@@ -273,7 +282,7 @@ as $$
     left join public.role_permissions rp on rp.role_id = p.role
     where p.id = auth.uid()
       and p.is_active = true
-      and (p.role = 'admin' or rp.permission_id = _permission_id)
+      and (p.role = private.admin_role_id() or rp.permission_id = _permission_id)
   );
 $$;
 
