@@ -3,14 +3,7 @@ import { emit } from './event-bus.service.js';
 import { getItem, setItem } from './storage.service.js';
 
 export function getActiveComanda() {
-  return getItem(STORAGE_KEYS.activeComanda, {
-    id: 'comanda-local',
-    number: 1,
-    status: 'aberta',
-    items: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  });
+  return getItem(STORAGE_KEYS.activeComanda, createComanda(1));
 }
 
 export function addItem(product) {
@@ -121,14 +114,7 @@ export function clearComanda() {
 }
 
 export function startNewComanda(number) {
-  const newComanda = {
-    id: `comanda-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    number,
-    status: 'aberta',
-    items: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
+  const newComanda = createComanda(number);
 
   saveComanda(newComanda);
 
@@ -141,4 +127,18 @@ export function getSubtotal(comanda = getActiveComanda()) {
 
 function saveComanda(comanda) {
   setItem(STORAGE_KEYS.activeComanda, comanda);
+}
+
+function createComanda(number) {
+  const randomValue = globalThis.crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
+  const now = new Date().toISOString();
+
+  return {
+    id: `comanda-${Date.now()}-${randomValue}`,
+    number,
+    status: 'aberta',
+    items: [],
+    createdAt: now,
+    updatedAt: now
+  };
 }

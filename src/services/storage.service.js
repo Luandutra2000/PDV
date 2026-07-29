@@ -1,4 +1,4 @@
-import { mockActiveComanda, mockCaixa, mockCategories, mockProducts } from '../database/mock-data.js';
+import { mockCaixa, mockCategories, mockProducts } from '../database/mock-data.js';
 import { STORAGE_KEYS } from '../database/schema.js';
 import { isSupabaseEnabled } from './app-config.service.js';
 import { getDataProvider } from './data-provider.service.js';
@@ -43,7 +43,7 @@ export function ensureSeedData() {
   }
 
   if (!getItem(STORAGE_KEYS.activeComanda)) {
-    setItem(STORAGE_KEYS.activeComanda, mockActiveComanda);
+    setItem(STORAGE_KEYS.activeComanda, createActiveComanda());
   }
 
   if (!getItem(STORAGE_KEYS.caixa)) {
@@ -91,7 +91,7 @@ export function resetAppData() {
   provider.write(STORAGE_KEYS.auditLogs, []);
   provider.write(STORAGE_KEYS.categories, mockCategories);
   provider.write(STORAGE_KEYS.products, mockProducts);
-  provider.write(STORAGE_KEYS.activeComanda, mockActiveComanda);
+  provider.write(STORAGE_KEYS.activeComanda, createActiveComanda());
   provider.write(STORAGE_KEYS.caixa, mockCaixa);
   provider.write(STORAGE_KEYS.syncQueue, []);
   provider.write(STORAGE_KEYS.transactions, []);
@@ -101,6 +101,20 @@ export function resetAppData() {
   provider.write(STORAGE_KEYS.cashClosings, []);
   provider.write(STORAGE_KEYS.cashClosingDraft, null);
   provider.write(STORAGE_KEYS.showcaseWriteOffs, []);
+}
+
+function createActiveComanda() {
+  const randomValue = globalThis.crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
+  const now = new Date().toISOString();
+
+  return {
+    id: `comanda-${Date.now()}-${randomValue}`,
+    number: 1,
+    status: 'aberta',
+    items: [],
+    createdAt: now,
+    updatedAt: now
+  };
 }
 
 function createDefaultAdminUser() {
