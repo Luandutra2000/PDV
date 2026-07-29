@@ -29,6 +29,15 @@ as $$
   select 'products.view';
 $$;
 
+create or replace function private.products_manage_permission_id()
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select 'products.manage';
+$$;
+
 create table if not exists public.roles (
   id text primary key,
   name text not null,
@@ -218,7 +227,7 @@ insert into public.permissions (id, description) values
   ('stock.view', 'Ver estoque'),
   ('stock.create', 'Criar lancamentos de estoque'),
   (private.products_view_permission_id(), 'Ver produtos'),
-  ('products.manage', 'Gerenciar produtos'),
+  (private.products_manage_permission_id(), 'Gerenciar produtos'),
   ('users.manage', 'Gerenciar usuarios'),
   ('audit.view', 'Ver auditoria')
 on conflict (id) do update set description = excluded.description;
@@ -389,20 +398,20 @@ create policy "user managers write role permissions" on public.role_permissions
 create policy "product viewers read categories" on public.categories
   for select to authenticated using (private.current_profile_has_permission(private.products_view_permission_id()));
 create policy "product managers insert categories" on public.categories
-  for insert to authenticated with check (private.current_profile_has_permission('products.manage'));
+  for insert to authenticated with check (private.current_profile_has_permission(private.products_manage_permission_id()));
 create policy "product managers update categories" on public.categories
-  for update to authenticated using (private.current_profile_has_permission('products.manage')) with check (private.current_profile_has_permission('products.manage'));
+  for update to authenticated using (private.current_profile_has_permission(private.products_manage_permission_id())) with check (private.current_profile_has_permission(private.products_manage_permission_id()));
 create policy "product managers delete categories" on public.categories
-  for delete to authenticated using (private.current_profile_has_permission('products.manage'));
+  for delete to authenticated using (private.current_profile_has_permission(private.products_manage_permission_id()));
 
 create policy "product viewers read products" on public.products
   for select to authenticated using (private.current_profile_has_permission(private.products_view_permission_id()));
 create policy "product managers insert products" on public.products
-  for insert to authenticated with check (private.current_profile_has_permission('products.manage'));
+  for insert to authenticated with check (private.current_profile_has_permission(private.products_manage_permission_id()));
 create policy "product managers update products" on public.products
-  for update to authenticated using (private.current_profile_has_permission('products.manage')) with check (private.current_profile_has_permission('products.manage'));
+  for update to authenticated using (private.current_profile_has_permission(private.products_manage_permission_id())) with check (private.current_profile_has_permission(private.products_manage_permission_id()));
 create policy "product managers delete products" on public.products
-  for delete to authenticated using (private.current_profile_has_permission('products.manage'));
+  for delete to authenticated using (private.current_profile_has_permission(private.products_manage_permission_id()));
 
 create policy "cashier or dashboard read sales" on public.sales
   for select to authenticated using (private.current_profile_has_permission('dashboard.view') or private.current_profile_has_permission('cashier.access'));
