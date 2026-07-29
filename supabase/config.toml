@@ -1,0 +1,4 @@
+project_id = "pdv-lanchonete-production"
+
+[functions.admin-users]
+verify_jwt = false
