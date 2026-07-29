@@ -9,7 +9,7 @@ const DEFAULT_CONFIG = {
 export function getRuntimeConfig() {
   return {
     ...DEFAULT_CONFIG,
-    ...(globalThis.__PDV_RUNTIME_CONFIG__ || {})
+    ...globalThis.__PDV_RUNTIME_CONFIG__
   };
 }
 
