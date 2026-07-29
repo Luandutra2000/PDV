@@ -248,7 +248,7 @@
   justify-content: space-between;
   gap: 18px;
   padding: 24px;
-  background: linear-gradient(135deg, rgba(255, 107, 26, 0.95), rgba(255, 145, 72, 0.9));
+  background: linear-gradient(135deg, #a63e08, #c54b0a);
   color: #ffffff;
 }
 
