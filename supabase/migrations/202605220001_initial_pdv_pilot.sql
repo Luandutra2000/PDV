@@ -83,6 +83,15 @@ as $$
   select 'sale.cancel';
 $$;
 
+create or replace function private.cash_movement_create_permission_id()
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select 'cash.movement.create';
+$$;
+
 create table if not exists public.roles (
   id text primary key,
   name text not null,
@@ -267,7 +276,7 @@ insert into public.permissions (id, description) values
   (private.cashier_access_permission_id(), 'Acessar frente de caixa'),
   (private.sale_create_permission_id(), 'Finalizar vendas'),
   (private.sale_cancel_permission_id(), 'Cancelar vendas'),
-  ('cash.movement.create', 'Criar entradas e saidas'),
+  (private.cash_movement_create_permission_id(), 'Criar entradas e saidas'),
   ('cash.close', 'Fechar caixa'),
   ('stock.view', 'Ver estoque'),
   ('stock.create', 'Criar lancamentos de estoque'),
@@ -284,7 +293,7 @@ on conflict do nothing;
 insert into public.role_permissions (role_id, permission_id) values
   (private.operator_role_id(), private.cashier_access_permission_id()),
   (private.operator_role_id(), private.sale_create_permission_id()),
-  (private.operator_role_id(), 'cash.movement.create'),
+  (private.operator_role_id(), private.cash_movement_create_permission_id()),
   (private.operator_role_id(), 'stock.view'),
   (private.operator_role_id(), 'stock.create'),
   (private.operator_role_id(), private.products_view_permission_id())
@@ -499,9 +508,9 @@ create policy "sale creators update sale items" on public.sale_items
 create policy "cashier or dashboard read cash movements" on public.cash_movements
   for select to authenticated using (private.current_profile_has_permission(private.dashboard_view_permission_id()) or private.current_profile_has_permission(private.cashier_access_permission_id()));
 create policy "cash movement creators insert cash movements" on public.cash_movements
-  for insert to authenticated with check (private.current_profile_has_permission('cash.movement.create') and created_by = auth.uid());
+  for insert to authenticated with check (private.current_profile_has_permission(private.cash_movement_create_permission_id()) and created_by = auth.uid());
 create policy "cash movement creators update cash movements" on public.cash_movements
-  for update to authenticated using (private.current_profile_has_permission('cash.movement.create') and created_by = auth.uid()) with check (private.current_profile_has_permission('cash.movement.create') and created_by = auth.uid());
+  for update to authenticated using (private.current_profile_has_permission(private.cash_movement_create_permission_id()) and created_by = auth.uid()) with check (private.current_profile_has_permission(private.cash_movement_create_permission_id()) and created_by = auth.uid());
 
 create policy "cash closers or dashboard read cash closings" on public.cash_closings
   for select to authenticated using (private.current_profile_has_permission(private.dashboard_view_permission_id()) or private.current_profile_has_permission('cash.close'));
