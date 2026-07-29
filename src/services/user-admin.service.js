@@ -66,6 +66,10 @@ export function updateManagedUser(userId, patch) {
   }
 
   if (isSupabaseEnabled()) {
+    if (Object.hasOwn(payload, 'username')) {
+      payload.email = payload.username;
+      delete payload.username;
+    }
     return invokeAdminUsersFunction('updateUser', { userId, patch: payload }).then((result) => cacheManagedUser(result?.user || result));
   }
 

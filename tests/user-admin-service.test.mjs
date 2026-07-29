@@ -214,12 +214,18 @@ assert(
   'loadManagedUsers should replace stale local-only users with the remote Supabase list'
 );
 
-const supabaseUpdatedUser = await userAdmin.updateManagedUser('admin-1', { role: 'operador' });
+const supabaseUpdatedUser = await userAdmin.updateManagedUser('admin-1', {
+  role: 'operador',
+  username: 'admin-novo@example.test'
+});
+const updateRequestBody = JSON.parse(managedUserRequest.options.body);
 assert.equal(
   managedUserRequest.options.headers.Authorization,
   'Bearer test-access-token',
   'supabase managed-user calls should use the authenticated access token'
 );
+assert.equal(updateRequestBody.patch.email, 'admin-novo@example.test', 'online update should send username as Auth email');
+assert(!Object.hasOwn(updateRequestBody.patch, 'username'), 'online update should not send an unsupported username patch');
 assert.equal(supabaseUpdatedUser.role, 'operador', 'supabase updateManagedUser should return remote updated user');
 
 resetUsers([

@@ -1,5 +1,6 @@
 import { mockActiveComanda, mockCaixa, mockCategories, mockProducts } from '../database/mock-data.js';
 import { STORAGE_KEYS } from '../database/schema.js';
+import { isSupabaseEnabled } from './app-config.service.js';
 import { getDataProvider } from './data-provider.service.js';
 
 export function getItem(key, fallback = null) {
@@ -34,11 +35,11 @@ export function ensureSeedData() {
   }
 
   if (!getItem(STORAGE_KEYS.categories)) {
-    setItem(STORAGE_KEYS.categories, mockCategories);
+    setItem(STORAGE_KEYS.categories, isSupabaseEnabled() ? [] : mockCategories);
   }
 
   if (!getItem(STORAGE_KEYS.products)) {
-    setItem(STORAGE_KEYS.products, mockProducts);
+    setItem(STORAGE_KEYS.products, isSupabaseEnabled() ? [] : mockProducts);
   }
 
   if (!getItem(STORAGE_KEYS.activeComanda)) {

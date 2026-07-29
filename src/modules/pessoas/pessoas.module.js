@@ -1,5 +1,5 @@
 import { getCurrentUser, getUsers } from '../../services/auth.service.js';
-import { recordAudit } from '../../services/audit.service.js';
+import { getAuditLogs, recordAudit } from '../../services/audit.service.js';
 import {
   createManagedUser,
   deleteManagedUser,
@@ -25,9 +25,19 @@ const ROLE_OPTIONS = [
 const peopleState = {
   editingUserId: null,
   selectedUserId: null,
+  modalOpen: false,
   modalRole: 'operador',
   modalPermissions: {},
-  modalDraft: createBlankUserDraft()
+  modalDraft: createBlankUserDraft(),
+  message: '',
+  error: '',
+  auditFilters: {
+    user: '',
+    action: '',
+    module: '',
+    dateStart: '',
+    dateEnd: ''
+  }
 };
 const boundContainers = new WeakSet();
 
@@ -54,40 +64,82 @@ function renderPeople(container, loadError = '') {
   const selectedUser = users.find((user) => user.id === peopleState.selectedUserId) || users[0] || null;
   const editingUser = users.find((user) => user.id === peopleState.editingUserId) || null;
   const permissions = getPeoplePermissions();
+  const logs = getAuditRows();
+  const error = loadError || peopleState.error;
 
   container.innerHTML = `
     <section class="module-screen people-screen" data-people-screen>
-      <header class="module-header">
+      <header class="module-header people-hero">
         <div>
-          <h1 class="pdv-title">Pessoas</h1>
-          <p class="module-subtitle">Usuarios, perfis e permissoes individuais.</p>
+          <span class="people-eyebrow">Equipe & seguranca</span>
+          <h1 class="pdv-title">Pessoas e Permissoes</h1>
+          <p class="module-subtitle">Gerencie acessos, perfis e acompanhe as acoes realizadas no sistema.</p>
         </div>
-        ${permissions.canCreate ? '<button class="button" type="button" data-action="new-user">Novo usuario</button>' : ''}
+        ${permissions.canCreate ? '<button class="button people-new-button" type="button" data-action="new-user">+ Novo usuario</button>' : ''}
       </header>
 
-      <div class="people-grid">
-        <section class="manager-section">
+      ${renderFeedback(error)}
+      ${renderSummaryCards(users, logs)}
+
+      <div class="people-main-grid">
+        <section class="manager-section people-card-panel">
           <header class="manager-section__header">
             <strong>Usuarios</strong>
+            <span>${users.length} cadastrado(s)</span>
           </header>
           <div class="manager-list people-list">
-            ${loadError ? `<p class="form-error">${escapeHtml(loadError)}</p>` : ''}
             ${renderUserList(users)}
           </div>
         </section>
 
-        <section class="manager-section">
+        <section class="manager-section people-card-panel">
           <header class="manager-section__header">
-            <strong>${editingUser ? 'Editar usuario' : 'Cadastrar usuario'}</strong>
+            <div>
+              <strong>Permissoes do usuario</strong>
+              <span>${selectedUser ? escapeHtml(selectedUser.name) : 'Selecione um usuario'}</span>
+            </div>
           </header>
-          ${permissions.canCreate || (editingUser && permissions.canEdit)
-            ? renderUserForm(editingUser, permissions)
-            : '<div class="empty-products">Sem permissao para cadastrar ou editar usuarios.</div>'}
+          ${selectedUser ? renderSelectedPermissionPreview(selectedUser, permissions) : '<div class="empty-products">Nenhum usuario selecionado.</div>'}
         </section>
       </div>
 
+      ${permissions.canManagePermissions || hasPermission(getCurrentUser(), 'audit.view') ? renderAuditPanel(users, logs) : ''}
+      ${renderUserModal(editingUser, permissions)}
     </section>
   `;
+}
+
+function renderFeedback(error = '') {
+  if (error) {
+    return `<p class="form-error people-feedback">${escapeHtml(error)}</p>`;
+  }
+
+  if (peopleState.message) {
+    return `<p class="people-feedback people-feedback--success">${escapeHtml(peopleState.message)}</p>`;
+  }
+
+  return '';
+}
+
+function renderSummaryCards(users, logs) {
+  const activeUsers = users.filter((user) => user.active !== false);
+  const admins = users.filter((user) => normalizeRole(user.role) === 'admin');
+  const operators = users.filter((user) => normalizeRole(user.role) === 'operador');
+  const lastActivity = logs[0]?.createdAt ? formatDate(logs[0].createdAt) : 'Sem registro';
+
+  return `
+    <div class="people-summary-grid">
+      ${renderSummaryCard('Total de usuarios', users.length)}
+      ${renderSummaryCard('Usuarios ativos', activeUsers.length)}
+      ${renderSummaryCard('Administradores', admins.length)}
+      ${renderSummaryCard('Operadores', operators.length)}
+      ${renderSummaryCard('Ultima atividade', lastActivity)}
+    </div>
+  `;
+}
+
+function renderSummaryCard(label, value) {
+  return `<article class="people-summary-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`;
 }
 
 function bindPeopleEvents(container) {
@@ -111,6 +163,17 @@ function bindPeopleEvents(container) {
       peopleState.modalRole = 'operador';
       peopleState.modalPermissions = buildRolePermissionState('operador');
       peopleState.modalDraft = createBlankUserDraft();
+      peopleState.modalOpen = true;
+      peopleState.error = '';
+      peopleState.message = '';
+      renderPeople(container);
+      return;
+    }
+
+    if (button.dataset.action === 'close-user-modal') {
+      peopleState.modalOpen = false;
+      peopleState.editingUserId = null;
+      peopleState.modalDraft = createBlankUserDraft();
       renderPeople(container);
       return;
     }
@@ -132,12 +195,23 @@ function bindPeopleEvents(container) {
       peopleState.modalRole = normalizeRole(user?.role || 'operador');
       peopleState.modalPermissions = buildUserPermissionState(user);
       peopleState.modalDraft = createUserDraft(user);
+      peopleState.modalOpen = true;
+      peopleState.error = '';
+      peopleState.message = '';
       renderPeople(container);
       return;
     }
 
     if (button.dataset.action === 'delete-user') {
       handleDeleteUser(container, button.dataset.userId);
+      return;
+    }
+
+    if (button.dataset.action === 'view-history') {
+      const user = getUsers().find((candidate) => candidate.id === button.dataset.userId);
+      peopleState.auditFilters.user = user?.name || '';
+      peopleState.selectedUserId = button.dataset.userId;
+      renderPeople(container);
     }
   });
 
@@ -213,6 +287,9 @@ function bindPeopleEvents(container) {
       peopleState.modalRole = normalizeRole(user.role);
       peopleState.modalPermissions = buildUserPermissionState(user);
       peopleState.modalDraft = createUserDraft(user);
+      peopleState.modalOpen = false;
+      peopleState.message = editingUserId ? 'Usuario atualizado com sucesso.' : 'Usuario cadastrado com sucesso.';
+      peopleState.error = '';
       renderPeople(container);
     } catch (error) {
       renderFormError(event.target, error.message || 'Nao foi possivel salvar o usuario.');
@@ -262,6 +339,11 @@ function bindPeopleEvents(container) {
       return;
     }
 
+    const auditFilter = event.target.closest('[data-audit-filter]');
+    if (auditFilter && event.target.closest('[data-people-screen]')) {
+      peopleState.auditFilters[auditFilter.dataset.auditFilter] = auditFilter.value;
+      renderPeople(container);
+    }
   });
 }
 
@@ -275,15 +357,66 @@ function renderUserList(users) {
   return users.map((user) => `
     <article class="people-row ${user.id === peopleState.selectedUserId ? 'is-selected' : ''}">
       <button class="people-row__main" type="button" data-action="select-user" data-user-id="${user.id}">
-        <strong>${escapeHtml(user.name)}</strong>
-        <span>${getRoleLabel(user.role)} - ${user.active ? 'Ativo' : 'Inativo'}</span>
+        <span class="people-avatar">${getInitials(user.name)}</span>
+        <span>
+          <strong>${escapeHtml(user.name)}</strong>
+          <small>${escapeHtml(user.username || 'E-mail nao informado')} · ${getRoleLabel(user.role)} - ${user.active === false ? 'Inativo' : 'Ativo'}</small>
+        </span>
       </button>
+      <div class="people-row__meta">
+        <span class="status-pill ${user.active === false ? 'is-inactive' : 'is-active'}">${user.active === false ? 'Inativo' : 'Ativo'}</span>
+      </div>
       <div class="people-row__actions">
         ${permissions.canEdit ? `<button class="button button--ghost" type="button" data-action="edit-user" data-user-id="${user.id}">Editar</button>` : ''}
         ${permissions.canDelete ? `<button class="button button--danger" type="button" data-action="delete-user" data-user-id="${user.id}">Excluir</button>` : ''}
+        <button class="button button--ghost" type="button" data-action="view-history" data-user-id="${user.id}">Historico</button>
       </div>
     </article>
   `).join('');
+}
+
+function renderSelectedPermissionPreview(user, permissions) {
+  const activePermissions = PERMISSIONS.filter((permission) => isPermissionAllowed(user, permission.id));
+  const grouped = groupPermissions(activePermissions);
+
+  return `
+    <div class="people-selected-profile">
+      <div>
+        <strong>${getRoleLabel(user.role)}</strong>
+        <span>${user.active === false ? 'Usuario inativo' : `${activePermissions.length} permissoes liberadas`}</span>
+      </div>
+      ${permissions.canEdit ? `<button class="button" type="button" data-action="edit-user" data-user-id="${user.id}">Editar permissoes</button>` : ''}
+    </div>
+    <div class="permission-preview-grid">
+      ${grouped.map(([group, groupPermissions]) => `
+        <section class="permission-preview-group">
+          <h3>${escapeHtml(group)}</h3>
+          ${groupPermissions.slice(0, 5).map((permission) => `<span>${escapeHtml(permission.label)}</span>`).join('')}
+          ${groupPermissions.length > 5 ? `<small>+${groupPermissions.length - 5} permissoes</small>` : ''}
+        </section>
+      `).join('') || '<div class="empty-products">Nenhuma permissao liberada.</div>'}
+    </div>
+  `;
+}
+
+function renderUserModal(user, permissions) {
+  const canRenderForm = permissions.canCreate || (user && permissions.canEdit);
+  const title = user ? 'Editar usuario' : 'Novo usuario';
+
+  return `
+    <div class="people-modal-backdrop ${peopleState.modalOpen ? 'is-open' : ''}" data-user-modal aria-hidden="${peopleState.modalOpen ? 'false' : 'true'}">
+      <section class="people-modal" role="dialog" aria-modal="true" aria-label="${title}">
+        <header class="people-modal__header">
+          <div>
+            <strong>${title}</strong>
+            <span>${user ? 'Atualize dados, status e permissoes.' : 'Cadastre o acesso e defina as permissoes.'}</span>
+          </div>
+          <button class="button button--ghost" type="button" data-action="close-user-modal">Cancelar</button>
+        </header>
+        ${canRenderForm ? renderUserForm(user, permissions) : '<div class="empty-products">Sem permissao para cadastrar ou editar usuarios.</div>'}
+      </section>
+    </div>
+  `;
 }
 
 async function handleDeleteUser(container, userId) {
@@ -330,9 +463,13 @@ async function handleDeleteUser(container, userId) {
 
     peopleState.selectedUserId = null;
     ensureSelectedUser();
+    peopleState.message = 'Usuario excluido com sucesso.';
+    peopleState.error = '';
     renderPeople(container);
   } catch (error) {
-    renderPeople(container, error.message || 'Nao foi possivel excluir o usuario.');
+    peopleState.message = '';
+    peopleState.error = error.message || 'Nao foi possivel excluir o usuario.';
+    renderPeople(container);
   }
 }
 
@@ -343,7 +480,7 @@ function renderUserForm(user, permissions = getPeoplePermissions()) {
   const canManagePermissions = permissions.canManagePermissions;
 
   return `
-    <form class="product-form people-form" data-user-form>
+    <form class="product-form people-form people-modal__body" data-user-form>
       <input type="hidden" name="id" value="${user?.id || ''}">
       <p class="form-error" data-user-form-error hidden></p>
       <div class="form-grid">
@@ -352,8 +489,8 @@ function renderUserForm(user, permissions = getPeoplePermissions()) {
           <input class="field" name="name" value="${escapeHtml(draft.name ?? user?.name ?? '')}" required>
         </label>
         <label>
-          Usuario
-          <input class="field" name="username" value="${escapeHtml(draft.username ?? user?.username ?? '')}" required>
+          Usuario/e-mail
+          <input class="field" type="email" name="username" value="${escapeHtml(draft.username ?? user?.username ?? '')}" required>
         </label>
         <label>
           Senha
@@ -374,7 +511,8 @@ function renderUserForm(user, permissions = getPeoplePermissions()) {
         </label>
       </div>
       ${canManagePermissions ? renderPermissionChecklist(role) : ''}
-      <div class="form-actions">
+      <div class="form-actions people-modal__footer">
+        <button class="button button--ghost" type="button" data-action="close-user-modal">Cancelar</button>
         <button class="button" type="submit">${user ? 'Salvar usuario' : 'Cadastrar usuario'}</button>
       </div>
     </form>
@@ -474,6 +612,154 @@ function groupPermissions() {
     groups[permission.group].push(permission);
     return groups;
   }, {}));
+}
+
+function isPermissionAllowed(user, permissionId) {
+  if (normalizeRole(user?.role) === 'admin') {
+    return true;
+  }
+
+  const override = getUserPermissionOverride(user?.id, permissionId);
+  if (override === 'allow') {
+    return true;
+  }
+  if (override === 'deny') {
+    return false;
+  }
+
+  return getRolePermissions(normalizeRole(user?.role)).includes(permissionId);
+}
+
+function getAuditRows() {
+  return getAuditLogs()
+    .map((entry) => ({
+      ...entry,
+      module: entry.metadata?.module || getAuditModule(entry.action),
+      details: entry.metadata?.details || getAuditDetails(entry)
+    }))
+    .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
+}
+
+function renderAuditPanel(users, logs) {
+  const rows = filterAuditRows(logs);
+  const modules = [...new Set(logs.map((entry) => entry.module).filter(Boolean))];
+  const actions = [...new Set(logs.map((entry) => entry.action).filter(Boolean))];
+
+  return `
+    <section class="manager-section people-audit-panel">
+      <header class="manager-section__header">
+        <div>
+          <strong>Historico de acoes</strong>
+          <span>Auditoria da equipe, organizada por usuario, modulo e data.</span>
+        </div>
+      </header>
+      <div class="people-audit-filters">
+        ${renderAuditSelect('user', 'Usuario', users.map((user) => ({ value: user.name, label: user.name })))}
+        ${renderAuditSelect('action', 'Tipo de acao', actions.map((action) => ({ value: action, label: getAuditLabel(action) })))}
+        ${renderAuditSelect('module', 'Modulo', modules.map((moduleName) => ({ value: moduleName, label: moduleName })))}
+        <label>Data inicial<input class="field" type="date" value="${peopleState.auditFilters.dateStart}" data-audit-filter="dateStart"></label>
+        <label>Data final<input class="field" type="date" value="${peopleState.auditFilters.dateEnd}" data-audit-filter="dateEnd"></label>
+      </div>
+      <div class="people-audit-table">
+        <div class="people-audit-table__head"><span>Usuario</span><span>Acao</span><span>Modulo</span><span>Data</span><span>Hora</span><span>Detalhes</span></div>
+        ${rows.map((entry) => `
+          <div class="people-audit-row">
+            <span>${escapeHtml(entry.userName)}</span>
+            <span>${escapeHtml(getAuditLabel(entry.action))}</span>
+            <span>${escapeHtml(entry.module)}</span>
+            <span>${formatOnlyDate(entry.createdAt)}</span>
+            <span>${formatOnlyTime(entry.createdAt)}</span>
+            <span>${escapeHtml(entry.details)}</span>
+          </div>
+        `).join('') || '<div class="empty-products">Nenhuma acao encontrada para estes filtros.</div>'}
+      </div>
+    </section>
+  `;
+}
+
+function renderAuditSelect(key, label, options) {
+  return `
+    <label>
+      ${label}
+      <select class="field" data-audit-filter="${key}">
+        <option value="">Todos</option>
+        ${options.map((option) => `<option value="${escapeHtml(option.value)}" ${peopleState.auditFilters[key] === option.value ? 'selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}
+      </select>
+    </label>
+  `;
+}
+
+function filterAuditRows(logs) {
+  return logs.filter((entry) => {
+    const createdAt = new Date(entry.createdAt);
+    const dateStart = peopleState.auditFilters.dateStart ? new Date(`${peopleState.auditFilters.dateStart}T00:00:00`) : null;
+    const dateEnd = peopleState.auditFilters.dateEnd ? new Date(`${peopleState.auditFilters.dateEnd}T23:59:59`) : null;
+
+    return (!peopleState.auditFilters.user || entry.userName === peopleState.auditFilters.user)
+      && (!peopleState.auditFilters.action || entry.action === peopleState.auditFilters.action)
+      && (!peopleState.auditFilters.module || entry.module === peopleState.auditFilters.module)
+      && (!dateStart || createdAt >= dateStart)
+      && (!dateEnd || createdAt <= dateEnd);
+  });
+}
+
+function getAuditModule(action = '') {
+  if (action.startsWith('sale.')) return 'Vendas';
+  if (action.startsWith('cash.')) return 'Caixa';
+  if (action.startsWith('showcase.') || action.startsWith('stock.')) return 'Vitrine/Estoque';
+  if (action.startsWith('financial.')) return 'Financeiro/Despesas';
+  if (action.startsWith('product.') || action.startsWith('category.')) return 'Gestao';
+  return 'Sistema';
+}
+
+function getAuditLabel(action) {
+  const labels = {
+    'user.create': 'Usuario criado',
+    'user.update': 'Usuario editado',
+    'user.delete': 'Usuario excluido',
+    'user.role.change': 'Perfil alterado',
+    'permission.override': 'Permissoes alteradas',
+    'sale.create': 'Venda finalizada',
+    'sale.cancel': 'Venda cancelada',
+    'cash.movement': 'Movimento de caixa',
+    'showcase.launch': 'Producao lancada',
+    'financial.bill.pay': 'Conta paga'
+  };
+  return labels[action] || action;
+}
+
+function getAuditDetails(entry) {
+  return entry.metadata?.reason
+    || entry.metadata?.description
+    || entry.metadata?.username
+    || 'Acao registrada no sistema';
+}
+
+function formatDate(value) {
+  if (!value) return 'Sem registro';
+  return new Date(value).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function formatOnlyDate(value) {
+  return new Date(value).toLocaleDateString('pt-BR');
+}
+
+function formatOnlyTime(value) {
+  return new Date(value).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function getInitials(name) {
+  return String(name || 'U')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'U';
 }
 
 function getPeoplePermissions() {
