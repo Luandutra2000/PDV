@@ -92,7 +92,11 @@ function renderCashMetric(label, value, signed = false, fixedClass = '') {
   `;
 }
 
-bootstrap();
+try {
+  await bootstrap();
+} catch (error) {
+  console.error('Nao foi possivel iniciar o PDV.', error);
+}
 
 function bindNavigation(app, workspace) {
   app.addEventListener('click', (event) => {
