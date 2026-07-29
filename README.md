@@ -57,13 +57,19 @@ Tambem e possivel abrir o `index.html` direto no navegador, mas o servidor local
 
 ## Testes atuais
 
-Os testes atuais validam regras de negocio dos servicos principais:
+Os testes atuais validam regras de negocio, seguranca da autenticacao, persistencia, sincronizacao e o grafo de inicializacao. Execute toda a suite com:
 
 ```powershell
-node tests\transaction-service.test.mjs
-node tests\product-service.test.mjs
-node tests\estoque-service.test.mjs
-node tests\cash-closing-service.test.mjs
+npm.cmd test
+```
+
+O executor descobre todos os arquivos `tests/*.test.mjs`, executa cada teste em
+um processo isolado e retorna codigo diferente de zero se qualquer teste falhar.
+
+Para validar apenas o grafo de modulos usado na inicializacao:
+
+```powershell
+npm.cmd run test:startup
 ```
 
 ## Proximas etapas

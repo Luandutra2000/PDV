@@ -12,5 +12,7 @@ assert(
   appSource.includes('renderLoginModule(app, () => bootstrap({ skipFreshLoginCheck: true })'),
   'login success bootstrap should not clear the session it just created'
 );
+assert(!appSource.includes('loginFromQueryString'), 'app should not accept credentials from query parameters');
+assert(appSource.includes("params.delete('password')"), 'app should remove legacy password query parameters');
 
 console.log('login bootstrap session version ok');

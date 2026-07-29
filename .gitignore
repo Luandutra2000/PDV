@@ -2,6 +2,7 @@
 .local-server*.pid
 .local-server*.log
 .worktrees/
+.codex-prod-layout-label-*/
 
 .vercel
 supabase/.temp/

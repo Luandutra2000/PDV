@@ -7,10 +7,15 @@ import { createPeriodFilter, getCrmSummary } from '../../services/crm-dashboard.
 import { getCategories, getFavoriteProducts, getProductById, searchProducts } from '../../services/product.service.js';
 import { finalizeComandaPayment, getBestSellingProducts, registerCashMovement } from '../../services/transaction.service.js';
 import { formatCurrency } from '../../utils/currency.js';
-import { qs } from '../../utils/dom.js';
+import { escapeHtml, qs } from '../../utils/dom.js';
 import { showNotification } from '../../services/notification.service.js';
 import { createShowcaseWriteOff, getTodayShowcaseProducts } from '../../services/estoque.service.js';
 import { getFinancialCategories } from '../../services/financial.service.js';
+import { getShowcaseStockByProductId } from '../../services/showcase-stock.service.js';
+import { on } from '../../services/event-bus.service.js';
+import { UI_EVENTS } from '../../database/schema.js';
+import { getCurrentUser } from '../../services/auth.service.js';
+import { hasPermission } from '../../services/permission.service.js';
 
 const CATEGORY_ALL = 'todos';
 const CATEGORY_FAVORITES = '__favoritos';
@@ -35,6 +40,11 @@ export function initVendasModule(container) {
 
   if (!boundContainers.has(container)) {
     bindEvents(container);
+    on(UI_EVENTS.showcaseStockChanged, () => {
+      if (container.querySelector('.pdv-screen')) {
+        renderProducts(container);
+      }
+    });
     boundContainers.add(container);
   }
 }
@@ -48,8 +58,8 @@ function renderScreen(container) {
           <div class="pdv-actions">
             <label class="sr-only" for="product-search">Buscar produto</label>
             <input id="product-search" class="field" type="search" placeholder="Buscar produto..." value="${state.query}">
-            <button class="button button--ghost" type="button" data-action="open-quick-closing">Fechamento Rapido</button>
-            <button class="button button--danger" type="button" data-action="open-write-off">Perda / Consumo</button>
+            ${canCurrentUser('cash.close') ? '<button class="button button--ghost" type="button" data-action="open-quick-closing">Fechamento Rapido</button>' : ''}
+            ${canCurrentUser('stock.writeoff') ? '<button class="button button--danger" type="button" data-action="open-write-off">Perda / Consumo</button>' : ''}
           </div>
         </header>
         ${renderQuickAccess()}
@@ -113,6 +123,7 @@ function bindEvents(container) {
 
     if (actionButton?.dataset.action === 'add-product') {
       const product = getProductById(actionButton.dataset.productId);
+      warnIfProductOutOfStock(product);
       addItem(product);
       renderComanda(container);
       return;
@@ -121,6 +132,7 @@ function bindEvents(container) {
     if (actionButton?.dataset.action === 'quick-add') {
       try {
         const product = getProductById(actionButton.dataset.productId);
+        warnIfProductOutOfStock(product);
         addItemQuantity(product, actionButton.dataset.quantity);
         renderComanda(container);
       } catch (error) {
@@ -263,7 +275,9 @@ function bindEvents(container) {
       const data = new FormData(event.target);
 
       try {
-        addItemQuantity(getProductById(state.quantityProductId), data.get('quantity'));
+        const product = getProductById(state.quantityProductId);
+        warnIfProductOutOfStock(product);
+        addItemQuantity(product, data.get('quantity'));
         state.modal = null;
         state.quantityProductId = null;
         renderComanda(container);
@@ -297,9 +311,9 @@ function renderCategories(container) {
     <button
       class="category-tab ${category.id === state.categoryId ? 'is-active' : ''}"
       type="button"
-      data-category-id="${category.id}"
+      data-category-id="${escapeHtml(category.id)}"
     >
-      ${category.name}
+      ${escapeHtml(category.name)}
     </button>
   `).join('');
 }
@@ -324,7 +338,7 @@ function renderQuickAccess() {
       <div class="quick-access__list">
         ${quickProducts.map((product) => `
           <button class="quick-access__item" type="button" data-action="add-product" data-product-id="${product.id}">
-            <span>${product.name}</span>
+            <span>${escapeHtml(product.name)}</span>
             <strong>${formatCurrency(product.price)}</strong>
           </button>
         `).join('')}
@@ -350,7 +364,8 @@ function renderProducts(container) {
 
   target.innerHTML = products.map((product) => {
     const category = categories.find((item) => item.id === product.categoryId);
-    return renderProductCard(product, category ? category.name : 'Sem categoria');
+    const showcaseStock = getShowcaseStockByProductId(product.id).quantityAvailable;
+    return renderProductCard({ ...product, showcaseStock }, category ? category.name : 'Sem categoria');
   }).join('');
 }
 
@@ -388,7 +403,38 @@ function renderComanda(container) {
     return;
   }
 
-  target.innerHTML = renderOrderPanel(getActiveComanda());
+  target.innerHTML = gateOrderPanelActions(renderOrderPanel(getActiveComanda()));
+}
+
+function canCurrentUser(permissionId) {
+  return hasPermission(getCurrentUser(), permissionId);
+}
+
+function gateOrderPanelActions(markup) {
+  let gatedMarkup = markup;
+
+  if (!canCurrentUser('cash.movement')) {
+    gatedMarkup = gatedMarkup.replace(
+      '<button class="button button--success" type="button" data-action="open-entry">+ Entrada</button>',
+      ''
+    );
+  }
+
+  if (!canCurrentUser('cash.withdrawal')) {
+    gatedMarkup = gatedMarkup.replace(
+      '<button class="button button--danger" type="button" data-action="open-output">- Saida</button>',
+      ''
+    );
+  }
+
+  if (!canCurrentUser('sales.create')) {
+    gatedMarkup = gatedMarkup.replace(
+      /<button class="button" type="button" data-action="open-payment"[^>]*>Receber [\s\S]*?<\/button>/,
+      ''
+    );
+  }
+
+  return gatedMarkup;
 }
 
 function handleOrderAction(actionButton, container) {
@@ -536,7 +582,7 @@ function renderSaleSuccessModal() {
             ${sale.items.map((item) => `
               <div class="sale-success-item">
                 <div>
-                  <strong>${item.name}</strong>
+                  <strong>${escapeHtml(item.name)}</strong>
                   <span>${item.quantity} x ${formatCurrency(item.unitPrice)}</span>
                 </div>
                 <strong>${formatCurrency(item.total)}</strong>
@@ -661,7 +707,7 @@ function renderQuantityModal() {
         </header>
         <form class="product-form" data-quantity-form>
           <div class="payment-total">
-            <span>${product.name}</span>
+            <span>${escapeHtml(product.name)}</span>
             <strong>${formatCurrency(product.price)}</strong>
           </div>
           <label class="stacked-label">
@@ -694,7 +740,7 @@ function renderWriteOffModal() {
               Produto da vitrine
               <select class="field" name="productId" required>
                 ${showcaseProducts.map((product) => `
-                  <option value="${product.id}">${product.name} - ${formatCurrency(product.price)}</option>
+                  <option value="${escapeHtml(product.id)}">${escapeHtml(product.name)} - ${formatCurrency(product.price)}</option>
                 `).join('')}
               </select>
             </label>
@@ -805,7 +851,7 @@ function renderCashMovementModal(type) {
           <label class="stacked-label">
             Categoria
             <select class="field" name="category" required>
-              ${categories.map((category) => `<option value="${category.id}">${category.name}</option>`).join('')}
+              ${categories.map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`).join('')}
             </select>
           </label>
           <label class="stacked-label">
@@ -849,5 +895,22 @@ function getPaymentLabel(method) {
 function setActiveSalesMenu() {
   document.querySelectorAll('[data-menu-id]').forEach((item) => {
     item.classList.toggle('is-active', item.dataset.menuId === 'frente-caixa');
+  });
+}
+
+function warnIfProductOutOfStock(product) {
+  if (!product) {
+    return;
+  }
+
+  const stock = getShowcaseStockByProductId(product.id).quantityAvailable;
+  if (stock > 0) {
+    return;
+  }
+
+  showNotification({
+    title: 'Produto sem estoque',
+    message: 'Atencao: este produto esta sem estoque na vitrine.',
+    type: 'warning'
   });
 }

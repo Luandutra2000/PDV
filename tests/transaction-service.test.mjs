@@ -44,9 +44,11 @@ const permissions = await import('../src/services/permission.service.js');
 const audit = await import('../src/services/audit.service.js');
 const financial = await import('../src/services/financial-sync.service.js');
 const transactions = await import('../src/services/transaction.service.js');
+const { seedTestAdmin, setTestUserSession } = await import('./test-auth-fixture.mjs');
 
+seedTestAdmin(storage, schema.STORAGE_KEYS);
 storage.ensureSeedData();
-const adminSession = auth.login({ username: 'admin', password: 'admin123' });
+const adminSession = { user: auth.getCurrentUser() };
 comandas.clearComanda();
 comandas.addItem(products.getProductById('x-burger'));
 comandas.addItem(products.getProductById('x-burger'));
@@ -276,21 +278,22 @@ const sangria = transactions.registerCashMovement({
 const sangriaSummary = transactions.getTransactionSummary();
 
 assert(sangria.type === 'sangria', 'sangria should be accepted as movement type');
-assert(sangriaSummary.outputsTotal === outputsBeforeSangria, 'sangria should not change output totals when summaries count only saida');
+assert(sangriaSummary.outputsTotal === outputsBeforeSangria + 7, 'sangria should reduce expected cash as an outflow');
 
 const saleAudit = audit.getAuditLogs().find((entry) => entry.action === 'sale.create' && entry.entityId === sale.id);
 assert(saleAudit.userId === adminSession.user.id, 'sale audit should store logged user id');
 assert(saleAudit.metadata.total === 32, 'sale audit should store total');
 assert(saleAudit.metadata.paymentMethod === 'dinheiro', 'sale audit should store payment method');
 
-const operator = auth.createUser({
+const operator = {
+  id: 'operator-test',
   name: 'Operador Teste',
   username: 'operador-teste',
-  password: 'operador123',
-  role: 'operator'
-});
+  role: 'operator',
+  active: true
+};
 permissions.setUserPermissionOverride(operator.id, 'sales.cancel', 'deny');
-auth.login({ username: 'operador-teste', password: 'operador123' });
+setTestUserSession(storage, schema.STORAGE_KEYS, operator);
 
 let deniedCancelBlocked = false;
 try {
@@ -328,9 +331,10 @@ const supabaseRuntimeConfig = {
 };
 
 storage.setItem(schema.STORAGE_KEYS.financialSyncQueue, []);
+globalThis.__PDV_RUNTIME_CONFIG__ = localRuntimeConfig;
+setTestUserSession(storage, schema.STORAGE_KEYS, adminSession.user);
 globalThis.__PDV_RUNTIME_CONFIG__ = supabaseRuntimeConfig;
 financial.configureFinancialSyncForTests({ getClient: async () => failingFinancialClient });
-auth.login({ username: 'admin', password: 'admin123' });
 comandas.clearComanda();
 comandas.addItem(products.getProductById('x-burger'));
 

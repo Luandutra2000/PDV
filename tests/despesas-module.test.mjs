@@ -155,7 +155,7 @@ storage.setItem('pdv.financialTransactions', [
     amount: 100,
     categoryId: 'reforco-caixa',
     status: 'paid',
-    transactionDate: '2026-06-15'
+    transactionDate: new Date().toISOString().slice(0, 10)
   },
   {
     id: 'fin-expense-change',
@@ -164,7 +164,7 @@ storage.setItem('pdv.financialTransactions', [
     amount: 150,
     categoryId: 'fornecedor',
     status: 'paid',
-    transactionDate: '2026-06-15'
+    transactionDate: new Date().toISOString().slice(0, 10)
   }
 ]);
 

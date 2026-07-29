@@ -16,6 +16,7 @@ import {
   saveCashMovementToSupabase,
   saveSaleToSupabase
 } from './financial-sync.service.js';
+import { processShowcaseSale, reverseShowcaseSale } from './showcase-sync.service.js';
 
 export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
   const user = getCurrentUser();
@@ -63,6 +64,19 @@ export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
   appendTransaction(sale);
   appendClosedComanda(closedCommand);
   syncSaleToSupabase(sale, closedCommand);
+  runShowcaseSync(processShowcaseSale({
+    operationId: sale.id,
+    saleId: sale.id,
+    commandId: sale.comandaId,
+    userId: sale.createdBy,
+    createdAt: sale.createdAt,
+    items: sale.items.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice ?? item.price,
+      total: item.total
+    }))
+  }));
   startNewComanda(comanda.number + 1);
   emit(SYNC_EVENTS.saleFinished, sale);
   emit(UI_EVENTS.cashSummaryChanged, sale);
@@ -89,14 +103,15 @@ export function registerCashMovement({
   createFinancialTransaction = true
 }) {
   const user = getCurrentUser();
-  assertPermission(user, 'cash.movement');
-
-  const normalizedAmount = Number(amount) || 0;
-  const normalizedDescription = String(description || '').trim();
 
   if (!['entrada', 'saida', 'sangria'].includes(type)) {
     throw new Error('Tipo de movimento invalido.');
   }
+
+  assertPermission(user, type === 'entrada' ? 'cash.movement' : 'cash.withdrawal');
+
+  const normalizedAmount = Number(amount) || 0;
+  const normalizedDescription = String(description || '').trim();
 
   if (normalizedAmount <= 0) {
     throw new Error('Valor precisa ser maior que zero.');
@@ -132,7 +147,7 @@ export function registerCashMovement({
       movesCashSession: true,
       transactionDate: movement.createdAt.slice(0, 10),
       paidAt: movement.createdAt
-    });
+    }, { enforcePermission: false });
   }
   syncCashMovementToSupabase(movement);
   emit(SYNC_EVENTS.cashMovementRegistered, movement);
@@ -217,6 +232,15 @@ export function cancelClosedComanda(comandaId, { reason = '' } = {}) {
   setItem(STORAGE_KEYS.closedComandas, comandas);
   const sale = transactions.find((transaction) => transaction.comandaId === comandaId && transaction.type === 'venda');
   syncSaleCancellationToSupabase({ saleId: sale?.id, comandaId, canceledAt });
+  if (sale?.id) {
+    runShowcaseSync(reverseShowcaseSale({
+      operationId: `reverse-${sale.id}`,
+      saleId: sale.id,
+      commandId: comandaId,
+      userId: user?.id || '',
+      createdAt: canceledAt
+    }));
+  }
   emit(UI_EVENTS.cashSummaryChanged, { type: 'comanda-cancelada', comandaId });
   recordAudit({
     action: 'comanda.cancel',
@@ -236,10 +260,15 @@ export function cancelTransaction(transactionId, { reason = '' } = {}) {
   const user = getCurrentUser();
   assertPermission(user, 'sales.cancel');
 
+  const currentTransactions = getTransactions();
+  if (!currentTransactions.some((transaction) => transaction.id === transactionId)) {
+    throw new Error('Movimentacao nao encontrada.');
+  }
+
   const canceledAt = new Date().toISOString();
   let canceledSaleComandaId = null;
   let canceledMovementId = null;
-  const transactions = getTransactions().map((transaction) => {
+  const transactions = currentTransactions.map((transaction) => {
     if (transaction.id !== transactionId) {
       return transaction;
     }
@@ -293,6 +322,16 @@ export function cancelTransaction(transactionId, { reason = '' } = {}) {
 
   setItem(STORAGE_KEYS.closedComandas, comandas);
   syncSaleCancellationToSupabase({ saleId: transactionId, comandaId: canceledSaleComandaId, canceledAt });
+  const canceledSale = transactions.find((transaction) => transaction.id === transactionId && transaction.type === 'venda');
+  if (canceledSale) {
+    runShowcaseSync(reverseShowcaseSale({
+      operationId: `reverse-${canceledSale.id}`,
+      saleId: canceledSale.id,
+      commandId: canceledSale.comandaId,
+      userId: user?.id || '',
+      createdAt: canceledAt
+    }));
+  }
   emit(UI_EVENTS.cashSummaryChanged, { type: 'movimentacao-cancelada', transactionId });
   recordAudit({
     action: 'transaction.cancel',
@@ -334,7 +373,7 @@ export function getMoneySummary({ period = 'today', customStart = '', customEnd 
   const activeTransactions = getActiveTransactions().filter((transaction) => isInPeriod(transaction.createdAt, period, filters));
   const entriesTotal = sumByType(activeTransactions, 'entrada');
   const salesTotal = sumByType(activeTransactions, 'venda');
-  const outputsTotal = sumByType(activeTransactions, 'saida');
+  const outputsTotal = sumCashOutputs(activeTransactions);
   const paymentTotals = getPaymentMethodTotals(activeTransactions);
   const closedComandas = getClosedComandas().filter((comanda) => comanda.closedAt && isInPeriod(comanda.closedAt, period, filters));
 
@@ -356,7 +395,7 @@ export function getTransactionSummary() {
   return {
     entriesTotal: sumByType(transactions, 'entrada'),
     salesTotal: sumByType(transactions, 'venda'),
-    outputsTotal: sumByType(transactions, 'saida'),
+    outputsTotal: sumCashOutputs(transactions),
     closedComandas: getClosedComandas().filter((comanda) => comanda.status !== 'cancelada').length
   };
 }
@@ -459,9 +498,21 @@ function runFinancialSync(promise) {
   });
 }
 
+function runShowcaseSync(promise) {
+  promise.catch((error) => {
+    console.warn('Nao foi possivel sincronizar alteracao da vitrine.', error);
+  });
+}
+
 function sumByType(transactions, type) {
   return transactions
     .filter((transaction) => transaction.type === type && transaction.status !== 'cancelada')
+    .reduce((total, transaction) => total + (transaction.total || transaction.amount || 0), 0);
+}
+
+function sumCashOutputs(transactions) {
+  return transactions
+    .filter((transaction) => ['saida', 'sangria'].includes(transaction.type) && transaction.status !== 'cancelada')
     .reduce((total, transaction) => total + (transaction.total || transaction.amount || 0), 0);
 }
 
@@ -500,6 +551,14 @@ function isInPeriod(value, period, filters = {}) {
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
     return date.toDateString() === yesterday.toDateString();
+  }
+
+  if (period === 'last7' || period === 'last30') {
+    const days = period === 'last7' ? 7 : 30;
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - (days - 1));
+    return date >= start && date <= now;
   }
 
   if (period === 'month') {

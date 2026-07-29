@@ -29,9 +29,11 @@ const closing = await import('../src/services/cash-closing.service.js');
 const financialSync = await import('../src/services/financial-sync.service.js');
 const mobileClosing = await import('../src/services/mobile-closing.service.js');
 const auth = await import('../src/services/auth.service.js');
+const { STORAGE_KEYS } = await import('../src/database/schema.js');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs');
 
 storage.resetAppData();
-auth.login({ username: 'admin', password: 'admin123' });
+seedTestAdmin(storage, STORAGE_KEYS);
 
 const burger = products.getProductById('x-burger');
 comandas.clearComanda();

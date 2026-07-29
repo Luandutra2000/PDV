@@ -1,4 +1,5 @@
 import { formatCurrency } from '../utils/currency.js';
+import { escapeHtml } from '../utils/dom.js';
 
 export function renderAnaliseProdutos({ productRanking, categoryRanking }) {
   const quantityRows = productRanking.byQuantity.slice(0, 6);
@@ -10,7 +11,7 @@ export function renderAnaliseProdutos({ productRanking, categoryRanking }) {
       <section class="crm-panel">
         <header class="crm-panel__header">
           <h3>Mais vendidos</h3>
-          <span>${bestCategory ? `Categoria destaque: ${bestCategory.name}` : 'Sem vendas'}</span>
+          <span>${bestCategory ? `Categoria destaque: ${escapeHtml(bestCategory.name)}` : 'Sem vendas'}</span>
         </header>
         ${renderProductRows(quantityRows)}
       </section>
@@ -34,7 +35,7 @@ function renderProductRows(rows) {
       <div class="crm-table__head"><span>Produto</span><span>Qtd</span><span>Total</span></div>
       ${rows.map((item) => `
         <div class="crm-table__row">
-          <span>${item.name}</span>
+          <span>${escapeHtml(item.name)}</span>
           <span>${item.quantity}</span>
           <strong>${formatCurrency(item.revenue)}</strong>
         </div>

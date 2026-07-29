@@ -1,0 +1,13 @@
+{
+  "name": "pdv-lanchonete",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/run-tests.mjs",
+    "test:startup": "node tests/startup-module-graph.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

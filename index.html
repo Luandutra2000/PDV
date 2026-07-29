@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <meta name="theme-color" content="#ff6b1a">
   <title>PDV Lanchonete</title>
   <link rel="manifest" href="./manifest.json">
@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="./src/styles/cards.css">
   <link rel="stylesheet" href="./src/styles/modal.css">
   <link rel="stylesheet" href="./src/styles/forms.css">
+  <link rel="stylesheet" href="./src/styles/empresa-config.css">
   <link rel="stylesheet" href="./src/styles/pdv.css">
   <link rel="stylesheet" href="./src/styles/mobile.css">
 </head>
@@ -38,7 +39,7 @@
   </div>
   <div class="toast-root" aria-live="polite"></div>
   <script type="module">
-    const LOCAL_CACHE_VERSION = '20260610-02-online-sync-no-fiado';
+    const LOCAL_CACHE_VERSION = '20260729-06-audit-merged';
 
     async function clearStaleClientCaches() {
       try {
@@ -74,7 +75,7 @@
 
     try {
       await clearStaleClientCaches();
-      await import('./src/app.js?v=20260610-02');
+      await import('./src/app.js?v=20260729-06');
     } catch (error) {
       console.error('Nao foi possivel iniciar o PDV.', error);
       const app = document.getElementById('app');

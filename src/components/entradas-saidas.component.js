@@ -1,4 +1,5 @@
 import { formatCurrency } from '../utils/currency.js';
+import { escapeHtml } from '../utils/dom.js';
 
 export function renderEntradasSaidas(movements) {
   return `
@@ -11,8 +12,8 @@ export function renderEntradasSaidas(movements) {
         <div class="crm-table__head"><span>Movimento</span><span>Categoria</span><span>Valor</span></div>
         ${movements.slice(0, 10).map((movement) => `
           <div class="crm-table__row">
-            <span>${movement.description || movement.type}</span>
-            <span>${movement.category}</span>
+            <span>${escapeHtml(movement.description || movement.type)}</span>
+            <span>${escapeHtml(movement.category)}</span>
             <strong class="${movement.type === 'saida' ? 'money-negative' : 'money-positive'}">${formatCurrency(movement.amount)}</strong>
           </div>
         `).join('')}

@@ -5,6 +5,8 @@ import { getCurrentUser } from './auth.service.js';
 import { assertPermission } from './permission.service.js';
 import { recordAudit } from './audit.service.js';
 import { getItem, setItem } from './storage.service.js';
+import { getShowcaseStockByProductId } from './showcase-stock.service.js';
+import { adjustShowcaseStockOnline, processShowcaseProduction } from './showcase-sync.service.js';
 
 export function createStockLaunch({ produtoId, quantidade, note = '' }) {
   const user = getCurrentUser();
@@ -48,6 +50,13 @@ export function createStockLaunch({ produtoId, quantidade, note = '' }) {
   setItem(STORAGE_KEYS.stockLaunches, launches);
   showStockComparisonProduct(product.id);
   updateProductStock(product.id, normalizedQuantity);
+  runShowcaseSync(processShowcaseProduction({
+    operationId: launch.id,
+    productId: launch.produtoId,
+    quantity: launch.quantidade,
+    userId: launch.usuarioId,
+    createdAt: launch.dataHora
+  }));
   recordAudit({
     action: 'showcase.launch',
     entityType: 'stockLaunch',
@@ -64,7 +73,7 @@ export function createStockLaunch({ produtoId, quantidade, note = '' }) {
 
 export function deleteStockComparisonRow(produtoId, filters = {}) {
   const user = getCurrentUser();
-  assertPermission(user, 'showcase.launch');
+  assertPermission(user, 'showcase.edit');
 
   const activeLaunches = getActiveLaunches(filters).filter((launch) => launch.produtoId === produtoId);
 
@@ -79,7 +88,7 @@ export function deleteStockComparisonRow(produtoId, filters = {}) {
 
 export function updateStockLaunch(launchId, data) {
   const user = getCurrentUser();
-  assertPermission(user, 'showcase.launch');
+  assertPermission(user, 'showcase.edit');
 
   const currentLaunch = getStockLaunches().find((launch) => launch.id === launchId);
 
@@ -103,13 +112,23 @@ export function updateStockLaunch(launchId, data) {
 
   if (currentLaunch?.status === 'ativo') {
     const nextQuantity = Number(data.quantidade ?? currentLaunch.quantidade) || 0;
-    updateProductStock(currentLaunch.produtoId, nextQuantity - currentLaunch.quantidade);
+    const quantityDelta = nextQuantity - currentLaunch.quantidade;
+    updateProductStock(currentLaunch.produtoId, quantityDelta);
+    adjustLiveShowcaseStock({
+      operationId: createId('stock-edit'),
+      productId: currentLaunch.produtoId,
+      quantityDelta,
+      reason: 'edicao-lancamento',
+      note: `Lancamento ${launchId} atualizado`,
+      userId: user?.id || '',
+      createdAt: new Date().toISOString()
+    });
   }
 }
 
 export function cancelStockLaunch(launchId) {
   const user = getCurrentUser();
-  assertPermission(user, 'showcase.launch');
+  assertPermission(user, 'showcase.edit');
 
   const currentLaunch = getStockLaunches().find((launch) => launch.id === launchId);
 
@@ -129,6 +148,15 @@ export function cancelStockLaunch(launchId) {
 
   if (currentLaunch?.status === 'ativo') {
     updateProductStock(currentLaunch.produtoId, -currentLaunch.quantidade);
+    adjustLiveShowcaseStock({
+      operationId: `cancel-${currentLaunch.id}`,
+      productId: currentLaunch.produtoId,
+      quantityDelta: -currentLaunch.quantidade,
+      reason: 'cancelamento-lancamento',
+      note: `Lancamento ${currentLaunch.id} cancelado`,
+      userId: user?.id || '',
+      createdAt: new Date().toISOString()
+    });
   }
 }
 
@@ -139,7 +167,7 @@ export function getTodayShowcaseProducts() {
 
 export function createShowcaseWriteOff({ productId, quantity, reason, note = '' }) {
   const user = getCurrentUser();
-  assertPermission(user, 'showcase.launch');
+  assertPermission(user, 'stock.writeoff');
 
   const product = getProductById(productId);
   const normalizedQuantity = Number(quantity) || 0;
@@ -189,6 +217,16 @@ export function createShowcaseWriteOff({ productId, quantity, reason, note = '' 
   const writeOffs = getItem(STORAGE_KEYS.showcaseWriteOffs, []);
   writeOffs.unshift(writeOff);
   setItem(STORAGE_KEYS.showcaseWriteOffs, writeOffs);
+  const currentStock = getShowcaseStockByProductId(writeOff.productId).quantityAvailable;
+  runShowcaseSync(adjustShowcaseStockOnline({
+    operationId: writeOff.id,
+    productId: writeOff.productId,
+    quantityAvailable: Math.max(0, currentStock - writeOff.quantity),
+    reason: writeOff.reason,
+    note: writeOff.note,
+    userId: writeOff.createdBy,
+    createdAt: writeOff.createdAt
+  }));
   recordAudit({
     action: 'showcase.writeoff',
     entityType: 'showcaseWriteOff',
@@ -406,7 +444,30 @@ function updateProductStock(productId, quantityDelta) {
 
   updateProduct(productId, {
     stock: Math.max(0, Number(product.stock || 0) + quantityDelta)
+  }, { enforcePermission: false, source: 'estoque-service', action: 'update-stock-from-showcase' });
+}
+
+function runShowcaseSync(promise) {
+  promise.catch((error) => {
+    console.warn('Nao foi possivel sincronizar alteracao da vitrine.', error);
   });
+}
+
+function adjustLiveShowcaseStock({ operationId, productId, quantityDelta, reason, note, userId, createdAt }) {
+  if (!quantityDelta) {
+    return;
+  }
+
+  const currentStock = getShowcaseStockByProductId(productId).quantityAvailable;
+  runShowcaseSync(adjustShowcaseStockOnline({
+    operationId,
+    productId,
+    quantityAvailable: Math.max(0, currentStock + quantityDelta),
+    reason,
+    note,
+    userId,
+    createdAt
+  }));
 }
 
 function getHiddenStockComparisonProducts() {

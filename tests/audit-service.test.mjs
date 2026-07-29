@@ -24,7 +24,10 @@ const assert = (condition, message) => {
 const storage = await import('../src/services/storage.service.js');
 const auth = await import('../src/services/auth.service.js');
 const audit = await import('../src/services/audit.service.js');
+const { STORAGE_KEYS } = await import('../src/database/schema.js');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs');
 
+seedTestAdmin(storage, STORAGE_KEYS);
 storage.ensureSeedData();
 
 const entry = audit.recordAudit({
@@ -41,8 +44,6 @@ assert(entry.userName === 'Caixa 1', 'audit should store user name');
 assert(entry.reason === 'Cliente desistiu', 'audit should store reason');
 assert(entry.metadata.total === 32, 'audit should store metadata');
 assert(audit.getAuditLogs()[0].action === 'sale.cancel', 'new audit should be first');
-
-auth.login({ username: 'admin', password: 'admin123' });
 
 const currentUserEntry = audit.recordAudit({
   action: 'cash.open',

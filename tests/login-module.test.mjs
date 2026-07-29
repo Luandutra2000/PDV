@@ -24,9 +24,9 @@ const assert = (condition, message) => {
 const storage = await import('../src/services/storage.service.js');
 const { STORAGE_KEYS } = await import('../src/database/schema.js');
 const { renderLoginModule } = await import('../src/modules/auth/login.module.js');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs');
 
-storage.setItem(STORAGE_KEYS.users, []);
-storage.setItem(STORAGE_KEYS.currentSession, null);
+seedTestAdmin(storage, STORAGE_KEYS);
 storage.ensureSeedData();
 
 let submittedHandler = null;
@@ -89,10 +89,11 @@ await submittedHandler({
   currentTarget: formNode
 });
 
-assert(successCalled, 'login should call success callback with valid admin credentials');
+assert(!successCalled, 'local credentials should not authenticate');
 assert(storage.getItem(STORAGE_KEYS.currentSession, null)?.userId === 'user-admin', 'login should persist current session');
-assert(errorNode.hidden === true, 'login error should stay hidden after successful login');
-assert(submitButton.textContent === 'Entrando...', 'login button should show loading feedback after submit');
+assert(errorNode.hidden === false, 'login should explain that central authentication is required');
+assert(errorNode.textContent === 'Autenticacao central obrigatoria. Configure o Supabase.', 'login should show safe configuration error');
+assert(submitButton.textContent === 'Entrar', 'login button should be restored after failed submit');
 
 globalThis.FormData = originalFormData;
 

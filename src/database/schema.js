@@ -14,9 +14,14 @@ export const STORAGE_KEYS = {
   cashClosings: 'pdv.cashClosings',
   cashClosingDraft: 'pdv.cashClosingDraft',
   showcaseWriteOffs: 'pdv.showcaseWriteOffs',
+  productStock: 'pdv.productStock',
+  showcaseMovements: 'pdv.showcaseMovements',
+  outOfStockSales: 'pdv.outOfStockSales',
+  showcaseSyncQueue: 'pdv.syncQueue.showcase',
   financialCategories: 'pdv.financialCategories',
   financialTransactions: 'pdv.financialTransactions',
   financialSyncQueue: 'pdv.syncQueue.financial',
+  companySettings: 'pdv.companySettings',
   syncQueue: 'pdv.syncQueue'
 };
 
@@ -37,7 +42,11 @@ export const UI_EVENTS = {
   productSyncStatusChanged: 'PRODUCT_SYNC_STATUS_CHANGED',
   financialSyncStatusChanged: 'FINANCIAL_SYNC_STATUS_CHANGED',
   financialDataChanged: 'FINANCIAL_DATA_CHANGED',
+  showcaseStockChanged: 'SHOWCASE_STOCK_CHANGED',
+  showcaseDataChanged: 'SHOWCASE_DATA_CHANGED',
+  showcaseSyncStatusChanged: 'SHOWCASE_SYNC_STATUS_CHANGED',
   financeChanged: 'FINANCE_CHANGED',
   usersChanged: 'USERS_CHANGED',
-  permissionsChanged: 'PERMISSIONS_CHANGED'
+  permissionsChanged: 'PERMISSIONS_CHANGED',
+  companySettingsChanged: 'COMPANY_SETTINGS_CHANGED'
 };

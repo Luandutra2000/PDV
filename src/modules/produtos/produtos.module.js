@@ -15,6 +15,11 @@ import { on } from '../../services/event-bus.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { showNotification } from '../../services/notification.service.js';
 import { getBestSellingProducts } from '../../services/transaction.service.js';
+import { getActiveOutOfStockSales } from '../../services/showcase-stock.service.js';
+import { getCurrentUser } from '../../services/auth.service.js';
+import { hasPermission } from '../../services/permission.service.js';
+import { escapeHtml } from '../../utils/dom.js';
+import { recordAudit } from '../../services/audit.service.js';
 
 const productState = {
   modal: null,
@@ -22,6 +27,7 @@ const productState = {
   editingCategoryId: null,
   query: '',
   categoryFilter: 'todos',
+  statusFilter: 'todos',
   bestSellerPeriod: 'today',
   bestSellerCustomStart: '',
   bestSellerCustomEnd: '',
@@ -52,75 +58,142 @@ export function initProdutosModule(container) {
   }
 }
 
+function getCategoriesById() {
+  return new Map(getVisibleCategories().map((category) => [category.id, category]));
+}
+
+function isProductInShowcase(product, categoriesById = getCategoriesById()) {
+  const category = categoriesById.get(product.categoryId);
+  return Boolean(product.active && category?.showInShowcase);
+}
+
+function getProductDashboardMetrics() {
+  const products = getProducts();
+  const categories = getVisibleCategories();
+  const categoriesById = getCategoriesById();
+  const activeProducts = products.filter((product) => product.active !== false);
+  const showcaseProducts = products.filter((product) => isProductInShowcase(product, categoriesById));
+  const selectedRanking = getFilteredBestSellers();
+  const todayRanking = getBestSellingProducts({ period: 'today' });
+
+  return {
+    products,
+    categories,
+    categoriesById,
+    activeProducts,
+    showcaseProducts,
+    topProduct: selectedRanking[0] || null,
+    todayRanking
+  };
+}
+
+function getProductAlerts(metrics = getProductDashboardMetrics()) {
+  const alerts = [
+    {
+      key: 'without-price',
+      count: metrics.products.filter((product) => Number(product.price) <= 0).length,
+      label: 'Sem preco',
+      tone: 'danger'
+    },
+    {
+      key: 'out-showcase',
+      count: metrics.activeProducts.filter((product) => !isProductInShowcase(product, metrics.categoriesById)).length,
+      label: 'Fora da vitrine',
+      tone: 'warning'
+    },
+    {
+      key: 'zero-stock',
+      count: metrics.activeProducts.filter((product) => Number(product.stock) <= 0).length,
+      label: 'Estoque zerado',
+      tone: 'danger'
+    },
+    {
+      key: 'inactive',
+      count: metrics.products.filter((product) => product.active === false).length,
+      label: 'Inativos',
+      tone: 'muted'
+    },
+    {
+      key: 'without-category',
+      count: metrics.products.filter((product) => !metrics.categoriesById.has(product.categoryId)).length,
+      label: 'Sem categoria',
+      tone: 'warning'
+    },
+    {
+      key: 'today-best',
+      count: metrics.todayRanking.length,
+      label: 'Vendidos hoje',
+      tone: 'success'
+    },
+    {
+      key: 'sold-without-stock',
+      count: getActiveOutOfStockSales().reduce((total, sale) => total + (Number(sale.quantity) || 0), 0),
+      label: 'Vendidos sem estoque',
+      tone: 'danger'
+    },
+    {
+      key: 'showcase',
+      count: metrics.showcaseProducts.length,
+      label: 'Na vitrine',
+      tone: 'info'
+    }
+  ];
+
+  return alerts.filter((alert) => alert.count > 0);
+}
+
 function renderProdutosScreen(container) {
+  const metrics = getProductDashboardMetrics();
+  const canManageProducts = canCurrentUser('products.manage');
+  const canManageCategories = canCurrentUser('categories.manage');
+
   container.innerHTML = `
-    <section class="module-screen products-module">
-      <header class="module-header">
+    <section class="module-screen products-module products-dashboard">
+      <header class="products-hero">
         <div>
+          <span class="products-hero__eyebrow">Catalogo</span>
           <h1 class="pdv-title">Produtos</h1>
-          <p class="module-subtitle">Cadastre produtos e tipos. Cada tipo aparece como aba no caixa.</p>
+          <p class="module-subtitle">Gerencie categorias, produtos, precos e exibicao na vitrine.</p>
         </div>
         <div class="header-actions">
-          <button class="button button--ghost" type="button" data-action="new-category">+ Nova Categoria</button>
-          <button class="button" type="button" data-action="new-product">+ Novo Produto</button>
+          ${canManageCategories ? '<button class="button button--ghost" type="button" data-action="new-category">+ Nova categoria</button>' : ''}
+          ${canManageProducts ? '<button class="button" type="button" data-action="new-product">+ Novo produto</button>' : ''}
         </div>
       </header>
 
       ${renderSyncStatus()}
       ${productState.loading ? '<div class="empty-products">Carregando produtos e categorias...</div>' : ''}
       ${productState.error ? `<div class="form-error">${productState.error}</div>` : ''}
+      ${renderProductSummaryCards(metrics)}
+      ${renderProductAlerts(metrics)}
 
-      <section class="manager-section">
-        <header class="manager-section__header">
+      <section class="manager-section products-section">
+        <header class="products-section__header">
           <strong>Categorias / Abas</strong>
-          <span>${getVisibleCategories().length} categorias</span>
+          <span>${metrics.categories.length} categorias organizam as abas do caixa e da vitrine.</span>
         </header>
-        <div class="manager-list">
+        <div class="category-card-grid">
           ${renderCategoryRows()}
         </div>
       </section>
 
-      <section class="manager-section">
-        <header class="manager-section__header">
+      <section class="manager-section products-section">
+        <header class="products-section__header">
           <strong>Produtos cadastrados</strong>
-          <span>${getFilteredProducts().length} produtos</span>
+          <span>${getFilteredProducts().length} produtos encontrados pelos filtros atuais.</span>
         </header>
-        <div class="products-filter-row">
-          <input class="field" type="search" placeholder="Filtrar produto..." value="${productState.query}" data-products-filter>
-          <select class="field" data-category-filter>
-            <option value="todos" ${productState.categoryFilter === 'todos' ? 'selected' : ''}>Todas as abas</option>
-            ${getVisibleCategories().map((category) => `
-              <option value="${category.id}" ${productState.categoryFilter === category.id ? 'selected' : ''}>${category.name}</option>
-            `).join('')}
-          </select>
-        </div>
-        <div class="manager-list">
+        ${renderProductFilters()}
+        <div class="product-card-grid">
           ${renderProductRows()}
         </div>
       </section>
 
-      <section class="manager-section">
-        <header class="manager-section__header">
+      <section class="manager-section products-section product-crm-section">
+        <header class="products-section__header">
           <strong>Mais vendidos</strong>
           <span>${renderBestSellerSummary()}</span>
         </header>
-        <div class="products-filter-row">
-          <select class="field" data-best-seller-period-filter>
-            ${renderBestSellerPeriodOptions()}
-          </select>
-          <select class="field" data-best-seller-category-filter>
-            <option value="todos" ${productState.bestSellerCategoryFilter === 'todos' ? 'selected' : ''}>Todas as abas</option>
-            ${getVisibleCategories().map((category) => `
-              <option value="${category.id}" ${productState.bestSellerCategoryFilter === category.id ? 'selected' : ''}>${category.name}</option>
-            `).join('')}
-          </select>
-        </div>
-        ${productState.bestSellerPeriod === 'custom' ? `
-          <div class="products-filter-row">
-            <input class="field" type="date" value="${productState.bestSellerCustomStart}" data-best-seller-custom-start aria-label="Data inicial">
-            <input class="field" type="date" value="${productState.bestSellerCustomEnd}" data-best-seller-custom-end aria-label="Data final">
-          </div>
-        ` : ''}
+        ${renderBestSellerFilters()}
         ${renderBestSellers()}
       </section>
 
@@ -179,6 +252,11 @@ function bindProdutosEvents(container) {
       renderProdutosScreen(container);
     }
 
+    if (event.target.matches('[data-status-filter]')) {
+      productState.statusFilter = event.target.value;
+      renderProdutosScreen(container);
+    }
+
     if (event.target.matches('[data-best-seller-category-filter]')) {
       productState.bestSellerCategoryFilter = event.target.value;
       renderProdutosScreen(container);
@@ -208,14 +286,22 @@ function bindProdutosEvents(container) {
   container.addEventListener('submit', async (event) => {
     if (event.target.matches('[data-product-form]')) {
       event.preventDefault();
-      await saveProductFromForm(event.target);
-      await loadProductCatalog(container);
+      try {
+        await saveProductFromForm(event.target);
+        await loadProductCatalog(container);
+      } catch (error) {
+        handleProductActionError(error);
+      }
     }
 
     if (event.target.matches('[data-category-form]')) {
       event.preventDefault();
-      await saveCategoryFromForm(event.target);
-      await loadProductCatalog(container);
+      try {
+        await saveCategoryFromForm(event.target);
+        await loadProductCatalog(container);
+      } catch (error) {
+        handleProductActionError(error);
+      }
     }
   });
 
@@ -231,15 +317,23 @@ function bindProdutosEvents(container) {
     if (action === 'new-product') openProductModal(container);
     if (action === 'edit-product') openProductModal(container, actionButton.dataset.productId);
     if (action === 'delete-product') {
-      await removeProduct(actionButton.dataset.productId);
-      await loadProductCatalog(container);
+      try {
+        await removeProduct(actionButton.dataset.productId);
+        await loadProductCatalog(container);
+      } catch (error) {
+        handleProductActionError(error);
+      }
     }
 
     if (action === 'new-category') openCategoryModal(container);
     if (action === 'edit-category') openCategoryModal(container, actionButton.dataset.categoryId);
     if (action === 'delete-category') {
-      await removeCategory(actionButton.dataset.categoryId);
-      await loadProductCatalog(container);
+      try {
+        await removeCategory(actionButton.dataset.categoryId);
+        await loadProductCatalog(container);
+      } catch (error) {
+        handleProductActionError(error);
+      }
     }
 
     if (action === 'sync-catalog') {
@@ -277,6 +371,9 @@ async function saveProductFromForm(form) {
   const formData = new FormData(form);
   const selectedCategory = formData.get('categoryId');
   const newCategoryName = String(formData.get('newCategoryName') || '').trim();
+  const currentProduct = productState.editingProductId
+    ? getProducts().find((product) => product.id === productState.editingProductId)
+    : null;
 
   if (selectedCategory === '__new__' && !newCategoryName) {
     showNotification({
@@ -291,21 +388,46 @@ async function saveProductFromForm(form) {
     ? (await saveCategory({ name: newCategoryName, showInShowcase: true })).id
     : selectedCategory;
   const productData = {
+    ...(currentProduct || {}),
     name: formData.get('name'),
     categoryId,
     price: formData.get('price'),
-    cost: 0,
-    stock: 0,
-    active: true
+    cost: currentProduct?.cost || 0,
+    stock: Math.max(0, Number(formData.get('stock')) || 0),
+    active: currentProduct?.active !== false
   };
 
   if (productState.editingProductId) {
     productData.id = productState.editingProductId;
   }
 
-  await saveProduct(productData);
+  const savedProduct = await saveProduct(productData);
+
+  if (currentProduct && Number(currentProduct.stock || 0) !== Number(savedProduct.stock || 0)) {
+    recordAudit({
+      action: 'product.stock.adjust',
+      entityType: 'product',
+      entityId: savedProduct.id,
+      metadata: {
+        module: 'Vitrine/Estoque',
+        details: `Ajustou manualmente o estoque de ${currentProduct.stock || 0} para ${savedProduct.stock || 0}`,
+        productId: savedProduct.id,
+        productName: savedProduct.name,
+        previousStock: Number(currentProduct.stock) || 0,
+        newStock: Number(savedProduct.stock) || 0,
+        difference: (Number(savedProduct.stock) || 0) - (Number(currentProduct.stock) || 0)
+      }
+    });
+  }
+
   closeModal();
-  showNotification({ title: 'Produto salvo', message: 'Produto registrado com sucesso.', type: 'success' });
+  showNotification({
+    title: currentProduct ? 'Produto atualizado' : 'Produto salvo',
+    message: currentProduct
+      ? `Produto e estoque atualizados. Estoque atual: ${savedProduct.stock}.`
+      : 'Produto registrado com sucesso.',
+    type: 'success'
+  });
 }
 
 async function saveCategoryFromForm(form) {
@@ -331,8 +453,125 @@ async function saveCategoryFromForm(form) {
   showNotification({ title: 'Categoria salva', message: 'Categoria registrada com sucesso.', type: 'success' });
 }
 
+function handleProductActionError(error) {
+  showNotification({
+    title: 'Acao nao permitida',
+    message: error.message || 'Nao foi possivel concluir a acao.',
+    type: 'danger'
+  });
+}
+
+function canCurrentUser(permissionId) {
+  return hasPermission(getCurrentUser(), permissionId);
+}
+
+function renderProductSummaryCards(metrics = getProductDashboardMetrics()) {
+  const summaryCards = [
+    {
+      label: 'Total de produtos',
+      value: metrics.products.length,
+      detail: 'Cadastrados'
+    },
+    {
+      label: 'Total de categorias',
+      value: metrics.categories.length,
+      detail: 'Abas do catalogo'
+    },
+    {
+      label: 'Produtos ativos',
+      value: metrics.activeProducts.length,
+      detail: 'Liberados para venda'
+    },
+    {
+      label: 'Produtos que aparecem na vitrine',
+      value: metrics.showcaseProducts.length,
+      detail: 'Visiveis ao cliente'
+    },
+    {
+      label: 'Produto mais vendido',
+      value: metrics.topProduct?.name || 'Sem vendas',
+      detail: metrics.topProduct ? `${metrics.topProduct.quantity} vendidos` : 'Sem ranking no periodo'
+    }
+  ];
+
+  return `
+    <section class="product-summary-grid" aria-label="Resumo de produtos">
+      ${summaryCards.map((card) => `
+        <article class="product-summary-card">
+          <span>${card.label}</span>
+          <strong>${card.value}</strong>
+          <small>${card.detail}</small>
+        </article>
+      `).join('')}
+    </section>
+  `;
+}
+
+function renderProductAlerts(metrics = getProductDashboardMetrics()) {
+  const alerts = getProductAlerts(metrics);
+
+  if (!alerts.length) {
+    return '';
+  }
+
+  return `
+    <section class="product-alert-grid" aria-label="Alertas de produtos">
+      ${alerts.map((alert) => `
+        <article class="product-alert product-alert--${alert.tone}" data-alert-key="${alert.key}">
+          <strong>${alert.count}</strong>
+          <span>${alert.label}</span>
+        </article>
+      `).join('')}
+    </section>
+  `;
+}
+
+function renderProductFilters() {
+  return `
+    <div class="products-filter-row">
+      <input class="field" type="search" placeholder="Filtrar produto..." value="${productState.query}" data-products-filter>
+      <select class="field" data-category-filter>
+        <option value="todos" ${productState.categoryFilter === 'todos' ? 'selected' : ''}>Todas as abas</option>
+        ${getVisibleCategories().map((category) => `
+          <option value="${escapeHtml(category.id)}" ${productState.categoryFilter === category.id ? 'selected' : ''}>${escapeHtml(category.name)}</option>
+        `).join('')}
+      </select>
+      <select class="field" data-status-filter>
+        <option value="todos" ${productState.statusFilter === 'todos' ? 'selected' : ''}>Todos os status</option>
+        <option value="active" ${productState.statusFilter === 'active' ? 'selected' : ''}>Ativos</option>
+        <option value="inactive" ${productState.statusFilter === 'inactive' ? 'selected' : ''}>Inativos</option>
+        <option value="showcase" ${productState.statusFilter === 'showcase' ? 'selected' : ''}>Na vitrine</option>
+        <option value="out-showcase" ${productState.statusFilter === 'out-showcase' ? 'selected' : ''}>Fora da vitrine</option>
+      </select>
+    </div>
+  `;
+}
+
+function renderBestSellerFilters() {
+  return `
+    <div class="products-filter-row">
+      <select class="field" data-best-seller-period-filter>
+        ${renderBestSellerPeriodOptions()}
+      </select>
+      <select class="field" data-best-seller-category-filter>
+        <option value="todos" ${productState.bestSellerCategoryFilter === 'todos' ? 'selected' : ''}>Todas as abas</option>
+        ${getVisibleCategories().map((category) => `
+          <option value="${escapeHtml(category.id)}" ${productState.bestSellerCategoryFilter === category.id ? 'selected' : ''}>${escapeHtml(category.name)}</option>
+        `).join('')}
+      </select>
+    </div>
+    ${productState.bestSellerPeriod === 'custom' ? `
+      <div class="products-filter-row">
+        <input class="field" type="date" value="${productState.bestSellerCustomStart}" data-best-seller-custom-start aria-label="Data inicial">
+        <input class="field" type="date" value="${productState.bestSellerCustomEnd}" data-best-seller-custom-end aria-label="Data final">
+      </div>
+    ` : ''}
+  `;
+}
+
 function renderCategoryRows() {
   const categories = getVisibleCategories();
+  const canManageCategories = canCurrentUser('categories.manage');
 
   if (!categories.length) {
     return '<div class="empty-products">Nenhuma categoria cadastrada no banco.</div>';
@@ -340,17 +579,20 @@ function renderCategoryRows() {
 
   return categories.map((category) => {
     const productCount = getProducts().filter((product) => product.categoryId === category.id).length;
+    const activeClass = productState.categoryFilter === category.id ? ' is-active' : '';
+    const showcaseStatus = category.showInShowcase ? 'Aparece na vitrine' : 'Nao aparece na vitrine';
 
     return `
-      <article class="manager-row">
-        <div>
-          <strong>${category.name}</strong>
-          <span>${productCount} produtos - ${category.showInShowcase ? 'Aparece na vitrine' : 'Nao aparece na vitrine'}</span>
+      <article class="category-manager-card${activeClass}">
+        <div class="category-manager-card__content">
+          <strong>${escapeHtml(category.name)}</strong>
+          <span>${productCount} produtos</span>
+          <span>${showcaseStatus}</span>
         </div>
-        <div class="row-actions">
-          <button class="button button--ghost" type="button" data-action="edit-category" data-category-id="${category.id}">Editar</button>
-          <button class="button button--danger" type="button" data-action="delete-category" data-category-id="${category.id}">Apagar</button>
-        </div>
+        ${canManageCategories ? `<div class="row-actions">
+          <button class="button button--ghost button--small" type="button" data-action="edit-category" data-category-id="${category.id}">Editar</button>
+          <button class="button button--danger button--small" type="button" data-action="delete-category" data-category-id="${category.id}">Apagar</button>
+        </div>` : ''}
       </article>
     `;
   }).join('');
@@ -358,24 +600,32 @@ function renderCategoryRows() {
 
 function renderProductRows() {
   const products = getFilteredProducts();
+  const categoriesById = getCategoriesById();
+  const canManageProducts = canCurrentUser('products.manage');
 
   if (!products.length) {
-    return '<div class="empty-products">Nenhum produto cadastrado no banco.</div>';
+    return '<div class="empty-products">Nenhum produto encontrado com os filtros atuais.</div>';
   }
 
   return products.map((product) => {
-    const category = getCategories().find((item) => item.id === product.categoryId);
+    const category = categoriesById.get(product.categoryId);
+    const isActive = product.active !== false;
+    const inShowcase = isProductInShowcase(product, categoriesById);
 
     return `
-      <article class="manager-row">
-        <div>
-          <strong>${product.name}</strong>
-          <span>${category ? category.name : 'Sem categoria'} - ${formatCurrency(product.price)} - Estoque: ${product.stock}</span>
+      <article class="product-manager-card">
+        <div class="product-manager-card__content">
+          <strong>${escapeHtml(product.name)}</strong>
+          <span>${escapeHtml(category ? category.name : 'Sem categoria')} - ${formatCurrency(product.price)} - Estoque: ${product.stock}</span>
+          <div class="product-manager-card__badges">
+            <span class="product-manager-card__badge ${isActive ? 'is-active' : 'is-inactive'}">${isActive ? 'Ativo' : 'Inativo'}</span>
+            <span class="product-manager-card__badge ${inShowcase ? 'is-showcase' : 'is-out-showcase'}">${inShowcase ? 'Na vitrine' : 'Fora da vitrine'}</span>
+          </div>
         </div>
-        <div class="row-actions">
-          <button class="button button--ghost" type="button" data-action="edit-product" data-product-id="${product.id}">Editar</button>
-          <button class="button button--danger" type="button" data-action="delete-product" data-product-id="${product.id}">Excluir</button>
-        </div>
+        ${canManageProducts ? `<div class="row-actions">
+          <button class="button button--ghost button--small" type="button" data-action="edit-product" data-product-id="${product.id}">Editar</button>
+          <button class="button button--danger button--small" type="button" data-action="delete-product" data-product-id="${product.id}">Apagar</button>
+        </div>` : ''}
       </article>
     `;
   }).join('');
@@ -387,6 +637,7 @@ function renderProductModal() {
     : null;
   const title = product ? 'Editar Produto' : 'Novo Produto';
   const selectedCategory = product ? product.categoryId : '__new__';
+  const canManageCategories = canCurrentUser('categories.manage');
 
   return `
     <div class="modal-backdrop is-open">
@@ -398,18 +649,18 @@ function renderProductModal() {
         <form class="product-form" data-product-form>
           <label class="stacked-label">
             Nome do produto
-            <input class="field" name="name" required placeholder="Ex.: X-Frango" value="${product ? product.name : ''}">
+            <input class="field" name="name" required placeholder="Ex.: X-Frango" value="${escapeHtml(product ? product.name : '')}">
           </label>
 
           <label class="stacked-label">
             Tipo / Aba
             <select class="field" name="categoryId" data-product-category-select required>
-              <option value="__new__" ${selectedCategory === '__new__' ? 'selected' : ''}>+ Criar nova aba</option>
+              ${canManageCategories ? `<option value="__new__" ${selectedCategory === '__new__' ? 'selected' : ''}>+ Criar nova aba</option>` : ''}
               ${getCategoryOptions(selectedCategory)}
             </select>
           </label>
 
-          <div data-new-category ${selectedCategory === '__new__' ? '' : 'hidden'}>
+          <div data-new-category ${canManageCategories && selectedCategory === '__new__' ? '' : 'hidden'}>
             <label class="stacked-label">
               Nova aba
               <input class="field" name="newCategoryName" placeholder="Ex.: Combos">
@@ -419,6 +670,12 @@ function renderProductModal() {
           <label class="stacked-label">
             Preco de venda
             <input class="field" name="price" type="number" min="0" step="0.01" required placeholder="0,00" value="${product ? product.price : ''}">
+          </label>
+
+          <label class="stacked-label">
+            Estoque atual
+            <input class="field" name="stock" type="number" min="0" step="1" required placeholder="0" value="${product ? product.stock : 0}">
+            <small>Informe 0 para zerar ou uma quantidade menor para retirar unidades.</small>
           </label>
 
           <div class="form-actions">
@@ -449,7 +706,7 @@ function renderCategoryModal() {
         <form class="product-form" data-category-form>
           <label class="stacked-label">
             Nome da categoria
-            <input class="field" name="name" required placeholder="Ex: Salgados" value="${category ? category.name : ''}">
+            <input class="field" name="name" required placeholder="Ex: Salgados" value="${escapeHtml(category ? category.name : '')}">
           </label>
           <label class="checkbox-field category-visibility-toggle">
             <input type="checkbox" name="showInShowcase" ${category?.showInShowcase !== false ? 'checked' : ''}>
@@ -469,7 +726,7 @@ function getCategoryOptions(selectedCategoryId = '') {
   return getVisibleCategories()
     .map((category) => `
       <option value="${category.id}" ${category.id === selectedCategoryId ? 'selected' : ''}>
-        ${category.name}
+        ${escapeHtml(category.name)}
       </option>
     `)
     .join('');
@@ -481,12 +738,20 @@ function getVisibleCategories() {
 
 function getFilteredProducts() {
   const normalizedQuery = productState.query.trim().toLowerCase();
+  const categoriesById = getCategoriesById();
 
   return getProducts().filter((product) => {
     const matchesQuery = !normalizedQuery || product.name.toLowerCase().includes(normalizedQuery);
     const matchesCategory = productState.categoryFilter === 'todos' || product.categoryId === productState.categoryFilter;
+    const matchesStatus = (
+      productState.statusFilter === 'todos'
+        || (productState.statusFilter === 'active' && product.active !== false)
+        || (productState.statusFilter === 'inactive' && product.active === false)
+        || (productState.statusFilter === 'showcase' && isProductInShowcase(product, categoriesById))
+        || (productState.statusFilter === 'out-showcase' && !isProductInShowcase(product, categoriesById))
+    );
 
-    return matchesQuery && matchesCategory;
+    return matchesQuery && matchesCategory && matchesStatus;
   });
 }
 
@@ -494,28 +759,54 @@ function renderBestSellers() {
   const bestSellers = getFilteredBestSellers();
 
   if (!bestSellers.length) {
-    return '<div class="empty-products product-empty-large">NENHUMA VENDA NO PERIODO</div>';
+    return '<div class="empty-products product-empty-large">Nenhuma venda no periodo.</div>';
   }
 
-  const maxQuantity = Math.max(...bestSellers.map((item) => item.quantity));
+  const mostSold = bestSellers.slice(0, 6);
+  const leastSold = [...bestSellers]
+    .sort((a, b) => {
+      if (a.quantity !== b.quantity) {
+        return a.quantity - b.quantity;
+      }
+
+      return a.revenue - b.revenue;
+    })
+    .slice(0, 6);
 
   return `
-    <div class="best-seller-chart">
-      ${bestSellers.slice(0, 8).map((item, index) => {
+    <div class="product-crm-grid">
+      ${renderBestSellerRanking('Mais vendidos', mostSold)}
+      ${renderBestSellerRanking('Menos vendidos', leastSold)}
+    </div>
+  `;
+}
+
+function renderBestSellerRanking(title, rows) {
+  const maxQuantity = Math.max(...rows.map((item) => item.quantity), 1);
+
+  return `
+    <section class="product-ranking-panel">
+      <header>
+        <h3>${title}</h3>
+        <span>${rows.length} produtos</span>
+      </header>
+      <div class="product-ranking-list">
+        ${rows.map((item, index) => {
         const percent = Math.max((item.quantity / maxQuantity) * 100, 8);
         return `
-          <article class="best-seller-row">
-            <div class="best-seller-row__info">
-              <strong>${index + 1}. ${item.name}</strong>
+          <article class="product-ranking-row">
+            <div class="product-ranking-row__info">
+              <strong>${index + 1}. ${escapeHtml(item.name)}</strong>
               <span>${item.quantity} vendidos - ${formatCurrency(item.revenue)}</span>
             </div>
-            <div class="best-seller-bar" aria-label="${item.name}: ${item.quantity}">
+            <div class="best-seller-bar" aria-label="${escapeHtml(item.name)}: ${item.quantity}">
               <span style="width: ${percent}%"></span>
             </div>
           </article>
         `;
       }).join('')}
-    </div>
+      </div>
+    </section>
   `;
 }
 
@@ -545,10 +836,12 @@ function renderBestSellerPeriodOptions() {
   const options = [
     ['today', 'Hoje'],
     ['yesterday', 'Ontem'],
+    ['last7', '7 dias'],
+    ['last30', '30 dias'],
     ['month', 'Este mes'],
     ['year', 'Este ano'],
     ['all', 'Todo periodo'],
-    ['custom', 'Periodo personalizado']
+    ['custom', 'Personalizado']
   ];
 
   return options.map(([value, label]) => `

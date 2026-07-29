@@ -26,9 +26,10 @@ const auth = await import('../src/services/auth.service.js');
 const schema = await import('../src/database/schema.js');
 const sync = await import('../src/services/financial-sync.service.js');
 const mobileFinance = await import('../src/services/mobile-financial.service.js');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs');
 
 storage.resetAppData();
-auth.login({ username: 'admin', password: 'admin123' });
+seedTestAdmin(storage, schema.STORAGE_KEYS);
 
 const rows = {
   sales: [],

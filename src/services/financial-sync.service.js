@@ -200,6 +200,18 @@ export async function saveFinancialTransactionToSupabaseStrict(transaction) {
   return nextTransaction;
 }
 
+export async function updateFinancialTransactionInSupabaseStrict(transaction) {
+  const nextTransaction = { ...transaction };
+  const { id, ...patch } = financialTransactionAdapter.toRow(nextTransaction);
+
+  setStatus({ state: 'syncing', error: '' });
+  const client = await getWriteClient();
+  await updateById(client, financialTransactionAdapter.table, id, patch);
+  upsertFinancialTransactionCache(nextTransaction);
+  setStatusFromQueue(readQueue());
+  return nextTransaction;
+}
+
 export async function cancelFinancialTransactionInSupabase({ transactionId, canceledAt, cancelReason = '' }) {
   const nextCanceledAt = canceledAt || new Date().toISOString();
 
@@ -902,15 +914,30 @@ function getSortTimestamp(item) {
 }
 
 function enqueueOperation(operation) {
-  const queue = [
-    ...readQueue(),
-    {
-      ...operation,
-      createdAt: new Date().toISOString()
-    }
-  ];
+  const nextOperation = { ...operation, createdAt: new Date().toISOString() };
+  const operationKey = getOperationKey(nextOperation);
+  const currentQueue = readQueue();
+  const existingIndex = currentQueue.findIndex((candidate) => getOperationKey(candidate) === operationKey);
+  const queue = existingIndex < 0
+    ? [...currentQueue, nextOperation]
+    : currentQueue.map((candidate, index) => (
+      index === existingIndex
+        ? { ...nextOperation, createdAt: candidate.createdAt || nextOperation.createdAt }
+        : candidate
+    ));
   writeQueue(queue);
   return queue;
+}
+
+function getOperationKey(operation) {
+  const entityId = operation.sale?.id
+    || operation.movement?.id
+    || operation.closing?.id
+    || operation.saleId
+    || operation.movementId
+    || operation.id
+    || '';
+  return `${operation.action || operation.type || 'operation'}:${entityId}`;
 }
 
 function readQueue() {

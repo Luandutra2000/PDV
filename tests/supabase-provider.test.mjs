@@ -51,6 +51,43 @@ const fakeClient = {
           });
         }
 
+        if (table === 'profiles') {
+          return Promise.resolve({
+            data: [{
+              id: 'profile-1',
+              name: 'Caixa Online',
+              role_id: 'caixa',
+              is_active: true,
+              created_at: '2026-06-10T10:00:00.000Z',
+              updated_at: '2026-06-10T11:00:00.000Z'
+            }],
+            error: null
+          });
+        }
+
+        if (table === 'user_permission_overrides') {
+          return Promise.resolve({
+            data: [{ user_id: 'profile-1', permission_id: 'sales.discount', state: 'allow' }],
+            error: null
+          });
+        }
+
+        if (table === 'audit_logs') {
+          return Promise.resolve({
+            data: [{
+              id: 'audit-1',
+              action: 'user.update',
+              entity_type: 'user',
+              entity_id: 'profile-1',
+              user_id: 'profile-1',
+              user_name: 'Caixa Online',
+              metadata: { module: 'Sistema', details: 'Usuario editado' },
+              created_at: '2026-06-10T11:30:00.000Z'
+            }],
+            error: null
+          });
+        }
+
         return Promise.resolve({ data: [], error: null });
       },
       upsert(rows) {
@@ -132,10 +169,25 @@ assert(productCall.rows[0].category_id === 'salgados', 'product category should 
 
 localProvider.write(STORAGE_KEYS.products, []);
 localProvider.write(STORAGE_KEYS.categories, []);
-await provider.hydrate([STORAGE_KEYS.categories, STORAGE_KEYS.products]);
+localProvider.write(STORAGE_KEYS.users, []);
+localProvider.write(STORAGE_KEYS.userPermissionOverrides, {});
+localProvider.write(STORAGE_KEYS.auditLogs, []);
+await provider.hydrate([
+  STORAGE_KEYS.categories,
+  STORAGE_KEYS.products,
+  STORAGE_KEYS.users,
+  STORAGE_KEYS.userPermissionOverrides,
+  STORAGE_KEYS.auditLogs
+]);
 
 assert(reads.some((read) => read.table === 'products'), 'hydrate should read products from Supabase');
 assert(provider.read(STORAGE_KEYS.products, [])[0].name === 'Coxinha', 'hydrate should cache remote products locally');
 assert(provider.read(STORAGE_KEYS.categories, [])[0].showInShowcase === true, 'hydrate should cache remote categories locally');
+assert(provider.read(STORAGE_KEYS.users, [])[0].role === 'caixa', 'hydrate should cache profiles as users');
+assert(
+  provider.read(STORAGE_KEYS.userPermissionOverrides, {})['profile-1']['sales.discount'] === 'allow',
+  'hydrate should cache user permission overrides'
+);
+assert(provider.read(STORAGE_KEYS.auditLogs, [])[0].action === 'user.update', 'hydrate should cache audit logs');
 
 console.log('supabase provider ok');

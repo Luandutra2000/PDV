@@ -12,12 +12,12 @@ export function setItem(key, value) {
 
 export function ensureSeedData() {
   const users = getItem(STORAGE_KEYS.users);
-  if (!users) {
-    setItem(STORAGE_KEYS.users, [createDefaultAdminUser()]);
+  if (!Array.isArray(users)) {
+    setItem(STORAGE_KEYS.users, []);
   } else {
-    const seededUsers = ensureUsableAdmin(users);
-    if (seededUsers !== users) {
-      setItem(STORAGE_KEYS.users, seededUsers);
+    const safeUsers = users.map(removeStoredPassword);
+    if (safeUsers.some((user, index) => user !== users[index])) {
+      setItem(STORAGE_KEYS.users, safeUsers);
     }
   }
 
@@ -84,7 +84,7 @@ export function ensureSeedData() {
 
 export function resetAppData() {
   const provider = getDataProvider();
-  provider.write(STORAGE_KEYS.users, [createDefaultAdminUser()]);
+  provider.write(STORAGE_KEYS.users, []);
   provider.write(STORAGE_KEYS.currentSession, null);
   provider.write(STORAGE_KEYS.userPermissionOverrides, {});
   provider.write(STORAGE_KEYS.auditLogs, []);
@@ -102,30 +102,10 @@ export function resetAppData() {
   provider.write(STORAGE_KEYS.showcaseWriteOffs, []);
 }
 
-function createDefaultAdminUser() {
-  const now = new Date().toISOString();
-  return {
-    id: 'user-admin',
-    name: 'Administrador',
-    username: 'admin',
-    password: 'admin123',
-    role: 'admin',
-    active: true,
-    createdAt: now,
-    updatedAt: now
-  };
-}
-
-function ensureUsableAdmin(users) {
-  const now = new Date().toISOString();
-  const adminUsernameUser = users.find((user) => user.username === 'admin');
-  if (adminUsernameUser) {
-    return users.map((user) => (
-      user.id === adminUsernameUser.id
-        ? { ...user, password: 'admin123', role: 'admin', active: true, updatedAt: now }
-        : user
-    ));
+function removeStoredPassword(user) {
+  if (!user || !Object.hasOwn(user, 'password')) {
+    return user;
   }
-
-  return [...users, createDefaultAdminUser()];
+  const { password, ...safeUser } = user;
+  return safeUser;
 }

@@ -11,6 +11,7 @@ import { getDashboardResumo } from '../../services/dashboard-resumo.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { showNotification } from '../../services/notification.service.js';
 import { hydrateOnlineOperationalData } from '../../services/online-data.service.js';
+import { escapeHtml } from '../../utils/dom.js';
 
 const dashboardState = {
   modal: null,
@@ -275,7 +276,7 @@ function renderClosedComandas() {
           <div>
             <span class="history-comanda__item-name">
               <span class="history-comanda__qty">${formatHistoryItemQuantity(item)}</span>
-              <span>${item.name}</span>
+              <span>${escapeHtml(item.name)}</span>
             </span>
             <strong>${formatCurrency(item.total)}</strong>
           </div>
@@ -300,8 +301,8 @@ function renderTransactions() {
   return transactions.map((transaction) => `
     <article class="money-row ${transaction.status === 'cancelada' ? 'is-canceled' : ''}">
       <div>
-        <strong>${getMoneyTitle(transaction)}</strong>
-        <span>${transaction.status === 'cancelada' ? `Cancelada - ${getTransactionDetail(transaction)}` : getTransactionDetail(transaction)}</span>
+        <strong>${escapeHtml(getMoneyTitle(transaction))}</strong>
+        <span>${escapeHtml(transaction.status === 'cancelada' ? `Cancelada - ${getTransactionDetail(transaction)}` : getTransactionDetail(transaction))}</span>
       </div>
       <div class="money-row__right">
         <span>${formatDate(transaction.createdAt)}</span>

@@ -149,12 +149,17 @@ const queuedItem = await repository.save({ id: 'item-2', name: 'Item 2' });
 assert(queuedItem.id === 'item-2', 'failed save should return item');
 assert(JSON.parse(localStorage.getItem('test.items.queue')).length === 1, 'failed save should queue operation');
 assert(repository.getSyncStatus().pending === 1, 'failed save should update pending count');
+await repository.save({ id: 'item-2', name: 'Item 2 atualizado' });
+const compactedItemQueue = JSON.parse(localStorage.getItem('test.items.queue'));
+assert(compactedItemQueue.length === 1, 'repeated offline save should keep one queued operation per entity');
+assert(compactedItemQueue[0].item.name === 'Item 2 atualizado', 'latest offline edit should replace older queued edit');
 
 shouldFailSelect = false;
 shouldFailUpsert = false;
 shouldFailDelete = false;
 await repository.flushQueue();
 assert(upsertedRows[0].id === 'item-2', 'flush should upsert queued row');
+assert(upsertedRows[0].name === 'Item 2 atualizado', 'flush should send the latest queued entity state');
 assert(JSON.parse(localStorage.getItem('test.items.queue')).length === 0, 'flush should clear queue');
 assert(repository.getSyncStatus().state === 'synced', 'flush success should mark synced');
 

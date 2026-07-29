@@ -1,12 +1,14 @@
 import { STORAGE_KEYS } from '../database/schema.js';
 import { getProductionSalesComparison } from './estoque.service.js';
+import { getCategories, getProductById } from './product.service.js';
 import { getCurrentUser } from './auth.service.js';
 import { assertPermission } from './permission.service.js';
 import { recordAudit } from './audit.service.js';
 import { getItem, setItem } from './storage.service.js';
-import { getTransactions } from './transaction.service.js';
+import { getClosedComandas, getTransactions } from './transaction.service.js';
 import { isSupabaseEnabled } from './app-config.service.js';
 import { saveCashClosingToSupabase } from './financial-sync.service.js';
+import { getActiveOutOfStockSales } from './showcase-stock.service.js';
 
 export function buildClosingSummary(input = {}) {
   const payments = buildPaymentConference(input);
@@ -14,7 +16,7 @@ export function buildClosingSummary(input = {}) {
   const transactions = getClosingTransactions();
   const sales = transactions.filter((transaction) => transaction.type === 'venda');
   const entries = transactions.filter((transaction) => transaction.type === 'entrada');
-  const outputs = transactions.filter((transaction) => transaction.type === 'saida');
+  const outputs = transactions.filter(isCashOutput);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -25,7 +27,8 @@ export function buildClosingSummary(input = {}) {
       closedComandas: sales.length
     },
     payments,
-    showcase
+    showcase,
+    outOfStockSales: buildOutOfStockClosingRows()
   };
 }
 
@@ -33,7 +36,7 @@ export function buildPaymentConference(input = {}) {
   const transactions = getClosingTransactions();
   const sales = transactions.filter((transaction) => transaction.type === 'venda');
   const entriesTotal = sumTransactions(transactions.filter((transaction) => transaction.type === 'entrada'));
-  const outputsTotal = sumTransactions(transactions.filter((transaction) => transaction.type === 'saida'));
+  const outputsTotal = sumTransactions(transactions.filter(isCashOutput));
   const expectedCash = sumPayment(sales, 'dinheiro') + entriesTotal - outputsTotal;
   const expectedPix = sumPayment(sales, 'pix');
   const expectedDebit = sumPayment(sales, 'debito');
@@ -214,6 +217,47 @@ function getClosingTransactions() {
   return getTransactions().filter((transaction) => transaction.status !== 'cancelada');
 }
 
+function buildOutOfStockClosingRows() {
+  const categories = getCategories();
+  const transactions = getTransactions();
+  const closedComandas = getClosedComandas();
+
+  return getActiveOutOfStockSales().map((item) => {
+    const product = getProductById(item.productId);
+    const category = categories.find((candidate) => candidate.id === product?.categoryId);
+
+    return {
+      productId: item.productId,
+      productName: product?.name || item.productName || 'Produto removido',
+      categoryName: category?.name || 'Sem categoria',
+      quantity: Number(item.quantity) || 0,
+      unitPrice: Number(item.unitPrice) || 0,
+      totalPrice: Number(item.totalPrice) || 0,
+      createdAt: item.createdAt,
+      saleId: item.saleId,
+      commandId: item.commandId,
+      commandReference: resolveCommandReference(item, transactions, closedComandas),
+      userId: item.userId
+    };
+  });
+}
+
+function resolveCommandReference(item, transactions, closedComandas) {
+  const command = item.commandId
+    ? closedComandas.find((candidate) => candidate.id === item.commandId)
+    : null;
+  const sale = item.saleId
+    ? transactions.find((candidate) => candidate.id === item.saleId)
+    : null;
+  const commandNumber = command?.number || sale?.comandaNumber;
+
+  if (commandNumber) {
+    return `Comanda ${String(commandNumber).padStart(4, '0')}`;
+  }
+
+  return item.commandId || item.saleId || '-';
+}
+
 function sumPayment(sales, paymentMethod) {
   return sales
     .filter((sale) => sale.paymentMethod === paymentMethod)
@@ -222,6 +266,10 @@ function sumPayment(sales, paymentMethod) {
 
 function sumTransactions(transactions) {
   return transactions.reduce((total, transaction) => total + Number(transaction.total || transaction.amount || 0), 0);
+}
+
+function isCashOutput(transaction) {
+  return transaction.type === 'saida' || transaction.type === 'sangria';
 }
 
 function hasDifferenceValue(difference) {

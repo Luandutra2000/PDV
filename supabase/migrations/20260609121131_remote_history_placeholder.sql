@@ -1,0 +1,4 @@
+-- Placeholder for a migration already recorded in the remote Supabase history.
+-- The local file was missing when deploying the Pessoas/Permissoes changes.
+-- Keep this version so `supabase db push` can compare local and remote history
+-- without repairing or rewriting the remote migration table.

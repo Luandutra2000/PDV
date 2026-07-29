@@ -11,15 +11,20 @@ export function showNotification({ title, message, type = 'success' }) {
 
   const notification = document.createElement('div');
   notification.className = `app-toast app-toast--${type}`;
-  notification.innerHTML = `
-    <div>
-      <strong>${title}</strong>
-      <p>${message}</p>
-    </div>
-    <button type="button" class="app-toast__close" aria-label="Fechar">X</button>
-  `;
+  const content = document.createElement('div');
+  const heading = document.createElement('strong');
+  const paragraph = document.createElement('p');
+  const closeButton = document.createElement('button');
+  heading.textContent = String(title ?? '');
+  paragraph.textContent = String(message ?? '');
+  closeButton.type = 'button';
+  closeButton.className = 'app-toast__close';
+  closeButton.setAttribute('aria-label', 'Fechar');
+  closeButton.textContent = 'X';
+  content.append(heading, paragraph);
+  notification.append(content, closeButton);
 
   notificationRoot.appendChild(notification);
-  notification.querySelector('button').addEventListener('click', () => notification.remove());
+  closeButton.addEventListener('click', () => notification.remove());
   setTimeout(() => notification.remove(), 4200);
 }

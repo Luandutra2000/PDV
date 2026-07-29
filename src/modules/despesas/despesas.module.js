@@ -7,15 +7,19 @@ import {
   getFinancialTransactions,
   getPayables,
   markFinancialTransactionPaid,
-  seedFinancialCategories
+  seedFinancialCategories,
+  upsertFinancialTransaction
 } from '../../services/financial.service.js';
 import { showNotification } from '../../services/notification.service.js';
+import { getCurrentUser } from '../../services/auth.service.js';
+import { hasPermission } from '../../services/permission.service.js';
 
 const DEFAULT_FILTERS = {
   period: 'today',
   customStart: '',
   customEnd: '',
   type: 'all',
+  historyKind: 'all',
   categoryId: 'all',
   status: 'all'
 };
@@ -57,6 +61,12 @@ export function getFinanceiroState() {
 
 export function renderFinanceiroMarkup({ summary, categories, transactions, payables, crm, filters = DEFAULT_FILTERS, modal = null }) {
   const normalizedFilters = { ...DEFAULT_FILTERS, ...filters };
+  const permissions = {
+    canCreateIncome: canCurrentUser('financial.income.create'),
+    canCreateExpense: canCurrentUser('financial.expense.create'),
+    canPayBill: canCurrentUser('financial.bill.pay'),
+    canEditEntries: canCurrentUser('financial.entries.edit')
+  };
   const activeTransactions = applyTableFilters(
     transactions.filter((transaction) => transaction.status !== 'canceled'),
     normalizedFilters
@@ -70,9 +80,9 @@ export function renderFinanceiroMarkup({ summary, categories, transactions, paya
           <p class="module-subtitle">Entradas, saidas, boletos, contas a pagar e mini CRM financeiro.</p>
         </div>
         <div class="header-actions">
-          <button class="button button--success" type="button" data-finance-action="open-income">+ Entrada</button>
-          <button class="button button--danger" type="button" data-finance-action="open-expense">- Saida</button>
-          <button class="button" type="button" data-finance-action="open-bill">+ Boleto</button>
+          ${permissions.canCreateIncome ? '<button class="button button--success" type="button" data-finance-action="open-income">+ Entrada</button>' : ''}
+          ${permissions.canCreateExpense ? '<button class="button button--danger" type="button" data-finance-action="open-expense">- Saida</button>' : ''}
+          ${permissions.canCreateExpense ? '<button class="button" type="button" data-finance-action="open-bill">+ Boleto</button>' : ''}
         </div>
       </header>
 
@@ -86,8 +96,8 @@ export function renderFinanceiroMarkup({ summary, categories, transactions, paya
       </div>
 
       <div class="history-grid finance-grid">
-        ${renderFinancialTable(activeTransactions, categories, normalizedFilters)}
-        ${renderPayablesPanel(payables)}
+        ${renderFinancialTable(activeTransactions, categories, normalizedFilters, permissions)}
+        ${renderPayablesPanel(payables, permissions)}
       </div>
 
       ${renderFinancialCrm(crm, categories)}
@@ -123,6 +133,21 @@ function bindFinanceiroEvents(container) {
     if (action === 'toggle-info') {
       const row = event.target.closest('[data-finance-row]');
       row?.classList.toggle('is-expanded');
+      return;
+    }
+
+    if (action === 'edit') {
+      const transaction = getFinancialTransactions({ period: 'all' }).find((item) => item.id === event.target.closest('[data-finance-action]')?.dataset.transactionId);
+
+      if (!transaction) {
+        showNotification({ title: 'Nao foi possivel editar', message: 'Lancamento financeiro nao encontrado.', type: 'danger' });
+        return;
+      }
+
+      renderFinanceiroWithModal(container, {
+        type: getModalTypeFromTransaction(transaction),
+        transaction
+      });
       return;
     }
 
@@ -181,6 +206,7 @@ function bindFinanceiroEvents(container) {
     event.preventDefault();
     const data = new FormData(event.target);
     const formType = data.get('formType');
+    const transactionId = String(data.get('transactionId') || '').trim();
     const description = String(data.get('description') || '').trim();
 
     if (!description) {
@@ -189,10 +215,10 @@ function bindFinanceiroEvents(container) {
     }
 
     try {
-      createFinancialTransaction({
+      const payload = {
         type: formType === 'income' ? 'income' : 'expense',
         description,
-        amount: data.get('amount'),
+        amount: Number(data.get('amount')) || 0,
         categoryId: data.get('categoryId'),
         paymentMethod: formType === 'bill' ? 'boleto' : 'dinheiro',
         status: formType === 'bill' ? data.get('status') : 'paid',
@@ -201,13 +227,36 @@ function bindFinanceiroEvents(container) {
         notes: data.get('notes') || '',
         origin: 'finance',
         movesCashSession: data.get('movesCashSession') === 'on'
-      });
-      showNotification({ title: 'Lancamento salvo', message: 'Financeiro atualizado.', type: 'success' });
+      };
+
+      if (transactionId) {
+        const currentTransaction = getFinancialTransactions({ period: 'all' }).find((item) => item.id === transactionId);
+
+        if (!currentTransaction) {
+          throw new Error('Lancamento financeiro nao encontrado.');
+        }
+
+        upsertFinancialTransaction({
+          ...currentTransaction,
+          ...payload,
+          id: transactionId,
+          paymentMethod: data.get('paymentMethod') || payload.paymentMethod,
+          updatedAt: new Date().toISOString()
+        });
+      } else {
+        createFinancialTransaction(payload);
+      }
+
+      showNotification({ title: transactionId ? 'Lancamento atualizado' : 'Lancamento salvo', message: 'Financeiro atualizado.', type: 'success' });
       renderFinanceiro(container);
     } catch (error) {
       showNotification({ title: 'Nao foi possivel salvar', message: error.message, type: 'danger' });
     }
   });
+}
+
+function canCurrentUser(permissionId) {
+  return hasPermission(getCurrentUser(), permissionId);
 }
 
 function renderFinanceiroWithModal(container, modal) {
@@ -222,7 +271,7 @@ function renderCountCard(label, value, stateClass) {
   return `<article class="summary-card"><span>${label}</span><strong class="${stateClass}">${value}</strong></article>`;
 }
 
-function renderFinancialTable(transactions, categories, filters) {
+function renderFinancialTable(transactions, categories, filters, permissions) {
   return `
     <section class="manager-section">
       <div class="manager-section__header">
@@ -239,6 +288,7 @@ function renderFinancialTable(transactions, categories, filters) {
           <input class="field" style="max-width: 150px;" type="date" name="customEnd" value="${filters.customEnd || ''}" data-finance-custom-date>
         ` : ''}
         ${renderTypeFilter(filters)}
+        ${renderHistoryKindFilter(filters)}
         ${renderCategoryFilter(categories, filters)}
         ${renderStatusFilter(filters)}
       </div>
@@ -256,7 +306,7 @@ function renderFinancialTable(transactions, categories, filters) {
             </tr>
           </thead>
           <tbody>
-            ${transactions.length ? transactions.map((transaction) => renderFinancialRow(transaction, categories)).join('') : `
+            ${transactions.length ? transactions.map((transaction) => renderFinancialRow(transaction, categories, permissions)).join('') : `
               <tr><td colspan="7">Nenhuma movimentacao financeira encontrada.</td></tr>
             `}
           </tbody>
@@ -277,6 +327,16 @@ function renderTypeFilter(filters) {
       <option value="all"${isSelected(filters.type, 'all')}>Todos os tipos</option>
       <option value="income"${isSelected(filters.type, 'income')}>Entrada</option>
       <option value="expense"${isSelected(filters.type, 'expense')}>Saida</option>
+    </select>
+  `;
+}
+
+function renderHistoryKindFilter(filters) {
+  return `
+    <select class="field" style="width: auto; min-width: 138px; min-height: 34px; padding: 0 12px; font-size: 13px; font-weight: 800;" name="historyKind" data-finance-filter="historyKind">
+      <option value="all"${isSelected(filters.historyKind, 'all')}>Historico</option>
+      <option value="cash"${isSelected(filters.historyKind, 'cash')}>Mov. caixa</option>
+      <option value="bill"${isSelected(filters.historyKind, 'bill')}>Boletos</option>
     </select>
   `;
 }
@@ -304,9 +364,11 @@ function renderStatusFilter(filters) {
 function applyTableFilters(transactions, filters) {
   return transactions.filter((transaction) => {
     const typeMatches = filters.type === 'all' || transaction.type === filters.type;
+    const historyKindMatches = filters.historyKind === 'all'
+      || filters.historyKind === getFinancialHistoryKind(transaction);
     const categoryMatches = filters.categoryId === 'all' || transaction.categoryId === filters.categoryId;
     const statusMatches = filters.status === 'all' || transaction.status === filters.status;
-    return typeMatches && categoryMatches && statusMatches;
+    return typeMatches && historyKindMatches && categoryMatches && statusMatches;
   });
 }
 
@@ -314,7 +376,7 @@ function isSelected(value, expected) {
   return value === expected ? ' selected' : '';
 }
 
-function renderFinancialRow(transaction, categories) {
+function renderFinancialRow(transaction, categories, permissions) {
   const category = categories.find((item) => item.id === transaction.categoryId);
   const isIncome = transaction.type === 'income';
 
@@ -322,9 +384,9 @@ function renderFinancialRow(transaction, categories) {
     <tr data-finance-row="${transaction.id}">
       <td>${formatDate(transaction.transactionDate || transaction.createdAt)}</td>
       <td>
-        <strong>${transaction.description}</strong>
+        <strong>${getFinancialHistoryTitle(transaction)}</strong>
         <div class="finance-row-details">
-          <small>Observacao: ${transaction.notes || 'Sem observacao'}</small><br>
+          <small>Observacao: ${getFinancialHistoryObservation(transaction)}</small><br>
           <small>Origem: ${transaction.origin === 'cashier' ? 'Frente de Caixa' : 'Financeiro'}</small><br>
           <small>Vencimento: ${formatDate(transaction.dueDate)}</small>
         </div>
@@ -336,14 +398,28 @@ function renderFinancialRow(transaction, categories) {
       <td>
         <div class="row-actions">
           <button class="button button--ghost button--small" type="button" data-finance-action="toggle-info">Mais info</button>
-          ${transaction.status === 'pending' || transaction.status === 'overdue' ? `<button class="button button--small" type="button" data-payable-id="${transaction.id}">Pagar</button>` : '<button class="button button--ghost button--small" type="button">Editar</button>'}
+          ${transaction.status === 'pending' || transaction.status === 'overdue'
+            ? (permissions.canPayBill ? `<button class="button button--small" type="button" data-payable-id="${transaction.id}">Pagar</button>` : '')
+            : (permissions.canEditEntries ? `<button class="button button--ghost button--small" type="button" data-finance-action="edit" data-transaction-id="${transaction.id}">Editar</button>` : '')}
         </div>
       </td>
     </tr>
   `;
 }
 
-function renderPayablesPanel(payables) {
+function getFinancialHistoryTitle(transaction) {
+  return getFinancialHistoryKind(transaction) === 'bill' ? 'Boleto' : 'Movimentação de Caixa';
+}
+
+function getFinancialHistoryObservation(transaction) {
+  return transaction.description || transaction.notes || 'Sem observacao';
+}
+
+function getFinancialHistoryKind(transaction) {
+  return transaction.paymentMethod === 'boleto' || Boolean(transaction.dueDate) ? 'bill' : 'cash';
+}
+
+function renderPayablesPanel(payables, permissions) {
   const items = [...payables.overdue, ...payables.upcoming, ...payables.pending]
     .filter((item, index, list) => list.findIndex((candidate) => candidate.id === item.id) === index);
 
@@ -351,13 +427,13 @@ function renderPayablesPanel(payables) {
     <section class="manager-section">
       <div class="manager-section__header"><strong>Contas a pagar</strong></div>
       <div class="manager-list">
-        ${items.length ? items.map(renderPayableCard).join('') : '<div class="empty-products">Nenhuma conta a pagar.</div>'}
+        ${items.length ? items.map((item) => renderPayableCard(item, permissions)).join('') : '<div class="empty-products">Nenhuma conta a pagar.</div>'}
       </div>
     </section>
   `;
 }
 
-function renderPayableCard(transaction) {
+function renderPayableCard(transaction, permissions) {
   const statusClass = transaction.status === 'overdue' ? 'is-canceled' : '';
 
   return `
@@ -371,7 +447,7 @@ function renderPayableCard(transaction) {
       </div>
       <div class="money-row__right">
         <strong class="money-negative">${formatCurrency(transaction.amount)}</strong>
-        <button class="button button--success button--small" type="button" data-payable-id="${transaction.id}">Marcar pago</button>
+        ${permissions.canPayBill ? `<button class="button button--success button--small" type="button" data-payable-id="${transaction.id}">Marcar pago</button>` : ''}
       </div>
     </article>
   `;
@@ -413,7 +489,8 @@ function renderCrmCard(title, totals, categories, stateClass) {
 function renderFinancialModal(modal, categories) {
   const isBill = modal.type === 'bill';
   const isIncome = modal.type === 'income';
-  const title = isBill ? 'Registrar boleto / conta' : `Registrar ${isIncome ? 'entrada' : 'saida'}`;
+  const isEditing = Boolean(modal.transaction);
+  const title = isEditing ? 'Editar lancamento' : (isBill ? 'Registrar boleto / conta' : `Registrar ${isIncome ? 'entrada' : 'saida'}`);
   const filteredCategories = categories.filter((category) => (
     isBill
       ? category.type === 'expense' || category.type === 'both'
@@ -429,27 +506,31 @@ function renderFinancialModal(modal, categories) {
         </header>
         <form class="product-form" data-finance-form>
           <input type="hidden" name="formType" value="${modal.type}">
-          ${isBill ? renderBillFields(filteredCategories) : renderQuickFields(modal.type, filteredCategories)}
+          ${modal.transaction ? `<input type="hidden" name="transactionId" value="${modal.transaction.id}">` : ''}
+          ${isBill ? renderBillFields(filteredCategories, modal.transaction) : renderQuickFields(modal.type, filteredCategories, modal.transaction)}
         </form>
       </div>
     </div>
   `;
 }
 
-function renderQuickFields(type, categories) {
+function renderQuickFields(type, categories, transaction = {}) {
   return `
     <label class="stacked-label">
       Valor
-      <input class="field" name="amount" type="number" min="0.01" step="0.01" required>
+      <input class="field" name="amount" type="number" min="0.01" step="0.01" value="${transaction.amount || ''}" required>
     </label>
     <label class="stacked-label">
       Categoria
-      <select class="field" name="categoryId" required>${renderCategoryOptions(categories)}</select>
+      <select class="field" name="categoryId" required>${renderCategoryOptions(categories, transaction.categoryId)}</select>
     </label>
     <label class="stacked-label">
       Descricao obrigatoria
-      <input class="field" name="description" placeholder="${type === 'income' ? 'Ex: Reforco para troco do caixa' : 'Ex: Retirada para pagar fornecedor'}" required>
+      <input class="field" name="description" value="${transaction.description || ''}" placeholder="${type === 'income' ? 'Ex: Reforco para troco do caixa' : 'Ex: Retirada para pagar fornecedor'}" required>
     </label>
+    <input type="hidden" name="transactionDate" value="${transaction.transactionDate || ''}">
+    <input type="hidden" name="paymentMethod" value="${transaction.paymentMethod || (type === 'income' ? 'dinheiro' : 'dinheiro')}">
+    <input type="hidden" name="status" value="${transaction.status || 'paid'}">
     <div class="form-actions">
       <button class="button button--ghost" type="button" data-finance-action="close-modal">Cancelar</button>
       <button class="button ${type === 'income' ? 'button--success' : 'button--danger'}" type="submit">Salvar ${type === 'income' ? 'entrada' : 'saida'} no caixa</button>
@@ -457,40 +538,42 @@ function renderQuickFields(type, categories) {
   `;
 }
 
-function renderBillFields(categories) {
+function renderBillFields(categories, transaction = {}) {
   return `
     <label class="stacked-label">
       Descricao obrigatoria
-      <input class="field" name="description" placeholder="Ex: Boleto fornecedor" required>
+      <input class="field" name="description" value="${transaction.description || ''}" placeholder="Ex: Boleto fornecedor" required>
     </label>
     <div class="closing-form-grid closing-form-grid--compact">
       <label class="stacked-label">
         Valor
-        <input class="field" name="amount" type="number" min="0.01" step="0.01" required>
+        <input class="field" name="amount" type="number" min="0.01" step="0.01" value="${transaction.amount || ''}" required>
       </label>
       <label class="stacked-label">
         Vencimento
-        <input class="field" name="dueDate" type="date" required>
+        <input class="field" name="dueDate" type="date" value="${transaction.dueDate || ''}" required>
       </label>
       <label class="stacked-label">
         Categoria
-        <select class="field" name="categoryId" required>${renderCategoryOptions(categories)}</select>
+        <select class="field" name="categoryId" required>${renderCategoryOptions(categories, transaction.categoryId)}</select>
       </label>
       <label class="stacked-label">
         Status
         <select class="field" name="status" required>
-          <option value="pending">Pendente</option>
-          <option value="paid">Pago</option>
+          <option value="pending" ${transaction.status === 'pending' ? 'selected' : ''}>Pendente</option>
+          <option value="paid" ${transaction.status === 'paid' ? 'selected' : ''}>Pago</option>
         </select>
       </label>
     </div>
+    <input type="hidden" name="transactionDate" value="${transaction.transactionDate || ''}">
+    <input type="hidden" name="paymentMethod" value="${transaction.paymentMethod || 'boleto'}">
     <label class="permission-check">
-      <input type="checkbox" name="movesCashSession">
+      <input type="checkbox" name="movesCashSession" ${transaction.movesCashSession ? 'checked' : ''}>
       <span>Movimentar caixa aberto quando marcar como pago</span>
     </label>
     <label class="stacked-label">
       Observacao
-      <textarea class="field" name="notes" rows="3"></textarea>
+      <textarea class="field" name="notes" rows="3">${transaction.notes || ''}</textarea>
     </label>
     <div class="form-actions">
       <button class="button button--ghost" type="button" data-finance-action="close-modal">Cancelar</button>
@@ -499,8 +582,16 @@ function renderBillFields(categories) {
   `;
 }
 
-function renderCategoryOptions(categories) {
-  return categories.map((category) => `<option value="${category.id}">${category.name}</option>`).join('');
+function renderCategoryOptions(categories, selectedId = '') {
+  return categories.map((category) => `<option value="${category.id}" ${category.id === selectedId ? 'selected' : ''}>${category.name}</option>`).join('');
+}
+
+function getModalTypeFromTransaction(transaction) {
+  if (transaction.type === 'income') {
+    return 'income';
+  }
+
+  return transaction.paymentMethod === 'boleto' || transaction.dueDate ? 'bill' : 'expense';
 }
 
 function formatStatus(status) {

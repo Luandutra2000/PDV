@@ -28,9 +28,11 @@ const transactions = await import('../src/services/transaction.service.js');
 const estoque = await import('../src/services/estoque.service.js');
 const notifications = await import('../src/services/mobile-notifications.service.js');
 const auth = await import('../src/services/auth.service.js');
+const { STORAGE_KEYS } = await import('../src/database/schema.js');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs');
 
 storage.resetAppData();
-auth.login({ username: 'admin', password: 'admin123' });
+seedTestAdmin(storage, STORAGE_KEYS);
 
 const burger = products.getProductById('x-burger');
 const soda = products.getProductById('refrigerante-lata');

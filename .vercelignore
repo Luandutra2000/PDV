@@ -1,0 +1,8 @@
+.git
+.worktrees
+.codex-prod-layout-label-20260729
+docs
+tests
+supabase
+coverage
+node_modules

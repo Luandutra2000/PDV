@@ -10,6 +10,7 @@ export const cashClosingAdapter = {
       totals: row.totals || {},
       payments: row.payments || {},
       showcase: Array.isArray(row.showcase) ? row.showcase : [],
+      outOfStockSales: Array.isArray(row.input?.outOfStockSales) ? row.input.outOfStockSales : [],
       differences: Array.isArray(row.differences) ? row.differences : [],
       input: row.input || {},
       createdAt: row.created_at || row.closed_at || new Date().toISOString(),
@@ -25,7 +26,10 @@ export const cashClosingAdapter = {
       payments: closing.payments || {},
       showcase: closing.showcase || [],
       differences: closing.differences || [],
-      input: closing.input || {},
+      input: {
+        ...(closing.input || {}),
+        outOfStockSales: closing.outOfStockSales || closing.input?.outOfStockSales || []
+      },
       created_at: closing.createdAt || closing.closedAt || new Date().toISOString(),
       closed_at: closing.closedAt || closing.createdAt || new Date().toISOString(),
       updated_at: closing.updatedAt || closing.closedAt || closing.createdAt || new Date().toISOString()

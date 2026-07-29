@@ -28,9 +28,12 @@ const transactions = await import('../src/services/transaction.service.js');
 const estoque = await import('../src/services/estoque.service.js');
 const auth = await import('../src/services/auth.service.js');
 const audit = await import('../src/services/audit.service.js');
+const { STORAGE_KEYS } = await import('../src/database/schema.js');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs');
 
+seedTestAdmin(storage, STORAGE_KEYS);
 storage.ensureSeedData();
-const adminSession = auth.login({ username: 'admin', password: 'admin123' });
+const adminSession = { user: auth.getCurrentUser() };
 
 const product = products.getProductById('x-burger');
 const initialStock = product.stock;
@@ -76,12 +79,27 @@ assert(products.getProductById(product.id).stock === initialStock + 5, 'editing 
 estoque.cancelStockLaunch(launch.id);
 assert(estoque.getStockSummary().producedUnits === 0, 'canceling launch should remove it from totals');
 assert(products.getProductById(product.id).stock === initialStock, 'canceling launch should remove the quantity from product stock');
+const cancelAudit = audit.getAuditLogs().find((entry) => entry.action === 'showcase.launch.cancel' && entry.entityId === launch.id);
+assert(cancelAudit.userId === adminSession.user.id, 'cancel audit should store logged user id');
+assert(cancelAudit.metadata.productName === product.name, 'cancel audit should preserve product name');
+assert(cancelAudit.metadata.quantity === 5, 'cancel audit should preserve canceled quantity');
 
-estoque.deleteStockComparisonRow(product.id);
+const launchToDelete = estoque.createStockLaunch({
+  produtoId: product.id,
+  quantidade: 4
+});
+const deleteResult = estoque.deleteStockComparisonRow(product.id);
+assert(deleteResult.canceledLaunches === 1, 'deleting comparison row should report canceled launches');
 assert(estoque.getProductionSalesComparison().length === 0, 'deleting comparison row should hide it without deleting the sale');
+const deleteAudit = audit.getAuditLogs().find((entry) => entry.action === 'showcase.delete' && entry.entityId === product.id);
+assert(deleteAudit.userId === adminSession.user.id, 'delete audit should store logged user id');
+assert(deleteAudit.userName === adminSession.user.name, 'delete audit should store logged user name');
+assert(deleteAudit.metadata.productName === product.name, 'delete audit should preserve product name');
+assert(deleteAudit.metadata.totalQuantity === 4, 'delete audit should store total deleted quantity');
+assert(deleteAudit.metadata.launchIds.includes(launchToDelete.id), 'delete audit should store affected launch ids');
 
 storage.resetAppData();
-auth.login({ username: 'admin', password: 'admin123' });
+seedTestAdmin(storage, STORAGE_KEYS);
 const saleOnlyProduct = products.getProductById('x-burger');
 products.updateCategory(saleOnlyProduct.categoryId, {
   name: 'Lanches',
@@ -115,7 +133,7 @@ estoque.createStockLaunch({
 assert(estoque.getProductionSalesComparison().length === 1, 'new launch should show hidden product in comparison again');
 
 storage.resetAppData();
-auth.login({ username: 'admin', password: 'admin123' });
+seedTestAdmin(storage, STORAGE_KEYS);
 const writeOffProduct = products.getProductById('x-burger');
 estoque.createStockLaunch({
   produtoId: writeOffProduct.id,

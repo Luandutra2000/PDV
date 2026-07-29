@@ -25,9 +25,10 @@ const storage = await import('../src/services/storage.service.js');
 const auth = await import('../src/services/auth.service.js');
 const { STORAGE_KEYS } = await import('../src/database/schema.js');
 const { getDashboardResumo } = await import('../src/services/dashboard-resumo.service.js');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs');
 
 storage.resetAppData();
-auth.login({ username: 'admin', password: 'admin123' });
+seedTestAdmin(storage, STORAGE_KEYS);
 
 const now = new Date().toISOString();
 

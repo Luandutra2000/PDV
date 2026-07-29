@@ -45,7 +45,7 @@ export function getCrmSummary(filter = createPeriodFilter()) {
   const transactions = getPeriodTransactions(filter);
   const sales = transactions.filter((transaction) => transaction.type === 'venda');
   const entries = transactions.filter((transaction) => transaction.type === 'entrada');
-  const outputs = transactions.filter((transaction) => transaction.type === 'saida');
+  const outputs = transactions.filter((transaction) => ['saida', 'sangria'].includes(transaction.type));
   const salesTotal = sumTransactions(sales);
   const entriesTotal = sumTransactions(entries);
   const outputsTotal = sumTransactions(outputs);

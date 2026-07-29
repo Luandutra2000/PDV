@@ -143,7 +143,7 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
       emitChange({ type: 'saved', item: nextItem });
       return nextItem;
     } catch (error) {
-      const queue = [...readQueue(), { action: 'upsert', item: nextItem, createdAt: new Date().toISOString() }];
+      const queue = enqueueLatestOperation(readQueue(), { action: 'upsert', item: nextItem, createdAt: new Date().toISOString() });
       writeQueue(queue);
       const cached = readCache();
       const exists = cached.some((candidate) => candidate.id === nextItem.id);
@@ -171,7 +171,7 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
       setStatusFromQueue(queue);
       emitChange({ type: 'removed', id });
     } catch (error) {
-      const queue = [...readQueue(), { action: 'delete', id, createdAt: new Date().toISOString() }];
+      const queue = enqueueLatestOperation(readQueue(), { action: 'delete', id, createdAt: new Date().toISOString() });
       writeQueue(queue);
       writeCache(readCache().filter((item) => item.id !== id));
       setStatus({ state: 'pending', pending: queue.length, error: error.message || 'Exclusao pendente.' });
@@ -302,4 +302,18 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
       return status;
     }
   };
+}
+
+function enqueueLatestOperation(queue, operation) {
+  const operationId = operation.item?.id || operation.id;
+  const existingIndex = queue.findIndex((candidate) => (
+    candidate.action === operation.action
+      && (candidate.item?.id || candidate.id) === operationId
+  ));
+  if (existingIndex < 0) return [...queue, operation];
+  return queue.map((candidate, index) => (
+    index === existingIndex
+      ? { ...operation, createdAt: candidate.createdAt || operation.createdAt }
+      : candidate
+  ));
 }

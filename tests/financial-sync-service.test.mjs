@@ -160,6 +160,13 @@ assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))[0].id === 'sa
 assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.closedComandas))[0].id === 'comanda-queued', 'pending command should be newest-first in command cache');
 assert(countRowsById('sales', 'sale-queued') === 0, 'failed composed sale should clean partial sale rows');
 assert(countRowsById('commands', 'comanda-queued') === 0, 'failed composed sale should clean partial command rows');
+await financial.saveSaleToSupabase({
+  sale: { ...sale, id: 'sale-queued', comandaId: 'comanda-queued', total: 35, createdAt: '2026-06-02T10:30:00.000Z' },
+  command: { ...command, id: 'comanda-queued', total: 35, closedAt: '2026-06-02T10:30:00.000Z', updatedAt: '2026-06-02T10:31:00.000Z' }
+});
+const compactedSaleQueue = JSON.parse(localStorage.getItem('pdv.syncQueue.financial'));
+assert(compactedSaleQueue.length === 1, 'repeated offline sale save should keep one queue entry per sale id');
+assert(compactedSaleQueue[0].sale.total === 35, 'repeated offline sale save should keep the latest state');
 
 failTable = '';
 await financial.flushFinancialQueue();
@@ -168,6 +175,7 @@ assert(countRowsById('commands', 'comanda-queued') === 1, 'flush retry should ke
 assert(countRowsById('command_items', rows.command_items.find((row) => row.command_id === 'comanda-queued').id) === 1, 'flush retry should keep one command item row after partial failure');
 assert(countRowsById('sales', 'sale-queued') === 1, 'flush retry should keep one sale row after partial failure');
 assert(countRowsById('sale_items', 'sale-queued-x-burger-0') === 1, 'flush retry should keep one sale item row after partial failure');
+assert(rows.sales.find((row) => row.id === 'sale-queued').total === 35, 'flush should persist the latest compacted sale state');
 
 delayTable = 'sale_items';
 const inFlightSalePromise = financial.saveSaleToSupabase({

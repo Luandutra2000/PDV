@@ -30,9 +30,12 @@ const closing = await import('../src/services/cash-closing.service.js');
 const auth = await import('../src/services/auth.service.js');
 const audit = await import('../src/services/audit.service.js');
 const financial = await import('../src/services/financial-sync.service.js');
+const { STORAGE_KEYS } = await import('../src/database/schema.js');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs');
 
+seedTestAdmin(storage, STORAGE_KEYS);
 storage.ensureSeedData();
-const adminSession = auth.login({ username: 'admin', password: 'admin123' });
+const adminSession = { user: auth.getCurrentUser() };
 
 const burger = products.getProductById('x-burger');
 const soda = products.getProductById('refrigerante-lata');
@@ -46,7 +49,9 @@ comandas.addItem(burger);
 transactions.finalizeComandaPayment({ paymentMethod: 'dinheiro', receivedAmount: 40 });
 
 comandas.addItem(soda);
-transactions.finalizeComandaPayment({ paymentMethod: 'pix' });
+transactions.finalizeComandaPayment({
+  paymentMethod: 'pix'
+});
 
 transactions.registerCashMovement({
   type: 'entrada',

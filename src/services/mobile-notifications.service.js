@@ -1,4 +1,5 @@
 import { getProductionSalesComparison } from './estoque.service.js';
+import { getFinancialTransactions } from './financial.service.js';
 import { getTransactions } from './transaction.service.js';
 
 const FILTERS = {
@@ -12,6 +13,7 @@ const FILTERS = {
 const HIGH_SALE_AMOUNT = 100;
 const HIGH_OUTPUT_AMOUNT = 80;
 const LOW_SHOWCASE_QUANTITY = 5;
+const BILL_DUE_SOON_DAYS = 2;
 
 export function getMobileFeedEvents({
   filter = 'all',
@@ -23,6 +25,7 @@ export function getMobileFeedEvents({
 } = {}) {
   const events = [
     ...buildTransactionEvents(),
+    ...buildFinancialBillEvents(now),
     ...buildShowcaseAlertEvents(now)
   ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -128,6 +131,56 @@ function buildCashEvent(movement, kind) {
   };
 }
 
+function buildFinancialBillEvents(now) {
+  return getFinancialTransactions({ period: 'all' })
+    .filter((transaction) => transaction.status !== 'canceled')
+    .filter(isBillTransaction)
+    .flatMap((transaction) => {
+      const events = [];
+
+      if (transaction.status === 'pending') {
+        events.push({
+          id: `bill-created-${transaction.id}`,
+          kind: 'alert',
+          level: 'warning',
+          title: 'Novo boleto cadastrado',
+          description: `Boleto - Observacao: ${getFinancialObservation(transaction)}`,
+          amount: Number(transaction.amount || 0),
+          createdAt: transaction.createdAt || transaction.transactionDate,
+          icon: 'BL'
+        });
+
+        if (isBillDueSoon(transaction, now)) {
+          events.push({
+            id: `bill-due-${transaction.id}`,
+            kind: 'alert',
+            level: 'danger',
+            title: 'Boleto proximo do vencimento',
+            description: `Boleto - Venc. ${formatShortDate(transaction.dueDate)} - Observacao: ${getFinancialObservation(transaction)}`,
+            amount: Number(transaction.amount || 0),
+            createdAt: now.toISOString(),
+            icon: '!'
+          });
+        }
+      }
+
+      if (transaction.status === 'paid' && transaction.paidAt) {
+        events.push({
+          id: `bill-paid-${transaction.id}`,
+          kind: 'alert',
+          level: 'success',
+          title: 'Pagamento de boleto',
+          description: `Boleto - Observacao: ${getFinancialObservation(transaction)}`,
+          amount: Number(transaction.amount || 0),
+          createdAt: transaction.paidAt || transaction.updatedAt || transaction.createdAt,
+          icon: 'OK'
+        });
+      }
+
+      return events;
+    });
+}
+
 function buildShowcaseAlertEvents(now) {
   return getProductionSalesComparison({ period: 'today' })
     .filter((item) => item.sobraQuantidade > 0 && item.sobraQuantidade <= LOW_SHOWCASE_QUANTITY)
@@ -141,6 +194,34 @@ function buildShowcaseAlertEvents(now) {
       createdAt: now.toISOString(),
       icon: '!'
     }));
+}
+
+function isBillTransaction(transaction) {
+  return transaction.paymentMethod === 'boleto' || Boolean(transaction.dueDate);
+}
+
+function isBillDueSoon(transaction, now) {
+  if (!transaction.dueDate || transaction.status !== 'pending') {
+    return false;
+  }
+
+  const dueDate = new Date(`${transaction.dueDate}T23:59:59`);
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / 86400000);
+  return diffDays >= 0 && diffDays <= BILL_DUE_SOON_DAYS;
+}
+
+function getFinancialObservation(transaction) {
+  return transaction.description || transaction.notes || 'Sem observacao';
+}
+
+function formatShortDate(value) {
+  if (!value) {
+    return '-';
+  }
+
+  return new Intl.DateTimeFormat('pt-BR').format(new Date(`${value}T12:00:00`));
 }
 
 function isInFeedPeriod(value, period, now, filters = {}) {

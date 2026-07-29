@@ -16,6 +16,7 @@ import { initCaixaModule } from './modules/caixa/caixa.module.js';
 import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js?v=20260608-15';
 import { initPessoasModule } from './modules/pessoas/pessoas.module.js';
 import { initDespesasModule } from './modules/despesas/despesas.module.js';
+import { initEmpresaConfigModule } from './modules/empresa-config/empresa-config.module.js';
 import { formatCurrency } from './utils/currency.js';
 import { initNotificationService } from './services/notification.service.js';
 import { initRealtimeService } from './services/realtime.service.js';
@@ -23,9 +24,11 @@ import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.
 import { getDailyMoneySummary } from './services/transaction.service.js';
 import { getCurrentUser, login, logout } from './services/auth.service.js';
 import { hasPermission } from './services/permission.service.js';
+import { applyCompanyIdentity, loadCompanySettings, loadCompanySettingsLocal } from './services/empresa-config.service.js';
 import { renderLoginModule } from './modules/auth/login.module.js';
 import { on } from './services/event-bus.service.js';
 import { UI_EVENTS } from './database/schema.js';
+import { escapeHtml } from './utils/dom.js';
 
 const routes = {
   'frente-caixa': initVendasModule,
@@ -36,7 +39,8 @@ const routes = {
   relatorios: renderRelatoriosModule,
   mobile: initMobileDashboardModule,
   pessoas: initPessoasModule,
-  despesas: initDespesasModule
+  despesas: initDespesasModule,
+  'empresa-config': initEmpresaConfigModule
 };
 
 const routePermissions = {
@@ -47,11 +51,12 @@ const routePermissions = {
   'fechar-caixa': 'cash.close',
   relatorios: 'reports.view',
   mobile: 'owner_app.view',
-  pessoas: 'users.manage',
-  despesas: 'financial.view'
+  pessoas: ['users.manage', 'users.edit', 'users.delete', 'permissions.manage', 'audit.view'],
+  despesas: 'financial.expense.access',
+  'empresa-config': 'company_settings.manage'
 };
 
-const AUTH_SESSION_VERSION = '20260602-01-login-boot';
+const AUTH_SESSION_VERSION = '20260620-02-company-profile';
 
 async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   ensureSeedData();
@@ -89,15 +94,17 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   initSyncService();
   initRealtimeService();
   initNotificationService(document.querySelector('.toast-root'));
+  const companySettings = loadCompanySettingsLocal();
+  applyCompanyIdentity(companySettings);
 
   app.innerHTML = `
     <div class="pdv-layout">
-      ${renderSidebar(currentUser)}
+      ${renderSidebar(currentUser, companySettings)}
       <section class="workspace">
         <header class="topbar">
           <div class="cash-strip" aria-label="Resumo do caixa" data-cash-strip></div>
           <div class="header-actions">
-            <span class="current-user">${currentUser.name}</span>
+            <span class="current-user">${escapeHtml(currentUser.name)}</span>
             ${hasPermission(currentUser, 'owner_app.view') ? '<button class="button" type="button" data-action="open-mobile">App do Dono</button>' : ''}
             <button class="button button--ghost" type="button" data-action="toggle-theme">${getThemeLabel()}</button>
             <button class="button button--ghost" type="button" data-action="refresh">Atualizar</button>
@@ -117,6 +124,8 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   setActiveMenu(app, initialView);
   bindNavigation(app, workspace);
   bindCashUpdates(app);
+  bindCompanySettingsUpdates(app, workspace);
+  refreshCompanySettingsAsync(app, workspace);
 }
 
 function getInitialView() {
@@ -141,7 +150,19 @@ function getAuthorizedInitialView(currentUser) {
 
 function canAccessRoute(currentUser, routeId) {
   const permission = routePermissions[routeId];
-  return !permission || hasPermission(currentUser, permission);
+  return hasAnyPermission(currentUser, permission);
+}
+
+function hasAnyPermission(currentUser, permission) {
+  if (!permission) {
+    return true;
+  }
+
+  if (Array.isArray(permission)) {
+    return permission.some((permissionId) => hasPermission(currentUser, permissionId));
+  }
+
+  return hasPermission(currentUser, permission);
 }
 
 function renderCashStrip(root = document) {
@@ -178,28 +199,51 @@ function bindCashUpdates(app) {
   on(UI_EVENTS.cashSummaryChanged, () => renderCashStrip(app));
 }
 
+function bindCompanySettingsUpdates(app, workspace) {
+  on(UI_EVENTS.companySettingsChanged, (settings) => {
+    applyCompanyIdentity(settings);
+    refreshSidebar(app, workspace, settings);
+  });
+}
+
+function refreshCompanySettingsAsync(app, workspace) {
+  loadCompanySettings()
+    .then((settings) => {
+      applyCompanyIdentity(settings);
+      refreshSidebar(app, workspace, settings);
+    })
+    .catch((error) => {
+      console.warn('Nao foi possivel atualizar a identidade da empresa.', error);
+    });
+}
+
+function refreshSidebar(app, workspace, settings) {
+  const currentSidebar = app.querySelector('.sidebar');
+
+  if (!currentSidebar) {
+    return;
+  }
+
+  const activeRoute = workspace?.dataset.activeRoute || '';
+  currentSidebar.outerHTML = renderSidebar(getCurrentUser(), settings);
+
+  if (activeRoute) {
+    setActiveMenu(app, activeRoute);
+  }
+}
+
 bootstrap();
 
 async function loginFromQueryString(app) {
   const params = new URLSearchParams(window.location.search);
-  const username = params.get('username');
-  const password = params.get('password');
+  const hasLegacyCredentials = params.has('username') || params.has('password');
 
-  if (!username && !password) {
+  if (!hasLegacyCredentials) {
     return null;
   }
 
   window.history.replaceState(null, '', window.location.pathname);
-
-  if (!username || !password) {
-    return { error: 'Informe usuario e senha.' };
-  }
-
-  try {
-    return await login({ username, password });
-  } catch (error) {
-    return { error: error.message || 'Usuario ou senha invalidos.' };
-  }
+  return { error: 'Por seguranca, informe suas credenciais na tela de login.' };
 }
 
 function ensureFreshLoginAfterAuthUpdate() {

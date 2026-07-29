@@ -27,9 +27,11 @@ const comandas = await import('../src/services/comanda.service.js');
 const transactions = await import('../src/services/transaction.service.js');
 const crm = await import('../src/services/crm-dashboard.service.js');
 const auth = await import('../src/services/auth.service.js');
+const { STORAGE_KEYS } = await import('../src/database/schema.js');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs');
 
+seedTestAdmin(storage, STORAGE_KEYS);
 storage.ensureSeedData();
-auth.login({ username: 'admin', password: 'admin123' });
 comandas.clearComanda();
 
 comandas.addItem(products.getProductById('x-burger'));
@@ -37,7 +39,9 @@ comandas.addItem(products.getProductById('x-burger'));
 transactions.finalizeComandaPayment({ paymentMethod: 'dinheiro', receivedAmount: 40 });
 
 comandas.addItem(products.getProductById('refrigerante-lata'));
-transactions.finalizeComandaPayment({ paymentMethod: 'pix' });
+transactions.finalizeComandaPayment({
+  paymentMethod: 'pix'
+});
 
 transactions.registerCashMovement({
   type: 'entrada',

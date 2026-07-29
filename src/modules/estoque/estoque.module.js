@@ -1,3 +1,4 @@
+import { getCurrentUser, getUsers } from '../../services/auth.service.js';
 import { getCategories, getProductById, getShowcaseCategories, getShowcaseProducts } from '../../services/product.service.js';
 import {
   cancelStockLaunch,
@@ -10,7 +11,17 @@ import {
 } from '../../services/estoque.service.js';
 import { showNotification } from '../../services/notification.service.js';
 import { hydrateOnlineOperationalData } from '../../services/online-data.service.js';
+import { on } from '../../services/event-bus.service.js';
+import {
+  getActiveOutOfStockSales,
+  getShowcaseMovements,
+  getShowcaseStock,
+  getShowcaseStockByProductId
+} from '../../services/showcase-stock.service.js';
+import { UI_EVENTS } from '../../database/schema.js';
+import { getClosedComandas, getTransactions } from '../../services/transaction.service.js';
 import { formatCurrency } from '../../utils/currency.js';
+import { hasPermission } from '../../services/permission.service.js';
 
 const estoqueState = {
   period: 'today',
@@ -18,7 +29,8 @@ const estoqueState = {
   productIds: [],
   customStart: '',
   customEnd: '',
-  editingId: null
+  editingId: null,
+  movementHistoryExpanded: false
 };
 
 const boundContainers = new WeakSet();
@@ -29,6 +41,11 @@ export function initEstoqueModule(container) {
 
   if (!boundContainers.has(container)) {
     bindEstoqueEvents(container);
+    on(UI_EVENTS.showcaseDataChanged, () => {
+      if (container.querySelector('[data-estoque-screen]')) {
+        renderEstoque(container);
+      }
+    });
     boundContainers.add(container);
   }
 }
@@ -37,6 +54,7 @@ function renderEstoque(container) {
   const filters = getFilters();
   const summary = getStockSummary(filters);
   const launches = getStockLaunches(filters);
+  const liveSummary = getShowcaseLiveSummary(filters);
 
   container.innerHTML = `
     <section class="module-screen products-module" data-estoque-screen>
@@ -62,14 +80,19 @@ function renderEstoque(container) {
       ` : ''}
 
       <div class="summary-grid stock-summary-grid">
-        ${renderSummaryCard('Vitrine estimada', Math.max(0, summary.valueDifference), true)}
-        ${renderSummaryCard('Unidades na vitrine', summary.producedUnits)}
+        ${renderSummaryCard('Estoque atual', liveSummary.availableUnits)}
+        ${renderSummaryCard('Vitrine estimada', liveSummary.estimatedValue, true)}
+        ${renderSummaryCard('Produzido hoje', liveSummary.producedUnits)}
+        ${renderSummaryCard('Vendido hoje', liveSummary.soldUnits)}
+        ${renderSummaryCard('Vendido sem estoque', liveSummary.outOfStockUnits)}
+        ${renderSummaryCard('Produtos zerados', liveSummary.zeroProducts)}
         ${renderSummaryCard('Produtos diferentes', summary.uniqueProducts)}
         ${renderSummaryCard('Vendido em comandas', summary.salesValue, true)}
-        ${renderSummaryCard('Qtd. vendida', summary.soldUnits)}
         ${renderSummaryCard('Valor produzido', summary.estimatedProductionValue, true)}
         ${renderSummaryCard('Sobra estimada', summary.quantityBalance)}
       </div>
+
+      ${renderLiveShowcase(liveSummary)}
 
       <section class="manager-section">
         <header class="manager-section__header">
@@ -99,6 +122,8 @@ function renderEstoque(container) {
           ${renderComparison(filters)}
         </div>
       </section>
+
+      ${renderMovementHistory(liveSummary.movements)}
     </section>
   `;
 }
@@ -152,9 +177,15 @@ function bindEstoqueEvents(container) {
       return;
     }
 
-    const button = event.target.closest('[data-action], [data-clear-filter]');
+    const button = event.target.closest('[data-action], [data-clear-filter], [data-showcase-movements-more]');
 
     if (!button) {
+      return;
+    }
+
+    if (button.matches('[data-showcase-movements-more]')) {
+      estoqueState.movementHistoryExpanded = !estoqueState.movementHistoryExpanded;
+      renderEstoque(container);
       return;
     }
 
@@ -253,6 +284,10 @@ function saveStockLaunch(form, container) {
   }
 }
 
+function canCurrentUser(permissionId) {
+  return hasPermission(getCurrentUser(), permissionId);
+}
+
 function renderStockForm() {
   const launch = estoqueState.editingId
     ? getStockLaunches({ period: 'all' }).find((item) => item.id === estoqueState.editingId)
@@ -260,6 +295,7 @@ function renderStockForm() {
   const selectedProduct = launch ? getProductById(launch.produtoId) : null;
   const categoryName = launch ? launch.categoriaNome : selectedProduct ? getCategoryName(selectedProduct.categoryId) : 'Categoria automatica';
   const unitValue = launch ? launch.valorUnitario : selectedProduct ? selectedProduct.price : '';
+  const canSubmit = launch ? canCurrentUser('showcase.edit') : canCurrentUser('showcase.launch');
 
   return `
     <label>
@@ -288,7 +324,7 @@ function renderStockForm() {
     </label>
     <div class="form-actions stock-form__actions">
       ${launch ? '<button class="button button--ghost" type="button" data-action="cancel-edit">Cancelar</button>' : ''}
-      <button class="button" type="submit">${launch ? 'Salvar edicao' : 'Lancar no estoque'}</button>
+      ${canSubmit ? `<button class="button" type="submit">${launch ? 'Salvar edicao' : 'Lancar no estoque'}</button>` : ''}
     </div>
   `;
 }
@@ -298,6 +334,8 @@ function renderLaunchRows(launches) {
     return '<div class="empty-products product-empty-large">NENHUM LANCAMENTO NO PERIODO</div>';
   }
 
+  const canEditLaunch = canCurrentUser('showcase.edit');
+
   return launches.map((launch) => `
     <article class="manager-row ${launch.status === 'cancelado' ? 'is-canceled' : ''}">
       <div>
@@ -306,11 +344,48 @@ function renderLaunchRows(launches) {
       </div>
       <div class="row-actions">
         <strong class="stock-entry-total">${formatCurrency(launch.valorTotal)}</strong>
-        <button class="button button--ghost" type="button" data-action="edit-launch" data-launch-id="${launch.id}" ${launch.status === 'cancelado' ? 'disabled' : ''}>Editar</button>
-        <button class="button button--danger" type="button" data-action="cancel-launch" data-launch-id="${launch.id}" ${launch.status === 'cancelado' ? 'disabled' : ''}>Cancelar</button>
+        ${canEditLaunch ? `<button class="button button--ghost" type="button" data-action="edit-launch" data-launch-id="${launch.id}" ${launch.status === 'cancelado' ? 'disabled' : ''}>Editar</button>` : ''}
+        ${canEditLaunch ? `<button class="button button--danger" type="button" data-action="cancel-launch" data-launch-id="${launch.id}" ${launch.status === 'cancelado' ? 'disabled' : ''}>Cancelar</button>` : ''}
       </div>
     </article>
   `).join('');
+}
+
+function renderLiveShowcase(liveSummary) {
+  if (!liveSummary.stockRows.length) {
+    return `
+      <section class="manager-section">
+        <header class="manager-section__header">
+          <strong>Estoque atual da vitrine</strong>
+          <span>Nenhum produto com saldo</span>
+        </header>
+        <div class="empty-products product-empty-large">SEM ESTOQUE REGISTRADO NA VITRINE</div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="manager-section">
+      <header class="manager-section__header">
+        <strong>Estoque atual da vitrine</strong>
+        <span>${liveSummary.zeroProducts ? `${liveSummary.zeroProducts} produto(s) zerado(s)` : 'Todos com saldo'}</span>
+      </header>
+      <div class="live-stock-list">
+        ${liveSummary.stockRows.map((item) => `
+          <article class="live-stock-row ${item.quantityAvailable <= 0 ? 'live-stock-row--empty' : ''}">
+            <div>
+              <strong>${item.productName}</strong>
+              <span>${item.categoryName}</span>
+            </div>
+            <div>
+              <strong>${item.quantityAvailable}</strong>
+              <span>${item.quantityAvailable <= 0 ? 'Sem estoque' : 'Disponivel'}</span>
+            </div>
+          </article>
+        `).join('')}
+      </div>
+    </section>
+  `;
 }
 
 function getLaunchableProducts(launch = null) {
@@ -326,6 +401,7 @@ function getLaunchableProducts(launch = null) {
 
 function renderComparison(filters) {
   const comparison = getProductionSalesComparison(filters);
+  const canWriteOff = canCurrentUser('stock.writeoff');
 
   if (!comparison.length) {
     return '<div class="empty-products product-empty-large">SEM DADOS PARA COMPARAR</div>';
@@ -360,9 +436,9 @@ function renderComparison(filters) {
             <td>${formatCurrency(item.diferencaValor)}</td>
             <td>${item.percentualVendido}%</td>
             <td>
-              <button class="button button--danger button--small" type="button" data-action="delete-comparison-row" data-product-id="${item.produtoId}">
+              ${canWriteOff ? `<button class="button button--danger button--small" type="button" data-action="delete-comparison-row" data-product-id="${item.produtoId}">
                 Apagar
-              </button>
+              </button>` : ''}
             </td>
           </tr>
         `).join('')}
@@ -386,8 +462,171 @@ function renderComparisonCounters(filters) {
   `;
 }
 
+function renderMovementHistory(movements) {
+  const visibleLimit = estoqueState.movementHistoryExpanded ? 30 : 8;
+  const visibleMovements = movements.slice(0, visibleLimit);
+
+  if (!movements.length) {
+    return `
+      <section class="manager-section">
+        <header class="manager-section__header">
+          <strong>Historico da vitrine ${getPeriodLabel()}</strong>
+          <span>0 movimentos</span>
+        </header>
+        <div class="empty-products product-empty-large">SEM MOVIMENTACAO NO PERIODO</div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="manager-section">
+      <header class="manager-section__header">
+        <strong>Historico da vitrine ${getPeriodLabel()}</strong>
+        <span>${movements.length} movimento(s)</span>
+      </header>
+      <div class="comparison-table">
+        <table class="showcase-movement-table">
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Tipo</th>
+              <th>Quantidade</th>
+              <th>Anterior</th>
+              <th>Novo</th>
+              <th>Venda/comanda</th>
+              <th>Usuario</th>
+              <th>Horario</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${visibleMovements.map((movement) => `
+              <tr>
+                <td><strong>${movement.productName}</strong></td>
+                <td>${formatMovementType(movement.movementType)}</td>
+                <td>${movement.quantity}</td>
+                <td>${movement.previousQuantity}</td>
+                <td>${movement.newQuantity}</td>
+                <td>${resolveShowcaseMovementCommandReference(movement)}</td>
+                <td>${resolveShowcaseMovementUserName(movement.userId)}</td>
+                <td>${formatDate(movement.createdAt)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      ${movements.length > 8 ? `
+        <div class="table-footer-actions">
+          <button class="button button--ghost button--small" type="button" data-showcase-movements-more>
+            ${estoqueState.movementHistoryExpanded ? 'Ver menos' : `Ver mais ${Math.min(movements.length - 8, 22)} movimento(s)`}
+          </button>
+        </div>
+      ` : ''}
+    </section>
+  `;
+}
+
 function renderSummaryCard(label, value, isCurrency = false) {
   return `<article class="summary-card"><span>${label}</span><strong>${isCurrency ? formatCurrency(value) : value}</strong></article>`;
+}
+
+function getShowcaseLiveSummary(filters) {
+  const productIds = new Set([
+    ...getShowcaseProducts().map((product) => product.id),
+    ...getShowcaseStock().map((item) => item.productId)
+  ]);
+  const stockRows = [...productIds]
+    .map((productId) => {
+      const product = getProductById(productId);
+      const stock = getShowcaseStockByProductId(productId);
+
+      return {
+        productId,
+        productName: product?.name || 'Produto removido',
+        categoryName: product ? getCategoryName(product.categoryId) : 'Sem categoria',
+        quantityAvailable: Math.max(Number(stock.quantityAvailable || 0), 0),
+        estimatedValue: Math.max(Number(stock.quantityAvailable || 0), 0) * Number(product?.price || 0),
+        updatedAt: stock.updatedAt
+      };
+    })
+    .sort((left, right) => {
+      if (left.quantityAvailable <= 0 && right.quantityAvailable > 0) {
+        return -1;
+      }
+
+      if (left.quantityAvailable > 0 && right.quantityAvailable <= 0) {
+        return 1;
+      }
+
+      return left.productName.localeCompare(right.productName, 'pt-BR');
+    });
+  const movements = getShowcaseMovements()
+    .filter((movement) => isInSelectedPeriod(movement.createdAt, filters.period || 'today', filters))
+    .map((movement) => {
+      const product = getProductById(movement.productId);
+
+      return {
+        ...movement,
+        productName: product?.name || 'Produto removido'
+      };
+    })
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+  const activeOutOfStock = getActiveOutOfStockSales()
+    .filter((item) => isInSelectedPeriod(item.createdAt, filters.period || 'today', filters));
+
+  return {
+    stockRows,
+    movements,
+    availableUnits: stockRows.reduce((total, item) => total + item.quantityAvailable, 0),
+    estimatedValue: stockRows.reduce((total, item) => total + item.estimatedValue, 0),
+    zeroProducts: stockRows.filter((item) => item.quantityAvailable <= 0).length,
+    producedUnits: movements
+      .filter((movement) => movement.movementType === 'entrada_producao' && movement.status !== 'estornada')
+      .reduce((total, movement) => total + Number(movement.quantity || 0), 0),
+    soldUnits: movements
+      .filter((movement) => movement.movementType === 'saida_venda' && movement.status !== 'estornada')
+      .reduce((total, movement) => total + Number(movement.quantity || 0), 0),
+    outOfStockUnits: activeOutOfStock.reduce((total, item) => total + Number(item.quantity || 0), 0)
+  };
+}
+
+function formatMovementType(type) {
+  const labels = {
+    entrada_producao: 'Entrada de producao',
+    saida_venda: 'Baixa por venda',
+    ajuste_manual: 'Ajuste manual',
+    venda_sem_estoque: 'Venda sem estoque',
+    estorno_venda: 'Estorno de venda',
+    estorno_sem_estoque: 'Estorno sem estoque'
+  };
+
+  return labels[type] || type;
+}
+
+export function resolveShowcaseMovementUserName(userId) {
+  if (!userId) {
+    return '-';
+  }
+
+  const user = getUsers().find((item) => item.id === userId);
+  return user?.name || userId;
+}
+
+export function resolveShowcaseMovementCommandReference(movement = {}) {
+  const commandId = movement.commandId || '';
+  const saleId = movement.saleId || '';
+  const command = commandId
+    ? getClosedComandas().find((item) => item.id === commandId)
+    : null;
+  const sale = saleId
+    ? getTransactions().find((item) => item.id === saleId)
+    : null;
+  const commandNumber = command?.number || sale?.comandaNumber;
+
+  if (commandNumber) {
+    return `Comanda ${formatComandaNumber(commandNumber)}`;
+  }
+
+  return commandId || saleId || '-';
 }
 
 function renderPeriodOptions() {
@@ -504,6 +743,43 @@ function formatDate(value) {
     hour: '2-digit',
     minute: '2-digit'
   });
+}
+
+function formatComandaNumber(number) {
+  return String(number || 0).padStart(4, '0');
+}
+
+function isInSelectedPeriod(value, period, filters = {}) {
+  if (!value || period === 'all') {
+    return true;
+  }
+
+  const date = new Date(value);
+  const now = new Date();
+
+  if (period === 'custom') {
+    const start = filters.customStart ? new Date(`${filters.customStart}T00:00:00`) : null;
+    const end = filters.customEnd ? new Date(`${filters.customEnd}T23:59:59`) : null;
+
+    return (!start || date >= start) && (!end || date <= end);
+  }
+
+  if (period === 'month') {
+    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+  }
+
+  if (period === 'yesterday') {
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+
+    return date.toDateString() === yesterday.toDateString();
+  }
+
+  if (period === 'year') {
+    return date.getFullYear() === now.getFullYear();
+  }
+
+  return date.toDateString() === now.toDateString();
 }
 
 function formatNumberInput(value) {

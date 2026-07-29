@@ -18,7 +18,7 @@ import {
   getMobileFeedEvents,
   getMobileFeedFilters,
   getMobileFeedPeriodFilters
-} from '../../services/mobile-notifications.service.js?v=20260608-14';
+} from '../../services/mobile-notifications.service.js?v=20260616-04';
 import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js';
 import {
   createStockLaunch,
@@ -27,11 +27,12 @@ import {
 import { getShowcaseCategories, getShowcaseProducts, getProductById, syncCatalogNow } from '../../services/product.service.js';
 import { getTransactionSyncStatus } from '../../services/transaction.service.js';
 import { getCatalogSyncStatus } from '../../services/product.service.js';
-import { logout } from '../../services/auth.service.js';
+import { getCurrentUser, logout } from '../../services/auth.service.js';
 import { hydrateOnlineOperationalData, syncOnlineOperationalData } from '../../services/online-data.service.js';
 import { isSupabaseEnabled } from '../../services/app-config.service.js';
 import { getThemeLabel, toggleTheme } from '../../services/theme.service.js';
 import { formatCurrency } from '../../utils/currency.js';
+import { hasPermission } from '../../services/permission.service.js';
 
 const tabs = [
   { id: 'home', label: 'Inicio', icon: 'IN' },
@@ -41,6 +42,8 @@ const tabs = [
   { id: 'finance', label: 'Financ.', icon: 'FN' },
   { id: 'closing', label: 'Fechar', icon: 'OK' }
 ];
+
+const MOBILE_AUTO_REFRESH_MS = 40000;
 
 let state = {
   tab: 'home',
@@ -64,6 +67,10 @@ let state = {
 
 let subscribedWorkspace = null;
 let unsubscribeRealtimeRefresh = [];
+let autoRefreshTimer = null;
+let autoRefreshWorkspace = null;
+let focusedMobileField = false;
+let pendingDeferredRender = false;
 
 export function initMobileDashboardModule(workspace) {
   workspace.dataset.activeRoute = 'mobile';
@@ -89,6 +96,7 @@ export function initMobileDashboardModule(workspace) {
 
   render(workspace);
   bindRealtimeRefresh(workspace);
+  bindAutoRefresh(workspace);
   refreshMobileData(workspace);
 }
 
@@ -266,6 +274,23 @@ function bindEvents(workspace) {
       render(workspace);
     }
   });
+
+  workspace.addEventListener('focusin', (event) => {
+    if (isEditableMobileTarget(event.target)) {
+      focusedMobileField = true;
+    }
+  });
+
+  workspace.addEventListener('focusout', () => {
+    setTimeout(() => {
+      focusedMobileField = Boolean(getFocusedMobileField(workspace));
+
+      if (!focusedMobileField && pendingDeferredRender) {
+        pendingDeferredRender = false;
+        renderIfActive(workspace);
+      }
+    }, 0);
+  });
 }
 
 function bindRealtimeRefresh(workspace) {
@@ -278,15 +303,35 @@ function bindRealtimeRefresh(workspace) {
     on(UI_EVENTS.mobileFeedChanged, () => renderIfActive(workspace)),
     on(UI_EVENTS.cashSummaryChanged, () => renderIfActive(workspace)),
     on(UI_EVENTS.financialSyncStatusChanged, () => renderIfActive(workspace)),
-    on(UI_EVENTS.productSyncStatusChanged, () => renderIfActive(workspace))
+    on(UI_EVENTS.productSyncStatusChanged, () => renderIfActive(workspace)),
+    on(UI_EVENTS.showcaseDataChanged, () => renderIfActive(workspace))
   ];
   subscribedWorkspace = workspace;
 }
 
-async function refreshMobileData(workspace, { force = false } = {}) {
+function bindAutoRefresh(workspace) {
+  if (autoRefreshWorkspace === workspace && autoRefreshTimer) {
+    return;
+  }
+
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+  }
+
+  autoRefreshWorkspace = workspace;
+  autoRefreshTimer = setInterval(() => {
+    refreshMobileData(workspace, { automatic: true });
+  }, MOBILE_AUTO_REFRESH_MS);
+
+  if (typeof autoRefreshTimer.unref === 'function') {
+    autoRefreshTimer.unref();
+  }
+}
+
+async function refreshMobileData(workspace, { force = false, automatic = false } = {}) {
   state.syncState = force ? 'syncing' : state.syncState;
   state.syncError = '';
-  renderIfActive(workspace);
+  renderIfActive(workspace, { deferWhileEditing: automatic });
 
   try {
     if (force) {
@@ -300,15 +345,50 @@ async function refreshMobileData(workspace, { force = false } = {}) {
     state.syncError = error.message || 'Erro de sincronizacao';
   }
 
-  renderIfActive(workspace);
+  renderIfActive(workspace, { deferWhileEditing: automatic });
 }
 
-function renderIfActive(workspace) {
+function renderIfActive(workspace, { deferWhileEditing = false } = {}) {
   if (workspace.dataset.activeRoute !== 'mobile') {
     return;
   }
 
+  if (deferWhileEditing && isMobileFormEditing(workspace)) {
+    pendingDeferredRender = true;
+    return;
+  }
+
   render(workspace);
+}
+
+function isMobileFormEditing(workspace) {
+  return focusedMobileField || Boolean(getFocusedMobileField(workspace));
+}
+
+function getFocusedMobileField(workspace) {
+  try {
+    const focused = workspace.querySelector?.(':focus') || globalThis.document?.activeElement;
+    return isEditableMobileTarget(focused) ? focused : null;
+  } catch (error) {
+    return focusedMobileField ? {} : null;
+  }
+}
+
+function isEditableMobileTarget(target) {
+  if (!target) {
+    return false;
+  }
+
+  const tagName = String(target.tagName || '').toLowerCase();
+  return tagName === 'input'
+    || tagName === 'textarea'
+    || tagName === 'select'
+    || target.isContentEditable === true
+    || typeof target.matches === 'function' && target.matches('input, textarea, select, [contenteditable="true"]');
+}
+
+function canCurrentUser(permissionId) {
+  return hasPermission(getCurrentUser(), permissionId);
 }
 
 function render(workspace) {
@@ -748,7 +828,7 @@ function renderMobileClosingForm(values) {
           Observacao
           <textarea class="field" name="note" rows="3" data-mobile-closing-field>${values.note}</textarea>
         </label>
-        <button class="mobile-showcase-submit" type="submit">Fechar Caixa</button>
+        ${canCurrentUser('cash.close') ? '<button class="mobile-showcase-submit" type="submit">Fechar Caixa</button>' : ''}
       </form>
     </section>
   `;
@@ -815,6 +895,8 @@ function getClosingStatusTone(statusLabel) {
 function renderFinanceTab() {
   const finance = getMobileFinancialSummary(getMobilePeriodFilters());
   const payables = getUniquePayables(finance.payables);
+  const canCreateIncome = canCurrentUser('financial.income.create');
+  const canCreateExpense = canCurrentUser('financial.expense.create');
 
   return `
     <div class="mobile-content">
@@ -826,9 +908,9 @@ function renderFinanceTab() {
         <h2>Financeiro</h2>
         ${state.financeError ? `<p class="mobile-error">${state.financeError}</p>` : ''}
         <div class="mobile-finance-actions">
-          <button type="button" data-mobile-finance-action="income">+ Entrada</button>
-          <button type="button" data-mobile-finance-action="expense">- Saida</button>
-          <button type="button" data-mobile-finance-action="bill">+ Boleto</button>
+          ${canCreateIncome ? '<button type="button" data-mobile-finance-action="income">+ Entrada</button>' : ''}
+          ${canCreateExpense ? '<button type="button" data-mobile-finance-action="expense">- Saida</button>' : ''}
+          ${canCreateExpense ? '<button type="button" data-mobile-finance-action="bill">+ Boleto</button>' : ''}
         </div>
         ${state.financeModal ? renderMobileFinanceForm(state.financeModal, finance.categories) : ''}
       </section>
@@ -927,7 +1009,7 @@ function renderMobilePayable(transaction) {
       </div>
       <div class="mobile-finance-row__actions">
         <strong class="money-negative">${formatCurrency(transaction.amount)}</strong>
-        <button type="button" data-mobile-payable-id="${transaction.id}">Pagar</button>
+        ${canCurrentUser('financial.bill.pay') ? `<button type="button" data-mobile-payable-id="${transaction.id}">Pagar</button>` : ''}
       </div>
     </article>
   `;
@@ -1026,7 +1108,7 @@ function renderMobileShowcaseForm(summary) {
           Observacao
           <input class="field" name="note" placeholder="Opcional">
         </label>
-        <button class="mobile-showcase-submit" type="submit">Lancar / atualizar vitrine</button>
+        ${canCurrentUser('showcase.launch') ? '<button class="mobile-showcase-submit" type="submit">Lancar / atualizar vitrine</button>' : ''}
       </form>
     </section>
   `;

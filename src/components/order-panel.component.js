@@ -1,5 +1,6 @@
 import { formatCurrency } from '../utils/currency.js';
 import { getSubtotal } from '../services/comanda.service.js';
+import { escapeHtml } from '../utils/dom.js';
 
 export function renderOrderPanel(comanda) {
   const subtotal = getSubtotal(comanda);
@@ -33,7 +34,7 @@ function renderOrderItems(items) {
   return items.map((item) => `
     <article class="order-item">
       <div>
-        <h3 class="order-item__name">${item.name}</h3>
+        <h3 class="order-item__name">${escapeHtml(item.name)}</h3>
         <div class="order-item__price">${formatCurrency(item.unitPrice)} cada</div>
         <div class="order-item__controls">
           <button class="icon-button" type="button" data-action="decrease" data-product-id="${item.productId}">-</button>
