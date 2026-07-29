@@ -24,7 +24,7 @@ export async function handler(event, _context, deps = {}) {
     return json(500, { error: config.error });
   }
 
-  const authHeader = getHeader(event.headers, 'authorization');
+  const authHeader = getHeader('authorization', event.headers);
   const accessToken = authHeader.replace(/^Bearer\s+/i, '').trim();
 
   if (!accessToken || accessToken === authHeader) {
@@ -196,7 +196,7 @@ async function readJson(response) {
   }
 }
 
-function getHeader(headers = {}, name) {
+function getHeader(name, headers = {}) {
   const target = name.toLowerCase();
   const key = Object.keys(headers).find((item) => item.toLowerCase() === target);
   return key ? String(headers[key] || '') : '';
