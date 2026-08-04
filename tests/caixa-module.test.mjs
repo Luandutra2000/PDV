@@ -21,7 +21,7 @@ const assert = (condition, message) => {
   }
 };
 
-const { buildCrmClosingInput, buildDifferences } = await import('../src/modules/caixa/caixa.module.js?v=20260804-03');
+const { buildCrmClosingInput, buildDifferences } = await import('../src/modules/caixa/caixa.module.js?v=20260804-04');
 
 const differences = buildDifferences({
   payments: {

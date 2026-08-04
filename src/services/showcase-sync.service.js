@@ -1,19 +1,19 @@
-import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260804-03';
-import { isSupabaseEnabled } from './app-config.service.js?v=20260804-03';
-import { hydrateDataProvider } from './data-provider.service.js?v=20260804-03';
-import { emit } from './event-bus.service.js?v=20260804-03';
-import { hydrateFinancialData } from './financial-sync.service.js?v=20260804-03';
-import { getSupabaseClient } from './supabase-client.service.js?v=20260804-03';
+import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260804-04';
+import { isSupabaseEnabled } from './app-config.service.js?v=20260804-04';
+import { hydrateDataProvider } from './data-provider.service.js?v=20260804-04';
+import { emit } from './event-bus.service.js?v=20260804-04';
+import { hydrateFinancialData } from './financial-sync.service.js?v=20260804-04';
+import { getSupabaseClient } from './supabase-client.service.js?v=20260804-04';
 import {
   adjustShowcaseStock,
   applyProductionToShowcase,
   applySaleToShowcase,
   reverseSaleInShowcase
-} from './showcase-stock.service.js?v=20260804-03';
-import { setItem } from './storage.service.js?v=20260804-03';
-import { outOfStockSaleAdapter } from './repositories/out-of-stock-sale.adapter.js?v=20260804-03';
-import { productStockAdapter } from './repositories/product-stock.adapter.js?v=20260804-03';
-import { showcaseMovementAdapter } from './repositories/showcase-movement.adapter.js?v=20260804-03';
+} from './showcase-stock.service.js?v=20260804-04';
+import { setItem } from './storage.service.js?v=20260804-04';
+import { outOfStockSaleAdapter } from './repositories/out-of-stock-sale.adapter.js?v=20260804-04';
+import { productStockAdapter } from './repositories/product-stock.adapter.js?v=20260804-04';
+import { showcaseMovementAdapter } from './repositories/showcase-movement.adapter.js?v=20260804-04';
 
 const SHOWCASE_ADAPTERS = [
   productStockAdapter,

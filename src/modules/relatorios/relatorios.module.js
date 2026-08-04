@@ -4,11 +4,11 @@ import {
   getCrmSummary,
   getFinancialMovements,
   getProductRanking
-} from '../../services/crm-dashboard.service.js?v=20260804-03';
-import { UI_EVENTS } from '../../database/schema.js?v=20260804-03';
-import { on } from '../../services/event-bus.service.js?v=20260804-03';
-import { formatCurrency } from '../../utils/currency.js?v=20260804-03';
-import { escapeHtml } from '../../utils/dom.js?v=20260804-03';
+} from '../../services/crm-dashboard.service.js?v=20260804-04';
+import { UI_EVENTS } from '../../database/schema.js?v=20260804-04';
+import { on } from '../../services/event-bus.service.js?v=20260804-04';
+import { formatCurrency } from '../../utils/currency.js?v=20260804-04';
+import { escapeHtml } from '../../utils/dom.js?v=20260804-04';
 
 const reportState = {
   period: 'today',

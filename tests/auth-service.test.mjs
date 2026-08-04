@@ -21,10 +21,10 @@ const assert = (condition, message) => {
   }
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260804-03');
-const auth = await import('../src/services/auth.service.js?v=20260804-03');
-const supabaseClient = await import('../src/services/supabase-client.service.js?v=20260804-03');
-const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-03');
+const storage = await import('../src/services/storage.service.js?v=20260804-04');
+const auth = await import('../src/services/auth.service.js?v=20260804-04');
+const supabaseClient = await import('../src/services/supabase-client.service.js?v=20260804-04');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-04');
 
 globalThis.__PDV_RUNTIME_CONFIG__ = {
   dataProvider: 'local',

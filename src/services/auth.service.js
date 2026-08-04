@@ -1,7 +1,7 @@
-import { STORAGE_KEYS } from '../database/schema.js?v=20260804-03';
-import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260804-03';
-import { getSupabaseClient, setSupabaseAuthSession } from './supabase-client.service.js?v=20260804-03';
-import { getItem, setItem } from './storage.service.js?v=20260804-03';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260804-04';
+import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260804-04';
+import { getSupabaseClient, setSupabaseAuthSession } from './supabase-client.service.js?v=20260804-04';
+import { getItem, setItem } from './storage.service.js?v=20260804-04';
 
 const VALID_ROLES = new Set(['admin', 'gerente', 'operador', 'dono']);
 const REQUIRED_FIELDS_ERROR = 'Preencha nome, usuario, senha e perfil.';

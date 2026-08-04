@@ -21,8 +21,8 @@ const assert = (condition, message) => {
   }
 };
 
-const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-03');
-const financial = await import('../src/services/financial-sync.service.js?v=20260804-03');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-04');
+const financial = await import('../src/services/financial-sync.service.js?v=20260804-04');
 
 let online = false;
 let remoteMovement = null;

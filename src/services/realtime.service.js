@@ -1,7 +1,7 @@
-import { STORAGE_KEYS, SYNC_EVENTS, UI_EVENTS } from '../database/schema.js?v=20260804-03';
-import { isSupabaseEnabled } from './app-config.service.js?v=20260804-03';
-import { emit, on } from './event-bus.service.js?v=20260804-03';
-import { startShowcaseRealtime } from './showcase-sync.service.js?v=20260804-03';
+import { STORAGE_KEYS, SYNC_EVENTS, UI_EVENTS } from '../database/schema.js?v=20260804-04';
+import { isSupabaseEnabled } from './app-config.service.js?v=20260804-04';
+import { emit, on } from './event-bus.service.js?v=20260804-04';
+import { startShowcaseRealtime } from './showcase-sync.service.js?v=20260804-04';
 
 let initialized = false;
 const CASH_STORAGE_KEYS = new Set([

@@ -21,8 +21,8 @@ const assert = (condition, message) => {
   }
 };
 
-const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-03');
-const financial = await import('../src/services/financial-sync.service.js?v=20260804-03');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-04');
+const financial = await import('../src/services/financial-sync.service.js?v=20260804-04');
 
 const calls = [];
 let failTable = '';
@@ -44,7 +44,18 @@ const fakeClient = {
   from(table) {
     return {
       select() {
-        return Promise.resolve({ data: rows[table] || [], error: null });
+        const execute = (from = 0, to = Number.POSITIVE_INFINITY) => Promise.resolve({
+          data: (rows[table] || []).slice(from, Number.isFinite(to) ? to + 1 : undefined),
+          error: null
+        });
+        return {
+          range(from, to) {
+            return execute(from, to);
+          },
+          then(resolve, reject) {
+            return execute().then(resolve, reject);
+          }
+        };
       },
       upsert(nextRows) {
         calls.push({ table, rows: nextRows });
@@ -205,6 +216,22 @@ assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))[0].id === 'en
 assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.closedComandas)).some((item) => item.id === 'comanda-queued'), 'hydrate should keep closed comandas from Supabase');
 assert(calls.find((call) => call.table === 'financial_categories') || Array.isArray(JSON.parse(localStorage.getItem(STORAGE_KEYS.financialCategories))), 'financial categories should hydrate');
 assert(calls.find((call) => call.table === 'financial_transactions') || Array.isArray(JSON.parse(localStorage.getItem(STORAGE_KEYS.financialTransactions))), 'financial transactions should hydrate');
+
+rows.cash_movements.push(...Array.from({ length: 1005 }, (_, index) => ({
+  id: `paged-movement-${index}`,
+  type: 'entrada',
+  status: 'ativa',
+  amount: 0.01,
+  category: 'teste-carga',
+  description: `Paginacao ${index}`,
+  user_name: 'QA',
+  created_at: `2026-06-01T00:${String(index % 60).padStart(2, '0')}:00.000Z`
+})));
+await financial.hydrateFinancialData();
+assert(
+  JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions)).filter((item) => item.id.startsWith('paged-movement-')).length === 1005,
+  'hydrate should paginate past the Supabase 1000-row response limit'
+);
 
 await financial.saveFinancialTransactionToSupabase({
   id: 'fin-1',

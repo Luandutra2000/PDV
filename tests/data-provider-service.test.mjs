@@ -27,7 +27,7 @@ globalThis.__PDV_RUNTIME_CONFIG__ = {
   supabaseAnonKey: ''
 };
 
-const { getDataProvider } = await import('../src/services/data-provider.service.js?v=20260804-03');
+const { getDataProvider } = await import('../src/services/data-provider.service.js?v=20260804-04');
 
 const provider = getDataProvider();
 

@@ -1,14 +1,14 @@
-import { STORAGE_KEYS } from '../database/schema.js?v=20260804-03';
-import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260804-03';
-import { createUser, deleteUser, getUsers, updateUser } from './auth.service.js?v=20260804-03';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260804-04';
+import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260804-04';
+import { createUser, deleteUser, getUsers, updateUser } from './auth.service.js?v=20260804-04';
 import {
   PERMISSIONS,
   getRolePermissions,
   normalizeRole,
   setUserPermissionOverride
-} from './permission.service.js?v=20260804-03';
-import { getItem, setItem } from './storage.service.js?v=20260804-03';
-import { getSupabaseAuthSession } from './supabase-client.service.js?v=20260804-03';
+} from './permission.service.js?v=20260804-04';
+import { getItem, setItem } from './storage.service.js?v=20260804-04';
+import { getSupabaseAuthSession } from './supabase-client.service.js?v=20260804-04';
 
 const LAST_ADMIN_ERROR = 'Nao e permitido desativar o ultimo administrador ativo.';
 
