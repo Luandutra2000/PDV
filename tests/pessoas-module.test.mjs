@@ -21,11 +21,11 @@ const assert = (condition, message) => {
   }
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260804-02');
-const auth = await import('../src/services/auth.service.js?v=20260804-02');
-const { initPessoasModule } = await import('../src/modules/pessoas/pessoas.module.js?v=20260804-02');
-const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-02');
-const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-02');
+const storage = await import('../src/services/storage.service.js?v=20260804-03');
+const auth = await import('../src/services/auth.service.js?v=20260804-03');
+const { initPessoasModule } = await import('../src/modules/pessoas/pessoas.module.js?v=20260804-03');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-03');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-03');
 
 seedTestAdmin(storage, STORAGE_KEYS);
 storage.ensureSeedData();
@@ -53,5 +53,20 @@ assert(container.innerHTML.includes('Financeiro/Despesas'), 'permissions should 
 assert(container.innerHTML.includes('Historico de acoes'), 'people screen should render audit history section');
 assert(container.innerHTML.includes('data-audit-user-filter'), 'history should expose user filter');
 assert(container.innerHTML.includes('data-action="delete-user"'), 'people screen should expose user deletion');
+
+const deletableUser = auth.getUsers()[1] || auth.getUsers()[0];
+listeners.click({
+  target: {
+    closest(selector) {
+      if (selector === '[data-people-screen]') return {};
+      if (selector === '[data-action]') {
+        return { dataset: { action: 'delete-user', userId: deletableUser.id } };
+      }
+      return null;
+    }
+  }
+});
+assert(container.innerHTML.includes('data-action="confirm-delete-user"'), 'people screen should use an in-app confirmation flow instead of a native browser dialog');
+assert(container.innerHTML.includes('data-action="cancel-delete-user"'), 'people screen should allow canceling deletion safely');
 
 console.log('pessoas module ok');

@@ -9,18 +9,18 @@ import {
   saveCategory,
   saveProduct,
   syncCatalogNow
-} from '../../services/product.service.js?v=20260804-02';
-import { UI_EVENTS } from '../../database/schema.js?v=20260804-02';
-import { on } from '../../services/event-bus.service.js?v=20260804-02';
-import { formatCurrency } from '../../utils/currency.js?v=20260804-02';
-import { showNotification } from '../../services/notification.service.js?v=20260804-02';
-import { getBestSellingProducts } from '../../services/transaction.service.js?v=20260804-02';
-import { getActiveOutOfStockSales, getShowcaseStockByProductId } from '../../services/showcase-stock.service.js?v=20260804-02';
-import { adjustShowcaseStockOnline } from '../../services/showcase-sync.service.js?v=20260804-02';
-import { getCurrentUser } from '../../services/auth.service.js?v=20260804-02';
-import { hasPermission } from '../../services/permission.service.js?v=20260804-02';
-import { escapeHtml } from '../../utils/dom.js?v=20260804-02';
-import { recordAudit } from '../../services/audit.service.js?v=20260804-02';
+} from '../../services/product.service.js?v=20260804-03';
+import { UI_EVENTS } from '../../database/schema.js?v=20260804-03';
+import { on } from '../../services/event-bus.service.js?v=20260804-03';
+import { formatCurrency } from '../../utils/currency.js?v=20260804-03';
+import { showNotification } from '../../services/notification.service.js?v=20260804-03';
+import { getBestSellingProducts } from '../../services/transaction.service.js?v=20260804-03';
+import { getActiveOutOfStockSales, getShowcaseStockByProductId } from '../../services/showcase-stock.service.js?v=20260804-03';
+import { adjustShowcaseStockOnline } from '../../services/showcase-sync.service.js?v=20260804-03';
+import { getCurrentUser } from '../../services/auth.service.js?v=20260804-03';
+import { hasPermission } from '../../services/permission.service.js?v=20260804-03';
+import { escapeHtml } from '../../utils/dom.js?v=20260804-03';
+import { recordAudit } from '../../services/audit.service.js?v=20260804-03';
 
 const productState = {
   modal: null,

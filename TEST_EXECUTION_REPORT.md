@@ -8,7 +8,7 @@
 | Bugs P1 encontrados nesta rodada | 2 |
 | Bugs P1 corrigidos, publicados e retestados | 2/2 |
 | HTTP de produção | 200 |
-| Versão validada | `20260804-02` / `pdv-v75` |
+| Versão validada | `20260804-03` / `pdv-v75` |
 | Verificação leve de latência | 20 GETs; média 57,6 ms; p95 66,3 ms; p99 234,1 ms |
 | Pendência operacional | confirmação nativa da exclusão do usuário QA |
 

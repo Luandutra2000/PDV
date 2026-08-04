@@ -1,19 +1,19 @@
-import { getCurrentUser, getUsers } from '../../services/auth.service.js?v=20260804-02';
-import { getAuditLogs, recordAudit } from '../../services/audit.service.js?v=20260804-02';
+import { getCurrentUser, getUsers } from '../../services/auth.service.js?v=20260804-03';
+import { getAuditLogs, recordAudit } from '../../services/audit.service.js?v=20260804-03';
 import {
   createManagedUser,
   deleteManagedUser,
   loadManagedUsers,
   updateManagedUser,
   saveManagedPermissionChecklist
-} from '../../services/user-admin.service.js?v=20260804-02';
+} from '../../services/user-admin.service.js?v=20260804-03';
 import {
   PERMISSIONS,
   getRolePermissions,
   getUserPermissionOverride,
   hasPermission,
   normalizeRole
-} from '../../services/permission.service.js?v=20260804-02';
+} from '../../services/permission.service.js?v=20260804-03';
 
 const ROLE_OPTIONS = [
   { value: 'admin', label: 'Administrador' },
@@ -25,6 +25,7 @@ const ROLE_OPTIONS = [
 const peopleState = {
   editingUserId: null,
   selectedUserId: null,
+  deletingUserId: null,
   modalOpen: false,
   modalRole: 'operador',
   modalPermissions: {},
@@ -63,6 +64,7 @@ function renderPeople(container, loadError = '') {
   const users = getUsers();
   const selectedUser = users.find((user) => user.id === peopleState.selectedUserId) || users[0] || null;
   const editingUser = users.find((user) => user.id === peopleState.editingUserId) || null;
+  const deletingUser = users.find((user) => user.id === peopleState.deletingUserId) || null;
   const permissions = getPeoplePermissions();
   const logs = getAuditRows();
   const error = loadError || peopleState.error;
@@ -105,6 +107,7 @@ function renderPeople(container, loadError = '') {
 
       ${permissions.canManagePermissions || hasPermission(getCurrentUser(), 'audit.view') ? renderAuditPanel(users, logs) : ''}
       ${renderUserModal(editingUser, permissions)}
+      ${renderDeleteConfirmation(deletingUser)}
     </section>
   `;
 }
@@ -203,7 +206,21 @@ function bindPeopleEvents(container) {
     }
 
     if (button.dataset.action === 'delete-user') {
-      handleDeleteUser(container, button.dataset.userId);
+      openDeleteConfirmation(container, button.dataset.userId);
+      return;
+    }
+
+    if (button.dataset.action === 'cancel-delete-user') {
+      peopleState.deletingUserId = null;
+      renderPeople(container);
+      return;
+    }
+
+    if (button.dataset.action === 'confirm-delete-user') {
+      const deletingUserId = peopleState.deletingUserId;
+      if (deletingUserId) {
+        handleDeleteUser(container, deletingUserId);
+      }
       return;
     }
 
@@ -419,6 +436,52 @@ function renderUserModal(user, permissions) {
   `;
 }
 
+function renderDeleteConfirmation(user) {
+  if (!user) {
+    return '';
+  }
+
+  return `
+    <div class="people-modal-backdrop is-open" data-delete-user-modal aria-hidden="false">
+      <section class="people-modal" role="dialog" aria-modal="true" aria-label="Confirmar exclusao de usuario">
+        <header class="people-modal__header">
+          <div>
+            <strong>Excluir usuario</strong>
+            <span>Esta acao nao pode ser desfeita.</span>
+          </div>
+        </header>
+        <div class="people-modal__body">
+          <p>Confirma a exclusao de <strong>${escapeHtml(user.name)}</strong>?</p>
+          <div class="form-actions">
+            <button class="button button--ghost" type="button" data-action="cancel-delete-user">Cancelar exclusao</button>
+            <button class="button button--danger" type="button" data-action="confirm-delete-user">Confirmar exclusao</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function openDeleteConfirmation(container, userId) {
+  const permissions = getPeoplePermissions();
+
+  if (!permissions.canDelete) {
+    renderPeople(container, 'Usuario sem permissao para esta acao.');
+    return;
+  }
+
+  const user = getUsers().find((candidate) => candidate.id === userId);
+  if (!user) {
+    renderPeople(container, 'Usuario nao encontrado.');
+    return;
+  }
+
+  peopleState.deletingUserId = userId;
+  peopleState.error = '';
+  peopleState.message = '';
+  renderPeople(container);
+}
+
 async function handleDeleteUser(container, userId) {
   const permissions = getPeoplePermissions();
 
@@ -431,14 +494,6 @@ async function handleDeleteUser(container, userId) {
 
   if (!user) {
     renderPeople(container, 'Usuario nao encontrado.');
-    return;
-  }
-
-  const confirmed = typeof globalThis.window?.confirm === 'function'
-    ? globalThis.window.confirm(`Excluir o usuario ${user.name}? Esta acao nao pode ser desfeita.`)
-    : true;
-
-  if (!confirmed) {
     return;
   }
 
@@ -462,11 +517,13 @@ async function handleDeleteUser(container, userId) {
     }
 
     peopleState.selectedUserId = null;
+    peopleState.deletingUserId = null;
     ensureSelectedUser();
     peopleState.message = 'Usuario excluido com sucesso.';
     peopleState.error = '';
     renderPeople(container);
   } catch (error) {
+    peopleState.deletingUserId = null;
     peopleState.message = '';
     peopleState.error = error.message || 'Nao foi possivel excluir o usuario.';
     renderPeople(container);

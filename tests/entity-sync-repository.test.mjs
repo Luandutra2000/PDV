@@ -21,7 +21,7 @@ const assert = (condition, message) => {
   }
 };
 
-const { createEntitySyncRepository } = await import('../src/services/repositories/entity-sync.repository.js?v=20260804-02');
+const { createEntitySyncRepository } = await import('../src/services/repositories/entity-sync.repository.js?v=20260804-03');
 
 let rows = [{ id: 'item-1', name: 'Item 1' }];
 let shouldFailSelect = false;

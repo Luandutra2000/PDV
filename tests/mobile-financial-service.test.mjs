@@ -21,12 +21,12 @@ const assert = (condition, message) => {
   }
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260804-02');
-const auth = await import('../src/services/auth.service.js?v=20260804-02');
-const schema = await import('../src/database/schema.js?v=20260804-02');
-const sync = await import('../src/services/financial-sync.service.js?v=20260804-02');
-const mobileFinance = await import('../src/services/mobile-financial.service.js?v=20260804-02');
-const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-02');
+const storage = await import('../src/services/storage.service.js?v=20260804-03');
+const auth = await import('../src/services/auth.service.js?v=20260804-03');
+const schema = await import('../src/database/schema.js?v=20260804-03');
+const sync = await import('../src/services/financial-sync.service.js?v=20260804-03');
+const mobileFinance = await import('../src/services/mobile-financial.service.js?v=20260804-03');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-03');
 
 storage.resetAppData();
 seedTestAdmin(storage, schema.STORAGE_KEYS);

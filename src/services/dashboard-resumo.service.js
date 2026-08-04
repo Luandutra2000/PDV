@@ -1,5 +1,5 @@
-import { getStockSummary } from './estoque.service.js?v=20260804-02';
-import { getMoneySummary } from './transaction.service.js?v=20260804-02';
+import { getStockSummary } from './estoque.service.js?v=20260804-03';
+import { getMoneySummary } from './transaction.service.js?v=20260804-03';
 
 export function getDashboardResumo({ period = 'today', customStart = '', customEnd = '' } = {}) {
   const filters = { period, customStart, customEnd };

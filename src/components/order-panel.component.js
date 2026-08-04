@@ -1,6 +1,6 @@
-import { formatCurrency } from '../utils/currency.js?v=20260804-02';
-import { getSubtotal } from '../services/comanda.service.js?v=20260804-02';
-import { escapeHtml } from '../utils/dom.js?v=20260804-02';
+import { formatCurrency } from '../utils/currency.js?v=20260804-03';
+import { getSubtotal } from '../services/comanda.service.js?v=20260804-03';
+import { escapeHtml } from '../utils/dom.js?v=20260804-03';
 
 export function renderOrderPanel(comanda) {
   const subtotal = getSubtotal(comanda);

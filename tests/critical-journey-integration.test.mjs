@@ -27,16 +27,16 @@ globalThis.__PDV_RUNTIME_CONFIG__ = {
   supabaseAnonKey: ''
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260804-02');
-const auth = await import('../src/services/auth.service.js?v=20260804-02');
-const supabaseClient = await import('../src/services/supabase-client.service.js?v=20260804-02');
-const products = await import('../src/services/product.service.js?v=20260804-02');
-const comandas = await import('../src/services/comanda.service.js?v=20260804-02');
-const transactions = await import('../src/services/transaction.service.js?v=20260804-02');
-const estoque = await import('../src/services/estoque.service.js?v=20260804-02');
-const closing = await import('../src/services/cash-closing.service.js?v=20260804-02');
-const audit = await import('../src/services/audit.service.js?v=20260804-02');
-const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-02');
+const storage = await import('../src/services/storage.service.js?v=20260804-03');
+const auth = await import('../src/services/auth.service.js?v=20260804-03');
+const supabaseClient = await import('../src/services/supabase-client.service.js?v=20260804-03');
+const products = await import('../src/services/product.service.js?v=20260804-03');
+const comandas = await import('../src/services/comanda.service.js?v=20260804-03');
+const transactions = await import('../src/services/transaction.service.js?v=20260804-03');
+const estoque = await import('../src/services/estoque.service.js?v=20260804-03');
+const closing = await import('../src/services/cash-closing.service.js?v=20260804-03');
+const audit = await import('../src/services/audit.service.js?v=20260804-03');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-03');
 
 storage.resetAppData();
 storage.ensureSeedData();

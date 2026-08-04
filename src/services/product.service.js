@@ -1,5 +1,5 @@
-import { STORAGE_KEYS } from '../database/schema.js?v=20260804-02';
-import { isSupabaseEnabled } from './app-config.service.js?v=20260804-02';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260804-03';
+import { isSupabaseEnabled } from './app-config.service.js?v=20260804-03';
 import {
   deleteCategoryFromSupabase,
   deleteProductFromSupabase,
@@ -10,10 +10,10 @@ import {
   saveCategoryToSupabase,
   saveProductToSupabase,
   startProductCatalogRealtime
-} from './product-sync.service.js?v=20260804-02';
-import { getCurrentUser } from './auth.service.js?v=20260804-02';
-import { assertPermission } from './permission.service.js?v=20260804-02';
-import { getItem, setItem } from './storage.service.js?v=20260804-02';
+} from './product-sync.service.js?v=20260804-03';
+import { getCurrentUser } from './auth.service.js?v=20260804-03';
+import { assertPermission } from './permission.service.js?v=20260804-03';
+import { getItem, setItem } from './storage.service.js?v=20260804-03';
 
 export function getProducts() {
   return getItem(STORAGE_KEYS.products, []);

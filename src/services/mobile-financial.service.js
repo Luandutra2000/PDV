@@ -6,11 +6,11 @@ import {
   getPayables,
   normalizeFinancialTransaction,
   seedFinancialCategories
-} from './financial.service.js?v=20260804-02';
-import { getCurrentUser } from './auth.service.js?v=20260804-02';
-import { isSupabaseEnabled } from './app-config.service.js?v=20260804-02';
-import { saveFinancialTransactionToSupabaseStrict, updateFinancialTransactionInSupabaseStrict } from './financial-sync.service.js?v=20260804-02';
-import { assertPermission } from './permission.service.js?v=20260804-02';
+} from './financial.service.js?v=20260804-03';
+import { getCurrentUser } from './auth.service.js?v=20260804-03';
+import { isSupabaseEnabled } from './app-config.service.js?v=20260804-03';
+import { saveFinancialTransactionToSupabaseStrict, updateFinancialTransactionInSupabaseStrict } from './financial-sync.service.js?v=20260804-03';
+import { assertPermission } from './permission.service.js?v=20260804-03';
 
 export function getMobileFinancialSummary(filters = { period: 'today' }) {
   const normalizedFilters = { period: 'today', ...filters };

@@ -21,11 +21,11 @@ const assert = (condition, message) => {
   }
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260804-02');
-const auth = await import('../src/services/auth.service.js?v=20260804-02');
-const audit = await import('../src/services/audit.service.js?v=20260804-02');
-const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-02');
-const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-02');
+const storage = await import('../src/services/storage.service.js?v=20260804-03');
+const auth = await import('../src/services/auth.service.js?v=20260804-03');
+const audit = await import('../src/services/audit.service.js?v=20260804-03');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-03');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-03');
 
 seedTestAdmin(storage, STORAGE_KEYS);
 storage.ensureSeedData();
