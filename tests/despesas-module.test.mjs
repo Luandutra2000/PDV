@@ -22,10 +22,10 @@ globalThis.document = {
   }
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260729-13');
-const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260729-13');
-const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260729-13');
-const { initDespesasModule, renderFinanceiroMarkup } = await import('../src/modules/despesas/despesas.module.js?v=20260729-13');
+const storage = await import('../src/services/storage.service.js?v=20260804-01');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-01');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-01');
+const { initDespesasModule, renderFinanceiroMarkup } = await import('../src/modules/despesas/despesas.module.js?v=20260804-01');
 
 seedTestAdmin(storage, STORAGE_KEYS);
 

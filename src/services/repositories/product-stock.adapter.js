@@ -1,4 +1,4 @@
-import { STORAGE_KEYS } from '../../database/schema.js?v=20260729-13';
+import { STORAGE_KEYS } from '../../database/schema.js?v=20260804-01';
 
 export const productStockAdapter = {
   table: 'product_stock',

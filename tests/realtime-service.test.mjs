@@ -4,9 +4,9 @@ const assert = (condition, message) => {
   }
 };
 
-const { STORAGE_KEYS, SYNC_EVENTS, UI_EVENTS } = await import('../src/database/schema.js?v=20260729-13');
-const { emit, on } = await import('../src/services/event-bus.service.js?v=20260729-13');
-const realtime = await import('../src/services/realtime.service.js?v=20260729-13');
+const { STORAGE_KEYS, SYNC_EVENTS, UI_EVENTS } = await import('../src/database/schema.js?v=20260804-01');
+const { emit, on } = await import('../src/services/event-bus.service.js?v=20260804-01');
+const realtime = await import('../src/services/realtime.service.js?v=20260804-01');
 
 let received = null;
 on(UI_EVENTS.mobileFeedChanged, (payload) => {

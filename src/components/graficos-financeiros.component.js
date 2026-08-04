@@ -1,4 +1,4 @@
-import { formatCurrency } from '../utils/currency.js?v=20260729-13';
+import { formatCurrency } from '../utils/currency.js?v=20260804-01';
 
 export function renderGraficosFinanceiros({ summary, series }) {
   const maxSales = Math.max(...series.map((item) => item.sales), 1);

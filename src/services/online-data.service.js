@@ -1,10 +1,10 @@
-import { STORAGE_KEYS } from '../database/schema.js?v=20260729-13';
-import { isSupabaseEnabled } from './app-config.service.js?v=20260729-13';
-import { hydrateDataProvider } from './data-provider.service.js?v=20260729-13';
-import { flushDataProvider } from './data-provider.service.js?v=20260729-13';
-import { syncCatalogNow } from './product.service.js?v=20260729-13';
-import { flushFinancialQueue, hydrateFinancialData } from './financial-sync.service.js?v=20260729-13';
-import { flushShowcaseQueue, getShowcaseSyncStatus, hydrateShowcaseData } from './showcase-sync.service.js?v=20260729-13';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260804-01';
+import { isSupabaseEnabled } from './app-config.service.js?v=20260804-01';
+import { hydrateDataProvider } from './data-provider.service.js?v=20260804-01';
+import { flushDataProvider } from './data-provider.service.js?v=20260804-01';
+import { syncCatalogNow } from './product.service.js?v=20260804-01';
+import { flushFinancialQueue, hydrateFinancialData } from './financial-sync.service.js?v=20260804-01';
+import { flushShowcaseQueue, getShowcaseSyncStatus, hydrateShowcaseData } from './showcase-sync.service.js?v=20260804-01';
 
 const OPERATIONAL_KEYS = [
   STORAGE_KEYS.stockLaunches,

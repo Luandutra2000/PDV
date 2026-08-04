@@ -11,14 +11,14 @@ const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260729-13');
-const schema = await import('../src/database/schema.js?v=20260729-13');
-const products = await import('../src/services/product.service.js?v=20260729-13');
-const comandas = await import('../src/services/comanda.service.js?v=20260729-13');
-const transactions = await import('../src/services/transaction.service.js?v=20260729-13');
-const crm = await import('../src/services/crm-dashboard.service.js?v=20260729-13');
-const reconciliation = await import('../src/services/reconciliation.service.js?v=20260729-13');
-const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260729-13');
+const storage = await import('../src/services/storage.service.js?v=20260804-01');
+const schema = await import('../src/database/schema.js?v=20260804-01');
+const products = await import('../src/services/product.service.js?v=20260804-01');
+const comandas = await import('../src/services/comanda.service.js?v=20260804-01');
+const transactions = await import('../src/services/transaction.service.js?v=20260804-01');
+const crm = await import('../src/services/crm-dashboard.service.js?v=20260804-01');
+const reconciliation = await import('../src/services/reconciliation.service.js?v=20260804-01');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-01');
 
 storage.resetAppData();
 seedTestAdmin(storage, schema.STORAGE_KEYS);

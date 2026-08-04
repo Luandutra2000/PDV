@@ -27,12 +27,12 @@ globalThis.__PDV_RUNTIME_CONFIG__ = {
   supabaseAnonKey: ''
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260729-13');
-const auth = await import('../src/services/auth.service.js?v=20260729-13');
-const supabaseClient = await import('../src/services/supabase-client.service.js?v=20260729-13');
-const { STORAGE_KEYS, UI_EVENTS } = await import('../src/database/schema.js?v=20260729-13');
-const userAdmin = await import('../src/services/user-admin.service.js?v=20260729-13');
-const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260729-13');
+const storage = await import('../src/services/storage.service.js?v=20260804-01');
+const auth = await import('../src/services/auth.service.js?v=20260804-01');
+const supabaseClient = await import('../src/services/supabase-client.service.js?v=20260804-01');
+const { STORAGE_KEYS, UI_EVENTS } = await import('../src/database/schema.js?v=20260804-01');
+const userAdmin = await import('../src/services/user-admin.service.js?v=20260804-01');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-01');
 
 seedTestAdmin(storage, STORAGE_KEYS);
 storage.setItem(STORAGE_KEYS.userPermissionOverrides, {});

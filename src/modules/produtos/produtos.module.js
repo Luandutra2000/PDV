@@ -9,17 +9,18 @@ import {
   saveCategory,
   saveProduct,
   syncCatalogNow
-} from '../../services/product.service.js?v=20260729-13';
-import { UI_EVENTS } from '../../database/schema.js?v=20260729-13';
-import { on } from '../../services/event-bus.service.js?v=20260729-13';
-import { formatCurrency } from '../../utils/currency.js?v=20260729-13';
-import { showNotification } from '../../services/notification.service.js?v=20260729-13';
-import { getBestSellingProducts } from '../../services/transaction.service.js?v=20260729-13';
-import { getActiveOutOfStockSales } from '../../services/showcase-stock.service.js?v=20260729-13';
-import { getCurrentUser } from '../../services/auth.service.js?v=20260729-13';
-import { hasPermission } from '../../services/permission.service.js?v=20260729-13';
-import { escapeHtml } from '../../utils/dom.js?v=20260729-13';
-import { recordAudit } from '../../services/audit.service.js?v=20260729-13';
+} from '../../services/product.service.js?v=20260804-01';
+import { UI_EVENTS } from '../../database/schema.js?v=20260804-01';
+import { on } from '../../services/event-bus.service.js?v=20260804-01';
+import { formatCurrency } from '../../utils/currency.js?v=20260804-01';
+import { showNotification } from '../../services/notification.service.js?v=20260804-01';
+import { getBestSellingProducts } from '../../services/transaction.service.js?v=20260804-01';
+import { getActiveOutOfStockSales, getShowcaseStockByProductId } from '../../services/showcase-stock.service.js?v=20260804-01';
+import { adjustShowcaseStockOnline } from '../../services/showcase-sync.service.js?v=20260804-01';
+import { getCurrentUser } from '../../services/auth.service.js?v=20260804-01';
+import { hasPermission } from '../../services/permission.service.js?v=20260804-01';
+import { escapeHtml } from '../../utils/dom.js?v=20260804-01';
+import { recordAudit } from '../../services/audit.service.js?v=20260804-01';
 
 const productState = {
   modal: null,
@@ -401,21 +402,38 @@ async function saveProductFromForm(form) {
     productData.id = productState.editingProductId;
   }
 
+  const previousShowcaseStock = productState.editingProductId
+    ? Number(getShowcaseStockByProductId(productState.editingProductId).quantityAvailable || 0)
+    : 0;
   const savedProduct = await saveProduct(productData);
+  const nextStock = Number(savedProduct.stock || 0);
 
-  if (currentProduct && Number(currentProduct.stock || 0) !== Number(savedProduct.stock || 0)) {
+  if (previousShowcaseStock !== nextStock) {
+    const user = getCurrentUser();
+    await adjustShowcaseStockOnline({
+      operationId: `product-stock-${savedProduct.id}-${Date.now()}`,
+      productId: savedProduct.id,
+      quantityAvailable: nextStock,
+      reason: currentProduct ? 'edicao-produto' : 'cadastro-produto',
+      note: `Estoque informado no cadastro de produto: ${nextStock}`,
+      userId: user?.id || '',
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  if (previousShowcaseStock !== nextStock) {
     recordAudit({
       action: 'product.stock.adjust',
       entityType: 'product',
       entityId: savedProduct.id,
       metadata: {
         module: 'Vitrine/Estoque',
-        details: `Ajustou manualmente o estoque de ${currentProduct.stock || 0} para ${savedProduct.stock || 0}`,
+        details: `Ajustou manualmente o estoque de ${previousShowcaseStock} para ${nextStock}`,
         productId: savedProduct.id,
         productName: savedProduct.name,
-        previousStock: Number(currentProduct.stock) || 0,
-        newStock: Number(savedProduct.stock) || 0,
-        difference: (Number(savedProduct.stock) || 0) - (Number(currentProduct.stock) || 0)
+        previousStock: previousShowcaseStock,
+        newStock: nextStock,
+        difference: nextStock - previousShowcaseStock
       }
     });
   }
