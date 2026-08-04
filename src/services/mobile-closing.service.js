@@ -1,10 +1,10 @@
-import { buildClosingSummary, getCashClosings } from './cash-closing.service.js?v=20260729-12';
-import { isSupabaseEnabled } from './app-config.service.js?v=20260729-12';
-import { saveCashClosingToSupabaseStrict } from './financial-sync.service.js?v=20260729-12';
-import { STORAGE_KEYS } from '../database/schema.js?v=20260729-12';
-import { getCurrentUser } from './auth.service.js?v=20260729-12';
-import { assertPermission } from './permission.service.js?v=20260729-12';
-import { recordAudit } from './audit.service.js?v=20260729-12';
+import { buildClosingSummary, getCashClosings } from './cash-closing.service.js?v=20260729-13';
+import { isSupabaseEnabled } from './app-config.service.js?v=20260729-13';
+import { saveCashClosingToSupabaseStrict } from './financial-sync.service.js?v=20260729-13';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260729-13';
+import { getCurrentUser } from './auth.service.js?v=20260729-13';
+import { assertPermission } from './permission.service.js?v=20260729-13';
+import { recordAudit } from './audit.service.js?v=20260729-13';
 
 export function getMobileClosingSummary() {
   const base = buildClosingSummary({});

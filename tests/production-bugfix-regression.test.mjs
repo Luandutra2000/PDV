@@ -15,6 +15,8 @@ const stockSource = read('src/modules/estoque/estoque.module.js');
 const providerSource = read('src/services/providers/supabase.provider.js');
 const migration = read('supabase/migrations/20260729230000_fix_showcase_reversal_and_realtime.sql');
 const legacyReconciliation = read('supabase/migrations/20260729234500_reconcile_legacy_canceled_showcase_sales.sql');
+const userAdminSource = read('src/services/user-admin.service.js');
+const adminUsersFunction = read('supabase/functions/admin-users/index.ts');
 
 assert(appSource.includes('relatorios: initRelatoriosModule'), 'reports route should use the real reports module');
 assert(reportsSource.includes('getCrmSummary'), 'reports should render authoritative CRM totals');
@@ -36,5 +38,11 @@ assert(migration.includes("set status = 'estornada'"), 'original stock movement 
 assert(migration.includes('alter publication supabase_realtime add table'), 'realtime tables must be added idempotently');
 assert(legacyReconciliation.includes("s.status = 'cancelada'"), 'legacy repair must target canceled sales only');
 assert(legacyReconciliation.includes('public.reverse_showcase_sale'), 'legacy repair must reuse the idempotent reversal RPC');
+
+assert(userAdminSource.includes('getSupabaseAuthSession'), 'administrative calls must use the current Supabase session');
+assert(userAdminSource.includes('response.status === 401'), 'administrative calls must retry once after refreshing an expired JWT');
+assert(adminUsersFunction.includes("body.action === 'listUsers'"), 'administrative function must support remote user hydration');
+assert(adminUsersFunction.includes('payload.userId || payload.id'), 'administrative function must accept the frontend user id contract');
+assert(adminUsersFunction.includes("requirePermission(actor.id, 'users.delete')"), 'user deletion must enforce the dedicated permission');
 
 console.log('production bugfix regressions ok');

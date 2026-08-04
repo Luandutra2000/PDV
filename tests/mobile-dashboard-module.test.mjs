@@ -26,9 +26,9 @@ globalThis.document = {
   }
 };
 
-const mobileDashboard = await import('../src/modules/mobile/mobile-dashboard.module.js?v=20260729-12');
-const eventBus = await import('../src/services/event-bus.service.js?v=20260729-12');
-const { UI_EVENTS } = await import('../src/database/schema.js?v=20260729-12');
+const mobileDashboard = await import('../src/modules/mobile/mobile-dashboard.module.js?v=20260729-13');
+const eventBus = await import('../src/services/event-bus.service.js?v=20260729-13');
+const { UI_EVENTS } = await import('../src/database/schema.js?v=20260729-13');
 
 const header = mobileDashboard.renderMobileTopbar({
   period: 'today',

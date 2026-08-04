@@ -1,11 +1,11 @@
-import { STORAGE_KEYS, SYNC_EVENTS, UI_EVENTS } from '../database/schema.js?v=20260729-12';
-import { emit } from './event-bus.service.js?v=20260729-12';
-import { getCurrentUser } from './auth.service.js?v=20260729-12';
-import { assertPermission } from './permission.service.js?v=20260729-12';
-import { getItem, setItem } from './storage.service.js?v=20260729-12';
-import { recordAudit } from './audit.service.js?v=20260729-12';
-import { isSupabaseEnabled } from './app-config.service.js?v=20260729-12';
-import { cancelFinancialTransactionInSupabase, saveFinancialTransactionToSupabase } from './financial-sync.service.js?v=20260729-12';
+import { STORAGE_KEYS, SYNC_EVENTS, UI_EVENTS } from '../database/schema.js?v=20260729-13';
+import { emit } from './event-bus.service.js?v=20260729-13';
+import { getCurrentUser } from './auth.service.js?v=20260729-13';
+import { assertPermission } from './permission.service.js?v=20260729-13';
+import { getItem, setItem } from './storage.service.js?v=20260729-13';
+import { recordAudit } from './audit.service.js?v=20260729-13';
+import { isSupabaseEnabled } from './app-config.service.js?v=20260729-13';
+import { cancelFinancialTransactionInSupabase, saveFinancialTransactionToSupabase } from './financial-sync.service.js?v=20260729-13';
 
 export const PAYMENT_METHODS = ['dinheiro', 'pix', 'cartao', 'boleto', 'transferencia', 'outro'];
 export const FINANCIAL_STATUSES = ['paid', 'pending', 'overdue', 'canceled'];

@@ -23,7 +23,7 @@ globalThis.fetch = async (url, options = {}) => {
   };
 };
 
-const { getSupabaseRestClient } = await import('../src/services/supabase-rest-client.service.js?v=20260729-12');
+const { getSupabaseRestClient } = await import('../src/services/supabase-rest-client.service.js?v=20260729-13');
 
 const client = getSupabaseRestClient();
 await client.from('sales').select('id,total');

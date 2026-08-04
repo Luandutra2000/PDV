@@ -1,13 +1,14 @@
-import { STORAGE_KEYS } from '../database/schema.js?v=20260729-12';
-import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260729-12';
-import { createUser, deleteUser, getUsers, updateUser } from './auth.service.js?v=20260729-12';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260729-13';
+import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260729-13';
+import { createUser, deleteUser, getUsers, updateUser } from './auth.service.js?v=20260729-13';
 import {
   PERMISSIONS,
   getRolePermissions,
   normalizeRole,
   setUserPermissionOverride
-} from './permission.service.js?v=20260729-12';
-import { getItem, setItem } from './storage.service.js?v=20260729-12';
+} from './permission.service.js?v=20260729-13';
+import { getItem, setItem } from './storage.service.js?v=20260729-13';
+import { getSupabaseAuthSession } from './supabase-client.service.js?v=20260729-13';
 
 const LAST_ADMIN_ERROR = 'Nao e permitido desativar o ultimo administrador ativo.';
 
@@ -199,18 +200,20 @@ function writePermissionOverrides(userId, overrides) {
 
 async function invokeAdminUsersFunction(action, payload) {
   const config = getRuntimeConfig();
-  const response = await fetch(`${config.supabaseUrl}/functions/v1/admin-users`, {
+  const request = async (forceRefresh = false) => fetch(`${config.supabaseUrl}/functions/v1/admin-users`, {
     method: 'POST',
     headers: {
       apikey: config.supabaseAnonKey,
-      Authorization: `Bearer ${getBearerToken()}`,
+      Authorization: `Bearer ${await getBearerToken({ forceRefresh })}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      action,
-      payload
-    })
+    body: JSON.stringify({ action, payload })
   });
+  let response = await request();
+
+  if (response.status === 401) {
+    response = await request(true);
+  }
 
   const data = await readJsonResponse(response);
 
@@ -221,12 +224,34 @@ async function invokeAdminUsersFunction(action, payload) {
   return data || null;
 }
 
-function getBearerToken() {
-  const session = getItem(STORAGE_KEYS.currentSession, null);
-  const token = session?.access_token || session?.accessToken;
+async function getBearerToken({ forceRefresh = false } = {}) {
+  const cachedSession = getItem(STORAGE_KEYS.currentSession, null);
+  let authSession = null;
+
+  try {
+    authSession = await getSupabaseAuthSession({ forceRefresh });
+  } catch (error) {
+    if (forceRefresh) {
+      throw new Error('Sessao administrativa expirada. Entre novamente.');
+    }
+  }
+
+  const token = authSession?.access_token
+    || authSession?.accessToken
+    || cachedSession?.access_token
+    || cachedSession?.accessToken;
 
   if (!token) {
-    throw new Error('Entre novamente com seu usuario Supabase para cadastrar usuarios.');
+    throw new Error('Entre novamente com seu usuario Supabase para gerenciar usuarios.');
+  }
+
+  if (authSession?.access_token || authSession?.accessToken) {
+    setItem(STORAGE_KEYS.currentSession, {
+      ...cachedSession,
+      accessToken: authSession.access_token || authSession.accessToken,
+      refreshToken: authSession.refresh_token || authSession.refreshToken || cachedSession?.refreshToken,
+      expiresAt: authSession.expires_at || authSession.expiresAt || cachedSession?.expiresAt
+    });
   }
 
   return token;

@@ -16,3 +16,7 @@ Todos os sete bugs abertos foram corrigidos, implantados e aprovados diretamente
 7. Relatórios: conteúdo operacional completo.
 
 O estado final voltou aos totais anteriores ao reteste e ao estoque QA de 26 unidades.
+
+## Correção administrativa adicional
+
+O gerenciamento de usuários passou a usar e renovar a sessão Supabase atual. A função `admin-users` também foi alinhada ao contrato do frontend para listagem, edição, permissões e exclusão.

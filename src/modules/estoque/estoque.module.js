@@ -1,5 +1,5 @@
-import { getCurrentUser, getUsers } from '../../services/auth.service.js?v=20260729-12';
-import { getCategories, getProductById, getShowcaseCategories, getShowcaseProducts } from '../../services/product.service.js?v=20260729-12';
+import { getCurrentUser, getUsers } from '../../services/auth.service.js?v=20260729-13';
+import { getCategories, getProductById, getShowcaseCategories, getShowcaseProducts } from '../../services/product.service.js?v=20260729-13';
 import {
   cancelStockLaunch,
   createStockLaunch,
@@ -8,21 +8,21 @@ import {
   getStockLaunches,
   getStockSummary,
   updateStockLaunch
-} from '../../services/estoque.service.js?v=20260729-12';
-import { showNotification } from '../../services/notification.service.js?v=20260729-12';
-import { hydrateOnlineOperationalData } from '../../services/online-data.service.js?v=20260729-12';
-import { on } from '../../services/event-bus.service.js?v=20260729-12';
+} from '../../services/estoque.service.js?v=20260729-13';
+import { showNotification } from '../../services/notification.service.js?v=20260729-13';
+import { hydrateOnlineOperationalData } from '../../services/online-data.service.js?v=20260729-13';
+import { on } from '../../services/event-bus.service.js?v=20260729-13';
 import {
   getActiveOutOfStockSales,
   getShowcaseMovements,
   getShowcaseStock,
   getShowcaseStockByProductId
-} from '../../services/showcase-stock.service.js?v=20260729-12';
-import { UI_EVENTS } from '../../database/schema.js?v=20260729-12';
-import { getClosedComandas, getTransactions } from '../../services/transaction.service.js?v=20260729-12';
-import { formatCurrency } from '../../utils/currency.js?v=20260729-12';
-import { hasPermission } from '../../services/permission.service.js?v=20260729-12';
-import { escapeHtml } from '../../utils/dom.js?v=20260729-12';
+} from '../../services/showcase-stock.service.js?v=20260729-13';
+import { UI_EVENTS } from '../../database/schema.js?v=20260729-13';
+import { getClosedComandas, getTransactions } from '../../services/transaction.service.js?v=20260729-13';
+import { formatCurrency } from '../../utils/currency.js?v=20260729-13';
+import { hasPermission } from '../../services/permission.service.js?v=20260729-13';
+import { escapeHtml } from '../../utils/dom.js?v=20260729-13';
 
 const estoqueState = {
   period: 'today',

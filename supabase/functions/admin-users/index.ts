@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-type AdminAction = 'createUser' | 'updateUser' | 'deleteUser' | 'savePermissionOverrides';
+type AdminAction = 'listUsers' | 'createUser' | 'updateUser' | 'deleteUser' | 'savePermissionOverrides';
 
 type RequestBody = {
   action?: AdminAction;
@@ -45,6 +45,10 @@ Deno.serve(async (request) => {
     const body = await request.json() as RequestBody;
     const actor = await getActor(request);
 
+    if (body.action === 'listUsers') {
+      return json({ users: await listManagedUsers(actor) });
+    }
+
     if (body.action === 'createUser') {
       return json({ user: await createManagedUser(actor, body.payload || {}) });
     }
@@ -54,8 +58,7 @@ Deno.serve(async (request) => {
     }
 
     if (body.action === 'deleteUser') {
-      await deleteManagedUser(actor, body.payload || {});
-      return json({ ok: true });
+      return json({ user: await deleteManagedUser(actor, body.payload || {}) });
     }
 
     if (body.action === 'savePermissionOverrides') {
@@ -68,6 +71,31 @@ Deno.serve(async (request) => {
     return json({ error: getErrorMessage(error) }, getErrorStatus(error));
   }
 });
+
+async function listManagedUsers(actor: Profile) {
+  await requirePermission(actor.id, 'users.manage', 'users.edit', 'users.delete');
+
+  const { data: profiles, error: profilesError } = await adminClient
+    .from('profiles')
+    .select('id,name,role_id,is_active,created_at,updated_at')
+    .order('created_at', { ascending: true });
+
+  if (profilesError) {
+    throw statusError(profilesError.message, 400);
+  }
+
+  const { data: authData, error: authError } = await adminClient.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000
+  });
+
+  if (authError) {
+    throw statusError(authError.message, 400);
+  }
+
+  const emails = new Map((authData.users || []).map((user) => [user.id, user.email || '']));
+  return (profiles || []).map((profile) => mapProfile(profile as Profile, emails.get(profile.id) || ''));
+}
 
 async function createManagedUser(actor: Profile, payload: Record<string, unknown>) {
   await requirePermission(actor.id, 'users.manage');
@@ -111,20 +139,23 @@ async function createManagedUser(actor: Profile, payload: Record<string, unknown
 }
 
 async function updateManagedUser(actor: Profile, payload: Record<string, unknown>) {
-  await requirePermission(actor.id, 'users.edit', 'users.manage');
+  await requirePermission(actor.id, 'users.edit');
 
-  const id = normalizeText(payload.id);
+  const id = normalizeText(payload.userId || payload.id);
+  const patch = isRecord(payload.patch) ? payload.patch : payload;
 
   if (!id) {
     throw statusError('Usuario nao informado.', 400);
   }
 
   const existing = await getProfile(id);
-  const name = Object.hasOwn(payload, 'name') ? normalizeText(payload.name) : existing.name;
-  const role = Object.hasOwn(payload, 'role') ? normalizeRole(payload.role) : existing.role_id;
-  const active = Object.hasOwn(payload, 'active') ? payload.active !== false : existing.is_active;
-  const username = Object.hasOwn(payload, 'username') ? normalizeEmail(payload.username) : '';
-  const password = Object.hasOwn(payload, 'password') ? normalizeText(payload.password) : '';
+  const name = Object.hasOwn(patch, 'name') ? normalizeText(patch.name) : existing.name;
+  const role = Object.hasOwn(patch, 'role') ? normalizeRole(patch.role) : existing.role_id;
+  const active = Object.hasOwn(patch, 'active') ? patch.active !== false : existing.is_active;
+  const username = Object.hasOwn(patch, 'email') || Object.hasOwn(patch, 'username')
+    ? normalizeEmail(patch.email || patch.username)
+    : '';
+  const password = Object.hasOwn(patch, 'password') ? normalizeText(patch.password) : '';
 
   if (!name || !role) {
     throw statusError('Preencha nome e perfil.', 400);
@@ -171,7 +202,7 @@ async function savePermissionOverrides(actor: Profile, payload: Record<string, u
   await requirePermission(actor.id, 'permissions.manage');
 
   const userId = normalizeText(payload.userId);
-  const overrides = Array.isArray(payload.overrides) ? payload.overrides : [];
+  const overrides = normalizePermissionOverrides(payload.overrides);
 
   if (!userId) {
     throw statusError('Usuario nao informado.', 400);
@@ -219,9 +250,9 @@ async function savePermissionOverrides(actor: Profile, payload: Record<string, u
 }
 
 async function deleteManagedUser(actor: Profile, payload: Record<string, unknown>) {
-  await requirePermission(actor.id, 'users.manage');
+  await requirePermission(actor.id, 'users.delete');
 
-  const id = normalizeText(payload.id);
+  const id = normalizeText(payload.userId || payload.id);
   if (!id) {
     throw statusError('Usuario nao informado.', 400);
   }
@@ -247,6 +278,8 @@ async function deleteManagedUser(actor: Profile, payload: Record<string, unknown
       400
     );
   }
+
+  return mapProfile(existing);
 }
 
 async function getActor(request: Request) {
@@ -400,6 +433,25 @@ function normalizeRole(value: unknown) {
   const role = normalizeText(value);
   const roles = new Set(['admin', 'gerente', 'caixa', 'operador', 'dono']);
   return roles.has(role) ? role : '';
+}
+
+function normalizePermissionOverrides(value: unknown) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (!isRecord(value)) {
+    return [];
+  }
+
+  return Object.entries(value).map(([permissionId, state]) => ({
+    permissionId,
+    state
+  }));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function json(body: Record<string, unknown>, status = 200) {

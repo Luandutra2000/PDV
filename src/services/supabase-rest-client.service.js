@@ -1,4 +1,4 @@
-import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260729-12';
+import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260729-13';
 
 export function getSupabaseRestClient() {
   if (!isSupabaseEnabled()) {

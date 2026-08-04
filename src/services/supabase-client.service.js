@@ -1,4 +1,4 @@
-import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260729-12';
+import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260729-13';
 
 let clientPromise = null;
 let clientOverride = null;
@@ -42,4 +42,22 @@ export async function setSupabaseAuthSession(session) {
     access_token: session.access_token,
     refresh_token: session.refresh_token
   });
+}
+
+export async function getSupabaseAuthSession({ forceRefresh = false } = {}) {
+  const client = await getSupabaseClient();
+
+  if (!client?.auth) {
+    return null;
+  }
+
+  const result = forceRefresh && typeof client.auth.refreshSession === 'function'
+    ? await client.auth.refreshSession()
+    : await client.auth.getSession();
+
+  if (result?.error) {
+    throw result.error;
+  }
+
+  return result?.data?.session || null;
 }

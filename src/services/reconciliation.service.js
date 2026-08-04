@@ -1,4 +1,4 @@
-import { getMoneySummary, getTransactions, getClosedComandas } from './transaction.service.js?v=20260729-12';
+import { getMoneySummary, getTransactions, getClosedComandas } from './transaction.service.js?v=20260729-13';
 
 export function reconcileOperations({
   period = 'today',

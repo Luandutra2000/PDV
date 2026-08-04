@@ -1,15 +1,15 @@
-import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260729-12';
-import { emit } from './event-bus.service.js?v=20260729-12';
-import { getSupabaseClient } from './supabase-client.service.js?v=20260729-12';
-import { getSupabaseRestClient } from './supabase-rest-client.service.js?v=20260729-12';
-import { saleAdapter } from './repositories/sale.adapter.js?v=20260729-12';
-import { saleItemAdapter } from './repositories/sale-item.adapter.js?v=20260729-12';
-import { cashMovementAdapter } from './repositories/cash-movement.adapter.js?v=20260729-12';
-import { commandAdapter } from './repositories/command.adapter.js?v=20260729-12';
-import { commandItemAdapter } from './repositories/command-item.adapter.js?v=20260729-12';
-import { cashClosingAdapter } from './repositories/cash-closing.adapter.js?v=20260729-12';
-import { financialCategoryAdapter } from './repositories/financial-category.adapter.js?v=20260729-12';
-import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js?v=20260729-12';
+import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260729-13';
+import { emit } from './event-bus.service.js?v=20260729-13';
+import { getSupabaseClient } from './supabase-client.service.js?v=20260729-13';
+import { getSupabaseRestClient } from './supabase-rest-client.service.js?v=20260729-13';
+import { saleAdapter } from './repositories/sale.adapter.js?v=20260729-13';
+import { saleItemAdapter } from './repositories/sale-item.adapter.js?v=20260729-13';
+import { cashMovementAdapter } from './repositories/cash-movement.adapter.js?v=20260729-13';
+import { commandAdapter } from './repositories/command.adapter.js?v=20260729-13';
+import { commandItemAdapter } from './repositories/command-item.adapter.js?v=20260729-13';
+import { cashClosingAdapter } from './repositories/cash-closing.adapter.js?v=20260729-13';
+import { financialCategoryAdapter } from './repositories/financial-category.adapter.js?v=20260729-13';
+import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js?v=20260729-13';
 
 const FINANCIAL_TABLES = [
   commandAdapter.table,

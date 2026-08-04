@@ -1,13 +1,13 @@
-import { STORAGE_KEYS, SYNC_EVENTS, UI_EVENTS } from '../database/schema.js?v=20260729-12';
-import { emit } from './event-bus.service.js?v=20260729-12';
-import { getActiveComanda, getSubtotal, startNewComanda } from './comanda.service.js?v=20260729-12';
-import { getProductById } from './product.service.js?v=20260729-12';
-import { getItem, setItem } from './storage.service.js?v=20260729-12';
-import { getCurrentUser } from './auth.service.js?v=20260729-12';
-import { assertPermission } from './permission.service.js?v=20260729-12';
-import { recordAudit } from './audit.service.js?v=20260729-12';
-import { isSupabaseEnabled } from './app-config.service.js?v=20260729-12';
-import { createFinancialTransaction as createFinanceTransaction } from './financial.service.js?v=20260729-12';
+import { STORAGE_KEYS, SYNC_EVENTS, UI_EVENTS } from '../database/schema.js?v=20260729-13';
+import { emit } from './event-bus.service.js?v=20260729-13';
+import { getActiveComanda, getSubtotal, startNewComanda } from './comanda.service.js?v=20260729-13';
+import { getProductById } from './product.service.js?v=20260729-13';
+import { getItem, setItem } from './storage.service.js?v=20260729-13';
+import { getCurrentUser } from './auth.service.js?v=20260729-13';
+import { assertPermission } from './permission.service.js?v=20260729-13';
+import { recordAudit } from './audit.service.js?v=20260729-13';
+import { isSupabaseEnabled } from './app-config.service.js?v=20260729-13';
+import { createFinancialTransaction as createFinanceTransaction } from './financial.service.js?v=20260729-13';
 import {
   cancelCashMovementInSupabase,
   cancelSaleInSupabase,
@@ -15,8 +15,8 @@ import {
   getFinancialSyncStatus,
   saveCashMovementToSupabase,
   saveSaleToSupabase
-} from './financial-sync.service.js?v=20260729-12';
-import { processShowcaseSale, reverseShowcaseSale } from './showcase-sync.service.js?v=20260729-12';
+} from './financial-sync.service.js?v=20260729-13';
+import { processShowcaseSale, reverseShowcaseSale } from './showcase-sync.service.js?v=20260729-13';
 
 export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
   const user = getCurrentUser();

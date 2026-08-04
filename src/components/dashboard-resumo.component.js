@@ -1,4 +1,4 @@
-import { formatCurrency } from '../utils/currency.js?v=20260729-12';
+import { formatCurrency } from '../utils/currency.js?v=20260729-13';
 
 export function renderDashboardResumo(summary) {
   const cards = [

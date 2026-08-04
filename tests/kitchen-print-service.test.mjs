@@ -11,13 +11,13 @@ const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260729-12');
-const schema = await import('../src/database/schema.js?v=20260729-12');
-const products = await import('../src/services/product.service.js?v=20260729-12');
-const comandas = await import('../src/services/comanda.service.js?v=20260729-12');
-const transactions = await import('../src/services/transaction.service.js?v=20260729-12');
-const kitchen = await import('../src/services/kitchen-print.service.js?v=20260729-12');
-const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260729-12');
+const storage = await import('../src/services/storage.service.js?v=20260729-13');
+const schema = await import('../src/database/schema.js?v=20260729-13');
+const products = await import('../src/services/product.service.js?v=20260729-13');
+const comandas = await import('../src/services/comanda.service.js?v=20260729-13');
+const transactions = await import('../src/services/transaction.service.js?v=20260729-13');
+const kitchen = await import('../src/services/kitchen-print.service.js?v=20260729-13');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260729-13');
 
 storage.resetAppData();
 seedTestAdmin(storage, schema.STORAGE_KEYS);

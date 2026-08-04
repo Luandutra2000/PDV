@@ -2,13 +2,22 @@
 
 ## Resumo final
 
-- Bugs consolidados: 9.
-- Corrigidos e retestados: 9.
+- Bugs consolidados: 10.
+- Corrigidos e retestados: 10.
 - Abertos: 0.
 - Regressão automatizada: 46/46 aprovada.
 - Reteste direcionado na produção: 7/7 aprovado.
 
 ## Bugs corrigidos nesta rodada
+
+### BUG-010 — Sessão administrativa inválida ao gerenciar usuários
+
+- Severidade: **P1**.
+- Status: **corrigido e implantado na produção**.
+- Causa: o módulo de Pessoas enviava o JWT antigo armazenado pelo aplicativo, mesmo quando o cliente Supabase já tinha uma sessão mais recente.
+- Correção: obter o token da sessão Supabase atual, atualizar o cache da aplicação e, em caso de HTTP 401, renovar a sessão e repetir a chamada uma única vez.
+- Correções complementares: contrato da Edge Function alinhado para listar, editar e excluir usuários; permissão dedicada `users.delete`; cache de usuários deixou de tentar uma sincronização inválida.
+- Segurança: quando nem a renovação é possível, o sistema solicita novo login em vez de manter uma sessão administrativa aparente.
 
 ### BUG-003 — XSS armazenado em produto
 

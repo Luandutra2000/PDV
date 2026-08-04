@@ -39,7 +39,7 @@
   </div>
   <div class="toast-root" aria-live="polite"></div>
   <script type="module">
-    const LOCAL_CACHE_VERSION = '20260729-12-full-module-graph';
+    const LOCAL_CACHE_VERSION = '20260729-13-full-module-graph';
 
     async function clearStaleClientCaches() {
       try {
@@ -75,7 +75,7 @@
 
     try {
       await clearStaleClientCaches();
-      await import('./src/app.js?v=20260729-12');
+      await import('./src/app.js?v=20260729-13');
     } catch (error) {
       console.error('Nao foi possivel iniciar o PDV.', error);
       const app = document.getElementById('app');

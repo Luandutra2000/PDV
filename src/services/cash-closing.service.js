@@ -1,14 +1,14 @@
-import { STORAGE_KEYS } from '../database/schema.js?v=20260729-12';
-import { getProductionSalesComparison } from './estoque.service.js?v=20260729-12';
-import { getCategories, getProductById } from './product.service.js?v=20260729-12';
-import { getCurrentUser } from './auth.service.js?v=20260729-12';
-import { assertPermission } from './permission.service.js?v=20260729-12';
-import { recordAudit } from './audit.service.js?v=20260729-12';
-import { getItem, setItem } from './storage.service.js?v=20260729-12';
-import { getClosedComandas, getTransactions } from './transaction.service.js?v=20260729-12';
-import { isSupabaseEnabled } from './app-config.service.js?v=20260729-12';
-import { saveCashClosingToSupabase } from './financial-sync.service.js?v=20260729-12';
-import { getActiveOutOfStockSales } from './showcase-stock.service.js?v=20260729-12';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260729-13';
+import { getProductionSalesComparison } from './estoque.service.js?v=20260729-13';
+import { getCategories, getProductById } from './product.service.js?v=20260729-13';
+import { getCurrentUser } from './auth.service.js?v=20260729-13';
+import { assertPermission } from './permission.service.js?v=20260729-13';
+import { recordAudit } from './audit.service.js?v=20260729-13';
+import { getItem, setItem } from './storage.service.js?v=20260729-13';
+import { getClosedComandas, getTransactions } from './transaction.service.js?v=20260729-13';
+import { isSupabaseEnabled } from './app-config.service.js?v=20260729-13';
+import { saveCashClosingToSupabase } from './financial-sync.service.js?v=20260729-13';
+import { getActiveOutOfStockSales } from './showcase-stock.service.js?v=20260729-13';
 
 export function buildClosingSummary(input = {}) {
   const payments = buildPaymentConference(input);

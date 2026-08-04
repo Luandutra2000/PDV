@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 
-const appSource = await readFile(new URL('../src/app.js?v=20260729-12', import.meta.url), 'utf8');
+const appSource = await readFile(new URL('../src/app.js?v=20260729-13', import.meta.url), 'utf8');
 
 const assert = (condition, message) => {
   if (!condition) {

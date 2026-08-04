@@ -1,5 +1,5 @@
-import { STORAGE_KEYS } from '../../database/schema.js?v=20260729-12';
-import { createLocalProvider } from './local.provider.js?v=20260729-12';
+import { STORAGE_KEYS } from '../../database/schema.js?v=20260729-13';
+import { createLocalProvider } from './local.provider.js?v=20260729-13';
 
 const TABLE_MAPPERS = {
   [STORAGE_KEYS.categories]: {
@@ -247,7 +247,7 @@ async function syncCollection(getClient, key, value) {
 
   const mapper = TABLE_MAPPERS[key];
 
-  if (!mapper || !Array.isArray(value)) {
+  if (!mapper?.map || !Array.isArray(value)) {
     return;
   }
 

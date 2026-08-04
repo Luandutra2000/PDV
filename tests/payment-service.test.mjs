@@ -11,7 +11,7 @@ const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
 
-const payments = await import('../src/services/payment.service.js?v=20260729-12');
+const payments = await import('../src/services/payment.service.js?v=20260729-13');
 
 let authorizationCalls = 0;
 const approved = await payments.authorizePayment({

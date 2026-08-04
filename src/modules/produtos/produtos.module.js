@@ -9,17 +9,17 @@ import {
   saveCategory,
   saveProduct,
   syncCatalogNow
-} from '../../services/product.service.js?v=20260729-12';
-import { UI_EVENTS } from '../../database/schema.js?v=20260729-12';
-import { on } from '../../services/event-bus.service.js?v=20260729-12';
-import { formatCurrency } from '../../utils/currency.js?v=20260729-12';
-import { showNotification } from '../../services/notification.service.js?v=20260729-12';
-import { getBestSellingProducts } from '../../services/transaction.service.js?v=20260729-12';
-import { getActiveOutOfStockSales } from '../../services/showcase-stock.service.js?v=20260729-12';
-import { getCurrentUser } from '../../services/auth.service.js?v=20260729-12';
-import { hasPermission } from '../../services/permission.service.js?v=20260729-12';
-import { escapeHtml } from '../../utils/dom.js?v=20260729-12';
-import { recordAudit } from '../../services/audit.service.js?v=20260729-12';
+} from '../../services/product.service.js?v=20260729-13';
+import { UI_EVENTS } from '../../database/schema.js?v=20260729-13';
+import { on } from '../../services/event-bus.service.js?v=20260729-13';
+import { formatCurrency } from '../../utils/currency.js?v=20260729-13';
+import { showNotification } from '../../services/notification.service.js?v=20260729-13';
+import { getBestSellingProducts } from '../../services/transaction.service.js?v=20260729-13';
+import { getActiveOutOfStockSales } from '../../services/showcase-stock.service.js?v=20260729-13';
+import { getCurrentUser } from '../../services/auth.service.js?v=20260729-13';
+import { hasPermission } from '../../services/permission.service.js?v=20260729-13';
+import { escapeHtml } from '../../utils/dom.js?v=20260729-13';
+import { recordAudit } from '../../services/audit.service.js?v=20260729-13';
 
 const productState = {
   modal: null,
