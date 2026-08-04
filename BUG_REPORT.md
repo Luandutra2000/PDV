@@ -2,41 +2,54 @@
 
 ## Resumo
 
-- Regressão automatizada: 46/46 aprovada.
-- Bugs novos encontrados: 2 P1.
-- Bugs novos corrigidos, publicados e retestados: 2/2.
+- Regressão automatizada: 47/47 aprovada.
+- Bugs de escala encontrados pela carga real: 2 P1.
+- Bugs de escala corrigidos, publicados e retestados: 2/2.
 - Bugs de código abertos desta rodada: 0.
 
-## BUG-011 — Estoque inicial do produto não chegava à vitrine
+## BUG-014 — Cliente REST de produção limitava a hidratação a 1.000 linhas
 
 - Severidade: **P1**.
 - Status: **corrigido, publicado e retestado em produção**.
-- Sintoma: o cadastro mostrava estoque 11 em Produtos, mas a Frente de Caixa mostrava estoque 0.
-- Causa: o formulário persistia o estoque do catálogo sem chamar a sincronização autoritativa de `product_stock`.
-- Correção: comparar o estoque informado com o estoque vivo e aplicar `adjustShowcaseStockOnline`, registrando valores anterior e atual na auditoria.
-- Evidência: `[QA] Produto Sync 20260804` foi criado com estoque 9 e apareceu imediatamente com estoque 9 na Frente de Caixa; a venda de duas unidades deixou estoque 7.
-- Commit: `e1989af`.
+- Sintoma: após 12.500 vendas de carga, a interface mostrava R$ 22,06 em vez de R$ 137,84.
+- Causa: a paginação inicial cobria o cliente Supabase com `.range()`, mas o cliente REST usado pelo navegador retornava uma única página de no máximo 1.000 registros.
+- Correção: adição de `selectRange()` ao cliente REST e paginação explícita por `offset`/`limit` em todas as coleções financeiras.
+- Regressão: teste específico confirma a leitura da segunda página no caminho REST de produção.
+- Evidência: Frente de Caixa, App do Dono e Relatórios passaram a exibir R$ 137,84; Relatórios exibiram 12.501 comandas e R$ 125,00 em Pix.
+- Commit: `b33ee06`.
+
+## BUG-013 — Coleção financeira completa excedia a cota local do navegador
+
+- Severidade: **P1**.
+- Status: **corrigido, publicado e retestado em produção**.
+- Sintoma: a hidratação completa não substituía o cache parcial quando o volume ultrapassava a cota do navegador.
+- Causa: tentativa de persistir dezenas de milhares de registros integralmente em `localStorage`.
+- Correção: cache completo compartilhado em memória e persistência local limitada aos 1.000 registros mais recentes para fallback offline.
+- Regressão: teste com 20.000 registros confirma leitura integral em memória, persistência limitada e limpeza consistente.
+- Commit: `ff04888`.
 
 ## BUG-012 — Lançamentos financeiros distintos se sobrescreviam na fila
 
 - Severidade: **P1**.
 - Status: **corrigido, publicado e retestado em produção**.
-- Sintoma: o caixa continha a entrada `[QA] Entrada 20260804` de R$ 10,01, mas o Financeiro/Supabase não tinha o lançamento correspondente.
-- Causa: `getOperationKey()` ignorava `operation.transaction.id`; todas as gravações financeiras pendentes recebiam a chave vazia `saveFinancialTransaction:`.
-- Correção: incluir o ID da transação na chave de compactação da fila.
-- Regressão: duas transações offline distintas permanecem na fila e ambas são gravadas após o flush.
-- Evidência em produção: entradas consecutivas `[QA] Fila A 20260804` (R$ 2,22) e `[QA] Fila B 20260804` (R$ 3,33) persistiram e apareceram separadamente.
-- Reparação de dados: o lançamento antigo de R$ 10,01 foi recriado de modo idempotente com o mesmo `cash_movement_id`, sem alterar novamente o caixa.
+- Causa: a chave da fila ignorava `operation.transaction.id`.
+- Correção: inclusão do ID da transação na chave de compactação.
 - Commit: `fa60c91`.
+
+## BUG-011 — Estoque inicial do produto não chegava à vitrine
+
+- Severidade: **P1**.
+- Status: **corrigido, publicado e retestado em produção**.
+- Evidência: produto criado com estoque 9 apareceu com 9 na Frente de Caixa; venda de duas unidades deixou estoque 7.
+- Commit: `e1989af`.
 
 ## BUG-010 — Sessão administrativa inválida ao excluir usuário
 
-- Severidade original: **P1**.
+- Severidade: **P1**.
 - Status: **corrigido, publicado e retestado em produção**.
-- Correção complementar: o diálogo nativo foi substituído por uma confirmação interna acessível e testável.
-- Evidência: `[QA] Admin Delete 20260804` foi excluído, a lista passou de 4 para 3 usuários, a mensagem de sucesso apareceu e não houve “Sessão administrativa inválida”.
+- Evidência: administrador QA excluído, lista de usuários passou de 4 para 3 e a sessão permaneceu válida.
 - Commit complementar: `0a4191b`.
 
 ## Bugs anteriores
 
-- BUG-001 a BUG-009: permanecem corrigidos conforme a rodada de 29/07/2026.
+- BUG-001 a BUG-009 permanecem corrigidos conforme a rodada de 29/07/2026.

@@ -4,60 +4,69 @@
 
 | Métrica | Resultado |
 |---|---:|
-| Regressão automatizada | 46/46 aprovados |
-| Bugs P1 encontrados nesta rodada | 2 |
-| Bugs P1 corrigidos, publicados e retestados | 2/2 |
+| Regressão automatizada | 47/47 aprovados |
+| Carga em produção | 50.000/50.000 gravações confirmadas |
+| Conjuntos completos | 12.500 comandas + itens + vendas + itens |
+| Bugs de escala encontrados | 2 P1 |
+| Bugs de escala corrigidos e retestados | 2/2 |
 | HTTP de produção | 200 |
-| Versão validada | `20260804-06` / `pdv-v76` |
-| Verificação leve de latência | 20 GETs; média 57,6 ms; p95 66,3 ms; p99 234,1 ms |
+| Versão validada | `20260804-06` / `pdv-v79` |
 | Exclusão administrativa | aprovada; 4 → 3 usuários, sem erro de sessão |
 
 ## Ambiente
 
 - Produção: `https://pdv-qdelicia.vercel.app/`.
-- Deploy: `dpl_5mt4GwHJxwjiF7CYbQFgJo5HyGoR`, estado `READY`.
-- GitHub: branch `feature/fechamento-caixa`, commit funcional `0a4191b`.
+- Deploy validado: `dpl_EHj8jUpiCvd5SN3DRWvXVgxPtW7y`, estado `READY`.
+- GitHub: branch `feature/fechamento-caixa`, commit funcional `b33ee06`.
 - Backend: Supabase em produção.
 - Navegador: navegador real integrado ao Codex, com sessão administrativa autenticada.
-- Backup pré-teste: `backups/production-2026-08-04-pre-retest`.
-- Cobertura do backup: 23 tabelas acessíveis pela API pública, 572 registros, checksums válidos, além das migrações. Tabelas protegidas por RLS exigem credencial administrativa para uma restauração integral.
+- Backup pré-carga: `backups/production-2026-08-04-pre-50k`.
+- Cobertura do backup: 23 tabelas públicas/RLS, 592 registros e checksums. Não equivale a um dump administrativo integral das tabelas protegidas.
 
-## Evidências da rodada
+## Carga autorizada em produção
 
-- Cadastro do produto `[QA] Produto Sync 20260804` com estoque inicial 9 passou a disponibilizar imediatamente 9 unidades na Frente de Caixa.
-- Venda real de 2 unidades por R$ 12,84 baixou o estoque uma única vez, de 9 para 7.
-- Uma venda Pix anterior foi cancelada e restaurou o estoque exatamente uma vez.
-- Entrada, saída e venda foram refletidas entre duas abas; a entrada de R$ 1,11 apareceu na outra aba em 293 ms.
-- Relatórios operacionais coincidiram com o caixa: venda R$ 12,84, entrada R$ 11,12, saída R$ 3,21 e saldo R$ 20,75 antes dos lançamentos finais de QA.
-- O defeito de fila financeira foi reproduzido: uma entrada de R$ 10,01 existia em `cash_movements`, mas havia sido sobrescrita na fila e não existia em `financial_transactions`.
-- Após a correção, duas entradas consecutivas de R$ 2,22 e R$ 3,33 foram persistidas separadamente e exibidas no Financeiro.
-- O registro antigo de R$ 10,01 foi reconciliado de forma idempotente, vinculado ao movimento original e passou a aparecer após recarga completa.
-- O Financeiro final exibiu entradas de R$ 16,67, saídas de R$ 3,21 e saldo de R$ 13,46 para o período.
-- Sessão autenticada sobreviveu a recargas completas.
-- Layout funcional verificado em 375×812 e 768×1024; navegação, produto e comanda permaneceram acessíveis.
-- A confirmação nativa de exclusão foi substituída por diálogo interno acessível. O administrador `[QA] Admin Delete 20260804` foi excluído; a lista caiu de 4 para 3 usuários e não exibiu erro de sessão.
-- Testes automatizados de segurança, XSS, permissões, convergência offline, realtime e jornada crítica passaram dentro da suíte 46/46.
+- Identificador: `qa50k-20260804a`.
+- 12.500 registros em `commands`.
+- 12.500 registros em `command_items`.
+- 12.500 registros em `sales`.
+- 12.500 registros em `sale_items`.
+- Total: 50.000 gravações, verificadas após cada estágio.
+- Progressão: 1.000, 10.000 e 50.000 operações acumuladas.
+- Tempos dos estágios: 1.015 ms, 835 ms e 2.241 ms; maior latência de lote observada: 177 ms.
+- Valor adicional controlado: R$ 125,00 em Pix (12.500 vendas de R$ 0,01).
+- Manifesto: `backups/load-tests/qa50k-20260804a.json`.
+- Os dados permanecem em produção por decisão do usuário e podem ser removidos de forma seletiva pelo identificador do teste.
 
-## Correções publicadas
+## Validação no navegador após as correções
 
-1. Sincronização do estoque inicial/alterado do cadastro de produto com a vitrine (`e1989af`).
-2. Chave única da fila financeira passou a incluir `operation.transaction.id`, impedindo que lançamentos distintos se sobrescrevam (`fa60c91`).
-3. Testes de regressão adicionados para estoque e para múltiplos lançamentos financeiros offline.
-4. Confirmação de exclusão de usuários passou a ocorrer dentro da interface, eliminando o bloqueio do diálogo nativo (`0a4191b`).
-5. Exportador de backup passou a aceitar opcionalmente um arquivo de ambiente com credencial protegida.
+- Frente de Caixa: total vendido R$ 137,84 e caixa atual R$ 145,75.
+- App do Dono: total vendido R$ 137,84, caixa atual R$ 145,75 e feed contendo as vendas marcadas com `[LOAD qa50k-20260804a]`.
+- Relatórios: 12.501 comandas fechadas, Pix R$ 125,00 e Dinheiro R$ 12,84.
+- Produto do teste: 12.502 unidades e faturamento de R$ 137,84, conciliando as 12.500 unidades da carga com as 2 unidades da venda funcional anterior.
+- Categoria do teste: 12.502 unidades e R$ 137,84.
+- Sessão autenticada permaneceu válida durante recargas e troca de módulos.
 
-## Dados de QA mantidos
+## Bugs descobertos pela carga e correções
 
-- Categoria `[QA] Testes 20260804`.
-- Produtos `[QA] Produto 20260804` e `[QA] Produto Sync 20260804`.
-- Venda ativa de R$ 12,84.
-- Entradas de R$ 10,01, R$ 1,11, R$ 2,22 e R$ 3,33.
-- Saída de R$ 3,21.
+1. O Supabase limita cada resposta a 1.000 linhas. A hidratação passou a paginar todas as coleções financeiras (`336abf7`).
+2. Coleções completas ultrapassavam a cota do `localStorage`. O sistema agora mantém o conjunto completo em memória e persiste apenas um recorte seguro para fallback offline (`ff04888`).
+3. O cliente REST efetivamente usado em produção não implementava paginação. Foi adicionado `selectRange`, com teste específico do caminho real (`b33ee06`).
 
-## Limites não executados em produção
+## Evidências funcionais anteriores mantidas
 
-Não foi aplicada carga destrutiva de 10.000 cenários/50.000 operações, nem restauração integral sobre a base ativa, falhas deliberadas de infraestrutura, impressão física, pagamentos externos ou matriz completa de navegadores. Esses ensaios exigem homologação isolada para não degradar ou corromper a produção.
+- Estoque de produto sincronizado com a vitrine e baixa única por venda.
+- Entrada, saída, venda e cancelamento conciliados entre abas.
+- Fila financeira sem sobrescrever lançamentos distintos.
+- Exclusão administrativa por diálogo interno, sem invalidar a sessão.
+- Layout verificado em 375×812 e 768×1024.
+- Segurança, XSS, permissões, convergência offline, realtime e jornada crítica cobertos pela suíte.
+
+## Limites ainda pendentes
+
+- Restauração integral de backup em ambiente isolado.
+- Impressão física, gaveta, leitor, balança e pagamentos externos reais.
+- Matriz completa de navegadores e dispositivos físicos.
 
 ## Parecer
 
-As duas regressões P1 descobertas nesta rodada e o fluxo de exclusão administrativa foram corrigidos, testados, publicados e validados no navegador de produção. O sistema está **aprovado com ressalvas** para uso controlado; a promoção a uso irrestrito depende dos ensaios de carga e recuperação em homologação.
+A carga de 50.000 operações foi concluída em produção e revelou dois defeitos P1 de leitura em escala. Ambos foram corrigidos, publicados e validados no navegador com totais exatos. O software está aprovado para piloto controlado; a liberação irrestrita ainda depende dos testes físicos e de recuperação listados acima.
