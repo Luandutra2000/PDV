@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
-const categoryAdapter = await import('../src/services/repositories/financial-category.adapter.js?v=20260804-05');
-const transactionAdapter = await import('../src/services/repositories/financial-transaction.adapter.js?v=20260804-05');
+const categoryAdapter = await import('../src/services/repositories/financial-category.adapter.js?v=20260804-06');
+const transactionAdapter = await import('../src/services/repositories/financial-transaction.adapter.js?v=20260804-06');
 
 const category = categoryAdapter.fromRow({
   id: 'fornecedor',

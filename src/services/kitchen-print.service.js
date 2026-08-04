@@ -1,5 +1,5 @@
-import { STORAGE_KEYS } from '../database/schema.js?v=20260804-05';
-import { getItem, setItem } from './storage.service.js?v=20260804-05';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
+import { getItem, setItem } from './storage.service.js?v=20260804-06';
 
 export const KITCHEN_STATUSES = Object.freeze({
   pending: 'pendente',

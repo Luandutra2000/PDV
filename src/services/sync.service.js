@@ -1,6 +1,6 @@
-import { STORAGE_KEYS, SYNC_EVENTS } from '../database/schema.js?v=20260804-05';
-import { on } from './event-bus.service.js?v=20260804-05';
-import { getItem, setItem } from './storage.service.js?v=20260804-05';
+import { STORAGE_KEYS, SYNC_EVENTS } from '../database/schema.js?v=20260804-06';
+import { on } from './event-bus.service.js?v=20260804-06';
+import { getItem, setItem } from './storage.service.js?v=20260804-06';
 
 const subscribedEvents = Object.values(SYNC_EVENTS);
 let initialized = false;

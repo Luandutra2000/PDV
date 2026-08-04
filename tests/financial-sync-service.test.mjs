@@ -21,8 +21,8 @@ const assert = (condition, message) => {
   }
 };
 
-const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-05');
-const financial = await import('../src/services/financial-sync.service.js?v=20260804-05');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
+const financial = await import('../src/services/financial-sync.service.js?v=20260804-06');
 
 const calls = [];
 let failTable = '';
@@ -232,6 +232,28 @@ assert(
   JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions)).filter((item) => item.id.startsWith('paged-movement-')).length === 1005,
   'hydrate should paginate past the Supabase 1000-row response limit'
 );
+
+const restRangeCalls = [];
+const restClient = {
+  from(table) {
+    return {
+      selectRange(columns, from, to) {
+        restRangeCalls.push({ table, columns, from, to });
+        return Promise.resolve({
+          data: (rows[table] || []).slice(from, to + 1),
+          error: null
+        });
+      }
+    };
+  }
+};
+financial.configureFinancialSyncForTests({ getClient: () => restClient });
+await financial.hydrateFinancialData();
+assert(
+  restRangeCalls.some((call) => call.table === 'cash_movements' && call.from === 1000),
+  'hydrate should paginate the production REST client past its first 1000 rows'
+);
+financial.configureFinancialSyncForTests({ getClient: () => fakeClient });
 
 await financial.saveFinancialTransactionToSupabase({
   id: 'fin-1',

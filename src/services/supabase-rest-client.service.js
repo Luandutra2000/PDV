@@ -1,4 +1,4 @@
-import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260804-05';
+import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
 
 export function getSupabaseRestClient() {
   if (!isSupabaseEnabled()) {
@@ -24,6 +24,14 @@ function createTableClient({ baseUrl, headers, table }) {
   return {
     select(columns = '*') {
       return requestJson(`${baseUrl}/${table}?select=${encodeURIComponent(columns)}`, {
+        method: 'GET',
+        headers
+      });
+    },
+    selectRange(columns = '*', from = 0, to = 999) {
+      const limit = Math.max(0, to - from + 1);
+      const query = `select=${encodeURIComponent(columns)}&offset=${encodeURIComponent(from)}&limit=${encodeURIComponent(limit)}`;
+      return requestJson(`${baseUrl}/${table}?${query}`, {
         method: 'GET',
         headers
       });

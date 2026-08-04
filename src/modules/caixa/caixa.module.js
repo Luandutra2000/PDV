@@ -5,19 +5,19 @@ import {
   getFinancialMovements,
   getProductRanking,
   getSalesSeries
-} from '../../services/crm-dashboard.service.js?v=20260804-05';
-import { buildClosingSummary, confirmClosing, getCashClosings, getSalesAfterClosing, saveClosingDraft } from '../../services/cash-closing.service.js?v=20260804-05';
-import { renderDashboardResumo } from '../../components/dashboard-resumo.component.js?v=20260804-05';
-import { renderGraficosFinanceiros } from '../../components/graficos-financeiros.component.js?v=20260804-05';
-import { renderAnaliseProdutos } from '../../components/analise-produtos.component.js?v=20260804-05';
-import { renderEntradasSaidas } from '../../components/entradas-saidas.component.js?v=20260804-05';
-import { renderHistoricoFechamentos } from '../../components/historico-fechamentos.component.js?v=20260804-05';
-import { formatCurrency } from '../../utils/currency.js?v=20260804-05';
-import { showNotification } from '../../services/notification.service.js?v=20260804-05';
-import { getTransactionSyncStatus } from '../../services/transaction.service.js?v=20260804-05';
-import { UI_EVENTS } from '../../database/schema.js?v=20260804-05';
-import { on } from '../../services/event-bus.service.js?v=20260804-05';
-import { escapeHtml } from '../../utils/dom.js?v=20260804-05';
+} from '../../services/crm-dashboard.service.js?v=20260804-06';
+import { buildClosingSummary, confirmClosing, getCashClosings, getSalesAfterClosing, saveClosingDraft } from '../../services/cash-closing.service.js?v=20260804-06';
+import { renderDashboardResumo } from '../../components/dashboard-resumo.component.js?v=20260804-06';
+import { renderGraficosFinanceiros } from '../../components/graficos-financeiros.component.js?v=20260804-06';
+import { renderAnaliseProdutos } from '../../components/analise-produtos.component.js?v=20260804-06';
+import { renderEntradasSaidas } from '../../components/entradas-saidas.component.js?v=20260804-06';
+import { renderHistoricoFechamentos } from '../../components/historico-fechamentos.component.js?v=20260804-06';
+import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
+import { showNotification } from '../../services/notification.service.js?v=20260804-06';
+import { getTransactionSyncStatus } from '../../services/transaction.service.js?v=20260804-06';
+import { UI_EVENTS } from '../../database/schema.js?v=20260804-06';
+import { on } from '../../services/event-bus.service.js?v=20260804-06';
+import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
 
 const caixaState = {
   period: 'today',

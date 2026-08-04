@@ -1,5 +1,5 @@
-import { formatCurrency } from '../utils/currency.js?v=20260804-05';
-import { escapeHtml } from '../utils/dom.js?v=20260804-05';
+import { formatCurrency } from '../utils/currency.js?v=20260804-06';
+import { escapeHtml } from '../utils/dom.js?v=20260804-06';
 
 export function renderAnaliseProdutos({ productRanking, categoryRanking }) {
   const quantityRows = productRanking.byQuantity.slice(0, 6);

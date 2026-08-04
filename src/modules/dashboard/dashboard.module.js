@@ -6,12 +6,12 @@ import {
   getMoneySummary,
   getTransactions,
   registerCashMovement
-} from '../../services/transaction.service.js?v=20260804-05';
-import { getDashboardResumo } from '../../services/dashboard-resumo.service.js?v=20260804-05';
-import { formatCurrency } from '../../utils/currency.js?v=20260804-05';
-import { showNotification } from '../../services/notification.service.js?v=20260804-05';
-import { hydrateOnlineOperationalData } from '../../services/online-data.service.js?v=20260804-05';
-import { escapeHtml } from '../../utils/dom.js?v=20260804-05';
+} from '../../services/transaction.service.js?v=20260804-06';
+import { getDashboardResumo } from '../../services/dashboard-resumo.service.js?v=20260804-06';
+import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
+import { showNotification } from '../../services/notification.service.js?v=20260804-06';
+import { hydrateOnlineOperationalData } from '../../services/online-data.service.js?v=20260804-06';
+import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
 
 const dashboardState = {
   modal: null,

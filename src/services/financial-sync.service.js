@@ -1,15 +1,15 @@
-import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260804-05';
-import { emit } from './event-bus.service.js?v=20260804-05';
-import { getSupabaseClient } from './supabase-client.service.js?v=20260804-05';
-import { getSupabaseRestClient } from './supabase-rest-client.service.js?v=20260804-05';
-import { saleAdapter } from './repositories/sale.adapter.js?v=20260804-05';
-import { saleItemAdapter } from './repositories/sale-item.adapter.js?v=20260804-05';
-import { cashMovementAdapter } from './repositories/cash-movement.adapter.js?v=20260804-05';
-import { commandAdapter } from './repositories/command.adapter.js?v=20260804-05';
-import { commandItemAdapter } from './repositories/command-item.adapter.js?v=20260804-05';
-import { cashClosingAdapter } from './repositories/cash-closing.adapter.js?v=20260804-05';
-import { financialCategoryAdapter } from './repositories/financial-category.adapter.js?v=20260804-05';
-import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js?v=20260804-05';
+import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260804-06';
+import { emit } from './event-bus.service.js?v=20260804-06';
+import { getSupabaseClient } from './supabase-client.service.js?v=20260804-06';
+import { getSupabaseRestClient } from './supabase-rest-client.service.js?v=20260804-06';
+import { saleAdapter } from './repositories/sale.adapter.js?v=20260804-06';
+import { saleItemAdapter } from './repositories/sale-item.adapter.js?v=20260804-06';
+import { cashMovementAdapter } from './repositories/cash-movement.adapter.js?v=20260804-06';
+import { commandAdapter } from './repositories/command.adapter.js?v=20260804-06';
+import { commandItemAdapter } from './repositories/command-item.adapter.js?v=20260804-06';
+import { cashClosingAdapter } from './repositories/cash-closing.adapter.js?v=20260804-06';
+import { financialCategoryAdapter } from './repositories/financial-category.adapter.js?v=20260804-06';
+import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js?v=20260804-06';
 
 const FINANCIAL_TABLES = [
   commandAdapter.table,
@@ -528,7 +528,13 @@ async function writeMovementCancellation(client, { movementId, canceledAt }) {
 }
 
 async function selectRows(client, adapter) {
-  const initialQuery = client.from(adapter.table).select(adapter.select || '*');
+  const initialTable = client.from(adapter.table);
+
+  if (typeof initialTable?.selectRange === 'function') {
+    return selectRestRows(client, adapter);
+  }
+
+  const initialQuery = initialTable.select(adapter.select || '*');
 
   if (typeof initialQuery?.range !== 'function') {
     const { data, error } = await initialQuery;
@@ -546,6 +552,30 @@ async function selectRows(client, adapter) {
   while (true) {
     const query = client.from(adapter.table).select(adapter.select || '*');
     const { data, error } = await query.range(offset, offset + SELECT_PAGE_SIZE - 1);
+
+    if (error) {
+      throw error;
+    }
+
+    const page = Array.isArray(data) ? data : [];
+    rows.push(...page);
+
+    if (page.length < SELECT_PAGE_SIZE) {
+      return rows;
+    }
+
+    offset += SELECT_PAGE_SIZE;
+  }
+}
+
+async function selectRestRows(client, adapter) {
+  const rows = [];
+  let offset = 0;
+
+  while (true) {
+    const { data, error } = await client
+      .from(adapter.table)
+      .selectRange(adapter.select || '*', offset, offset + SELECT_PAGE_SIZE - 1);
 
     if (error) {
       throw error;

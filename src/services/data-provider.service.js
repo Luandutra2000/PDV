@@ -1,7 +1,7 @@
-import { getDataProviderMode, isSupabaseEnabled } from './app-config.service.js?v=20260804-05';
-import { getSupabaseClient } from './supabase-client.service.js?v=20260804-05';
-import { createLocalProvider } from './providers/local.provider.js?v=20260804-05';
-import { createSupabaseProvider } from './providers/supabase.provider.js?v=20260804-05';
+import { getDataProviderMode, isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
+import { getSupabaseClient } from './supabase-client.service.js?v=20260804-06';
+import { createLocalProvider } from './providers/local.provider.js?v=20260804-06';
+import { createSupabaseProvider } from './providers/supabase.provider.js?v=20260804-06';
 
 let localProvider;
 let supabaseProvider;
