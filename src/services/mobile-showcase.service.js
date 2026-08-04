@@ -1,5 +1,5 @@
-import { getProductionSalesComparison, getStockLaunches, getStockSummary } from './estoque.service.js?v=20260804-04';
-import { getTransactions } from './transaction.service.js?v=20260804-04';
+import { getProductionSalesComparison, getStockLaunches, getStockSummary } from './estoque.service.js?v=20260804-05';
+import { getTransactions } from './transaction.service.js?v=20260804-05';
 
 export function getMobileShowcaseSummary(filters = { period: 'today' }) {
   const normalizedFilters = { period: 'today', ...filters };

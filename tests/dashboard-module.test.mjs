@@ -26,7 +26,7 @@ globalThis.document = {
   }
 };
 
-const { formatHistoryItemQuantity } = await import('../src/modules/dashboard/dashboard.module.js?v=20260804-04');
+const { formatHistoryItemQuantity } = await import('../src/modules/dashboard/dashboard.module.js?v=20260804-05');
 
 assert(formatHistoryItemQuantity({ quantity: 2 }) === '2x', 'history should show the purchased quantity when item quantity is greater than one');
 assert(formatHistoryItemQuantity({ quantity: 1 }) === '1x', 'history should show one unit for single items');

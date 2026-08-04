@@ -1,15 +1,15 @@
-import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260804-04';
-import { emit } from './event-bus.service.js?v=20260804-04';
-import { getSupabaseClient } from './supabase-client.service.js?v=20260804-04';
-import { getSupabaseRestClient } from './supabase-rest-client.service.js?v=20260804-04';
-import { saleAdapter } from './repositories/sale.adapter.js?v=20260804-04';
-import { saleItemAdapter } from './repositories/sale-item.adapter.js?v=20260804-04';
-import { cashMovementAdapter } from './repositories/cash-movement.adapter.js?v=20260804-04';
-import { commandAdapter } from './repositories/command.adapter.js?v=20260804-04';
-import { commandItemAdapter } from './repositories/command-item.adapter.js?v=20260804-04';
-import { cashClosingAdapter } from './repositories/cash-closing.adapter.js?v=20260804-04';
-import { financialCategoryAdapter } from './repositories/financial-category.adapter.js?v=20260804-04';
-import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js?v=20260804-04';
+import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260804-05';
+import { emit } from './event-bus.service.js?v=20260804-05';
+import { getSupabaseClient } from './supabase-client.service.js?v=20260804-05';
+import { getSupabaseRestClient } from './supabase-rest-client.service.js?v=20260804-05';
+import { saleAdapter } from './repositories/sale.adapter.js?v=20260804-05';
+import { saleItemAdapter } from './repositories/sale-item.adapter.js?v=20260804-05';
+import { cashMovementAdapter } from './repositories/cash-movement.adapter.js?v=20260804-05';
+import { commandAdapter } from './repositories/command.adapter.js?v=20260804-05';
+import { commandItemAdapter } from './repositories/command-item.adapter.js?v=20260804-05';
+import { cashClosingAdapter } from './repositories/cash-closing.adapter.js?v=20260804-05';
+import { financialCategoryAdapter } from './repositories/financial-category.adapter.js?v=20260804-05';
+import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js?v=20260804-05';
 
 const FINANCIAL_TABLES = [
   commandAdapter.table,
@@ -23,6 +23,9 @@ const FINANCIAL_TABLES = [
 ];
 const REALTIME_HYDRATE_DELAY_MS = 600;
 const SELECT_PAGE_SIZE = 1000;
+const MEMORY_CACHE_GLOBAL = '__PDV_MEMORY_CACHE__';
+const MAX_PERSISTED_VALUE_LENGTH = 2_000_000;
+const LARGE_ARRAY_PERSIST_LIMIT = 1000;
 
 let getClientOverride = null;
 let realtimeChannel = null;
@@ -975,18 +978,26 @@ function writeQueue(queue) {
 }
 
 function readJson(key, fallback) {
+  const memoryCache = getMemoryCache();
   if (!globalThis.localStorage) {
-    return fallback;
+    return memoryCache.has(key) ? memoryCache.get(key) : fallback;
   }
 
   const rawValue = globalThis.localStorage.getItem(key);
 
   if (rawValue === null) {
+    memoryCache.delete(key);
     return fallback;
   }
 
+  if (memoryCache.has(key)) {
+    return memoryCache.get(key);
+  }
+
   try {
-    return JSON.parse(rawValue);
+    const value = JSON.parse(rawValue);
+    memoryCache.set(key, value);
+    return value;
   } catch (error) {
     console.warn(`Valor local invalido para ${key}.`, error);
     return fallback;
@@ -994,12 +1005,34 @@ function readJson(key, fallback) {
 }
 
 function writeJson(key, value) {
+  getMemoryCache().set(key, value);
+
   if (!globalThis.localStorage) {
     return value;
   }
 
-  globalThis.localStorage.setItem(key, JSON.stringify(value));
+  const serialized = serializeForLocalStorage(value);
+  try {
+    globalThis.localStorage.setItem(key, serialized);
+  } catch (error) {
+    console.warn(`Limite de armazenamento local atingido para ${key}; mantendo dados completos em memoria.`, error);
+  }
   return value;
+}
+
+function serializeForLocalStorage(value) {
+  const serialized = JSON.stringify(value);
+  if (serialized.length <= MAX_PERSISTED_VALUE_LENGTH || !Array.isArray(value)) {
+    return serialized;
+  }
+  return JSON.stringify(value.slice(0, LARGE_ARRAY_PERSIST_LIMIT));
+}
+
+function getMemoryCache() {
+  if (!(globalThis[MEMORY_CACHE_GLOBAL] instanceof Map)) {
+    globalThis[MEMORY_CACHE_GLOBAL] = new Map();
+  }
+  return globalThis[MEMORY_CACHE_GLOBAL];
 }
 
 function createStatus(state = 'idle', pending = 0, error = '') {

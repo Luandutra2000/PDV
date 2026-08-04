@@ -1,4 +1,4 @@
-import { STORAGE_KEYS } from '../../database/schema.js?v=20260804-04';
+import { STORAGE_KEYS } from '../../database/schema.js?v=20260804-05';
 
 export const showcaseMovementAdapter = {
   table: 'showcase_movements',

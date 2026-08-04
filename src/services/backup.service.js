@@ -1,5 +1,5 @@
-import { STORAGE_KEYS } from '../database/schema.js?v=20260804-04';
-import { getItem, setItem } from './storage.service.js?v=20260804-04';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260804-05';
+import { getItem, setItem } from './storage.service.js?v=20260804-05';
 
 const BACKUP_VERSION = 1;
 const BACKUP_KEYS = Object.freeze([...new Set(Object.values(STORAGE_KEYS))]);

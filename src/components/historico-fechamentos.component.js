@@ -1,4 +1,4 @@
-import { formatCurrency } from '../utils/currency.js?v=20260804-04';
+import { formatCurrency } from '../utils/currency.js?v=20260804-05';
 
 export function renderHistoricoFechamentos(closings, getSalesAfterClosing) {
   if (!closings.length) {

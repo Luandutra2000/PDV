@@ -1,4 +1,4 @@
-import { hasPermission } from '../services/permission.service.js?v=20260804-04';
+import { hasPermission } from '../services/permission.service.js?v=20260804-05';
 
 const menuGroups = [
   {

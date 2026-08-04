@@ -21,8 +21,8 @@ const assert = (condition, message) => {
   }
 };
 
-const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-04');
-const financial = await import('../src/services/financial-sync.service.js?v=20260804-04');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-05');
+const financial = await import('../src/services/financial-sync.service.js?v=20260804-05');
 
 const calls = [];
 let failTable = '';

@@ -1,19 +1,19 @@
-import { getCurrentUser, getUsers } from '../../services/auth.service.js?v=20260804-04';
-import { getAuditLogs, recordAudit } from '../../services/audit.service.js?v=20260804-04';
+import { getCurrentUser, getUsers } from '../../services/auth.service.js?v=20260804-05';
+import { getAuditLogs, recordAudit } from '../../services/audit.service.js?v=20260804-05';
 import {
   createManagedUser,
   deleteManagedUser,
   loadManagedUsers,
   updateManagedUser,
   saveManagedPermissionChecklist
-} from '../../services/user-admin.service.js?v=20260804-04';
+} from '../../services/user-admin.service.js?v=20260804-05';
 import {
   PERMISSIONS,
   getRolePermissions,
   getUserPermissionOverride,
   hasPermission,
   normalizeRole
-} from '../../services/permission.service.js?v=20260804-04';
+} from '../../services/permission.service.js?v=20260804-05';
 
 const ROLE_OPTIONS = [
   { value: 'admin', label: 'Administrador' },
