@@ -19,6 +19,7 @@
 | Carga ampla | 10.000 casos/50.000 gravações em produção | aprovado |
 | Integridade da carga | 12.500 registros em cada uma das quatro tabelas | aprovado |
 | Escala no navegador | totals de 12.500 vendas hidratados integralmente | aprovado após correções |
+| Limpeza pós-teste | carga de 50.000 operações e registros QA funcionais | aprovado; zero registros restantes |
 | App do Dono | total, caixa e feed sob carga | aprovado |
 | Recuperação | restauração integral do backup | pendente em ambiente isolado |
 | Equipamentos | impressão e pagamentos externos | pendente |

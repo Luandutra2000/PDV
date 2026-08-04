@@ -16,7 +16,7 @@
 ## Ambiente
 
 - Produção: `https://pdv-qdelicia.vercel.app/`.
-- Deploy validado: `dpl_EHj8jUpiCvd5SN3DRWvXVgxPtW7y`, estado `READY`.
+- Deploy final pós-limpeza: `dpl_EAKd9aZapN7xrAA63zEsTJHN7JoJ`, estado `READY`.
 - GitHub: branch `feature/fechamento-caixa`, commit funcional `b33ee06`.
 - Backend: Supabase em produção.
 - Navegador: navegador real integrado ao Codex, com sessão administrativa autenticada.
@@ -35,7 +35,7 @@
 - Tempos dos estágios: 1.015 ms, 835 ms e 2.241 ms; maior latência de lote observada: 177 ms.
 - Valor adicional controlado: R$ 125,00 em Pix (12.500 vendas de R$ 0,01).
 - Manifesto: `backups/load-tests/qa50k-20260804a.json`.
-- Os dados permanecem em produção por decisão do usuário e podem ser removidos de forma seletiva pelo identificador do teste.
+- Os dados da carga foram removidos seletivamente após a aprovação do usuário. A verificação final retornou zero registros do identificador `qa50k-20260804a`.
 
 ## Validação no navegador após as correções
 
@@ -60,6 +60,14 @@
 - Exclusão administrativa por diálogo interno, sem invalidar a sessão.
 - Layout verificado em 375×812 e 768×1024.
 - Segurança, XSS, permissões, convergência offline, realtime e jornada crítica cobertos pela suíte.
+
+## Limpeza pós-teste
+
+- Removidas as 50.000 gravações da carga `qa50k-20260804a` em ordem segura de dependência.
+- Removidos também todos os dados funcionais marcados como QA: 3 produtos, 2 categorias, 8 vendas, 8 comandas, 5 movimentos de caixa, 6 transações financeiras, 2 lançamentos de produção, 3 saldos de produto e 11 movimentos de vitrine.
+- A conferência final retornou zero registros QA nas tabelas verificadas.
+- O endpoint administrativo temporário usado para os registros protegidos foi removido e a aplicação normal foi republicada.
+- Validação final no navegador: caixa, vitrine estimada, total vendido, entradas e saídas em R$ 0,00; categorias e produtos `[QA]` ausentes.
 
 ## Limites ainda pendentes
 

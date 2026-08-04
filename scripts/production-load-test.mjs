@@ -252,16 +252,43 @@ async function countRows(table, column, targetPrefix) {
 }
 
 async function deleteRows(table, column, targetPrefix) {
-  const url = new URL(`${restUrl}/${table}`);
-  url.searchParams.set(column, `like.${targetPrefix}*`);
-  const response = await fetch(url, {
-    method: 'DELETE',
-    headers,
-    signal: AbortSignal.timeout(60000)
-  });
-  if (!response.ok) {
-    throw new Error(`Limpeza ${table}: HTTP ${response.status} ${await response.text()}`);
+  const cleanupBatchSize = 200;
+
+  while (true) {
+    const selectUrl = new URL(`${restUrl}/${table}`);
+    selectUrl.searchParams.set(column, `like.${targetPrefix}*`);
+    selectUrl.searchParams.set('select', 'id');
+    selectUrl.searchParams.set('limit', String(cleanupBatchSize));
+    const selectResponse = await fetch(selectUrl, {
+      headers,
+      signal: AbortSignal.timeout(30000)
+    });
+
+    if (!selectResponse.ok) {
+      throw new Error(`Selecao para limpeza ${table}: HTTP ${selectResponse.status} ${await selectResponse.text()}`);
+    }
+
+    const rows = await selectResponse.json();
+    if (!rows.length) {
+      return;
+    }
+
+    const deleteUrl = new URL(`${restUrl}/${table}`);
+    deleteUrl.searchParams.set('id', `in.(${rows.map((row) => quoteFilterValue(row.id)).join(',')})`);
+    const deleteResponse = await fetch(deleteUrl, {
+      method: 'DELETE',
+      headers,
+      signal: AbortSignal.timeout(30000)
+    });
+
+    if (!deleteResponse.ok) {
+      throw new Error(`Limpeza ${table}: HTTP ${deleteResponse.status} ${await deleteResponse.text()}`);
+    }
   }
+}
+
+function quoteFilterValue(value) {
+  return `"${String(value).replace(/"/g, '\\"')}"`;
 }
 
 function assertCounts(counts, expected) {
