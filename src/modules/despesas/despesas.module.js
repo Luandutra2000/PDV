@@ -1,4 +1,4 @@
-import { formatCurrency } from '../../utils/currency.js?v=20260804-01';
+import { formatCurrency } from '../../utils/currency.js?v=20260804-02';
 import {
   buildFinancialCrm,
   createFinancialTransaction,
@@ -9,11 +9,11 @@ import {
   markFinancialTransactionPaid,
   seedFinancialCategories,
   upsertFinancialTransaction
-} from '../../services/financial.service.js?v=20260804-01';
-import { showNotification } from '../../services/notification.service.js?v=20260804-01';
-import { getCurrentUser } from '../../services/auth.service.js?v=20260804-01';
-import { hasPermission } from '../../services/permission.service.js?v=20260804-01';
-import { escapeHtml } from '../../utils/dom.js?v=20260804-01';
+} from '../../services/financial.service.js?v=20260804-02';
+import { showNotification } from '../../services/notification.service.js?v=20260804-02';
+import { getCurrentUser } from '../../services/auth.service.js?v=20260804-02';
+import { hasPermission } from '../../services/permission.service.js?v=20260804-02';
+import { escapeHtml } from '../../utils/dom.js?v=20260804-02';
 
 const DEFAULT_FILTERS = {
   period: 'today',

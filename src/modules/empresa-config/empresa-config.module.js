@@ -4,7 +4,7 @@ import {
   saveCompanySettings,
   uploadCompanyLogo,
   validateCompanySettings
-} from '../../services/empresa-config.service.js?v=20260804-01';
+} from '../../services/empresa-config.service.js?v=20260804-02';
 
 const boundContainers = new WeakSet();
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;

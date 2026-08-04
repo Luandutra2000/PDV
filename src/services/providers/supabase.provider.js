@@ -1,5 +1,5 @@
-import { STORAGE_KEYS } from '../../database/schema.js?v=20260804-01';
-import { createLocalProvider } from './local.provider.js?v=20260804-01';
+import { STORAGE_KEYS } from '../../database/schema.js?v=20260804-02';
+import { createLocalProvider } from './local.provider.js?v=20260804-02';
 
 const TABLE_MAPPERS = {
   [STORAGE_KEYS.categories]: {

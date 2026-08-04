@@ -1,4 +1,4 @@
-import { login } from '../../services/auth.service.js?v=20260804-01';
+import { login } from '../../services/auth.service.js?v=20260804-02';
 
 export function renderLoginModule(container, onSuccess, options = {}) {
   container.innerHTML = `

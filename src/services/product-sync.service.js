@@ -1,9 +1,9 @@
-import { UI_EVENTS } from '../database/schema.js?v=20260804-01';
-import { getSupabaseClient } from './supabase-client.service.js?v=20260804-01';
-import { emit } from './event-bus.service.js?v=20260804-01';
-import { createEntitySyncRepository } from './repositories/entity-sync.repository.js?v=20260804-01';
-import { categoryAdapter } from './repositories/category.adapter.js?v=20260804-01';
-import { productAdapter } from './repositories/product.adapter.js?v=20260804-01';
+import { UI_EVENTS } from '../database/schema.js?v=20260804-02';
+import { getSupabaseClient } from './supabase-client.service.js?v=20260804-02';
+import { emit } from './event-bus.service.js?v=20260804-02';
+import { createEntitySyncRepository } from './repositories/entity-sync.repository.js?v=20260804-02';
+import { categoryAdapter } from './repositories/category.adapter.js?v=20260804-02';
+import { productAdapter } from './repositories/product.adapter.js?v=20260804-02';
 
 let categoryRepository = null;
 let productRepository = null;

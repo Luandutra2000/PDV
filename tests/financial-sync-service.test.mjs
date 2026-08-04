@@ -21,8 +21,8 @@ const assert = (condition, message) => {
   }
 };
 
-const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-01');
-const financial = await import('../src/services/financial-sync.service.js?v=20260804-01');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-02');
+const financial = await import('../src/services/financial-sync.service.js?v=20260804-02');
 
 const calls = [];
 let failTable = '';
@@ -222,6 +222,41 @@ await financial.saveFinancialTransactionToSupabase({
   updatedAt: '2026-06-10T10:00:00.000Z'
 });
 assert(calls.find((call) => call.table === 'financial_transactions'), 'financial transaction should write financial_transactions');
+
+failTable = 'financial_transactions';
+await financial.saveFinancialTransactionToSupabase({
+  id: 'fin-queued-a',
+  type: 'income',
+  description: 'Entrada offline A',
+  amount: 10.01,
+  status: 'paid',
+  transactionDate: '2026-06-10',
+  createdAt: '2026-06-10T11:00:00.000Z',
+  updatedAt: '2026-06-10T11:00:00.000Z'
+});
+await financial.saveFinancialTransactionToSupabase({
+  id: 'fin-queued-b',
+  type: 'income',
+  description: 'Entrada offline B',
+  amount: 1.11,
+  status: 'paid',
+  transactionDate: '2026-06-10',
+  createdAt: '2026-06-10T11:01:00.000Z',
+  updatedAt: '2026-06-10T11:01:00.000Z'
+});
+const queuedFinancialTransactions = JSON.parse(localStorage.getItem(STORAGE_KEYS.financialSyncQueue))
+  .filter((operation) => operation.action === 'saveFinancialTransaction');
+assert(queuedFinancialTransactions.length === 2, 'offline financial transactions should keep one queue entry per transaction id');
+assert(
+  queuedFinancialTransactions.map((operation) => operation.transaction.id).sort().join(',') === 'fin-queued-a,fin-queued-b',
+  'offline financial queue should retain every distinct transaction'
+);
+
+failTable = '';
+await financial.flushFinancialQueue();
+assert(countRowsById('financial_transactions', 'fin-queued-a') === 1, 'flush should persist first queued financial transaction');
+assert(countRowsById('financial_transactions', 'fin-queued-b') === 1, 'flush should persist second queued financial transaction');
+assert(financial.getFinancialSyncStatus().pending === 0, 'flush should clear queued financial transactions');
 
 await financial.startFinancialRealtime();
 rows.cash_movements.push({

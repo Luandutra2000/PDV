@@ -4,8 +4,8 @@ const assert = (condition, message) => {
   }
 };
 
-const productAdapter = await import('../src/services/repositories/product.adapter.js?v=20260804-01');
-const categoryAdapter = await import('../src/services/repositories/category.adapter.js?v=20260804-01');
+const productAdapter = await import('../src/services/repositories/product.adapter.js?v=20260804-02');
+const categoryAdapter = await import('../src/services/repositories/category.adapter.js?v=20260804-02');
 
 const productRow = productAdapter.toRow({
   id: 'x-burger',

@@ -21,15 +21,15 @@ const assert = (condition, message) => {
   }
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260804-01');
-const products = await import('../src/services/product.service.js?v=20260804-01');
-const comandas = await import('../src/services/comanda.service.js?v=20260804-01');
-const transactions = await import('../src/services/transaction.service.js?v=20260804-01');
-const estoque = await import('../src/services/estoque.service.js?v=20260804-01');
-const cashFlow = await import('../src/services/mobile-cash-flow.service.js?v=20260804-01');
-const auth = await import('../src/services/auth.service.js?v=20260804-01');
-const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-01');
-const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-01');
+const storage = await import('../src/services/storage.service.js?v=20260804-02');
+const products = await import('../src/services/product.service.js?v=20260804-02');
+const comandas = await import('../src/services/comanda.service.js?v=20260804-02');
+const transactions = await import('../src/services/transaction.service.js?v=20260804-02');
+const estoque = await import('../src/services/estoque.service.js?v=20260804-02');
+const cashFlow = await import('../src/services/mobile-cash-flow.service.js?v=20260804-02');
+const auth = await import('../src/services/auth.service.js?v=20260804-02');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-02');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-02');
 
 storage.resetAppData();
 seedTestAdmin(storage, STORAGE_KEYS);
@@ -60,7 +60,7 @@ assert(summary.cards.length === 5, 'cash flow should expose five dashboard cards
 const yesterday = new Date();
 yesterday.setDate(yesterday.getDate() - 1);
 
-storage.setItem((await import('../src/database/schema.js?v=20260804-01')).STORAGE_KEYS.transactions, [
+storage.setItem((await import('../src/database/schema.js?v=20260804-02')).STORAGE_KEYS.transactions, [
   ...transactions.getTransactions(),
   {
     id: 'sale-yesterday',

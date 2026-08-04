@@ -21,16 +21,16 @@ const assert = (condition, message) => {
   }
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260804-01');
-const products = await import('../src/services/product.service.js?v=20260804-01');
-const comandas = await import('../src/services/comanda.service.js?v=20260804-01');
-const transactions = await import('../src/services/transaction.service.js?v=20260804-01');
-const closing = await import('../src/services/cash-closing.service.js?v=20260804-01');
-const financialSync = await import('../src/services/financial-sync.service.js?v=20260804-01');
-const mobileClosing = await import('../src/services/mobile-closing.service.js?v=20260804-01');
-const auth = await import('../src/services/auth.service.js?v=20260804-01');
-const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-01');
-const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-01');
+const storage = await import('../src/services/storage.service.js?v=20260804-02');
+const products = await import('../src/services/product.service.js?v=20260804-02');
+const comandas = await import('../src/services/comanda.service.js?v=20260804-02');
+const transactions = await import('../src/services/transaction.service.js?v=20260804-02');
+const closing = await import('../src/services/cash-closing.service.js?v=20260804-02');
+const financialSync = await import('../src/services/financial-sync.service.js?v=20260804-02');
+const mobileClosing = await import('../src/services/mobile-closing.service.js?v=20260804-02');
+const auth = await import('../src/services/auth.service.js?v=20260804-02');
+const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-02');
+const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-02');
 
 storage.resetAppData();
 seedTestAdmin(storage, STORAGE_KEYS);

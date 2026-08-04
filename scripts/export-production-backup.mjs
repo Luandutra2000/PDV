@@ -1,12 +1,13 @@
 import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const productionUrl = process.argv[2];
 const outputDirectory = process.argv[3];
+const environmentFile = process.argv[4];
 
 if (!productionUrl || !outputDirectory) {
-  throw new Error('Uso: node scripts/export-production-backup.mjs <url-producao> <diretorio-saida>');
+  throw new Error('Uso: node scripts/export-production-backup.mjs <url-producao> <diretorio-saida> [arquivo-env]');
 }
 
 const tables = [
@@ -50,12 +51,18 @@ if (config.dataProvider !== 'supabase' || !config.supabaseUrl || !config.supabas
   throw new Error('Producao nao esta configurada para Supabase.');
 }
 
+const protectedEnvironment = environmentFile ? parseEnvironment(await readFile(resolve(environmentFile), 'utf8')) : {};
+const apiKey = protectedEnvironment.SUPABASE_SERVICE_ROLE_KEY
+  || protectedEnvironment.VITE_SUPABASE_ANON_KEY
+  || protectedEnvironment.SUPABASE_ANON_KEY
+  || config.supabaseAnonKey;
+
 const destination = resolve(outputDirectory);
 await mkdir(destination, { recursive: true });
 
 const headers = {
-  apikey: config.supabaseAnonKey,
-  Authorization: `Bearer ${config.supabaseAnonKey}`,
+  apikey: apiKey,
+  Authorization: `Bearer ${apiKey}`,
   Accept: 'application/json'
 };
 const manifest = {
@@ -112,4 +119,17 @@ const unavailable = manifest.tables.filter((entry) => entry.status !== 'exported
 process.stdout.write(`Backup concluido: ${exported.length} tabelas, ${exported.reduce((sum, entry) => sum + entry.rows, 0)} registros.\n`);
 if (unavailable.length) {
   process.stdout.write(`Tabelas indisponiveis: ${unavailable.map((entry) => entry.table).join(', ')}\n`);
+}
+
+function parseEnvironment(source) {
+  return Object.fromEntries(String(source || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('#') && line.includes('='))
+    .map((line) => {
+      const separator = line.indexOf('=');
+      const key = line.slice(0, separator).trim();
+      const value = line.slice(separator + 1).trim().replace(/^(['"])(.*)\1$/, '$2');
+      return [key, value];
+    }));
 }

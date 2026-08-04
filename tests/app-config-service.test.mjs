@@ -10,7 +10,7 @@ globalThis.__PDV_RUNTIME_CONFIG__ = {
   supabaseAnonKey: ''
 };
 
-const config = await import('../src/services/app-config.service.js?v=20260804-01');
+const config = await import('../src/services/app-config.service.js?v=20260804-02');
 
 assert(config.getDataProviderMode() === 'local', 'default provider should be local');
 assert(config.isSupabaseEnabled() === false, 'supabase should be disabled without URL and key');

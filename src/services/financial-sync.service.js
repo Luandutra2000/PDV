@@ -1,15 +1,15 @@
-import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260804-01';
-import { emit } from './event-bus.service.js?v=20260804-01';
-import { getSupabaseClient } from './supabase-client.service.js?v=20260804-01';
-import { getSupabaseRestClient } from './supabase-rest-client.service.js?v=20260804-01';
-import { saleAdapter } from './repositories/sale.adapter.js?v=20260804-01';
-import { saleItemAdapter } from './repositories/sale-item.adapter.js?v=20260804-01';
-import { cashMovementAdapter } from './repositories/cash-movement.adapter.js?v=20260804-01';
-import { commandAdapter } from './repositories/command.adapter.js?v=20260804-01';
-import { commandItemAdapter } from './repositories/command-item.adapter.js?v=20260804-01';
-import { cashClosingAdapter } from './repositories/cash-closing.adapter.js?v=20260804-01';
-import { financialCategoryAdapter } from './repositories/financial-category.adapter.js?v=20260804-01';
-import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js?v=20260804-01';
+import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260804-02';
+import { emit } from './event-bus.service.js?v=20260804-02';
+import { getSupabaseClient } from './supabase-client.service.js?v=20260804-02';
+import { getSupabaseRestClient } from './supabase-rest-client.service.js?v=20260804-02';
+import { saleAdapter } from './repositories/sale.adapter.js?v=20260804-02';
+import { saleItemAdapter } from './repositories/sale-item.adapter.js?v=20260804-02';
+import { cashMovementAdapter } from './repositories/cash-movement.adapter.js?v=20260804-02';
+import { commandAdapter } from './repositories/command.adapter.js?v=20260804-02';
+import { commandItemAdapter } from './repositories/command-item.adapter.js?v=20260804-02';
+import { cashClosingAdapter } from './repositories/cash-closing.adapter.js?v=20260804-02';
+import { financialCategoryAdapter } from './repositories/financial-category.adapter.js?v=20260804-02';
+import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js?v=20260804-02';
 
 const FINANCIAL_TABLES = [
   commandAdapter.table,
@@ -932,6 +932,7 @@ function getOperationKey(operation) {
   const entityId = operation.sale?.id
     || operation.movement?.id
     || operation.closing?.id
+    || operation.transaction?.id
     || operation.saleId
     || operation.movementId
     || operation.id

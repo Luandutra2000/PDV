@@ -1,5 +1,5 @@
-import { STORAGE_KEYS } from '../database/schema.js?v=20260804-01';
-import { getItem, setItem } from './storage.service.js?v=20260804-01';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260804-02';
+import { getItem, setItem } from './storage.service.js?v=20260804-02';
 
 export const ELECTRONIC_PAYMENT_METHODS = Object.freeze(['pix', 'debito', 'credito']);
 export const PAYMENT_STATUSES = Object.freeze({
