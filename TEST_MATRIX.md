@@ -16,7 +16,7 @@
 | Realtime | entrada refletida em outra aba | aprovado em 293 ms |
 | Autenticação | sessão restaurada após recarga | aprovado |
 | Pessoas | criar administrador QA | aprovado |
-| Pessoas | excluir administrador QA | pendente de confirmar diálogo nativo |
+| Pessoas | excluir administrador QA com confirmação interna | aprovado; 4 → 3 usuários |
 | Responsividade | 375×812 | aprovado |
 | Responsividade | 768×1024 | aprovado |
 | Segurança | permissões, XSS e resiliência automatizados | aprovado |

@@ -8,15 +8,15 @@
 | Bugs P1 encontrados nesta rodada | 2 |
 | Bugs P1 corrigidos, publicados e retestados | 2/2 |
 | HTTP de produção | 200 |
-| Versão validada | `20260804-03` / `pdv-v75` |
+| Versão validada | `20260804-03` / `pdv-v76` |
 | Verificação leve de latência | 20 GETs; média 57,6 ms; p95 66,3 ms; p99 234,1 ms |
-| Pendência operacional | confirmação nativa da exclusão do usuário QA |
+| Exclusão administrativa | aprovada; 4 → 3 usuários, sem erro de sessão |
 
 ## Ambiente
 
 - Produção: `https://pdv-qdelicia.vercel.app/`.
-- Deploy: `dpl_2TtuWkdeY7896mnfcPtafeDMS4EW`, estado `READY`.
-- GitHub: branch `feature/fechamento-caixa`, commit `fa60c91`.
+- Deploy: `dpl_5mt4GwHJxwjiF7CYbQFgJo5HyGoR`, estado `READY`.
+- GitHub: branch `feature/fechamento-caixa`, commit funcional `0a4191b`.
 - Backend: Supabase em produção.
 - Navegador: navegador real integrado ao Codex, com sessão administrativa autenticada.
 - Backup pré-teste: `backups/production-2026-08-04-pre-retest`.
@@ -35,6 +35,7 @@
 - O Financeiro final exibiu entradas de R$ 16,67, saídas de R$ 3,21 e saldo de R$ 13,46 para o período.
 - Sessão autenticada sobreviveu a recargas completas.
 - Layout funcional verificado em 375×812 e 768×1024; navegação, produto e comanda permaneceram acessíveis.
+- A confirmação nativa de exclusão foi substituída por diálogo interno acessível. O administrador `[QA] Admin Delete 20260804` foi excluído; a lista caiu de 4 para 3 usuários e não exibiu erro de sessão.
 - Testes automatizados de segurança, XSS, permissões, convergência offline, realtime e jornada crítica passaram dentro da suíte 46/46.
 
 ## Correções publicadas
@@ -42,7 +43,8 @@
 1. Sincronização do estoque inicial/alterado do cadastro de produto com a vitrine (`e1989af`).
 2. Chave única da fila financeira passou a incluir `operation.transaction.id`, impedindo que lançamentos distintos se sobrescrevam (`fa60c91`).
 3. Testes de regressão adicionados para estoque e para múltiplos lançamentos financeiros offline.
-4. Exportador de backup passou a aceitar opcionalmente um arquivo de ambiente com credencial protegida.
+4. Confirmação de exclusão de usuários passou a ocorrer dentro da interface, eliminando o bloqueio do diálogo nativo (`0a4191b`).
+5. Exportador de backup passou a aceitar opcionalmente um arquivo de ambiente com credencial protegida.
 
 ## Dados de QA mantidos
 
@@ -51,7 +53,6 @@
 - Venda ativa de R$ 12,84.
 - Entradas de R$ 10,01, R$ 1,11, R$ 2,22 e R$ 3,33.
 - Saída de R$ 3,21.
-- Usuário `[QA] Admin Delete 20260804` até a confirmação final da exclusão.
 
 ## Limites não executados em produção
 
@@ -59,4 +60,4 @@ Não foi aplicada carga destrutiva de 10.000 cenários/50.000 operações, nem r
 
 ## Parecer
 
-As duas regressões P1 descobertas nesta rodada foram corrigidas, testadas, publicadas e validadas no navegador de produção. O sistema está **aprovado com ressalvas** para uso controlado; a promoção a uso irrestrito depende dos ensaios de carga/recuperação em homologação e da conclusão visual da exclusão do usuário QA.
+As duas regressões P1 descobertas nesta rodada e o fluxo de exclusão administrativa foram corrigidos, testados, publicados e validados no navegador de produção. O sistema está **aprovado com ressalvas** para uso controlado; a promoção a uso irrestrito depende dos ensaios de carga e recuperação em homologação.

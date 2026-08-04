@@ -32,7 +32,10 @@
 ## BUG-010 — Sessão administrativa inválida ao excluir usuário
 
 - Severidade original: **P1**.
-- Estado atual: criação do administrador QA funcionou e a exclusão chegou ao diálogo nativo de confirmação sem apresentar o erro antecipadamente. A confirmação final do diálogo ficou pendente porque o controlador do navegador não consegue aceitar esse diálogo específico; deve ser concluída visualmente no navegador.
+- Status: **corrigido, publicado e retestado em produção**.
+- Correção complementar: o diálogo nativo foi substituído por uma confirmação interna acessível e testável.
+- Evidência: `[QA] Admin Delete 20260804` foi excluído, a lista passou de 4 para 3 usuários, a mensagem de sucesso apareceu e não houve “Sessão administrativa inválida”.
+- Commit complementar: `0a4191b`.
 
 ## Bugs anteriores
 
