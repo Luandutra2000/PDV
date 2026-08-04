@@ -1,71 +1,39 @@
-# Relatório de Bugs — 29/07/2026
+# Relatório de Bugs — 04/08/2026
 
-## Resumo final
+## Resumo
 
-- Bugs consolidados: 10.
-- Corrigidos e retestados: 10.
-- Abertos: 0.
 - Regressão automatizada: 46/46 aprovada.
-- Reteste direcionado na produção: 7/7 aprovado.
+- Bugs novos encontrados: 2 P1.
+- Bugs novos corrigidos, publicados e retestados: 2/2.
+- Bugs de código abertos desta rodada: 0.
 
-## Bugs corrigidos nesta rodada
-
-### BUG-010 — Sessão administrativa inválida ao gerenciar usuários
+## BUG-011 — Estoque inicial do produto não chegava à vitrine
 
 - Severidade: **P1**.
-- Status: **corrigido e implantado na produção**.
-- Causa: o módulo de Pessoas enviava o JWT antigo armazenado pelo aplicativo, mesmo quando o cliente Supabase já tinha uma sessão mais recente.
-- Correção: obter o token da sessão Supabase atual, atualizar o cache da aplicação e, em caso de HTTP 401, renovar a sessão e repetir a chamada uma única vez.
-- Correções complementares: contrato da Edge Function alinhado para listar, editar e excluir usuários; permissão dedicada `users.delete`; cache de usuários deixou de tentar uma sincronização inválida.
-- Segurança: quando nem a renovação é possível, o sistema solicita novo login em vez de manter uma sessão administrativa aparente.
+- Status: **corrigido, publicado e retestado em produção**.
+- Sintoma: o cadastro mostrava estoque 11 em Produtos, mas a Frente de Caixa mostrava estoque 0.
+- Causa: o formulário persistia o estoque do catálogo sem chamar a sincronização autoritativa de `product_stock`.
+- Correção: comparar o estoque informado com o estoque vivo e aplicar `adjustShowcaseStockOnline`, registrando valores anterior e atual na auditoria.
+- Evidência: `[QA] Produto Sync 20260804` foi criado com estoque 9 e apareceu imediatamente com estoque 9 na Frente de Caixa; a venda de duas unidades deixou estoque 7.
+- Commit: `e1989af`.
 
-### BUG-003 — XSS armazenado em produto
+## BUG-012 — Lançamentos financeiros distintos se sobrescreviam na fila
 
-- Severidade original: **P0**.
-- Status: **corrigido, implantado e retestado na produção**.
-- Evidência: o payload `<img src=x onerror=alert('QA-XSS-RETEST')>` foi salvo e renderizado apenas como texto literal, sem executar JavaScript. O nome original do produto foi restaurado em seguida.
-- Correção: escape consistente das informações persistidas nas superfícies de produtos, estoque e relatórios; arquivos internos e relatórios de QA também foram removidos do artefato público.
+- Severidade: **P1**.
+- Status: **corrigido, publicado e retestado em produção**.
+- Sintoma: o caixa continha a entrada `[QA] Entrada 20260804` de R$ 10,01, mas o Financeiro/Supabase não tinha o lançamento correspondente.
+- Causa: `getOperationKey()` ignorava `operation.transaction.id`; todas as gravações financeiras pendentes recebiam a chave vazia `saveFinancialTransaction:`.
+- Correção: incluir o ID da transação na chave de compactação da fila.
+- Regressão: duas transações offline distintas permanecem na fila e ambas são gravadas após o flush.
+- Evidência em produção: entradas consecutivas `[QA] Fila A 20260804` (R$ 2,22) e `[QA] Fila B 20260804` (R$ 3,33) persistiram e apareceram separadamente.
+- Reparação de dados: o lançamento antigo de R$ 10,01 foi recriado de modo idempotente com o mesmo `cash_movement_id`, sem alterar novamente o caixa.
+- Commit: `fa60c91`.
 
-### BUG-004 — Cancelamento não restaurava estoque remoto
-
-- Severidade original: **P1**.
-- Status: **corrigido, implantado e retestado na produção**.
-- Evidência: venda controlada reduziu o estoque de 26 para 25; o cancelamento criou “Estorno de venda” e restaurou 25 para 26. A inconsistência histórica anterior também foi reconciliada.
-- Correção: RPC transacional e idempotente `reverse_showcase_sale`, mais migração idempotente de reconciliação das vendas canceladas antigas.
-
-### BUG-005 — Fechamento calculava diferença incorreta
-
-- Severidade original: **P0**.
-- Status: **corrigido, implantado e retestado na produção**.
-- Evidência: dinheiro `-451,85`, Pix `42,35`, débito `130,35` e crédito `65,35` resultaram em diferença geral de `R$ 0,00`.
-- Correção: uma única fonte autoritativa para os valores exibidos e conferidos, cálculo em centavos e suporte explícito a dinheiro esperado negativo.
-
-### BUG-006 — Outra aba não atualizava os totais
+## BUG-010 — Sessão administrativa inválida ao excluir usuário
 
 - Severidade original: **P1**.
-- Status: **corrigido, implantado e retestado na produção**.
-- Evidência: uma venda em uma segunda aba atualizou automaticamente a primeira de `R$ 245,40` para `R$ 252,75` e o estoque de 26 para 25; o cancelamento voltou os valores para `R$ 245,40` e 26 sem clicar em Atualizar.
-- Correção: publicação das tabelas relevantes no Supabase Realtime e fallback de sincronização entre abas.
-
-### BUG-007 — Cancelar pagamento navegava para Produtos
-
-- Severidade original: **P2**.
-- Status: **corrigido, implantado e retestado na produção**.
-- Evidência: o modal foi cancelado, a aplicação permaneceu em Frente de Caixa e a comanda continuou intacta. A comanda de teste foi limpa depois.
-
-### BUG-008 — Histórico mostrava usuário `undefined`
-
-- Severidade original: **P2**.
-- Status: **corrigido, implantado e retestado na produção**.
-- Evidência: produção, baixas e estornos exibem o responsável `Luan`.
-
-### BUG-009 — Relatórios sem conteúdo operacional
-
-- Severidade original: **P1**.
-- Status: **corrigido, implantado e retestado na produção**.
-- Evidência: o módulo agora apresenta resumo financeiro, formas de pagamento, produtos mais vendidos, categorias e movimentações recentes por período.
+- Estado atual: criação do administrador QA funcionou e a exclusão chegou ao diálogo nativo de confirmação sem apresentar o erro antecipadamente. A confirmação final do diálogo ficou pendente porque o controlador do navegador não consegue aceitar esse diálogo específico; deve ser concluída visualmente no navegador.
 
 ## Bugs anteriores
 
-- BUG-001 — cache misturava módulos incompatíveis: corrigido.
-- BUG-002 — regressões automatizadas: corrigido; estado atual 46/46.
+- BUG-001 a BUG-009: permanecem corrigidos conforme a rodada de 29/07/2026.
