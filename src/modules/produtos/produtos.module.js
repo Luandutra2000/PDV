@@ -304,6 +304,7 @@ function bindProdutosEvents(container) {
       event.preventDefault();
       try {
         await saveProductFromForm(event.target);
+        renderCatalogFromLocalState(container);
         await loadProductCatalog(container);
       } catch (error) {
         handleProductActionError(error);
@@ -314,6 +315,7 @@ function bindProdutosEvents(container) {
       event.preventDefault();
       try {
         await saveCategoryFromForm(event.target);
+        renderCatalogFromLocalState(container);
         await loadProductCatalog(container);
       } catch (error) {
         handleProductActionError(error);
@@ -335,6 +337,7 @@ function bindProdutosEvents(container) {
     if (action === 'delete-product') {
       try {
         await removeProduct(actionButton.dataset.productId);
+        renderCatalogFromLocalState(container);
         await loadProductCatalog(container);
       } catch (error) {
         handleProductActionError(error);
@@ -346,6 +349,7 @@ function bindProdutosEvents(container) {
     if (action === 'delete-category') {
       try {
         await removeCategory(actionButton.dataset.categoryId);
+        renderCatalogFromLocalState(container);
         await loadProductCatalog(container);
       } catch (error) {
         handleProductActionError(error);
@@ -390,6 +394,11 @@ function bindProdutosEvents(container) {
 function openProductModal(container, productId = null) {
   productState.modal = 'product';
   productState.editingProductId = productId;
+  renderProdutosScreen(container);
+}
+
+function renderCatalogFromLocalState(container) {
+  productState.syncStatus = getCatalogSyncStatus();
   renderProdutosScreen(container);
 }
 
