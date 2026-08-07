@@ -206,13 +206,16 @@ localStorage.setItem(STORAGE_KEYS.products, JSON.stringify([
 localStorage.setItem('pdv.syncQueue.categories', JSON.stringify([]));
 localStorage.setItem('pdv.syncQueue.products', JSON.stringify([]));
 
-await supabaseProductService.removeCategory('supabase-cat');
+let categoryDeleteRejected = false;
+try {
+  await supabaseProductService.removeCategory('supabase-cat');
+} catch (error) {
+  categoryDeleteRejected = error.message.includes('enquanto ela tiver 1 produto');
+}
 
+assert(categoryDeleteRejected, 'supabase removeCategory should reject categories that still contain products');
 const queuedProductsAfterCategoryDelete = JSON.parse(localStorage.getItem('pdv.syncQueue.products'));
-assert(queuedProductsAfterCategoryDelete.some((operation) => (
-  operation.action === 'delete'
-    && operation.id === 'supabase-prod'
-)), 'supabase removeCategory should delete products from the removed category');
+assert(queuedProductsAfterCategoryDelete.length === 0, 'rejected category deletion should not enqueue product deletes');
 
 globalThis.__PDV_RUNTIME_CONFIG__ = null;
 

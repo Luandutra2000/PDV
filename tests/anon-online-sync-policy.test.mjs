@@ -40,6 +40,8 @@ const financialDeleteMigration = await readFile(new URL('../supabase/migrations/
   .catch(() => '');
 const catalogDeleteMigration = await readFile(new URL('../supabase/migrations/20260610130251_allow_catalog_delete_sync.sql', import.meta.url), 'utf8')
   .catch(() => '');
+const catalogHardDeleteMigration = await readFile(new URL('../supabase/migrations/20260807230000_allow_product_catalog_hard_delete.sql', import.meta.url), 'utf8')
+  .catch(() => '');
 
 [
   'sales',
@@ -62,5 +64,7 @@ assert(catalogDeleteMigration.includes('grant delete on table public.categories 
 assert(catalogDeleteMigration.includes('for delete to anon'), 'catalog delete sync should allow browser delete policies');
 assert(!catalogDeleteMigration.includes('public.sales'), 'catalog delete sync should not open sale deletes');
 assert(!catalogDeleteMigration.includes('public.cash_movements'), 'catalog delete sync should not open cash movement deletes');
+assert(catalogHardDeleteMigration.includes('stock_production_product_id_fkey'), 'catalog hard delete should remove stock product FK blockers');
+assert(catalogHardDeleteMigration.includes('showcase_write_offs_product_id_fkey'), 'catalog hard delete should remove showcase product FK blockers');
 
 console.log('anon online sync policy ok');

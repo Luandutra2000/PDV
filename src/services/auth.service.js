@@ -34,8 +34,23 @@ export function login({ username, password }) {
   throw new Error('Autenticacao central obrigatoria. Configure o Supabase.');
 }
 
-export function logout() {
+export async function logout() {
   setItem(STORAGE_KEYS.currentSession, null);
+
+  if (!isSupabaseEnabled()) {
+    return;
+  }
+
+  try {
+    const client = await getSupabaseClient();
+    if (typeof client?.auth?.signOut === 'function') {
+      await client.auth.signOut();
+    }
+  } catch (error) {
+    // A sessão local já foi removida; não bloqueie a troca de conta se a
+    // chamada remota de encerramento estiver indisponível.
+    console.warn('Nao foi possivel encerrar a sessao central.', error);
+  }
 }
 
 export async function restoreSupabaseSession() {
@@ -273,7 +288,7 @@ async function loadSupabaseProfile(userId) {
 
   const query = client
     .from('profiles')
-    .select('id,name,role_id,is_active,empresa_id')
+    .select('id,name,role_id,is_active')
     .eq('id', userId);
   const result = typeof query.maybeSingle === 'function'
     ? await query.maybeSingle()

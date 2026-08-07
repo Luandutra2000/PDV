@@ -1,5 +1,6 @@
 import {
   getCatalogSyncStatus,
+  clearCatalogSyncQueue,
   getCategories,
   getProducts,
   loadCategories,
@@ -235,6 +236,7 @@ function renderSyncStatus() {
     <div class="sync-status" data-sync-state="${status.state}">
       <span>${labels[status.state] || 'Sincronizacao'}</span>
       ${status.pending ? '<button class="button button--ghost" type="button" data-action="sync-catalog">Sincronizar</button>' : ''}
+      ${status.pending ? '<button class="button button--ghost" type="button" data-action="clear-sync-queue">Limpar fila</button>' : ''}
     </div>
   `;
 }
@@ -340,6 +342,12 @@ function bindProdutosEvents(container) {
     if (action === 'sync-catalog') {
       await syncCatalogNow();
       await loadProductCatalog(container);
+    }
+
+    if (action === 'clear-sync-queue') {
+      await clearCatalogSyncQueue();
+      await loadProductCatalog(container);
+      showNotification('Pendencias locais descartadas.', 'success');
     }
 
     if (action === 'close-modal') {

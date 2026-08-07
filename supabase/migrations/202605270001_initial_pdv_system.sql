@@ -150,6 +150,7 @@ create table if not exists public.stock_production (
   quantity numeric(12,3) not null,
   unit_value numeric(12,2) not null,
   total_value numeric(12,2) not null,
+  note text not null default '',
   status text not null default 'ativo' check (status in ('ativo', 'cancelado')),
   created_by uuid default auth.uid() references public.profiles(id),
   created_at timestamptz not null default now(),

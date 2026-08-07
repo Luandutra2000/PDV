@@ -3,6 +3,7 @@ import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
 import {
   deleteCategoryFromSupabase,
   deleteProductFromSupabase,
+  clearProductCatalogQueue,
   flushProductCatalogQueue,
   getProductSyncStatus,
   loadCategoriesFromSupabase,
@@ -130,12 +131,18 @@ export function removeCategory(categoryId) {
   }
 
   return loadProductsFromSupabase()
-    .then((products) => Promise.all(
-      products
-        .filter((product) => product.categoryId === categoryId)
-        .map((product) => deleteProductFromSupabase(product.id))
-    ))
-    .then(() => deleteCategoryFromSupabase(categoryId));
+    .then((products) => {
+      const productsInCategory = products.filter((product) => product.categoryId === categoryId);
+
+      if (productsInCategory.length) {
+        throw new Error(
+          `Nao e possivel excluir esta categoria enquanto ela tiver ${productsInCategory.length} produto(s). `
+          + 'Remova ou reorganize os produtos primeiro.'
+        );
+      }
+
+      return deleteCategoryFromSupabase(categoryId);
+    });
 }
 
 export function getProductById(productId) {
@@ -249,6 +256,12 @@ export async function startCatalogRealtime() {
 export async function syncCatalogNow() {
   if (isSupabaseEnabled()) {
     await flushProductCatalogQueue();
+  }
+}
+
+export async function clearCatalogSyncQueue() {
+  if (isSupabaseEnabled()) {
+    await clearProductCatalogQueue();
   }
 }
 

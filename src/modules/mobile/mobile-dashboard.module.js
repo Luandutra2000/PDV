@@ -27,7 +27,7 @@ import {
 import { getShowcaseCategories, getShowcaseProducts, getProductById, syncCatalogNow } from '../../services/product.service.js?v=20260804-06';
 import { getTransactionSyncStatus } from '../../services/transaction.service.js?v=20260804-06';
 import { getCatalogSyncStatus } from '../../services/product.service.js?v=20260804-06';
-import { getCurrentUser, logout } from '../../services/auth.service.js?v=20260804-06';
+import { getCurrentUser, logout } from '../../services/auth.service.js?v=20260807-04';
 import { hydrateOnlineOperationalData, syncOnlineOperationalData } from '../../services/online-data.service.js?v=20260804-06';
 import { isSupabaseEnabled } from '../../services/app-config.service.js?v=20260804-06';
 import { getThemeLabel, toggleTheme } from '../../services/theme.service.js?v=20260804-06';
@@ -107,7 +107,7 @@ function bindEvents(workspace) {
   }
 
   workspace.dataset.mobileDashboardBound = 'true';
-  workspace.addEventListener('click', (event) => {
+  workspace.addEventListener('click', async (event) => {
     const tabButton = event.target.closest('[data-mobile-tab]');
     const filterButton = event.target.closest('[data-feed-filter]');
     const periodButton = event.target.closest('[data-feed-period]');
@@ -140,7 +140,7 @@ function bindEvents(workspace) {
     }
 
     if (logoutButton) {
-      logout();
+      await logout();
       window.location.href = window.location.pathname || './';
       return;
     }

@@ -188,6 +188,7 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
     }
 
     const remaining = [];
+    let firstError = '';
 
     try {
       const client = await getClient();
@@ -203,6 +204,7 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
 
             if (error) {
               remaining.push(operation);
+              firstError ||= error.message || 'Falha ao excluir registro remoto.';
             }
           }
 
@@ -211,10 +213,12 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
 
             if (error) {
               remaining.push(operation);
+              firstError ||= error.message || 'Falha ao enviar registro remoto.';
             }
           }
         } catch (error) {
           remaining.push(operation);
+          firstError ||= error.message || 'Falha ao sincronizar registro remoto.';
         }
       }
     } catch (error) {
@@ -227,11 +231,17 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
     writeQueue(remaining);
     const completed = queue.filter((operation) => !remaining.includes(operation));
     writeCache(applyQueuedOperations(applyCompletedOperations(readCache(), completed), remaining));
-    setStatusFromQueue(remaining, remaining.length ? 'Algumas alteracoes continuam pendentes.' : '');
+    setStatusFromQueue(remaining, remaining.length ? firstError || 'Algumas alteracoes continuam pendentes.' : '');
 
     await list();
 
-    setStatusFromQueue(remaining, remaining.length ? 'Algumas alteracoes continuam pendentes.' : '');
+    setStatusFromQueue(remaining, remaining.length ? firstError || 'Algumas alteracoes continuam pendentes.' : '');
+  }
+
+  async function clearQueue() {
+    writeQueue([]);
+    setStatus({ state: 'synced', pending: 0, error: '' });
+    await list();
   }
 
   async function subscribe() {
@@ -296,6 +306,7 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
     save,
     remove,
     flushQueue,
+    clearQueue,
     subscribe,
     unsubscribe,
     getSyncStatus() {

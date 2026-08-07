@@ -1,4 +1,4 @@
-import './config/runtime-config.js?v=20260804-06';
+import './config/runtime-config.js?v=20260807-02';
 import { renderSidebar } from './components/sidebar.component.js?v=20260804-06';
 import { ensureSeedData } from './services/storage.service.js?v=20260804-06';
 import { hydrateDataProvider } from './services/data-provider.service.js?v=20260804-06';
@@ -23,13 +23,14 @@ import { initNotificationService } from './services/notification.service.js?v=20
 import { initRealtimeService } from './services/realtime.service.js?v=20260804-06';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js?v=20260804-06';
 import { getDailyMoneySummary } from './services/transaction.service.js?v=20260804-06';
-import { getCurrentUser, login, logout, restoreSupabaseSession } from './services/auth.service.js?v=20260804-06';
+import { getCurrentUser, login, logout, restoreSupabaseSession } from './services/auth.service.js?v=20260807-04';
 import { hasPermission } from './services/permission.service.js?v=20260804-06';
 import { applyCompanyIdentity, loadCompanySettings, loadCompanySettingsLocal } from './services/empresa-config.service.js?v=20260804-06';
-import { renderLoginModule } from './modules/auth/login.module.js?v=20260804-06';
+import { renderLoginModule } from './modules/auth/login.module.js?v=20260807-04';
 import { on } from './services/event-bus.service.js?v=20260804-06';
 import { UI_EVENTS } from './database/schema.js?v=20260804-06';
 import { escapeHtml } from './utils/dom.js?v=20260804-06';
+import { bindBubbleBackground, renderBubbleBackground } from './components/ui/components-backgrounds-bubble.js?v=20260804-06';
 
 const routes = {
   'frente-caixa': initVendasModule,
@@ -105,6 +106,7 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   applyCompanyIdentity(companySettings);
 
   app.innerHTML = `
+    ${renderBubbleBackground({ interactive: true })}
     <div class="pdv-layout">
       ${renderSidebar(currentUser, companySettings)}
       <section class="workspace">
@@ -122,6 +124,7 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
     </div>
   `;
 
+  bindBubbleBackground(app);
   const workspace = app.querySelector('[data-workspace-body]');
   const initialView = getAuthorizedInitialView(currentUser);
   renderCashStrip(app);
@@ -293,7 +296,7 @@ function ensureFreshLoginAfterAuthUpdate() {
 }
 
 function bindNavigation(app, workspace) {
-  app.addEventListener('click', (event) => {
+  app.addEventListener('click', async (event) => {
     const themeButton = event.target.closest('[data-action="toggle-theme"]');
 
     if (themeButton) {
@@ -303,8 +306,8 @@ function bindNavigation(app, workspace) {
     }
 
     if (event.target.closest('[data-action="logout"]')) {
-      logout();
-      bootstrap();
+      await logout();
+      await bootstrap();
       return;
     }
 

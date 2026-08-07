@@ -1,5 +1,5 @@
 import { UI_EVENTS } from '../database/schema.js?v=20260804-06';
-import { getSupabaseClient } from './supabase-client.service.js?v=20260804-06';
+import { getSupabaseAuthSession, getSupabaseClient } from './supabase-client.service.js?v=20260804-06';
 import { emit } from './event-bus.service.js?v=20260804-06';
 import { createEntitySyncRepository } from './repositories/entity-sync.repository.js?v=20260804-06';
 import { categoryAdapter } from './repositories/category.adapter.js?v=20260804-06';
@@ -84,8 +84,20 @@ export function deleteCategoryFromSupabase(categoryId) {
 }
 
 export async function flushProductCatalogQueue() {
+  try {
+    await getSupabaseAuthSession({ forceRefresh: true });
+  } catch (error) {
+    // The repositories still attempt the queue flush so they can preserve
+    // pending changes and expose the actual remote error in their status.
+  }
   await getCategoryRepository().flushQueue();
   await getProductRepository().flushQueue();
+  emit(UI_EVENTS.productSyncStatusChanged, getProductSyncStatus());
+}
+
+export async function clearProductCatalogQueue() {
+  await getCategoryRepository().clearQueue();
+  await getProductRepository().clearQueue();
   emit(UI_EVENTS.productSyncStatusChanged, getProductSyncStatus());
 }
 

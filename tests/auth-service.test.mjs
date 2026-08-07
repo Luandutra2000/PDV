@@ -21,6 +21,9 @@ const assert = (condition, message) => {
   }
 };
 
+const authSource = await (await import('node:fs/promises')).readFile(new URL('../src/services/auth.service.js?v=20260804-06', import.meta.url), 'utf8');
+assert(!authSource.includes("select('id,name,role_id,is_active,empresa_id')"), 'profile query should only request columns present in the homologation schema');
+
 const storage = await import('../src/services/storage.service.js?v=20260804-06');
 const auth = await import('../src/services/auth.service.js?v=20260804-06');
 const supabaseClient = await import('../src/services/supabase-client.service.js?v=20260804-06');

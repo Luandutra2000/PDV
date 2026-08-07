@@ -59,11 +59,13 @@
 }
 
 .login-screen {
+  position: relative;
+  z-index: 1;
   min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: 24px;
-  background: linear-gradient(135deg, #546ee3 0%, #b3b4ff 38%, #7fd7e4 68%, #21b99a 100%);
+  background: transparent;
 }
 
 .login-card {

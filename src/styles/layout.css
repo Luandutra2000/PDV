@@ -1,17 +1,54 @@
 .app-shell {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
-  background: linear-gradient(135deg, #546ee3 0%, #b3b4ff 38%, #7fd7e4 68%, #21b99a 100%);
+  overflow: hidden;
   padding: 18px;
 }
 
+.bubble-background {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  background: linear-gradient(135deg, #101a43 0%, #282064 42%, #063c58 72%, #053e3b 100%);
+  filter: saturate(1.08);
+}
+
+.bubble-background__glow {
+  position: absolute;
+  width: 72%;
+  height: 72%;
+  border-radius: 999px;
+  mix-blend-mode: screen;
+  filter: blur(52px);
+  opacity: .72;
+  will-change: transform;
+}
+
+.bubble-background__glow--first { top: 8%; left: 8%; background: radial-gradient(circle, rgba(var(--bubble-first, 18,113,255), .82) 0%, transparent 68%); animation: bubble-drift-y 30s ease-in-out infinite; }
+.bubble-background__glow--second { top: 2%; left: 18%; background: radial-gradient(circle, rgba(var(--bubble-second, 221,74,255), .74) 0%, transparent 64%); animation: bubble-orbit-a 20s linear infinite; }
+.bubble-background__glow--third { top: 44%; left: 42%; background: radial-gradient(circle, rgba(var(--bubble-third, 0,220,255), .68) 0%, transparent 62%); animation: bubble-orbit-b 40s linear infinite; }
+.bubble-background__glow--fourth { top: 16%; left: 26%; background: radial-gradient(circle, rgba(var(--bubble-fourth, 200,50,50), .58) 0%, transparent 66%); animation: bubble-drift-x 40s ease-in-out infinite; }
+.bubble-background__glow--fifth { top: -28%; left: 55%; width: 120%; height: 120%; background: radial-gradient(circle, rgba(var(--bubble-fifth, 180,180,50), .48) 0%, transparent 58%); animation: bubble-orbit-a 24s linear infinite reverse; }
+.bubble-background__glow--sixth { top: 10%; left: 10%; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(var(--bubble-sixth, 140,100,255), .64) 0%, transparent 52%); transform: translate(var(--bubble-pointer-x, 0px), var(--bubble-pointer-y, 0px)); transition: transform .2s ease-out; }
+
+@keyframes bubble-drift-y { 0%, 100% { transform: translateY(-50px); } 50% { transform: translateY(50px); } }
+@keyframes bubble-drift-x { 0%, 100% { transform: translateX(-50px); } 50% { transform: translateX(50px); } }
+@keyframes bubble-orbit-a { to { transform: rotate(360deg); } }
+@keyframes bubble-orbit-b { to { transform: rotate(-360deg); } }
+
 .pdv-layout {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 252px minmax(0, 1fr);
   min-height: calc(100vh - 36px);
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.54);
   border-radius: 10px;
-  background: var(--color-bg);
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
   box-shadow: 0 28px 90px rgba(31, 42, 66, 0.28);
 }
 
@@ -57,30 +94,11 @@
   font-weight: 700;
 }
 
-.cash-pill.money-positive {
-  background: #e8f6ef;
-  color: var(--color-success);
-}
-
-.cash-pill.money-primary {
-  background: #fff0e6;
-  color: var(--color-primary);
-}
-
-.cash-pill.money-info {
-  background: #e8fbfd;
-  color: #078596;
-}
-
-.cash-pill.money-negative {
-  background: #fff1f1;
-  color: var(--color-danger);
-}
-
-.cash-pill.money-warning {
-  background: #fff7d6;
-  color: #9a6a00;
-}
+.cash-pill.money-positive { background: #e8f6ef; color: var(--color-success); }
+.cash-pill.money-primary { background: #fff0e6; color: var(--color-primary); }
+.cash-pill.money-info { background: #e8fbfd; color: #078596; }
+.cash-pill.money-negative { background: #fff1f1; color: var(--color-danger); }
+.cash-pill.money-warning { background: #fff7d6; color: #9a6a00; }
 
 .workspace-body {
   min-height: 0;
@@ -88,19 +106,12 @@
 }
 
 @media (max-width: 980px) {
-  .pdv-layout {
-    grid-template-columns: 86px minmax(0, 1fr);
-  }
+  .pdv-layout { grid-template-columns: 86px minmax(0, 1fr); }
 }
 
 @media (max-width: 760px) {
-  .pdv-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .workspace {
-    grid-template-rows: auto minmax(0, 1fr);
-  }
+  .pdv-layout { grid-template-columns: 1fr; }
+  .workspace { grid-template-rows: auto minmax(0, 1fr); }
 }
 
 @media (max-width: 900px), (pointer: coarse) {
@@ -121,9 +132,7 @@
   }
 
   .app-shell.is-mobile-owner .sidebar,
-  .app-shell.is-mobile-owner .topbar {
-    display: none;
-  }
+  .app-shell.is-mobile-owner .topbar { display: none; }
 
   .app-shell.is-mobile-owner .workspace {
     display: block;
