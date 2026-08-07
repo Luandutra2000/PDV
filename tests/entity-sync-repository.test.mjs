@@ -351,6 +351,42 @@ await delayedSubscribePromise;
 await delayedUnsubscribePromise;
 assert(removedChannels.length === 1, 'unsubscribe should wait for pending subscription and remove channel');
 
+localStorage.clear();
+let resolveStaleSelect;
+const concurrencyRows = [{ id: 'old-server-item', name: 'Old Server Item' }];
+const concurrencyClient = {
+  from() {
+    return {
+      select() {
+        return new Promise((resolve) => {
+          resolveStaleSelect = () => resolve({ data: concurrencyRows, error: null });
+        });
+      },
+      upsert(nextRows) {
+        concurrencyRows.push(...nextRows);
+        return Promise.resolve({ error: null });
+      },
+      delete() {
+        return { eq: () => Promise.resolve({ error: null }) };
+      }
+    };
+  }
+};
+
+const concurrencyRepository = createEntitySyncRepository({
+  adapter,
+  getClient: async () => concurrencyClient,
+  emitChange: () => {}
+});
+
+const staleListPromise = concurrencyRepository.list();
+await Promise.resolve();
+await concurrencyRepository.save({ id: 'new-local-item', name: 'New Local Item' });
+resolveStaleSelect();
+await staleListPromise;
+const concurrencyCache = JSON.parse(localStorage.getItem('test.items'));
+assert(concurrencyCache.some((item) => item.id === 'new-local-item'), 'stale list must not overwrite a completed save');
+
 const nullSubscribeRepository = createEntitySyncRepository({
   adapter,
   getClient: async () => null,

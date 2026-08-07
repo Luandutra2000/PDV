@@ -26,6 +26,8 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
   let status = createStatus('idle', readQueue().length);
   let channel = null;
   let subscriptionPromise = null;
+  let listRequestId = 0;
+  let mutationVersion = 0;
 
   function readCache() {
     return readJson(adapter.cacheKey, []);
@@ -95,6 +97,8 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
   }
 
   async function list() {
+    const requestId = ++listRequestId;
+    const requestMutationVersion = mutationVersion;
     const previousError = status.error;
 
     try {
@@ -104,6 +108,10 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
 
       if (error) {
         throw error;
+      }
+
+      if (requestId !== listRequestId || requestMutationVersion !== mutationVersion) {
+        return readCache();
       }
 
       const queue = readQueue();
@@ -124,6 +132,7 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
 
   async function save(item) {
     const nextItem = { ...item };
+    mutationVersion += 1;
 
     try {
       setStatus({ state: 'syncing', error: '' });
@@ -140,6 +149,7 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
       const nextCache = exists
         ? cached.map((candidate) => (candidate.id === nextItem.id ? nextItem : candidate))
         : [...cached, nextItem];
+      mutationVersion += 1;
       writeCache(applyQueuedOperations(nextCache, queue));
       setStatusFromQueue(queue);
       emitChange({ type: 'saved', item: nextItem });
@@ -149,6 +159,7 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
       writeQueue(queue);
       const cached = readCache();
       const exists = cached.some((candidate) => candidate.id === nextItem.id);
+      mutationVersion += 1;
       writeCache(exists
         ? cached.map((candidate) => (candidate.id === nextItem.id ? { ...nextItem, syncPending: true } : candidate))
         : [...cached, { ...nextItem, syncPending: true }]);
@@ -159,6 +170,8 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
   }
 
   async function remove(id) {
+    mutationVersion += 1;
+
     try {
       setStatus({ state: 'syncing', error: '' });
       const client = await getClient();
@@ -169,12 +182,14 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
       }
 
       const queue = readQueue();
+      mutationVersion += 1;
       writeCache(applyQueuedOperations(readCache().filter((item) => item.id !== id), queue));
       setStatusFromQueue(queue);
       emitChange({ type: 'removed', id });
     } catch (error) {
       const queue = enqueueLatestOperation(readQueue(), { action: 'delete', id, createdAt: new Date().toISOString() });
       writeQueue(queue);
+      mutationVersion += 1;
       writeCache(readCache().filter((item) => item.id !== id));
       setStatus({ state: 'pending', pending: queue.length, error: error.message || 'Exclusao pendente.' });
       emitChange({ type: 'queued-delete', id });
