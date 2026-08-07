@@ -305,7 +305,6 @@ function bindProdutosEvents(container) {
       try {
         await saveProductFromForm(event.target);
         renderCatalogFromLocalState(container);
-        await loadProductCatalog(container);
       } catch (error) {
         handleProductActionError(error);
       }
@@ -316,7 +315,6 @@ function bindProdutosEvents(container) {
       try {
         await saveCategoryFromForm(event.target);
         renderCatalogFromLocalState(container);
-        await loadProductCatalog(container);
       } catch (error) {
         handleProductActionError(error);
       }
@@ -338,7 +336,6 @@ function bindProdutosEvents(container) {
       try {
         await removeProduct(actionButton.dataset.productId);
         renderCatalogFromLocalState(container);
-        await loadProductCatalog(container);
       } catch (error) {
         handleProductActionError(error);
       }
@@ -350,7 +347,6 @@ function bindProdutosEvents(container) {
       try {
         await removeCategory(actionButton.dataset.categoryId);
         renderCatalogFromLocalState(container);
-        await loadProductCatalog(container);
       } catch (error) {
         handleProductActionError(error);
       }

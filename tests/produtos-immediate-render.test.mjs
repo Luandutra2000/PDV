@@ -7,9 +7,9 @@ const moduleSource = fs.readFileSync(
 );
 
 assert.match(moduleSource, /function renderCatalogFromLocalState\(container\)/, 'products module should expose immediate local rendering');
-assert.match(moduleSource, /await saveProductFromForm\(event\.target\);\s*renderCatalogFromLocalState\(container\);\s*await loadProductCatalog\(container\);/s, 'product save should render before remote reconciliation');
-assert.match(moduleSource, /await saveCategoryFromForm\(event\.target\);\s*renderCatalogFromLocalState\(container\);\s*await loadProductCatalog\(container\);/s, 'category save should render before remote reconciliation');
-assert.match(moduleSource, /await removeProduct\(actionButton\.dataset\.productId\);\s*renderCatalogFromLocalState\(container\);\s*await loadProductCatalog\(container\);/s, 'product deletion should render before remote reconciliation');
-assert.match(moduleSource, /await removeCategory\(actionButton\.dataset\.categoryId\);\s*renderCatalogFromLocalState\(container\);\s*await loadProductCatalog\(container\);/s, 'category deletion should render before remote reconciliation');
+assert.match(moduleSource, /await saveProductFromForm\(event\.target\);\s*renderCatalogFromLocalState\(container\);/s, 'product save should render the updated local catalog');
+assert.match(moduleSource, /await saveCategoryFromForm\(event\.target\);\s*renderCatalogFromLocalState\(container\);/s, 'category save should render the updated local catalog');
+assert.match(moduleSource, /await removeProduct\(actionButton\.dataset\.productId\);\s*renderCatalogFromLocalState\(container\);/s, 'product deletion should render the updated local catalog');
+assert.match(moduleSource, /await removeCategory\(actionButton\.dataset\.categoryId\);\s*renderCatalogFromLocalState\(container\);/s, 'category deletion should render the updated local catalog');
 
 console.log('produtos immediate render ok');
