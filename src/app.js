@@ -325,7 +325,15 @@ function bindNavigation(app, workspace) {
     }
 
     if (event.target.closest('[data-action="refresh"]')) {
-      renderCashStrip(app);
+      const activeRoute = workspace.dataset.activeRoute;
+      const activeRouteInitializer = routes[activeRoute];
+
+      if (activeRouteInitializer) {
+        setRouteShellMode(app, activeRoute);
+        activeRouteInitializer(workspace);
+      } else {
+        renderCashStrip(app);
+      }
       return;
     }
 
