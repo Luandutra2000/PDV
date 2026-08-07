@@ -22,7 +22,13 @@ function createStatus(state = 'idle', pending = 0, error = '') {
   return { state, pending, error };
 }
 
-export function createEntitySyncRepository({ adapter, getClient, emitChange = () => {} }) {
+export function createEntitySyncRepository({
+  adapter,
+  getClient,
+  emitChange = () => {},
+  readCacheOverride = null,
+  writeCacheOverride = null
+}) {
   let status = createStatus('idle', readQueue().length);
   let channel = null;
   let subscriptionPromise = null;
@@ -30,10 +36,18 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
   let mutationVersion = 0;
 
   function readCache() {
+    if (readCacheOverride) {
+      return readCacheOverride();
+    }
+
     return readJson(adapter.cacheKey, []);
   }
 
   function writeCache(items) {
+    if (writeCacheOverride) {
+      return writeCacheOverride(items);
+    }
+
     return writeJson(adapter.cacheKey, items);
   }
 
