@@ -222,6 +222,7 @@ async function loadProductCatalog(container) {
 
 function renderSyncStatus() {
   const status = productState.syncStatus || getCatalogSyncStatus();
+  const syncError = getCatalogSyncError(status);
   const labels = {
     idle: 'Preparando sincronizacao',
     local: 'Modo local',
@@ -234,11 +235,23 @@ function renderSyncStatus() {
 
   return `
     <div class="sync-status" data-sync-state="${status.state}">
-      <span>${labels[status.state] || 'Sincronizacao'}</span>
-      ${status.pending ? '<button class="button button--ghost" type="button" data-action="sync-catalog">Sincronizar</button>' : ''}
-      ${status.pending ? '<button class="button button--ghost" type="button" data-action="clear-sync-queue">Limpar fila</button>' : ''}
+      <div class="sync-status__details">
+        <span>${labels[status.state] || 'Sincronizacao'}</span>
+        ${syncError ? `<small class="sync-status__error">${escapeHtml(syncError)}</small>` : ''}
+      </div>
+      <div class="sync-status__actions">
+        ${status.pending ? '<button class="button button--ghost" type="button" data-action="sync-catalog">Sincronizar</button>' : ''}
+        ${status.pending ? '<button class="button button--ghost" type="button" data-action="clear-sync-queue">Limpar fila</button>' : ''}
+      </div>
     </div>
   `;
+}
+
+function getCatalogSyncError(status = productState.syncStatus || getCatalogSyncStatus()) {
+  return status?.products?.error
+    || status?.error
+    || status?.categories?.error
+    || '';
 }
 
 function bindProdutosEvents(container) {
@@ -342,6 +355,22 @@ function bindProdutosEvents(container) {
     if (action === 'sync-catalog') {
       await syncCatalogNow();
       await loadProductCatalog(container);
+      const nextStatus = productState.syncStatus || getCatalogSyncStatus();
+      const syncError = getCatalogSyncError(nextStatus);
+
+      if (nextStatus.pending) {
+        showNotification({
+          title: 'Sincronizacao pendente',
+          message: syncError || 'O Supabase recusou a sincronizacao. Tente novamente.',
+          type: 'danger'
+        });
+      } else {
+        showNotification({
+          title: 'Catalogo sincronizado',
+          message: 'Todas as alteracoes foram enviadas ao Supabase.',
+          type: 'success'
+        });
+      }
     }
 
     if (action === 'clear-sync-queue') {

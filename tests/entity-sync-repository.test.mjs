@@ -179,6 +179,10 @@ const pendingItem = partialFlushCache.find((item) => item.id === 'item-4');
 assert(pendingItem.syncPending === true, 'partial flush should keep failed upsert in cache as syncPending');
 assert(repository.getSyncStatus().state === 'pending', 'partial flush should keep pending status');
 assert(repository.getSyncStatus().pending === 1, 'partial flush should keep pending count');
+assert(repository.getSyncStatus().error.includes('write offline'), 'partial flush should expose the remote error');
+
+await repository.list();
+assert(repository.getSyncStatus().error.includes('write offline'), 'list should preserve the remote error while its operation remains queued');
 
 localStorage.clear();
 rows = [{ id: 'server-1', name: 'Server Item' }];

@@ -1386,6 +1386,37 @@ select.compact-select[multiple] {
   color: var(--color-danger);
 }
 
+.sync-status__details {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sync-status__error {
+  color: var(--color-danger);
+  font-size: 12px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.sync-status__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .sync-status {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sync-status__actions {
+    flex-wrap: wrap;
+  }
+}
+
 @media (max-width: 1120px) {
   .pdv-screen {
     grid-template-columns: 1fr;

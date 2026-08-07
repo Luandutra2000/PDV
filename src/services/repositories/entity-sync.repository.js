@@ -95,6 +95,8 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
   }
 
   async function list() {
+    const previousError = status.error;
+
     try {
       setStatus({ state: 'syncing', error: '' });
       const client = await getClient();
@@ -107,7 +109,7 @@ export function createEntitySyncRepository({ adapter, getClient, emitChange = ()
       const queue = readQueue();
       const items = applyQueuedOperations(Array.isArray(data) ? data.map(adapter.fromRow) : [], queue);
       writeCache(items);
-      setStatusFromQueue(queue);
+      setStatusFromQueue(queue, queue.length ? previousError : '');
       return items;
     } catch (error) {
       const cached = readCache();
