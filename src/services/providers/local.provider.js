@@ -53,6 +53,10 @@ export function createLocalProvider() {
   };
 }
 
+export function setLocalCache(key, value) {
+  return writeJson(key, value);
+}
+
 function serializeForLocalStorage(value) {
   const serialized = JSON.stringify(value);
   if (serialized.length <= MAX_PERSISTED_VALUE_LENGTH || !Array.isArray(value)) {

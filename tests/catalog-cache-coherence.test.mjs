@@ -12,6 +12,6 @@ const syncSource = fs.readFileSync(
 
 assert.match(repositorySource, /readCacheOverride = null/, 'entity repository should accept a provider cache reader');
 assert.match(repositorySource, /writeCacheOverride = null/, 'entity repository should accept a provider cache writer');
-assert.match(syncSource, /writeCacheOverride: \(items\) => setItem\(productAdapter\.cacheKey, items\)/, 'products should update the provider cache');
+assert.match(syncSource, /writeCacheOverride: \(items\) => setLocalCache\(productAdapter\.cacheKey, items\)/, 'products should update the local provider cache without scheduling remote sync');
 
 console.log('catalog cache coherence ok');

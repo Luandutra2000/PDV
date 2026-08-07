@@ -4,7 +4,7 @@ import { emit } from './event-bus.service.js?v=20260804-06';
 import { createEntitySyncRepository } from './repositories/entity-sync.repository.js?v=20260804-06';
 import { categoryAdapter } from './repositories/category.adapter.js?v=20260804-06';
 import { productAdapter } from './repositories/product.adapter.js?v=20260804-06';
-import { setItem } from './storage.service.js?v=20260804-06';
+import { setLocalCache } from './providers/local.provider.js?v=20260804-06';
 
 let categoryRepository = null;
 let productRepository = null;
@@ -19,7 +19,7 @@ function getCategoryRepository() {
     categoryRepository = createEntitySyncRepository({
       adapter: categoryAdapter,
       getClient: getSupabaseClient,
-      writeCacheOverride: (items) => setItem(categoryAdapter.cacheKey, items),
+      writeCacheOverride: (items) => setLocalCache(categoryAdapter.cacheKey, items),
       emitChange: (payload) => emitCatalogChange('categories', payload)
     });
   }
@@ -32,7 +32,7 @@ function getProductRepository() {
     productRepository = createEntitySyncRepository({
       adapter: productAdapter,
       getClient: getSupabaseClient,
-      writeCacheOverride: (items) => setItem(productAdapter.cacheKey, items),
+      writeCacheOverride: (items) => setLocalCache(productAdapter.cacheKey, items),
       emitChange: (payload) => emitCatalogChange('products', payload)
     });
   }
