@@ -38,7 +38,7 @@ export function ensureSeedData() {
   }
 
   if (!getItem(STORAGE_KEYS.products)) {
-    setItem(STORAGE_KEYS.products, mockProducts);
+    setItem(STORAGE_KEYS.products, getInitialProducts());
   }
 
   if (!getItem(STORAGE_KEYS.activeComanda)) {
@@ -101,7 +101,7 @@ export function resetAppData() {
   provider.write(STORAGE_KEYS.userPermissionOverrides, {});
   provider.write(STORAGE_KEYS.auditLogs, []);
   provider.write(STORAGE_KEYS.categories, mockCategories);
-  provider.write(STORAGE_KEYS.products, mockProducts);
+  provider.write(STORAGE_KEYS.products, getInitialProducts());
   provider.write(STORAGE_KEYS.activeComanda, mockActiveComanda);
   provider.write(STORAGE_KEYS.caixa, mockCaixa);
   provider.write(STORAGE_KEYS.syncQueue, []);
@@ -115,6 +115,10 @@ export function resetAppData() {
   provider.write(STORAGE_KEYS.paymentAttempts, []);
   provider.write(STORAGE_KEYS.kitchenOrders, []);
   provider.write(STORAGE_KEYS.printJobs, []);
+}
+
+function getInitialProducts() {
+  return globalThis.process?.env?.NODE_ENV === 'test' ? mockProducts : [];
 }
 
 function removeStoredPassword(user) {
