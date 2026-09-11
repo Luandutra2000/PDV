@@ -7,7 +7,7 @@ O sistema abre e os fluxos principais da aba correta respondem, mas não está p
 ## Escopo e identificação
 
 - Repositório: `Luandutra2000/PDV`.
-- Branch auditada: `feature/fechamento-caixa`, commit inicial `aae0725a830152117a8543ac8745bee60639b223`; correções locais concluídas no commit `f3b7602`.
+- Branch auditada: `feature/fechamento-caixa`, commit inicial `aae0725a830152117a8543ac8745bee60639b223`; correções locais concluídas nos commits `f3b7602` e `7bd02bf`.
 - Deployment correto informado pelo usuário: [PDV Lanchonete na Vercel](https://pdv-git-feature-fechamento-caixa-luandutra2000s-projects.vercel.app/).
 - Supabase: projeto `inquppkbkmhnbtwpriuw`, configurado em `supabase/config.toml` e no runtime publicado.
 - O sistema é um PDV web/PWA com frente de caixa, comanda, pagamentos, entradas/saídas, fechamento, vitrine/estoque, financeiro, CRM, usuários e sincronização Supabase.
@@ -23,13 +23,13 @@ Uma requisição sem a sessão do navegador foi redirecionada para a proteção 
 - `npm.cmd test`: **56 aprovados, 0 reprovados** após as correções. A falha original em `tests/despesas-module.test.mjs:185` era causada por data UTC usada como data local.
 - `npm.cmd run test:startup`: **76 módulos carregados**.
 - `supabase/migrations`: **26 arquivos**; o inventário estático identificou **9 marcadores/placeholders**.
-- O código corrigido está versionado no commit `f3b7602`; os documentos de auditoria, plano e especificação continuam fora desse commit para revisão local.
+- O código corrigido está versionado nos commits `f3b7602` e `7bd02bf`; os documentos de auditoria, plano e especificação também estão versionados.
 
 ## Correções aplicadas no código
 
 - O Financeiro agora usa a data local para o filtro `Hoje`; lançamentos feitos no fim do dia não desaparecem por deslocamento UTC.
 - Lançamentos financeiros marcados para movimentar o caixa aparecem no CRM e no fechamento uma única vez, junto das vendas e movimentos de caixa.
-- A hidratação do Supabase lê cada tabela de forma isolada, preserva cache local e filas pendentes quando uma tabela falha e usa o JWT da sessão no REST.
+- A hidratação do Supabase lê cada tabela de forma isolada, preserva cache local e filas pendentes quando uma tabela falha, usa o JWT da sessão no REST e limpa o histórico local junto com a exclusão remota.
 - O adapter de fechamento preserva totais, pagamentos, diferenças, operador e observação no round-trip local/remoto.
 - Foram adicionadas migrations para revogar políticas `anon`, manter acesso somente autenticado, impedir elevação de papel e corrigir a migration de colunas legadas.
 - O endpoint `admin-users` agora exige `users.manage` para alterar perfil ou ativação de usuário.
@@ -123,7 +123,7 @@ Na tentativa seguinte de percorrer o menu da imagem ao vivo, a sessão autentica
 ## Ordem de correção
 
 1. Aplicar `202609100001_secure_authenticated_online_sync.sql` e `202609100002_fix_profile_role_escalation.sql` no Supabase do PDV.
-2. Publicar o commit `f3b7602` na branch usada pela Vercel e repetir o canário com registros identificados.
+2. Publicar os commits `f3b7602` e `7bd02bf` na branch usada pela Vercel e repetir o canário com registros identificados.
 3. Retestar cada tabela com anon, usuário autenticado e perfis reais; confirmar que o operador não promove usuário.
 4. Gerar baseline/replay em banco de homologação vazio e conferir as migrations ainda não representadas no Git.
 5. Depois disso, executar canário de campo com hardware e meios de pagamento reais.
