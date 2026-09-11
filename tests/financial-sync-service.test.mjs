@@ -370,5 +370,7 @@ assert(rows.sale_items.length === 0, 'remote history clear should delete sale it
 assert(rows.commands.length === 0, 'remote history clear should delete commands');
 assert(rows.command_items.length === 0, 'remote history clear should delete command items');
 assert(rows.cash_movements.length === 0, 'remote history clear should delete cash movements');
+assert(rows.financial_transactions.length === 0, 'remote history clear should delete financial transactions');
+assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.financialTransactions)).length === 0, 'history clear should remove local financial cache');
 
 console.log('financial sync service ok');

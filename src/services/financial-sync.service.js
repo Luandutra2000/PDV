@@ -373,17 +373,22 @@ export async function clearFinancialHistoryInSupabase({ period = 'today', custom
     saleRows,
     commandRows,
     movementRows,
-    closingRows
+    closingRows,
+    financialTransactionRows
   ] = await Promise.all([
     selectRows(client, saleAdapter),
     selectRows(client, commandAdapter),
     selectRows(client, cashMovementAdapter),
-    selectRows(client, cashClosingAdapter)
+    selectRows(client, cashClosingAdapter),
+    selectRows(client, financialTransactionAdapter)
   ]);
   const saleIds = saleRows.filter((row) => isRowInRange(row.created_at, range)).map((row) => row.id);
   const commandIds = commandRows.filter((row) => isRowInRange(row.closed_at || row.created_at, range)).map((row) => row.id);
   const movementIds = movementRows.filter((row) => isRowInRange(row.created_at, range)).map((row) => row.id);
   const closingIds = closingRows.filter((row) => isRowInRange(row.created_at || row.closed_at, range)).map((row) => row.id);
+  const financialTransactionIds = financialTransactionRows
+    .filter((row) => isRowInRange(row.transaction_date || row.created_at, range))
+    .map((row) => row.id);
 
   await deleteByForeignIds(client, saleItemAdapter.table, 'sale_id', saleIds);
   await deleteByIds(client, saleAdapter.table, saleIds);
@@ -391,6 +396,8 @@ export async function clearFinancialHistoryInSupabase({ period = 'today', custom
   await deleteByIds(client, commandAdapter.table, commandIds);
   await deleteByIds(client, cashMovementAdapter.table, movementIds);
   await deleteByIds(client, cashClosingAdapter.table, closingIds);
+  await deleteByIds(client, financialTransactionAdapter.table, financialTransactionIds);
+  clearLocalFinancialHistory(range);
   await hydrateFinancialData({ includePending: true });
 }
 
@@ -1015,6 +1022,18 @@ function enqueueOperation(operation) {
     ));
   writeQueue(queue);
   return queue;
+}
+
+function clearLocalFinancialHistory(range) {
+  const transactionCache = readJson(STORAGE_KEYS.transactions, []);
+  const closingCache = readJson(STORAGE_KEYS.cashClosings, []);
+  const financialCache = readJson(STORAGE_KEYS.financialTransactions, []);
+  writeJson(STORAGE_KEYS.transactions, transactionCache.filter((item) => !isRowInRange(item.createdAt, range)));
+  writeJson(STORAGE_KEYS.cashClosings, closingCache.filter((item) => !isRowInRange(item.closedAt || item.createdAt, range)));
+  writeJson(
+    STORAGE_KEYS.financialTransactions,
+    financialCache.filter((item) => !isRowInRange(item.transactionDate || item.createdAt, range))
+  );
 }
 
 function mergeRemoteWithCache(remoteItems, cachedItems) {
