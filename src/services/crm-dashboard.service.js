@@ -1,6 +1,6 @@
 import { getCategories, getProductById } from './product.service.js?v=20260804-06';
 import { getActiveComanda } from './comanda.service.js?v=20260804-06';
-import { getClosedComandas, getTransactions } from './transaction.service.js?v=20260804-06';
+import { getCashSessionTransactions, getClosedComandas, getTransactions } from './transaction.service.js?v=20260804-06';
 
 export function createPeriodFilter(period = 'today', customStart = '', customEnd = '') {
   const now = new Date();
@@ -149,7 +149,7 @@ export function getFinancialMovements(filter = createPeriodFilter()) {
 }
 
 function getPeriodTransactions(filter) {
-  return getTransactions().filter((transaction) => (
+  return getCashSessionTransactions().filter((transaction) => (
     transaction.status !== 'cancelada' && isInFilter(transaction.createdAt, filter)
   ));
 }

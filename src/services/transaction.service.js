@@ -169,7 +169,26 @@ export function registerCashMovement({
 }
 
 export function getTransactions() {
-  return getItem(STORAGE_KEYS.transactions, []);
+  return getStoredTransactions();
+}
+
+export function getCashSessionTransactions() {
+  const transactions = getStoredTransactions();
+  const knownIds = new Set(transactions.map((transaction) => transaction.id));
+  const knownMovementIds = new Set(
+    transactions
+      .filter((transaction) => ['entrada', 'saida', 'sangria'].includes(transaction.type))
+      .map((transaction) => transaction.id)
+  );
+  const financialTransactions = getItem(STORAGE_KEYS.financialTransactions, []);
+  const linkedFinancialTransactions = financialTransactions
+    .filter((transaction) => transaction.movesCashSession === true)
+    .filter((transaction) => !knownIds.has(transaction.id) && !knownMovementIds.has(transaction.cashMovementId))
+    .map(mapFinancialTransactionToCashMovement);
+
+  return [...transactions, ...linkedFinancialTransactions].sort((left, right) => (
+    Date.parse(right.createdAt || 0) - Date.parse(left.createdAt || 0)
+  ));
 }
 
 export function getClosedComandas() {
@@ -346,7 +365,7 @@ export function cancelTransaction(transactionId, { reason = '' } = {}) {
 }
 
 export function getActiveTransactions() {
-  return getTransactions().filter((transaction) => transaction.status !== 'cancelada');
+  return getCashSessionTransactions().filter((transaction) => transaction.status !== 'cancelada');
 }
 
 export function getTransactionSyncStatus() {
@@ -390,7 +409,7 @@ export function getMoneySummary({ period = 'today', customStart = '', customEnd 
 }
 
 export function getTransactionSummary() {
-  const transactions = getTransactions();
+  const transactions = getCashSessionTransactions();
 
   return {
     entriesTotal: sumByType(transactions, 'entrada'),
@@ -449,9 +468,29 @@ export function getBestSellingProducts({
 }
 
 function appendTransaction(transaction) {
-  const transactions = getTransactions();
+  const transactions = getStoredTransactions();
   transactions.unshift(transaction);
   setItem(STORAGE_KEYS.transactions, transactions);
+}
+
+function getStoredTransactions() {
+  return getItem(STORAGE_KEYS.transactions, []);
+}
+
+function mapFinancialTransactionToCashMovement(transaction) {
+  return {
+    id: transaction.id,
+    financialTransactionId: transaction.id,
+    type: transaction.type === 'income' ? 'entrada' : 'saida',
+    status: transaction.status === 'canceled' ? 'cancelada' : 'ativa',
+    amount: Number(transaction.amount) || 0,
+    category: transaction.categoryId || 'sem-categoria',
+    description: transaction.description || '',
+    userId: transaction.createdBy || '',
+    userName: transaction.userName || 'Financeiro',
+    paymentMethod: transaction.paymentMethod || 'dinheiro',
+    createdAt: transaction.createdAt || `${transaction.transactionDate || ''}T12:00:00.000Z`
+  };
 }
 
 function appendClosedComanda(comanda) {

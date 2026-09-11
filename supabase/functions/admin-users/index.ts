@@ -148,6 +148,10 @@ async function updateManagedUser(actor: Profile, payload: Record<string, unknown
     throw statusError('Usuario nao informado.', 400);
   }
 
+  if (Object.hasOwn(patch, 'role') || Object.hasOwn(patch, 'active')) {
+    await requirePermission(actor.id, 'users.manage');
+  }
+
   const existing = await getProfile(id);
   const name = Object.hasOwn(patch, 'name') ? normalizeText(patch.name) : existing.name;
   const role = Object.hasOwn(patch, 'role') ? normalizeRole(patch.role) : existing.role_id;

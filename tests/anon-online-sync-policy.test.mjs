@@ -6,7 +6,7 @@ const assert = (condition, message) => {
   }
 };
 
-const migration = await readFile(new URL('../supabase/migrations/202606030002_restore_anon_online_sync.sql', import.meta.url), 'utf8')
+const migration = await readFile(new URL('../supabase/migrations/202609100001_secure_authenticated_online_sync.sql', import.meta.url), 'utf8')
   .catch(() => '');
 
 [
@@ -21,14 +21,13 @@ const migration = await readFile(new URL('../supabase/migrations/202606030002_re
   'stock_production',
   'showcase_write_offs'
 ].forEach((table) => {
-  assert(migration.includes(`public.${table}`), `anon sync migration should cover ${table}`);
+  assert(migration.includes(`'${table}'`), `secure sync migration should cover ${table}`);
 });
 
-assert(migration.includes('to anon'), 'anon sync migration should create policies for anon role');
-assert(migration.includes('for select'), 'anon sync migration should allow online reads');
-assert(migration.includes('for insert'), 'anon sync migration should allow online inserts');
-assert(migration.includes('for update'), 'anon sync migration should allow online updates');
-assert(!migration.includes('for delete'), 'anon sync migration should not allow browser deletes');
+assert(migration.includes('revoke all on table'), 'secure sync migration should revoke anon table access');
+assert(migration.includes("roles @> array['anon']::name[]"), 'secure sync migration should remove legacy anon policies');
+assert(migration.includes('grant select, insert, update, delete on table'), 'authenticated sync should retain table grants');
+assert(!migration.match(/for\s+(select|insert|update|delete).*to\s+anon/i), 'secure sync migration must not create anon policies');
 
 const nullableMigration = await readFile(new URL('../supabase/migrations/202606030003_allow_local_sync_without_auth_uid.sql', import.meta.url), 'utf8')
   .catch(() => '');
@@ -66,5 +65,9 @@ assert(!catalogDeleteMigration.includes('public.sales'), 'catalog delete sync sh
 assert(!catalogDeleteMigration.includes('public.cash_movements'), 'catalog delete sync should not open cash movement deletes');
 assert(catalogHardDeleteMigration.includes('stock_production_product_id_fkey'), 'catalog hard delete should remove stock product FK blockers');
 assert(catalogHardDeleteMigration.includes('showcase_write_offs_product_id_fkey'), 'catalog hard delete should remove showcase product FK blockers');
+
+const legacyAnonMigration = await readFile(new URL('../supabase/migrations/202606030002_restore_anon_online_sync.sql', import.meta.url), 'utf8')
+  .catch(() => '');
+assert(legacyAnonMigration.includes('to anon'), 'legacy migration should remain traceable for audit');
 
 console.log('anon online sync policy ok');

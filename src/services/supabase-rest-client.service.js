@@ -1,4 +1,6 @@
 import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
+import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
+import { getItem } from './storage.service.js?v=20260804-06';
 
 export function getSupabaseRestClient() {
   if (!isSupabaseEnabled()) {
@@ -7,9 +9,11 @@ export function getSupabaseRestClient() {
 
   const config = getRuntimeConfig();
   const baseUrl = `${config.supabaseUrl.replace(/\/$/, '')}/rest/v1`;
+  const session = getItem(STORAGE_KEYS.currentSession, null);
+  const accessToken = session?.accessToken || session?.access_token || config.supabaseAnonKey;
   const headers = {
     apikey: config.supabaseAnonKey,
-    Authorization: `Bearer ${config.supabaseAnonKey}`,
+    Authorization: `Bearer ${accessToken}`,
     'Content-Type': 'application/json'
   };
 

@@ -67,6 +67,16 @@ export function getFinancialTransactions({ period = 'all', customStart = '', cus
     .filter((transaction) => isInPeriod(transaction.transactionDate || transaction.createdAt, period, { customStart, customEnd }));
 }
 
+export function getLocalDateKey(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+}
+
 export function createFinancialTransaction(input, { enforcePermission = true } = {}) {
   const user = getCurrentUser();
   if (enforcePermission) {
@@ -274,7 +284,7 @@ export function normalizeFinancialTransaction(input, user = getCurrentUser()) {
     categoryId: input.categoryId || 'outros-financeiro',
     paymentMethod: normalizePaymentMethod(input.paymentMethod),
     status,
-    transactionDate: input.transactionDate || now.slice(0, 10),
+    transactionDate: input.transactionDate || getLocalDateKey(now),
     dueDate: input.dueDate || '',
     paidAt: status === 'paid' ? (input.paidAt || now) : null,
     notes: String(input.notes || '').trim(),
@@ -383,7 +393,7 @@ function isInPeriod(value, period, filters = {}) {
     return date.toDateString() === yesterday.toDateString();
   }
 
-  return date.toDateString() === now.toDateString();
+  return getLocalDateKey(date) === getLocalDateKey(now);
 }
 
 function createId(prefix) {

@@ -57,49 +57,57 @@ export async function hydrateFinancialData({ includePending = false } = {}) {
   try {
     setStatus({ state: 'syncing', error: '' });
     const client = await getWriteClient();
-    const [
-      saleRows,
-      saleItemRows,
-      movementRows,
-      commandRows,
-      commandItemRows,
-      closingRows,
-      financialCategoryRows,
-      financialTransactionRows
-    ] = await Promise.all([
-      selectRows(client, saleAdapter),
-      selectRows(client, saleItemAdapter),
-      selectRows(client, cashMovementAdapter),
-      selectRows(client, commandAdapter),
-      selectRows(client, commandItemAdapter),
-      selectRows(client, cashClosingAdapter),
-      selectRows(client, financialCategoryAdapter),
-      selectRows(client, financialTransactionAdapter)
-    ]);
-
-    const sales = saleRows.map((row) => ({
+    const rows = await readFinancialTables(client);
+    const currentTransactions = readJson(STORAGE_KEYS.transactions, []);
+    const currentCommands = readJson(STORAGE_KEYS.closedComandas, []);
+    const currentClosings = readJson(STORAGE_KEYS.cashClosings, []);
+    const currentCategories = readJson(STORAGE_KEYS.financialCategories, []);
+    const currentFinancialTransactions = readJson(STORAGE_KEYS.financialTransactions, []);
+    const sales = rows.sales.ok && rows.saleItems.ok ? rows.sales.rows.map((row) => ({
       ...saleAdapter.fromRow(row),
-      items: saleItemAdapter.fromRows(saleItemRows, row.id)
-    }));
-    const movements = movementRows.map(cashMovementAdapter.fromRow);
-    const commands = commandRows.map((row) => ({
+      items: saleItemAdapter.fromRows(rows.saleItems.rows, row.id)
+    })) : currentTransactions.filter((transaction) => transaction.type === 'venda');
+    const movements = rows.movements.ok
+      ? rows.movements.rows.map(cashMovementAdapter.fromRow)
+      : currentTransactions.filter((transaction) => ['entrada', 'saida', 'sangria'].includes(transaction.type));
+    const commands = rows.commands.ok && rows.commandItems.ok ? rows.commands.rows.map((row) => ({
       ...commandAdapter.fromRow(row),
-      items: commandItemAdapter.fromRows(commandItemRows, row.id)
-    }));
-    const closings = closingRows.map(cashClosingAdapter.fromRow);
-    const financialCategories = financialCategoryRows.map(financialCategoryAdapter.fromRow);
-    const financialTransactions = financialTransactionRows.map(financialTransactionAdapter.fromRow);
+      items: commandItemAdapter.fromRows(rows.commandItems.rows, row.id)
+    })) : currentCommands;
+    const closings = rows.closings.ok ? rows.closings.rows.map(cashClosingAdapter.fromRow) : currentClosings;
+    const financialCategories = rows.financialCategories.ok
+      ? rows.financialCategories.rows.map(financialCategoryAdapter.fromRow)
+      : currentCategories;
+    const financialTransactions = rows.financialTransactions.ok
+      ? rows.financialTransactions.rows.map(financialTransactionAdapter.fromRow)
+      : currentFinancialTransactions;
 
     const queue = [...inFlightOperations, ...readQueue()];
 
     writeFinancialCaches({
-      transactions: sortNewestFirst(includePending ? applyQueueToTransactions([...sales, ...movements], queue) : [...sales, ...movements]),
-      commands: sortNewestFirst(includePending ? applyQueueToCommands(commands, queue) : commands),
-      closings: sortNewestFirst(includePending ? applyQueueToClosings(closings, queue) : closings),
+      transactions: sortNewestFirst(includePending
+        ? applyQueueToTransactions(mergeRemoteWithCache([...sales, ...movements], currentTransactions), queue)
+        : mergeRemoteWithCache([...sales, ...movements], currentTransactions)),
+      commands: sortNewestFirst(includePending
+        ? applyQueueToCommands(mergeRemoteWithCache(commands, currentCommands), queue)
+        : mergeRemoteWithCache(commands, currentCommands)),
+      closings: sortNewestFirst(includePending
+        ? applyQueueToClosings(mergeRemoteWithCache(closings, currentClosings), queue)
+        : mergeRemoteWithCache(closings, currentClosings)),
       financialCategories,
-      financialTransactions: sortNewestFirst(includePending ? applyQueueToFinancialTransactions(financialTransactions, queue) : financialTransactions)
+      financialTransactions: sortNewestFirst(includePending
+        ? applyQueueToFinancialTransactions(mergeRemoteWithCache(financialTransactions, currentFinancialTransactions), queue)
+        : mergeRemoteWithCache(financialTransactions, currentFinancialTransactions))
     });
+    const failedTable = Object.values(rows).find((result) => !result.ok);
     setStatusFromQueue(readQueue());
+    if (failedTable) {
+      setStatus({
+        state: 'cache',
+        pending: readQueue().length,
+        error: failedTable.error?.message || 'Parte dos dados remotos continua no cache local.'
+      });
+    }
 
     return {
       transactions: readJson(STORAGE_KEYS.transactions, []),
@@ -202,6 +210,28 @@ export async function saveFinancialTransactionToSupabaseStrict(transaction) {
   upsertFinancialTransactionCache(nextTransaction);
   setStatusFromQueue(readQueue());
   return nextTransaction;
+}
+
+async function readFinancialTables(client) {
+  const entries = [
+    ['sales', saleAdapter],
+    ['saleItems', saleItemAdapter],
+    ['movements', cashMovementAdapter],
+    ['commands', commandAdapter],
+    ['commandItems', commandItemAdapter],
+    ['closings', cashClosingAdapter],
+    ['financialCategories', financialCategoryAdapter],
+    ['financialTransactions', financialTransactionAdapter]
+  ];
+  const results = await Promise.all(entries.map(async ([key, adapter]) => {
+    try {
+      return [key, { ok: true, rows: await selectRows(client, adapter) }];
+    } catch (error) {
+      return [key, { ok: false, rows: [], error }];
+    }
+  }));
+
+  return Object.fromEntries(results);
 }
 
 export async function updateFinancialTransactionInSupabaseStrict(transaction) {
@@ -985,6 +1015,15 @@ function enqueueOperation(operation) {
     ));
   writeQueue(queue);
   return queue;
+}
+
+function mergeRemoteWithCache(remoteItems, cachedItems) {
+  const merged = new Map(cachedItems.map((item) => [item.id, item]));
+  remoteItems.forEach((item) => {
+    const cached = merged.get(item.id);
+    merged.set(item.id, cached?.syncPending ? { ...item, ...cached } : item);
+  });
+  return Array.from(merged.values());
 }
 
 function getOperationKey(operation) {

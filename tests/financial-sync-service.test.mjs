@@ -23,6 +23,7 @@ const assert = (condition, message) => {
 
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
 const financial = await import('../src/services/financial-sync.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20260804-06');
 
 const calls = [];
 let failTable = '';
@@ -46,7 +47,7 @@ const fakeClient = {
       select() {
         const execute = (from = 0, to = Number.POSITIVE_INFINITY) => Promise.resolve({
           data: (rows[table] || []).slice(from, Number.isFinite(to) ? to + 1 : undefined),
-          error: null
+          error: failTable === table ? new Error(`fail ${table}`) : null
         });
         return {
           range(from, to) {
@@ -216,6 +217,25 @@ assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))[0].id === 'en
 assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.closedComandas)).some((item) => item.id === 'comanda-queued'), 'hydrate should keep closed comandas from Supabase');
 assert(calls.find((call) => call.table === 'financial_categories') || Array.isArray(JSON.parse(localStorage.getItem(STORAGE_KEYS.financialCategories))), 'financial categories should hydrate');
 assert(calls.find((call) => call.table === 'financial_transactions') || Array.isArray(JSON.parse(localStorage.getItem(STORAGE_KEYS.financialTransactions))), 'financial transactions should hydrate');
+
+rows.financial_transactions = [];
+storage.setItem(STORAGE_KEYS.financialTransactions, [{
+  id: 'fin-local-preserved',
+  type: 'income',
+  description: 'Lançamento local pendente',
+  amount: 4,
+  status: 'paid',
+  moves_cash_session: true,
+  transactionDate: '2026-06-02',
+  syncPending: true
+}]);
+failTable = 'financial_transactions';
+await financial.hydrateFinancialData({ includePending: true });
+assert(
+  JSON.parse(localStorage.getItem(STORAGE_KEYS.financialTransactions)).some((item) => item.id === 'fin-local-preserved'),
+  'failed financial hydration should preserve local pending transaction'
+);
+failTable = '';
 
 rows.cash_movements.push(...Array.from({ length: 1005 }, (_, index) => ({
   id: `paged-movement-${index}`,

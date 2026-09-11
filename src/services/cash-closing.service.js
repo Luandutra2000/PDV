@@ -5,7 +5,7 @@ import { getCurrentUser } from './auth.service.js?v=20260804-06';
 import { assertPermission } from './permission.service.js?v=20260804-06';
 import { recordAudit } from './audit.service.js?v=20260804-06';
 import { getItem, setItem } from './storage.service.js?v=20260804-06';
-import { getClosedComandas, getTransactions } from './transaction.service.js?v=20260804-06';
+import { getCashSessionTransactions, getClosedComandas, getTransactions } from './transaction.service.js?v=20260804-06';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
 import { saveCashClosingToSupabase } from './financial-sync.service.js?v=20260804-06';
 import { getActiveOutOfStockSales } from './showcase-stock.service.js?v=20260804-06';
@@ -214,7 +214,7 @@ export function getSalesAfterClosing(closing) {
 }
 
 function getClosingTransactions() {
-  return getTransactions().filter((transaction) => transaction.status !== 'cancelada');
+  return getCashSessionTransactions().filter((transaction) => transaction.status !== 'cancelada');
 }
 
 function buildOutOfStockClosingRows() {

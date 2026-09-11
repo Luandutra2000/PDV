@@ -6,6 +6,22 @@ const assert = (condition, message) => {
 
 const calls = [];
 
+const localStore = new Map();
+globalThis.localStorage = {
+  getItem(key) {
+    return localStore.has(key) ? localStore.get(key) : null;
+  },
+  setItem(key, value) {
+    localStore.set(key, String(value));
+  },
+  removeItem(key) {
+    localStore.delete(key);
+  },
+  clear() {
+    localStore.clear();
+  }
+};
+
 globalThis.__PDV_RUNTIME_CONFIG__ = {
   dataProvider: 'supabase',
   supabaseUrl: 'https://example.supabase.co',
@@ -25,6 +41,8 @@ globalThis.fetch = async (url, options = {}) => {
 
 const { getSupabaseRestClient } = await import('../src/services/supabase-rest-client.service.js?v=20260804-06');
 
+globalThis.localStorage.setItem('pdv.currentSession', JSON.stringify({ accessToken: 'session-jwt' }));
+
 const client = getSupabaseRestClient();
 await client.from('sales').select('id,total');
 await client.from('sales').selectRange('id,total', 1000, 1999);
@@ -33,6 +51,7 @@ await client.from('sales').update({ status: 'cancelada' }).eq('id', 'sale-1');
 await client.from('sale_items').delete().in('id', ['item-1', 'item-2']);
 
 assert(calls[0].url === 'https://example.supabase.co/rest/v1/sales?select=id%2Ctotal', 'select should call REST endpoint with selected columns');
+assert(calls[0].options.headers.Authorization === 'Bearer session-jwt', 'REST should use the authenticated session token');
 assert(calls[1].url.includes('offset=1000&limit=1000'), 'selectRange should paginate REST rows');
 assert(calls[2].options.method === 'POST', 'upsert should use POST');
 assert(calls[2].options.headers.Prefer.includes('resolution=merge-duplicates'), 'upsert should request merge duplicates');

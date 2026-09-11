@@ -26,6 +26,7 @@ const storage = await import('../src/services/storage.service.js?v=20260804-06')
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
 const { initDespesasModule, renderFinanceiroMarkup } = await import('../src/modules/despesas/despesas.module.js?v=20260804-06');
+const { getLocalDateKey } = await import('../src/services/financial.service.js?v=20260804-06');
 
 seedTestAdmin(storage, STORAGE_KEYS);
 
@@ -159,7 +160,7 @@ storage.setItem('pdv.financialTransactions', [
     amount: 100,
     categoryId: 'reforco-caixa',
     status: 'paid',
-    transactionDate: new Date().toISOString().slice(0, 10)
+    transactionDate: getLocalDateKey()
   },
   {
     id: 'fin-expense-change',
@@ -168,7 +169,7 @@ storage.setItem('pdv.financialTransactions', [
     amount: 150,
     categoryId: 'fornecedor',
     status: 'paid',
-    transactionDate: new Date().toISOString().slice(0, 10)
+    transactionDate: getLocalDateKey()
   }
 ]);
 
