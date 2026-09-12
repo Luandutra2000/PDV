@@ -22,6 +22,7 @@ create table if not exists public.role_permissions (
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   name text not null,
+  empresa_id uuid,
   role_id text not null default 'operador' references public.roles(id),
   is_active boolean not null default true,
   created_at timestamptz not null default now(),

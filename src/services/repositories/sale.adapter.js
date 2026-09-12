@@ -29,6 +29,7 @@ export const saleAdapter = {
       payment_method: sale.paymentMethod,
       received_amount: Number(sale.receivedAmount) || 0,
       change_amount: Number(sale.change) || 0,
+      created_by: sale.createdBy || null,
       created_at: sale.createdAt || new Date().toISOString(),
       canceled_at: sale.canceledAt || null
     };

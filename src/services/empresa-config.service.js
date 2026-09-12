@@ -125,21 +125,25 @@ export function applyCompanyIdentity(input = loadCompanySettingsLocal()) {
 
 export async function loadCompanySettings() {
   const localSettings = loadCompanySettingsLocal();
-  const empresaId = resolveCompanyEmpresaId(localSettings.empresaId);
-  const scopedLocalSettings = normalizeCompanySettings({
-    ...localSettings,
-    empresaId
-  });
+  let empresaId = resolveCompanyEmpresaId(localSettings.empresaId);
 
   if (!isSupabaseEnabled()) {
-    return scopedLocalSettings;
+    return normalizeCompanySettings({ ...localSettings, empresaId });
   }
 
   try {
     const client = await getSupabaseClient();
 
     if (!client) {
-      return scopedLocalSettings;
+      return normalizeCompanySettings({ ...localSettings, empresaId });
+    }
+
+    if (!isUuid(empresaId)) {
+      empresaId = await loadCurrentUserEmpresaId(client);
+    }
+
+    if (!isUuid(empresaId)) {
+      return normalizeCompanySettings({ ...localSettings, empresaId: LOCAL_COMPANY_ID });
     }
 
     const { data, error } = await client
@@ -150,16 +154,18 @@ export async function loadCompanySettings() {
 
     if (error) {
       console.warn('Nao foi possivel carregar configuracoes da empresa.', error);
-      return scopedLocalSettings;
+      return normalizeCompanySettings({ ...localSettings, empresaId });
     }
 
-    const settings = data ? unmapCompanySettings(data) : scopedLocalSettings;
+    const settings = data
+      ? unmapCompanySettings(data)
+      : normalizeCompanySettings({ ...localSettings, empresaId });
     setItem(STORAGE_KEYS.companySettings, settings);
     applyCompanyIdentity(settings);
     return settings;
   } catch (error) {
     console.warn('Nao foi possivel carregar configuracoes da empresa.', error);
-    return scopedLocalSettings;
+    return normalizeCompanySettings({ ...localSettings, empresaId });
   }
 }
 
@@ -178,6 +184,16 @@ export async function saveCompanySettings(input) {
 
     if (!client) {
       return saveCompanySettingsLocalOnly(settings);
+    }
+
+    if (!isUuid(settings.empresaId)) {
+      const remoteEmpresaId = await loadCurrentUserEmpresaId(client);
+
+      if (!isUuid(remoteEmpresaId)) {
+        return saveCompanySettingsLocalOnly(settings);
+      }
+
+      settings.empresaId = remoteEmpresaId;
     }
 
     const row = mapCompanySettings(settings);
@@ -351,11 +367,38 @@ function saveCompanySettingsLocalOnly(settings) {
 function resolveCompanyEmpresaId(value) {
   const candidate = String(value || '').trim();
 
-  if (candidate && candidate !== LOCAL_COMPANY_ID) {
+  if (isUuid(candidate)) {
     return candidate;
   }
 
   const currentUserEmpresaId = String(getCurrentUser()?.empresaId || '').trim();
 
-  return currentUserEmpresaId || LOCAL_COMPANY_ID;
+  return isUuid(currentUserEmpresaId) ? currentUserEmpresaId : LOCAL_COMPANY_ID;
+}
+
+async function loadCurrentUserEmpresaId(client) {
+  const userId = String(getCurrentUser()?.id || '').trim();
+
+  if (!userId || !client?.from) {
+    return '';
+  }
+
+  const query = client
+    .from('profiles')
+    .select('empresa_id')
+    .eq('id', userId);
+  const result = typeof query.maybeSingle === 'function'
+    ? await query.maybeSingle()
+    : await query.single();
+
+  if (result?.error) {
+    return '';
+  }
+
+  const empresaId = String(result?.data?.empresa_id || '').trim();
+  return isUuid(empresaId) ? empresaId : '';
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value || '').trim());
 }

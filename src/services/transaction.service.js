@@ -54,6 +54,7 @@ export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
   const closedCommand = {
     ...comanda,
     status: 'fechada',
+    createdBy: user?.id || '',
     closedAt: sale.createdAt,
     total,
     paymentMethod,
@@ -63,8 +64,7 @@ export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
 
   appendTransaction(sale);
   appendClosedComanda(closedCommand);
-  syncSaleToSupabase(sale, closedCommand);
-  runShowcaseSync(processShowcaseSale({
+  const showcaseSaleInput = {
     operationId: sale.id,
     saleId: sale.id,
     commandId: sale.comandaId,
@@ -76,7 +76,11 @@ export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
       unitPrice: item.unitPrice ?? item.price,
       total: item.total
     }))
-  }));
+  };
+  const saleSync = syncSaleToSupabase(sale, closedCommand);
+  runShowcaseSync(
+    Promise.resolve(saleSync || sale).then(() => processShowcaseSale(showcaseSaleInput))
+  );
   startNewComanda(comanda.number + 1);
   emit(SYNC_EVENTS.saleFinished, sale);
   emit(UI_EVENTS.cashSummaryChanged, sale);
@@ -501,10 +505,12 @@ function appendClosedComanda(comanda) {
 
 function syncSaleToSupabase(sale, command) {
   if (!isSupabaseEnabled()) {
-    return;
+    return Promise.resolve(sale);
   }
 
-  runFinancialSync(saveSaleToSupabase({ sale, command }));
+  const promise = saveSaleToSupabase({ sale, command });
+  runFinancialSync(promise);
+  return promise;
 }
 
 function syncCashMovementToSupabase(movement) {

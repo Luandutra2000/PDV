@@ -28,6 +28,7 @@ export const commandAdapter = {
       payment_method: command.paymentMethod || null,
       received_amount: Number(command.receivedAmount) || 0,
       change_amount: Number(command.change) || 0,
+      created_by: command.createdBy || null,
       created_at: command.createdAt || command.closedAt || new Date().toISOString(),
       updated_at: command.updatedAt || command.closedAt || command.createdAt || new Date().toISOString(),
       closed_at: command.closedAt || null,

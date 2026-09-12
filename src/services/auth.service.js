@@ -1,6 +1,6 @@
 import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
 import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { getSupabaseClient, setSupabaseAuthSession } from './supabase-client.service.js?v=20260804-06';
+import { getSupabaseAuthSession, getSupabaseClient, setSupabaseAuthSession } from './supabase-client.service.js?v=20260804-06';
 import { getItem, setItem } from './storage.service.js?v=20260804-06';
 
 const VALID_ROLES = new Set(['admin', 'gerente', 'operador', 'dono']);
@@ -54,19 +54,22 @@ export async function logout() {
 }
 
 export async function restoreSupabaseSession() {
-  if (!isSupabaseEnabled() || getCurrentUser()) {
+  if (!isSupabaseEnabled()) {
     return getCurrentUser();
   }
 
   try {
-    const client = await getSupabaseClient();
-    const { data, error } = await client.auth.getUser();
+    let session = await getSupabaseAuthSession();
 
-    if (error || !data?.user) {
+    if (session?.expires_at && session.expires_at * 1000 <= Date.now() + 30_000) {
+      session = await getSupabaseAuthSession({ forceRefresh: true });
+    }
+
+    if (!session?.user) {
       return null;
     }
 
-    return await ensureSupabaseLocalSession(data.user, data.session);
+    return await ensureSupabaseLocalSession(session.user, session);
   } catch (error) {
     return null;
   }
@@ -288,7 +291,7 @@ async function loadSupabaseProfile(userId) {
 
   const query = client
     .from('profiles')
-    .select('id,name,role_id,is_active')
+    .select('id,name,role_id,is_active,empresa_id')
     .eq('id', userId);
   const result = typeof query.maybeSingle === 'function'
     ? await query.maybeSingle()
