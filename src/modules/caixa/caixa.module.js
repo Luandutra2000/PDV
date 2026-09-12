@@ -166,6 +166,7 @@ function renderPeriodFilters() {
 
 function renderClosingPanel(summary, closingSummary) {
   const expectedCash = closingSummary.payments.expectedCash;
+  const canClose = caixaState.period === 'today';
 
   return `
     <section class="crm-panel crm-closing-card">
@@ -193,7 +194,8 @@ function renderClosingPanel(summary, closingSummary) {
         <span>Diferenca geral</span>
         <strong class="${closingSummary.payments.generalDifference ? 'money-negative' : 'money-positive'}">${formatCurrency(closingSummary.payments.generalDifference)}</strong>
       </div>
-      <button class="button" type="button" data-action="confirm-crm-closing">Fechar caixa</button>
+      ${canClose ? '' : '<p class="form-help">Selecione Hoje para fechar a sessao atual.</p>'}
+      <button class="button" type="button" data-action="confirm-crm-closing"${canClose ? '' : ' disabled'}>${canClose ? 'Fechar caixa' : 'Selecione Hoje para fechar'}</button>
     </section>
   `;
 }
@@ -211,6 +213,10 @@ function renderClosingInput(name, label, value) {
 
 function confirmCrmClosing(container) {
   try {
+    if (caixaState.period !== 'today') {
+      throw new Error('Selecione Hoje para fechar a sessao atual.');
+    }
+
     const summary = getCrmSummary(createPeriodFilter(caixaState.period, caixaState.customStart, caixaState.customEnd));
     const closingInput = buildCrmClosingInput(summary, {
       countedCash: caixaState.countedCash,

@@ -27,6 +27,8 @@ const productState = {
   modal: null,
   editingProductId: null,
   editingCategoryId: null,
+  deletingProductId: null,
+  deletingCategoryId: null,
   query: '',
   categoryFilter: 'todos',
   statusFilter: 'todos',
@@ -44,6 +46,8 @@ export function initProdutosModule(container) {
   productState.modal = null;
   productState.editingProductId = null;
   productState.editingCategoryId = null;
+  productState.deletingProductId = null;
+  productState.deletingCategoryId = null;
   productState.loading = true;
   productState.error = '';
   renderProdutosScreen(container);
@@ -201,6 +205,7 @@ function renderProdutosScreen(container) {
 
       ${productState.modal === 'product' ? renderProductModal() : ''}
       ${productState.modal === 'category' ? renderCategoryModal() : ''}
+      ${productState.deletingProductId || productState.deletingCategoryId ? renderDeleteConfirmation() : ''}
     </section>
   `;
 }
@@ -333,23 +338,44 @@ function bindProdutosEvents(container) {
     if (action === 'new-product') openProductModal(container);
     if (action === 'edit-product') openProductModal(container, actionButton.dataset.productId);
     if (action === 'delete-product') {
+      openDeleteConfirmation(container, 'product', actionButton.dataset.productId);
+      return;
+    }
+
+    if (action === 'confirm-delete-product') {
       try {
-        await removeProduct(actionButton.dataset.productId);
+        await removeProduct(productState.deletingProductId);
+        productState.deletingProductId = null;
         renderCatalogFromLocalState(container);
       } catch (error) {
         handleProductActionError(error);
       }
+      return;
     }
 
     if (action === 'new-category') openCategoryModal(container);
     if (action === 'edit-category') openCategoryModal(container, actionButton.dataset.categoryId);
     if (action === 'delete-category') {
+      openDeleteConfirmation(container, 'category', actionButton.dataset.categoryId);
+      return;
+    }
+
+    if (action === 'confirm-delete-category') {
       try {
-        await removeCategory(actionButton.dataset.categoryId);
+        await removeCategory(productState.deletingCategoryId);
+        productState.deletingCategoryId = null;
         renderCatalogFromLocalState(container);
       } catch (error) {
         handleProductActionError(error);
       }
+      return;
+    }
+
+    if (action === 'cancel-delete-catalog') {
+      productState.deletingProductId = null;
+      productState.deletingCategoryId = null;
+      renderProdutosScreen(container);
+      return;
     }
 
     if (action === 'sync-catalog') {
@@ -408,6 +434,53 @@ function closeModal() {
   productState.modal = null;
   productState.editingProductId = null;
   productState.editingCategoryId = null;
+}
+
+function openDeleteConfirmation(container, type, id) {
+  const isProduct = type === 'product';
+  const item = isProduct
+    ? getProducts().find((product) => product.id === id)
+    : getCategories().find((category) => category.id === id);
+
+  if (!item) {
+    handleProductActionError(new Error('Registro nao encontrado. Atualize o catalogo e tente novamente.'));
+    return;
+  }
+
+  productState.deletingProductId = isProduct ? id : null;
+  productState.deletingCategoryId = isProduct ? null : id;
+  renderProdutosScreen(container);
+}
+
+function renderDeleteConfirmation() {
+  const isProduct = Boolean(productState.deletingProductId);
+  const item = isProduct
+    ? getProducts().find((product) => product.id === productState.deletingProductId)
+    : getCategories().find((category) => category.id === productState.deletingCategoryId);
+
+  if (!item) {
+    return '';
+  }
+
+  const typeLabel = isProduct ? 'produto' : 'categoria';
+  const confirmAction = isProduct ? 'confirm-delete-product' : 'confirm-delete-category';
+
+  return `
+    <div class="modal-backdrop is-open" data-delete-catalog-modal>
+      <div class="modal modal--small" role="dialog" aria-modal="true" aria-labelledby="delete-catalog-title">
+        <header class="modal__header">
+          <h2 id="delete-catalog-title">Apagar ${typeLabel}</h2>
+        </header>
+        <div class="modal__body">
+          <p>Esta acao nao pode ser desfeita. Confirma apagar <strong>${escapeHtml(item.name)}</strong>?</p>
+          <div class="form-actions">
+            <button class="button button--ghost" type="button" data-action="cancel-delete-catalog">Cancelar</button>
+            <button class="button button--danger" type="button" data-action="${confirmAction}">Confirmar exclusao</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 async function saveProductFromForm(form) {
