@@ -1630,5 +1630,6 @@ body {
 }
  .cash-session-pill { display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px; font-size:12px; font-weight:800; white-space:nowrap; }
  .cash-session-pill--open { color:#17794d; background:#e9f8ef; border:1px solid #b9e7ca; }
+ .cash-session-pill--closed { color:#9a5311; background:#fff4df; border:1px solid #f0d09e; }
  .cash-session-open { white-space:nowrap; }
  .cash-session-alert { margin: 0 24px 16px; padding: 12px 14px; border:1px solid #f4c98a; border-radius:12px; background:#fff8e8; color:#8a5a14; font-weight:700; }

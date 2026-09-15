@@ -234,8 +234,8 @@ function renderCashSessionIndicator(root = document) {
   if (!target) return;
   const status = getCashSessionStatus();
   target.innerHTML = status.open
-    ? '<span class="cash-session-pill cash-session-pill--open">Caixa aberto</span>'
-    : '<button class="button button--success cash-session-open" type="button" data-action="open-cash-session">Abrir caixa</button>';
+    ? '<span class="cash-session-pill cash-session-pill--open">Caixa aberto</span><button class="button button--ghost cash-session-close" type="button" data-action="go-to-cash-closing">Fechar caixa</button>'
+    : '<span class="cash-session-pill cash-session-pill--closed">Caixa fechado</span><button class="button button--success cash-session-open" type="button" data-action="open-cash-session">Abrir caixa</button>';
 }
 
 function renderOpenCashSessionModal(app) {
@@ -389,6 +389,17 @@ function bindNavigation(app, workspace) {
 
     if (event.target.closest('[data-action="close-cash-session-modal"]')) {
       app.querySelector('[data-global-modal]').innerHTML = '';
+      return;
+    }
+
+    if (event.target.closest('[data-action="go-to-cash-closing"]')) {
+      const workspace = app.querySelector('[data-workspace-body]');
+      if (workspace) {
+        setActiveMenu(app, 'fechar-caixa');
+        workspace.dataset.activeRoute = 'fechar-caixa';
+        setRouteShellMode(app, 'fechar-caixa');
+        routes['fechar-caixa'](workspace);
+      }
       return;
     }
 
