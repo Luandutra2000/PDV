@@ -24,7 +24,7 @@ export function initSyncAppModule(container) {
       <section class="panel">
         <h2>Se a internet cair ou os valores divergirem</h2>
         <p>Pendências neste aparelho: financeiro ${pendingFinancial}, vitrine ${pendingShowcase}, auditoria ${pendingAudit}. Reabra esta tela para atualizar a contagem.</p>
-        ${financialStatus.error ? `<p class="form-help" role="alert">Último erro financeiro: ${escapeHtml(financialStatus.error.message || 'não informado')}</p>` : ''}
+        ${financialStatus.error ? `<p class="form-help" role="alert">Último erro financeiro: ${escapeHtml(financialStatus.error.message || financialStatus.error || 'não informado')}</p>` : ''}
         ${pendingFinancial ? '<button type="button" class="button button--ghost" data-retry-financial>Sincronizar pendências agora</button>' : ''}
         <p>Auditorias pendentes de outro usuário aguardam que ele entre novamente para confirmar a autoria.</p>
         <ol>
