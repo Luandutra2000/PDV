@@ -57,7 +57,7 @@ const makeClient = (scope) => ({
   },
   rpc(name) {
     calls.push(`${scope}:rpc:${name}`);
-    return Promise.resolve({ error: null });
+    return Promise.resolve({ data: { changed: true, changedItems: 1 }, error: null });
   }
 });
 

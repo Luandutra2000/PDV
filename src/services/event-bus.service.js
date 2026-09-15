@@ -25,5 +25,14 @@ export function emit(eventName, payload = {}) {
     return;
   }
 
-  eventListeners.forEach((handler) => handler(payload));
+  // Observers update secondary views; one broken observer must not reject an
+  // already recorded operation or prevent the remaining observers from running.
+  eventListeners.forEach((handler) => {
+    try {
+      const result = handler(payload);
+      if (result?.then) Promise.resolve(result).catch((error) => console.warn(`Falha ao atualizar observador de ${eventName}.`, error));
+    } catch (error) {
+      console.warn(`Falha ao atualizar observador de ${eventName}.`, error);
+    }
+  });
 }

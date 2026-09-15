@@ -1,5 +1,5 @@
 import { STORAGE_KEYS } from '../../database/schema.js?v=20260804-06';
-import { createLocalProvider } from './local.provider.js?v=20260804-06';
+import { createLocalProvider, deferLocalEffect } from './local.provider.js?v=20260804-06';
 
 const TABLE_MAPPERS = {
   [STORAGE_KEYS.categories]: {
@@ -40,22 +40,6 @@ const TABLE_MAPPERS = {
       active: row.active !== false,
       aliases: Array.isArray(row.aliases) ? row.aliases : [],
       favorite: Boolean(row.favorite)
-    })
-  },
-  [STORAGE_KEYS.closedComandas]: {
-    table: 'commands',
-    map: (command) => ({
-      id: command.id,
-      number: Number(command.number) || 0,
-      status: command.status || 'fechada',
-      total: Number(command.total) || 0,
-      payment_method: command.paymentMethod || null,
-      received_amount: Number(command.receivedAmount) || 0,
-      change_amount: Number(command.change) || 0,
-      created_at: command.createdAt || command.closedAt,
-      updated_at: command.updatedAt || command.closedAt || command.createdAt,
-      closed_at: command.closedAt || null,
-      canceled_at: command.canceledAt || null
     })
   },
   [STORAGE_KEYS.stockLaunches]: {
@@ -156,13 +140,14 @@ const TABLE_MAPPERS = {
     table: 'audit_logs',
     select: 'id,action,entity_type,entity_id,user_id,user_name,metadata,created_at',
     unmap: (row) => ({
-      id: row.id,
+      id: row.metadata?.clientAuditId || row.id,
       action: row.action,
       entityType: row.entity_type,
       entityId: row.entity_id,
       userId: row.user_id,
       userName: row.user_name,
       metadata: row.metadata || {},
+      reason: row.metadata?.reason || '',
       module: row.metadata?.module || '',
       details: row.metadata?.details || '',
       createdAt: row.created_at
@@ -175,7 +160,9 @@ export function createSupabaseProvider({ getClient, localProvider = createLocalP
 
   function scheduleSync(key, value) {
     syncChain = syncChain
-      .then(() => syncCollection(getClient, key, value))
+      .then(() => key === STORAGE_KEYS.auditLogs
+        ? syncAuditLogs(getClient, localProvider)
+        : syncCollection(getClient, key, value))
       .catch((error) => {
         console.warn(`Nao foi possivel sincronizar ${key} com Supabase.`, error);
       });
@@ -187,8 +174,15 @@ export function createSupabaseProvider({ getClient, localProvider = createLocalP
       return localProvider.read(key, fallback);
     },
     write(key, value) {
+      if (key === STORAGE_KEYS.auditLogs && Array.isArray(value)) {
+        const existing = new Map(localProvider.read(key, []).map((entry) => [entry.id, entry]));
+        value = value.map((entry) => ({
+          ...entry,
+          pendingSync: existing.has(entry.id) ? existing.get(entry.id).pendingSync === true : true
+        }));
+      }
       const saved = localProvider.write(key, value);
-      scheduleSync(key, saved);
+      deferLocalEffect(() => scheduleSync(key, saved));
       return saved;
     },
     remove(key) {
@@ -207,6 +201,7 @@ export function createSupabaseProvider({ getClient, localProvider = createLocalP
       await Promise.all(keys.map((key) => hydrateCollection(client, localProvider, key)));
     },
     flush() {
+      scheduleSync(STORAGE_KEYS.auditLogs);
       return syncChain;
     }
   };
@@ -226,25 +221,17 @@ async function hydrateCollection(client, localProvider, key) {
   }
 
   if (Array.isArray(data)) {
-    localProvider.write(
-      key,
-      mapper.unmapCollection ? mapper.unmapCollection(data) : data.map(mapper.unmap)
-    );
+    let hydrated = mapper.unmapCollection ? mapper.unmapCollection(data) : data.map(mapper.unmap);
+    if (key === STORAGE_KEYS.auditLogs) {
+      const pending = localProvider.read(key, []).filter((entry) => entry.pendingSync === true);
+      const pendingIds = new Set(pending.map((entry) => entry.id));
+      hydrated = [...pending, ...hydrated.filter((entry) => !pendingIds.has(entry.id))];
+    }
+    localProvider.write(key, hydrated);
   }
 }
 
 async function syncCollection(getClient, key, value) {
-  if (key === STORAGE_KEYS.transactions) {
-    const client = await getClient();
-
-    if (!client) {
-      return;
-    }
-
-    await syncTransactions(client, value);
-    return;
-  }
-
   const mapper = TABLE_MAPPERS[key];
 
   if (!mapper?.map || !Array.isArray(value)) {
@@ -266,69 +253,49 @@ async function syncCollection(getClient, key, value) {
   await throwIfSupabaseError(client.from(mapper.table).upsert(rows));
 }
 
-async function syncTransactions(client, transactions = []) {
-  const sales = transactions.filter((item) => item.type === 'venda');
-  const movements = transactions.filter((item) => item.type === 'entrada' || item.type === 'saida' || item.type === 'sangria');
-
-  if (sales.length) {
-    await throwIfSupabaseError(client.from('sales').upsert(sales.map(mapSale)));
-    const saleItems = sales.flatMap((sale) => (sale.items || []).map((item) => mapSaleItem(sale, item)));
-
-    if (saleItems.length) {
-      await throwIfSupabaseError(client.from('sale_items').upsert(saleItems));
-    }
-  }
-
-  if (movements.length) {
-    await throwIfSupabaseError(client.from('cash_movements').upsert(movements.map(mapCashMovement)));
-  }
-}
-
-function mapSale(sale) {
-  return {
-    id: sale.id,
-    status: sale.status || 'ativa',
-    command_id: sale.comandaId || null,
-    command_number: Number(sale.comandaNumber) || null,
-    total: Number(sale.total) || 0,
-    payment_method: sale.paymentMethod,
-    received_amount: Number(sale.receivedAmount) || 0,
-    change_amount: Number(sale.change) || 0,
-    created_at: sale.createdAt || new Date().toISOString(),
-    canceled_at: sale.canceledAt || null
-  };
-}
-
-function mapSaleItem(sale, item) {
-  return {
-    id: `${sale.id}-${item.productId}`,
-    sale_id: sale.id,
-    product_id: item.productId,
-    name: item.name,
-    quantity: Number(item.quantity) || 0,
-    unit_price: Number(item.price || item.unitPrice) || 0,
-    total: Number(item.total) || 0
-  };
-}
-
-function mapCashMovement(movement) {
-  return {
-    id: movement.id,
-    type: movement.type,
-    status: movement.status || 'ativa',
-    amount: Number(movement.amount) || 0,
-    category: movement.category || 'sem-categoria',
-    description: movement.description || '',
-    user_name: movement.userName || 'Local',
-    created_at: movement.createdAt || new Date().toISOString(),
-    canceled_at: movement.canceledAt || null
-  };
-}
-
 async function throwIfSupabaseError(query) {
   const { error } = await query;
 
   if (error) {
     throw error;
   }
+}
+
+// Audit entries are append-only. The durable flag survives network failure and reload.
+async function syncAuditLogs(getClient, localProvider) {
+  const pending = localProvider.read(STORAGE_KEYS.auditLogs, []).filter((entry) => entry.pendingSync === true);
+  if (!pending.length) return;
+  const client = await getClient();
+  const { data, error } = await client?.auth?.getSession?.() || {};
+  if (error) throw error;
+  const userId = data?.session?.user?.id;
+  if (!userId) return;
+  for (const entry of pending.filter((item) => item.userId === userId)) {
+    const row = {
+      id: await auditUuid(entry.id),
+      action: entry.action,
+      entity_type: entry.entityType,
+      entity_id: entry.entityId || null,
+      user_id: userId,
+      user_name: entry.userName || 'Sistema',
+      metadata: { ...entry.metadata, reason: entry.reason || '', clientAuditId: entry.id },
+      created_at: entry.createdAt
+    };
+    // ON CONFLICT requires SELECT under RLS; operators only need INSERT here.
+    // The stable UUID makes a lost-response retry a primary-key collision.
+    const { error: insertError } = await client.from('audit_logs').insert([row]);
+    if (insertError && insertError.code !== '23505') throw insertError;
+    const latest = localProvider.read(STORAGE_KEYS.auditLogs, []);
+    localProvider.write(STORAGE_KEYS.auditLogs, latest.map((item) => item.id === entry.id ? { ...item, pendingSync: false } : item));
+  }
+}
+
+async function auditUuid(id) {
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return id;
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`pdv-audit:${id}`)));
+  const bytes = digest.slice(0, 16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x50;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }

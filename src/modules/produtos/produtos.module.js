@@ -56,6 +56,7 @@ export function initProdutosModule(container) {
   if (!boundContainers.has(container)) {
     bindProdutosEvents(container);
     on(UI_EVENTS.productCatalogChanged, () => renderProdutosScreen(container));
+    on(UI_EVENTS.showcaseStockChanged, () => renderProdutosScreen(container));
     on(UI_EVENTS.productSyncStatusChanged, (status) => {
       productState.syncStatus = status;
       renderProdutosScreen(container);
@@ -109,7 +110,7 @@ function getProductAlerts(metrics = getProductDashboardMetrics()) {
     },
     {
       key: 'zero-stock',
-      count: metrics.activeProducts.filter((product) => Number(product.stock) <= 0).length,
+      count: metrics.activeProducts.filter((product) => getShowcaseStockByProductId(product.id).quantityAvailable <= 0).length,
       label: 'Estoque zerado',
       tone: 'danger'
     },
@@ -749,7 +750,7 @@ function renderProductRows() {
       <article class="product-manager-card">
         <div class="product-manager-card__content">
           <strong>${escapeHtml(product.name)}</strong>
-          <span>${escapeHtml(category ? category.name : 'Sem categoria')} - ${formatCurrency(product.price)} - Estoque: ${product.stock}</span>
+          <span>${escapeHtml(category ? category.name : 'Sem categoria')} - ${formatCurrency(product.price)} - Estoque: ${getShowcaseStockByProductId(product.id).quantityAvailable}</span>
           <div class="product-manager-card__badges">
             <span class="product-manager-card__badge ${isActive ? 'is-active' : 'is-inactive'}">${isActive ? 'Ativo' : 'Inativo'}</span>
             <span class="product-manager-card__badge ${inShowcase ? 'is-showcase' : 'is-out-showcase'}">${inShowcase ? 'Na vitrine' : 'Fora da vitrine'}</span>
@@ -807,7 +808,7 @@ function renderProductModal() {
 
           <label class="stacked-label">
             Estoque atual
-            <input class="field" name="stock" type="number" min="0" step="1" required placeholder="0" value="${product ? product.stock : 0}">
+            <input class="field" name="stock" type="number" min="0" step="1" required placeholder="0" value="${product ? getShowcaseStockByProductId(product.id).quantityAvailable : 0}">
             <small>Informe 0 para zerar ou uma quantidade menor para retirar unidades.</small>
           </label>
 

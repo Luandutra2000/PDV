@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdv-v79';
+const CACHE_NAME = 'pdv-v80';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -31,7 +31,7 @@ self.addEventListener('activate', (event) => {
     caches.keys()
       .then((keys) => Promise.all(
         keys
-          .filter((key) => key !== CACHE_NAME)
+          .filter((key) => key.startsWith('pdv-') && key !== CACHE_NAME)
           .map((key) => caches.delete(key))
       ))
       .then(() => self.clients.claim())
@@ -39,21 +39,33 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') {
+  const url = new URL(event.request.url);
+  const publicPath = url.pathname === '/' || url.pathname === '/index.html'
+    || url.pathname === '/manifest.json' || url.pathname === '/favicon.ico'
+    || /^\/src\/.*\.(?:js|css|svg|png|jpe?g|webp|ico|woff2?)$/.test(url.pathname);
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin
+    || !publicPath || event.request.headers.has('authorization')
+    || [...url.searchParams.keys()].some((key) => key !== 'v')) {
     return;
   }
 
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-cache' })
       .then((response) => {
-        if (!response || response.status !== 200 || response.type === 'opaque') {
+        if (!response || response.status !== 200 || response.type === 'opaque'
+          || response.redirected || /(?:private|no-store)/i.test(response.headers.get('cache-control') || '')) {
           return response;
         }
 
         const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        event.waitUntil(caches.open(CACHE_NAME)
+          .then((cache) => cache.put(event.request, copy))
+          .catch(() => {}));
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(async () => {
+        const cache = await caches.open(CACHE_NAME);
+        return (await cache.match(event.request)) || Response.error();
+      })
   );
 });

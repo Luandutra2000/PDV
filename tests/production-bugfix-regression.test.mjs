@@ -27,8 +27,7 @@ assert(reportsSource.includes('Produtos mais vendidos'), 'reports should expose 
 
 assert(salesSource.includes('event.stopPropagation()'), 'sales modal actions should not leak clicks into global navigation');
 assert(salesSource.includes('buildQuickClosingInput'), 'quick closing should use displayed CRM totals');
-assert(transactionSource.includes('const saleSync = syncSaleToSupabase(sale, closedCommand);'), 'sale persistence should be captured before showcase sync');
-assert(transactionSource.includes('Promise.resolve(saleSync || sale).then(() => processShowcaseSale(showcaseSaleInput))'), 'showcase sale sync should wait for the sale write');
+// Sale/stock persistence order is exercised behaviorally in sale-showcase-order.test.mjs.
 assert(cashSource.includes("name === 'countedCash' ? ''"), 'negative expected cash should be accepted by the cash input');
 assert(cashSource.includes('buildCrmClosingInput'), 'CRM closing should reconcile from the displayed summary');
 

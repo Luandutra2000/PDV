@@ -150,7 +150,9 @@ provider.write(STORAGE_KEYS.transactions, [
   }
 ]);
 
+provider.write(STORAGE_KEYS.closedComandas, [{ id: 'command-1' }]);
 await provider.flush();
+if (calls.some(call => call.table === 'commands')) throw new Error('commands must use dedicated financial synchronization');
 
 const assert = (condition, message) => {
   if (!condition) {
@@ -160,9 +162,9 @@ const assert = (condition, message) => {
 
 assert(provider.mode === 'supabase', 'provider should expose supabase mode');
 assert(calls.some((call) => call.table === 'products'), 'products should sync to products table');
-assert(calls.some((call) => call.table === 'sales'), 'sales should sync to sales table');
-assert(calls.some((call) => call.table === 'sale_items'), 'sale items should sync to sale_items table');
-assert(calls.some((call) => call.table === 'cash_movements'), 'cash movements should sync to cash_movements table');
+assert(!calls.some((call) => call.table === 'sales'), 'sales belong to dedicated synchronization, never generic history upsert');
+assert(!calls.some((call) => call.table === 'sale_items'), 'sale items belong to dedicated synchronization, never generic history upsert');
+assert(!calls.some((call) => call.table === 'cash_movements'), 'cash movements belong to dedicated synchronization, never generic history upsert');
 
 const productCall = calls.find((call) => call.table === 'products');
 assert(productCall.rows[0].category_id === 'salgados', 'product category should be mapped to snake_case');

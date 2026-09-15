@@ -40,12 +40,13 @@ function createTableClient({ baseUrl, headers, table }) {
         headers
       });
     },
-    upsert(rows) {
-      return requestJson(`${baseUrl}/${table}`, {
+    upsert(rows, { onConflict, ignoreDuplicates = false } = {}) {
+      const conflictQuery = onConflict ? `?on_conflict=${encodeURIComponent(onConflict)}` : '';
+      return requestJson(`${baseUrl}/${table}${conflictQuery}`, {
         method: 'POST',
         headers: {
           ...headers,
-          Prefer: 'resolution=merge-duplicates,return=representation'
+          Prefer: `resolution=${ignoreDuplicates ? 'ignore' : 'merge'}-duplicates,return=representation`
         },
         body: JSON.stringify(rows)
       });

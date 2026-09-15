@@ -16,6 +16,7 @@ const tables = [
   'role_permissions',
   'profiles',
   'user_permission_overrides',
+  'empresa_configuracoes',
   'categories',
   'products',
   'cash_sessions',
@@ -70,6 +71,7 @@ const manifest = {
   source: new URL(productionUrl).origin,
   projectUrl: config.supabaseUrl,
   format: 'json',
+  scope: 'public operational tables; Auth users, Storage files and database schema require separate recovery backups',
   tables: []
 };
 

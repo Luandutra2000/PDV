@@ -137,9 +137,19 @@ function bindCaixaEvents(container) {
 
     if (event.target.matches('[data-crm-closing-input]')) {
       caixaState[event.target.dataset.crmClosingInput] = event.target.value;
-      renderCaixa(container);
+      updateClosingDifference(container);
     }
   });
+}
+
+function updateClosingDifference(container) {
+  const summary = getCrmSummary(createPeriodFilter(caixaState.period, caixaState.customStart, caixaState.customEnd));
+  const closing = buildClosingSummary(buildCrmClosingInput(summary, caixaState));
+  const difference = container.querySelector('[data-crm-closing-difference]');
+  if (difference) {
+    difference.textContent = formatCurrency(closing.payments.generalDifference);
+    difference.className = closing.payments.generalDifference ? 'money-negative' : 'money-positive';
+  }
 }
 
 function renderPeriodFilters() {
@@ -172,7 +182,7 @@ function renderClosingPanel(summary, closingSummary) {
     <section class="crm-panel crm-closing-card">
       <header class="crm-panel__header">
         <h3>Fechamento completo</h3>
-        <span>Resumo do periodo selecionado</span>
+        <span>${canClose ? 'Acumulado de hoje; cada fechamento salva uma conferencia' : 'Resumo do periodo selecionado'}</span>
       </header>
       <div class="crm-payment-row"><span>Vendas</span><strong>${formatCurrency(summary.salesTotal)}</strong></div>
       <div class="crm-payment-row"><span>Entradas</span><strong>${formatCurrency(summary.entriesTotal)}</strong></div>
@@ -192,7 +202,7 @@ function renderClosingPanel(summary, closingSummary) {
       </label>
       <div class="crm-payment-row">
         <span>Diferenca geral</span>
-        <strong class="${closingSummary.payments.generalDifference ? 'money-negative' : 'money-positive'}">${formatCurrency(closingSummary.payments.generalDifference)}</strong>
+        <strong data-crm-closing-difference class="${closingSummary.payments.generalDifference ? 'money-negative' : 'money-positive'}">${formatCurrency(closingSummary.payments.generalDifference)}</strong>
       </div>
       ${canClose ? '' : '<p class="form-help">Selecione Hoje para fechar a sessao atual.</p>'}
       <button class="button" type="button" data-action="confirm-crm-closing"${canClose ? '' : ' disabled'}>${canClose ? 'Fechar caixa' : 'Selecione Hoje para fechar'}</button>
@@ -230,11 +240,11 @@ function confirmCrmClosing(container) {
       ...closingInput,
       differences: buildDifferences(closingSummary, caixaState.note)
     });
-    confirmClosing(draft);
+    const closing = confirmClosing(draft);
     showNotification({
       title: 'Caixa fechado',
-      message: 'Fechamento salvo no historico do CRM.',
-      type: 'success'
+      message: closing.warnings?.length ? closing.warnings.join(' ') : 'Fechamento salvo no historico do CRM.',
+      type: closing.warnings?.length ? 'warning' : 'success'
     });
     resetClosingFields();
     renderCaixa(container);

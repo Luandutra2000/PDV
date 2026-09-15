@@ -11,6 +11,7 @@ import {
   reverseSaleInShowcase
 } from './showcase-stock.service.js?v=20260804-06';
 import { setItem } from './storage.service.js?v=20260804-06';
+import { readLocalCache, setLocalCache, runLocalTransaction, deferLocalEffect } from './providers/local.provider.js?v=20260804-06';
 import { outOfStockSaleAdapter } from './repositories/out-of-stock-sale.adapter.js?v=20260804-06';
 import { productStockAdapter } from './repositories/product-stock.adapter.js?v=20260804-06';
 import { showcaseMovementAdapter } from './repositories/showcase-movement.adapter.js?v=20260804-06';
@@ -42,6 +43,7 @@ let getClientOverride = null;
 let realtimeChannel = null;
 let realtimePromise = null;
 let realtimeHydrateTimer = null;
+let flushPromise = null;
 let status = createStatus('idle', readQueue().length);
 
 export function configureShowcaseSyncForTests({ getClient } = {}) {
@@ -49,6 +51,7 @@ export function configureShowcaseSyncForTests({ getClient } = {}) {
   status = createStatus('idle', readQueue().length);
   realtimeChannel = null;
   realtimePromise = null;
+  flushPromise = null;
   clearRealtimeHydrateTimer();
 }
 
@@ -64,6 +67,7 @@ export function getShowcaseSyncStatus() {
 
 export async function hydrateShowcaseData({ force = false } = {}) {
   const queue = readQueue();
+  const cachedBefore = JSON.stringify(readShowcaseCaches());
 
   if (queue.length && !force) {
     setStatus({
@@ -78,6 +82,11 @@ export async function hydrateShowcaseData({ force = false } = {}) {
     setStatus({ state: 'syncing', error: '' });
     const client = await getClient();
     const [stockRows, movementRows, outOfStockRows] = await Promise.all(SHOWCASE_ADAPTERS.map((adapter) => selectRows(client, adapter)));
+
+    if (readQueue().length || cachedBefore !== JSON.stringify(readShowcaseCaches())) {
+      setStatusFromQueue(readQueue());
+      return readShowcaseCaches();
+    }
 
     setItem(STORAGE_KEYS.productStock, stockRows.map(productStockAdapter.fromRow));
     setItem(STORAGE_KEYS.showcaseMovements, movementRows.map(showcaseMovementAdapter.fromRow));
@@ -113,12 +122,20 @@ export async function processShowcaseSale(input = {}) {
   });
 }
 
+export function prepareShowcaseSale(input = {}) {
+  return prepareLocalOperation({ action: 'processSale', input, applyLocal: applySaleToShowcase });
+}
+
 export async function reverseShowcaseSale(input = {}) {
   return applyLocalThenSync({
     action: 'reverseSale',
     input,
     applyLocal: reverseSaleInShowcase
   });
+}
+
+export function prepareShowcaseReversal(input = {}) {
+  return prepareLocalOperation({ action: 'reverseSale', input, applyLocal: reverseSaleInShowcase });
 }
 
 export async function adjustShowcaseStockOnline(input = {}) {
@@ -129,36 +146,32 @@ export async function adjustShowcaseStockOnline(input = {}) {
   });
 }
 
-export async function flushShowcaseQueue() {
-  const queue = readQueue();
-
-  if (!queue.length) {
-    setStatus({ state: 'synced', pending: 0, error: '' });
-    return;
+export function flushShowcaseQueue() {
+  if (!flushPromise) {
+    flushPromise = flushPendingOperations().finally(() => { flushPromise = null; });
   }
+  return flushPromise;
+}
 
-  let remaining = [];
-  let flushError = null;
-
+async function flushPendingOperations() {
   try {
-    const client = await getClient();
-
-    for (const [index, operation] of queue.entries()) {
-      try {
-        await callRpc(client, operation.action, operation.input);
-      } catch (error) {
-        remaining = queue.slice(index);
-        flushError = error;
-        break;
-      }
+    if (!readQueue().length) {
+      setStatusFromQueue([]);
+      return;
     }
+    setStatus({ state: 'syncing', error: '' });
+    const client = await getClient();
+    let operation;
+    while ((operation = readQueue()[0])) {
+      await callRpc(client, operation.action, operation.input);
+      // Re-read after each await: another action or tab may have appended work.
+      const sent = JSON.stringify(operation);
+      writeQueue(readQueue().filter((queued) => JSON.stringify(queued) !== sent));
+    }
+    setStatusFromQueue(readQueue());
   } catch (error) {
-    setPendingStatus(queue, error);
-    return;
+    setPendingStatus(readQueue(), error);
   }
-
-  writeQueue(remaining);
-  setStatusFromQueue(remaining, remaining.length ? (flushError?.message || 'Algumas alteracoes da vitrine continuam pendentes.') : '');
 }
 
 export async function startShowcaseRealtime() {
@@ -219,24 +232,27 @@ export async function stopShowcaseRealtime() {
 }
 
 async function applyLocalThenSync({ action, input, applyLocal }) {
+  const result = prepareLocalOperation({ action, input, applyLocal });
+  if (isSupabaseEnabled()) await flushShowcaseQueue();
+  return result;
+}
+
+function prepareLocalOperation({ action, input, applyLocal }) {
+  return runLocalTransaction(() => {
   const result = applyLocal(input);
-  emitShowcaseDataChanged({ action, input, result });
+  // Persist before awaiting the client or emitting events that can start a flush.
+  if (isSupabaseEnabled()) {
+    enqueueOperation({ action, input });
+  }
+  deferLocalEffect(() => emitShowcaseDataChanged({ action, input, result }));
 
   if (!isSupabaseEnabled()) {
     setStatusFromQueue(readQueue());
     return result;
   }
 
-  try {
-    setStatus({ state: 'syncing', error: '' });
-    await callRpc(await getClient(), action, input);
-    setStatusFromQueue(readQueue());
-  } catch (error) {
-    const queue = enqueueOperation({ action, input });
-    setPendingStatus(queue, error);
-  }
-
   return result;
+  });
 }
 
 async function callRpc(client, action, input) {
@@ -249,13 +265,27 @@ async function callRpc(client, action, input) {
     throw new Error(`Acao de vitrine desconhecida: ${action}`);
   }
 
-  const { error } = await client.rpc(functionName, { _payload: normalizeRpcInput(action, input) });
+  const { data, error } = await client.rpc(functionName, { _payload: normalizeRpcInput(action, input) });
   if (error) {
     throw error;
+  }
+  if (action === 'processSale' && data?.reason !== 'already-applied'
+    && !(data?.changed === true && Number(data.changedItems) > 0)) {
+    throw new Error('O servidor nao confirmou a baixa dos itens da venda.');
   }
 }
 
 function normalizeRpcInput(action, input = {}) {
+  if (action === 'processSale') {
+    return {
+      ...input,
+      items: (input.items || []).map(({ productId, unitPrice, price, ...item }) => ({
+        ...item,
+        product_id: productId,
+        unit_price: unitPrice ?? price ?? 0
+      }))
+    };
+  }
   if (action === 'adjustStock' && input.note && !input.notes) {
     return { ...input, notes: input.note };
   }
@@ -273,13 +303,16 @@ async function selectRows(client, adapter) {
     throw new Error('Cliente Supabase indisponivel para carregar vitrine.');
   }
 
-  const { data, error } = await client.from(adapter.table).select(adapter.select || '*');
-
-  if (error) {
-    throw error;
+  const rows = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await client.from(adapter.table).select(adapter.select || '*')
+      .order('id', { ascending: true }).range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    const page = Array.isArray(data) ? data : [];
+    rows.push(...page);
+    if (page.length < pageSize) return rows;
   }
-
-  return Array.isArray(data) ? data : [];
 }
 
 function scheduleRealtimeHydrate() {
@@ -355,31 +388,11 @@ function readShowcaseCaches() {
 }
 
 function readJson(key, fallback) {
-  if (!globalThis.localStorage) {
-    return fallback;
-  }
-
-  const rawValue = globalThis.localStorage.getItem(key);
-
-  if (rawValue === null) {
-    return fallback;
-  }
-
-  try {
-    return JSON.parse(rawValue);
-  } catch (error) {
-    console.warn(`Valor local invalido para ${key}.`, error);
-    return fallback;
-  }
+  return readLocalCache(key, fallback);
 }
 
 function writeJson(key, value) {
-  if (!globalThis.localStorage) {
-    return value;
-  }
-
-  globalThis.localStorage.setItem(key, JSON.stringify(value));
-  return value;
+  return setLocalCache(key, value);
 }
 
 function createStatus(state = 'idle', pending = 0, error = '') {

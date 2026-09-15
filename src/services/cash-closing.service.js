@@ -7,13 +7,17 @@ import { recordAudit } from './audit.service.js?v=20260804-06';
 import { getItem, setItem } from './storage.service.js?v=20260804-06';
 import { getCashSessionTransactions, getClosedComandas, getTransactions } from './transaction.service.js?v=20260804-06';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { saveCashClosingToSupabase } from './financial-sync.service.js?v=20260804-06';
+import { flushFinancialQueue, prepareFinancialOperation } from './financial-sync.service.js?v=20260804-06';
+import { runLocalTransaction } from './providers/local.provider.js?v=20260804-06';
 import { getActiveOutOfStockSales } from './showcase-stock.service.js?v=20260804-06';
+import { createPeriodFilter } from './crm-dashboard.service.js?v=20260804-06';
 
 export function buildClosingSummary(input = {}) {
-  const payments = buildPaymentConference(input);
+  // Repeat closings are cumulative snapshots of the same local calendar day.
+  const period = createPeriodFilter('today');
+  const payments = buildPaymentConference(input, period);
   const showcase = buildShowcaseConference(input.leftovers || {});
-  const transactions = getClosingTransactions();
+  const transactions = getClosingTransactions(period);
   const sales = transactions.filter((transaction) => transaction.type === 'venda');
   const entries = transactions.filter((transaction) => transaction.type === 'entrada');
   const outputs = transactions.filter(isCashOutput);
@@ -28,12 +32,12 @@ export function buildClosingSummary(input = {}) {
     },
     payments,
     showcase,
-    outOfStockSales: buildOutOfStockClosingRows()
+    outOfStockSales: buildOutOfStockClosingRows(period)
   };
 }
 
-export function buildPaymentConference(input = {}) {
-  const transactions = getClosingTransactions();
+export function buildPaymentConference(input = {}, period = createPeriodFilter('today')) {
+  const transactions = getClosingTransactions(period);
   const sales = transactions.filter((transaction) => transaction.type === 'venda');
   const entriesTotal = sumTransactions(transactions.filter((transaction) => transaction.type === 'entrada'));
   const outputsTotal = sumTransactions(transactions.filter(isCashOutput));
@@ -124,14 +128,15 @@ export function confirmClosing(draft, { sync = true } = {}) {
     throw new Error('Rascunho de fechamento invalido.');
   }
 
-  if (
-    draft.input?.countedCash === ''
-      || draft.input?.countedCash === null
-      || draft.input?.countedCash === undefined
-      || !Number.isFinite(Number(draft.payments.countedCash))
-  ) {
-    throw new Error('Dinheiro contado obrigatorio.');
+  if (!isInClosingPeriod(draft.generatedAt, createPeriodFilter('today'))) {
+    throw new Error('Atualize o fechamento para conferir os valores de hoje.');
   }
+
+  const confirmed = draft.id && getCashClosings().find((item) => (item.draftId || item.input?.closingDraftId) === draft.id);
+  if (confirmed) {
+    return { ...confirmed, warnings: ['Este rascunho ja foi confirmado. Consulte o fechamento no historico.'] };
+  }
+  validateClosingInput(draft.input);
 
   const missingReason = (draft.differences || []).some((difference) => (
     !difference.reason || (difference.reason === 'outro' && !difference.note)
@@ -153,6 +158,8 @@ export function confirmClosing(draft, { sync = true } = {}) {
   const closing = {
     ...draft,
     id: createId('closing'),
+    draftId: draft.id,
+    input: { ...draft.input, closingDraftId: draft.id },
     status: 'fechado',
     totals: {
       ...draft.totals,
@@ -174,22 +181,37 @@ export function confirmClosing(draft, { sync = true } = {}) {
     updatedAt: closedAt
   };
 
-  const closings = getCashClosings();
-  closings.unshift(closing);
-  setItem(STORAGE_KEYS.cashClosings, closings);
-  setItem(STORAGE_KEYS.cashClosingDraft, null);
-  recordAudit({
-    action: 'cash.close',
-    entityType: 'cashClosing',
-    entityId: closing.id,
-    user,
-    metadata: { totals: closing.totals }
+  runLocalTransaction(() => {
+    setItem(STORAGE_KEYS.cashClosings, [closing, ...getCashClosings()]);
+    if (sync && isSupabaseEnabled()) prepareFinancialOperation({ action: 'saveCashClosing', closing });
   });
+  const result = completeClosingLocalEffects(closing, user);
   if (sync) {
-    syncClosingWithSupabase(closing);
+    syncClosingWithSupabase();
   }
 
-  return closing;
+  return result;
+}
+
+// After the closing is durable, secondary failures must not invite a second closing.
+export function completeClosingLocalEffects(closing, user) {
+  const warnings = [...(closing.warnings || [])];
+  try {
+    setItem(STORAGE_KEYS.cashClosingDraft, null);
+  } catch (error) {
+    warnings.push('Fechamento confirmado; o rascunho antigo nao foi limpo. Nao confirme novamente.');
+    console.warn('Falha secundaria ao limpar rascunho de fechamento.', error);
+  }
+  try {
+    recordAudit({
+      action: 'cash.close', entityType: 'cashClosing', entityId: closing.id,
+      user, metadata: { totals: closing.totals }
+    });
+  } catch (error) {
+    warnings.push('Fechamento confirmado; o registro adicional de auditoria nao foi salvo. Preserve o historico e solicite suporte.');
+    console.warn('Falha secundaria ao registrar auditoria de fechamento.', error);
+  }
+  return { ...closing, warnings };
 }
 
 export function getCashClosings() {
@@ -206,23 +228,50 @@ export function getSalesAfterClosing(closing) {
   }
 
   const closedAt = new Date(closing.closedAt);
+  const endOfClosingDay = new Date(closedAt);
+  endOfClosingDay.setHours(23, 59, 59, 999);
   return getTransactions().filter((transaction) => (
     transaction.type === 'venda'
       && transaction.status !== 'cancelada'
       && new Date(transaction.createdAt) > closedAt
+      && new Date(transaction.createdAt) <= endOfClosingDay
   ));
 }
 
-function getClosingTransactions() {
-  return getCashSessionTransactions().filter((transaction) => transaction.status !== 'cancelada');
+function getClosingTransactions(period) {
+  return getCashSessionTransactions().filter((transaction) => (
+    transaction.status !== 'cancelada' && isInClosingPeriod(transaction.createdAt, period)
+  ));
 }
 
-function buildOutOfStockClosingRows() {
+export function validateClosingInput(input = {}) {
+  if (!isMoneyInput(input.countedCash)) {
+    throw new Error('Dinheiro contado obrigatorio: informe um valor valido.');
+  }
+  for (const field of ['checkedPix', 'checkedDebit', 'checkedCredit', 'checkedCard']) {
+    const value = input[field];
+    if (value !== '' && value !== null && value !== undefined && (!isMoneyInput(value) || Number(value) < 0)) {
+      throw new Error('Valor conferido invalido: use um numero maior ou igual a zero.');
+    }
+  }
+}
+
+function isMoneyInput(value) {
+  return (typeof value === 'number' || typeof value === 'string')
+    && String(value).trim() !== '' && Number.isFinite(Number(value));
+}
+
+function isInClosingPeriod(value, period) {
+  const date = new Date(value);
+  return Boolean(value) && date >= period.start && date <= period.end;
+}
+
+function buildOutOfStockClosingRows(period) {
   const categories = getCategories();
   const transactions = getTransactions();
   const closedComandas = getClosedComandas();
 
-  return getActiveOutOfStockSales().map((item) => {
+  return getActiveOutOfStockSales().filter((item) => isInClosingPeriod(item.createdAt, period)).map((item) => {
     const product = getProductById(item.productId);
     const category = categories.find((candidate) => candidate.id === product?.categoryId);
 
@@ -265,7 +314,7 @@ function sumPayment(sales, paymentMethod) {
 }
 
 function sumTransactions(transactions) {
-  return transactions.reduce((total, transaction) => total + Number(transaction.total || transaction.amount || 0), 0);
+  return normalizeMoney(transactions.reduce((total, transaction) => total + Number(transaction.total || transaction.amount || 0), 0));
 }
 
 function isCashOutput(transaction) {
@@ -314,12 +363,12 @@ function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function syncClosingWithSupabase(closing) {
+function syncClosingWithSupabase() {
   if (!isSupabaseEnabled()) {
     return;
   }
 
-  saveCashClosingToSupabase(closing).catch((error) => {
+  flushFinancialQueue().catch((error) => {
     console.warn('Nao foi possivel sincronizar fechamento de caixa com Supabase.', error);
   });
 }

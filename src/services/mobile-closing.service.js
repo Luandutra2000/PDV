@@ -1,14 +1,12 @@
-import { buildClosingSummary, getCashClosings } from './cash-closing.service.js?v=20260804-06';
+import { buildClosingSummary, completeClosingLocalEffects, getCashClosings, validateClosingInput } from './cash-closing.service.js?v=20260804-06';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
 import { saveCashClosingToSupabaseStrict } from './financial-sync.service.js?v=20260804-06';
-import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
 import { getCurrentUser } from './auth.service.js?v=20260804-06';
 import { assertPermission } from './permission.service.js?v=20260804-06';
-import { recordAudit } from './audit.service.js?v=20260804-06';
 
 export function getMobileClosingSummary() {
   const base = buildClosingSummary({});
-  const expectedCard = base.payments.expectedDebit + base.payments.expectedCredit;
+  const expectedCard = normalizeMoney(base.payments.expectedDebit + base.payments.expectedCredit);
   const current = buildClosingSummary({
     countedCash: base.payments.expectedCash,
     checkedPix: base.payments.expectedPix,
@@ -38,8 +36,8 @@ export function getMobileClosingSummary() {
 
 export function previewMobileClosing(input = {}) {
   const base = buildClosingSummary({});
-  const expectedCard = base.payments.expectedDebit + base.payments.expectedCredit;
-  const checkedCard = Number(input.checkedCard ?? expectedCard) || 0;
+  const expectedCard = normalizeMoney(base.payments.expectedDebit + base.payments.expectedCredit);
+  const checkedCard = normalizeMoney(Number(input.checkedCard ?? expectedCard) || 0);
   const preview = buildClosingSummary({
     countedCash: input.countedCash ?? base.payments.expectedCash,
     checkedPix: input.checkedPix ?? base.payments.expectedPix,
@@ -48,7 +46,7 @@ export function previewMobileClosing(input = {}) {
   });
   const expectedTotal = preview.payments.expectedTotal;
   const countedTotal = preview.payments.actualComparableTotal;
-  const differenceTotal = countedTotal - expectedTotal;
+  const differenceTotal = preview.payments.generalDifference;
 
   return {
     ...preview,
@@ -60,7 +58,7 @@ export function previewMobileClosing(input = {}) {
     differenceTotal,
     cashDifference: preview.payments.cashDifference,
     pixDifference: preview.payments.pixDifference,
-    cardDifference: checkedCard - expectedCard,
+    cardDifference: normalizeMoney(checkedCard - expectedCard),
     statusLabel: getClosingStatusLabel(differenceTotal)
   };
 }
@@ -73,9 +71,7 @@ export async function submitMobileClosing(input = {}) {
   const user = getCurrentUser();
   assertPermission(user, 'cash.close');
 
-  if (input.countedCash === '' || input.countedCash === null || input.countedCash === undefined) {
-    throw new Error('Dinheiro contado obrigatorio.');
-  }
+  validateClosingInput(input);
 
   const preview = previewMobileClosing(input);
   const closedAt = new Date().toISOString();
@@ -107,6 +103,7 @@ export async function submitMobileClosing(input = {}) {
       generalDifference: preview.differenceTotal
     },
     showcase: preview.showcase,
+    outOfStockSales: preview.outOfStockSales,
     differences: [],
     input: {
       countedCash: input.countedCash,
@@ -121,20 +118,8 @@ export async function submitMobileClosing(input = {}) {
     updatedAt: closedAt
   };
 
-  try {
-    await saveCashClosingToSupabaseStrict(closing);
-    clearLocalClosingDraft();
-    recordAudit({
-      action: 'cash.close',
-      entityType: 'cashClosing',
-      entityId: closing.id,
-      user,
-      metadata: { totals: closing.totals }
-    });
-    return normalizeClosingHistoryItem(closing);
-  } catch (error) {
-    throw new Error(error.message || 'Nao foi possivel salvar o fechamento no Supabase.');
-  }
+  const saved = await saveCashClosingToSupabaseStrict(closing);
+  return normalizeClosingHistoryItem(completeClosingLocalEffects(saved, user));
 }
 
 export function getClosingStatusLabel(difference) {
@@ -176,10 +161,6 @@ function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function clearLocalClosingDraft() {
-  if (!globalThis.localStorage) {
-    return;
-  }
-
-  globalThis.localStorage.setItem(STORAGE_KEYS.cashClosingDraft, JSON.stringify(null));
+function normalizeMoney(value) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }

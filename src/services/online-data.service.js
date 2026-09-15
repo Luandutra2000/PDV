@@ -20,6 +20,15 @@ export async function hydrateOnlineOperationalData({ catalog = false, financial 
     await syncCatalogNow();
   }
 
+  if (financial) {
+    await hydrateFinancialData({ includePending: true });
+    await flushFinancialQueue();
+    await hydrateFinancialData({ includePending: true });
+  } else if (showcase) {
+    // Stock RPCs require their sale to exist, including after reconnecting.
+    await flushFinancialQueue();
+  }
+
   if (showcase) {
     await hydrateDataProvider(OPERATIONAL_KEYS);
     await flushShowcaseQueue();
@@ -28,11 +37,6 @@ export async function hydrateOnlineOperationalData({ catalog = false, financial 
     }
   }
 
-  if (financial) {
-    await hydrateFinancialData({ includePending: true });
-    await flushFinancialQueue();
-    await hydrateFinancialData({ includePending: true });
-  }
 }
 
 export async function syncOnlineOperationalData(options = {}) {

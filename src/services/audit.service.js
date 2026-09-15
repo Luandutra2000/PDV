@@ -20,7 +20,7 @@ export function recordAudit({
   }
 
   const entry = {
-    id: createId('audit'),
+    id: crypto.randomUUID(),
     action: normalizedAction,
     entityType: normalizedEntityType,
     entityId: String(entityId || '').trim(),
@@ -47,8 +47,4 @@ function normalizeMetadata(metadata) {
   }
 
   return metadata;
-}
-
-function createId(prefix) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }

@@ -2,12 +2,12 @@ import './config/runtime-config.js?v=20260807-02';
 import { renderSidebar } from './components/sidebar.component.js?v=20260804-06';
 import { ensureSeedData } from './services/storage.service.js?v=20260804-06';
 import { hydrateDataProvider } from './services/data-provider.service.js?v=20260804-06';
+import { flushDataProvider } from './services/data-provider.service.js?v=20260804-06';
 import { loadCategories, loadProducts, startCatalogRealtime, syncCatalogNow } from './services/product.service.js?v=20260804-06';
 import { hydrateFinancialData, startFinancialRealtime } from './services/financial-sync.service.js?v=20260804-06';
 import { isSupabaseEnabled } from './services/app-config.service.js?v=20260804-06';
 import { hydrateOnlineOperationalData } from './services/online-data.service.js?v=20260804-06';
 import { getDashboardResumo } from './services/dashboard-resumo.service.js?v=20260804-06';
-import { initSyncService } from './services/sync.service.js?v=20260804-06';
 import { initVendasModule } from './modules/vendas/vendas.module.js?v=20260804-06';
 import { initProdutosModule } from './modules/produtos/produtos.module.js?v=20260804-06';
 import { initDashboardModule } from './modules/dashboard/dashboard.module.js?v=20260804-06';
@@ -18,6 +18,7 @@ import { initPessoasModule } from './modules/pessoas/pessoas.module.js?v=2026080
 import { initDespesasModule } from './modules/despesas/despesas.module.js?v=20260804-06';
 import { initEmpresaConfigModule } from './modules/empresa-config/empresa-config.module.js?v=20260804-06';
 import { initRelatoriosModule } from './modules/relatorios/relatorios.module.js?v=20260804-06';
+import { initSyncAppModule } from './modules/sync-app/sync-app.module.js?v=20260804-06';
 import { formatCurrency } from './utils/currency.js?v=20260804-06';
 import { initNotificationService } from './services/notification.service.js?v=20260804-06';
 import { initRealtimeService } from './services/realtime.service.js?v=20260804-06';
@@ -42,7 +43,8 @@ const routes = {
   mobile: initMobileDashboardModule,
   pessoas: initPessoasModule,
   despesas: initDespesasModule,
-  'empresa-config': initEmpresaConfigModule
+  'empresa-config': initEmpresaConfigModule,
+  suporte: initSyncAppModule
 };
 
 const routePermissions = {
@@ -60,6 +62,7 @@ const routePermissions = {
 
 const AUTH_SESSION_VERSION = '20260620-02-company-profile';
 let sessionRestorePromise = null;
+let auditRetryStarted = false;
 
 async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   ensureSeedData();
@@ -92,6 +95,7 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
       await startFinancialRealtime();
     }
     await hydrateDataProvider();
+    await flushDataProvider();
   } catch (error) {
     renderLoginModule(app, () => bootstrap({ skipFreshLoginCheck: true }), {
       message: error.message || 'Nao foi possivel carregar os dados online.'
@@ -99,7 +103,14 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
     return;
   }
 
-  initSyncService();
+  if (!auditRetryStarted) {
+    const retryAudit = () => {
+      if (getCurrentUser()) flushDataProvider().catch((error) => console.warn('Falha ao reenviar auditoria.', error));
+    };
+    window.addEventListener('online', retryAudit);
+    window.setInterval(retryAudit, 30000);
+    auditRetryStarted = true;
+  }
   initRealtimeService();
   initNotificationService(document.querySelector('.toast-root'));
   const companySettings = loadCompanySettingsLocal();

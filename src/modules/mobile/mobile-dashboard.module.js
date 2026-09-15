@@ -61,6 +61,7 @@ let state = {
   expandedComparisonIds: [],
   closingForm: { countedCash: '', checkedPix: '', checkedCard: '', note: '' },
   closingError: '',
+  closingWarning: '',
   financeModal: '',
   financeError: '',
   periodMenuOpen: false
@@ -90,6 +91,7 @@ export function initMobileDashboardModule(workspace) {
     expandedComparisonIds: [],
     closingForm: { countedCash: '', checkedPix: '', checkedCard: '', note: '' },
     closingError: '',
+    closingWarning: '',
     financeModal: '',
     financeError: '',
     periodMenuOpen: false
@@ -819,6 +821,7 @@ function renderMobileClosingForm(values) {
     <section class="mobile-list-panel">
       <h2>Fechar caixa</h2>
       ${state.closingError ? `<p class="mobile-error">${state.closingError}</p>` : ''}
+      ${state.closingWarning ? `<p role="status">${escapeHtml(state.closingWarning)}</p>` : ''}
       <form class="mobile-closing-form" data-mobile-closing-form>
         <div class="mobile-form-grid">
           ${renderMoneyInput('Dinheiro contado', 'countedCash', values.countedCash)}
@@ -1194,13 +1197,20 @@ async function saveMobileClosing(form, workspace) {
 
   state.syncState = 'syncing';
   state.closingError = '';
+  state.closingWarning = '';
   renderIfActive(workspace);
 
   try {
-    await submitMobileClosing(input);
-    await hydrateOnlineOperationalData({ catalog: false, financial: true, showcase: false });
+    const closing = await submitMobileClosing(input);
     state.syncState = 'synced';
     state.closingForm = { countedCash: '', checkedPix: '', checkedCard: '', note: '' };
+    state.closingWarning = (closing.warnings || []).join(' ');
+    try {
+      await hydrateOnlineOperationalData({ catalog: false, financial: true, showcase: false });
+    } catch (refreshError) {
+      state.syncState = 'pending';
+      state.closingWarning = [state.closingWarning, 'Fechamento confirmado. Nao foi possivel atualizar o historico; nao confirme novamente.'].filter(Boolean).join(' ');
+    }
   } catch (error) {
     state.syncState = 'error';
     state.closingError = error.message || 'Nao foi possivel fechar o caixa.';

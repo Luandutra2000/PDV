@@ -29,7 +29,9 @@ const largeCollection = Array.from({ length: 20000 }, (_, index) => ({
 provider.write('pdv.large.test', largeCollection);
 
 assert(provider.read('pdv.large.test', []).length === 20000, 'large collections should remain complete in the shared memory cache');
-assert(JSON.parse(localStorage.getItem('pdv.large.test')).length === 1000, 'large persisted arrays should be capped to protect the browser storage quota');
+assert(JSON.parse(localStorage.getItem('pdv.large.test')).length === 20000, 'large persisted arrays must preserve every record');
+globalThis.__PDV_MEMORY_CACHE__ = new Map();
+assert(provider.read('pdv.large.test', []).length === 20000, 'all records must survive a reload');
 
 provider.remove('pdv.large.test');
 assert(provider.read('pdv.large.test', []).length === 0, 'removing a key should clear both memory and local persistence');

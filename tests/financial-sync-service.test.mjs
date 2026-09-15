@@ -58,7 +58,7 @@ const fakeClient = {
           }
         };
       },
-      upsert(nextRows) {
+      upsert(nextRows, options = {}) {
         calls.push({ table, rows: nextRows });
         if (failTable === table) {
           return Promise.resolve({ error: new Error(`fail ${table}`) });
@@ -66,12 +66,12 @@ const fakeClient = {
         if (delayTable === table) {
           return new Promise((resolve) => {
             setTimeout(() => {
-              rows[table] = mergeRows(rows[table] || [], nextRows);
+              rows[table] = mergeRows(rows[table] || [], nextRows, options);
               resolve({ error: null });
             }, 120);
           });
         }
-        rows[table] = mergeRows(rows[table] || [], nextRows);
+        rows[table] = mergeRows(rows[table] || [], nextRows, options);
         return Promise.resolve({ error: null });
       },
       update(patch) {
@@ -115,9 +115,11 @@ const fakeClient = {
   removeChannel() {}
 };
 
-function mergeRows(currentRows, nextRows) {
+function mergeRows(currentRows, nextRows, options = {}) {
   const byId = new Map(currentRows.map((row) => [row.id, row]));
-  nextRows.forEach((row) => byId.set(row.id, row));
+  nextRows.forEach((row) => {
+    if (!options.ignoreDuplicates || !byId.has(row.id)) byId.set(row.id, row);
+  });
   return Array.from(byId.values());
 }
 
@@ -170,15 +172,15 @@ assert(financial.getFinancialSyncStatus().state === 'pending', 'failed composed 
 assert(JSON.parse(localStorage.getItem('pdv.syncQueue.financial')).length === 1, 'failed composed sale should queue operation');
 assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.transactions))[0].id === 'sale-queued', 'pending sale should be newest-first in transaction cache');
 assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.closedComandas))[0].id === 'comanda-queued', 'pending command should be newest-first in command cache');
-assert(countRowsById('sales', 'sale-queued') === 0, 'failed composed sale should clean partial sale rows');
-assert(countRowsById('commands', 'comanda-queued') === 0, 'failed composed sale should clean partial command rows');
+assert(countRowsById('sales', 'sale-queued') === 1, 'failed composed sale preserves its header for a safe retry');
+assert(countRowsById('commands', 'comanda-queued') === 1, 'failed composed sale preserves its command for a safe retry');
 await financial.saveSaleToSupabase({
-  sale: { ...sale, id: 'sale-queued', comandaId: 'comanda-queued', total: 35, createdAt: '2026-06-02T10:30:00.000Z' },
-  command: { ...command, id: 'comanda-queued', total: 35, closedAt: '2026-06-02T10:30:00.000Z', updatedAt: '2026-06-02T10:31:00.000Z' }
+  sale: { ...sale, id: 'sale-queued', comandaId: 'comanda-queued', createdAt: '2026-06-02T10:30:00.000Z' },
+  command: { ...command, id: 'comanda-queued', closedAt: '2026-06-02T10:30:00.000Z', updatedAt: '2026-06-02T10:31:00.000Z' }
 });
 const compactedSaleQueue = JSON.parse(localStorage.getItem('pdv.syncQueue.financial'));
 assert(compactedSaleQueue.length === 1, 'repeated offline sale save should keep one queue entry per sale id');
-assert(compactedSaleQueue[0].sale.total === 35, 'repeated offline sale save should keep the latest state');
+assert(compactedSaleQueue[0].sale.total === 32, 'repeated offline sale save preserves the immutable commercial values');
 
 failTable = '';
 await financial.flushFinancialQueue();
@@ -187,7 +189,7 @@ assert(countRowsById('commands', 'comanda-queued') === 1, 'flush retry should ke
 assert(countRowsById('command_items', rows.command_items.find((row) => row.command_id === 'comanda-queued').id) === 1, 'flush retry should keep one command item row after partial failure');
 assert(countRowsById('sales', 'sale-queued') === 1, 'flush retry should keep one sale row after partial failure');
 assert(countRowsById('sale_items', 'sale-queued-x-burger-0') === 1, 'flush retry should keep one sale item row after partial failure');
-assert(rows.sales.find((row) => row.id === 'sale-queued').total === 35, 'flush should persist the latest compacted sale state');
+assert(rows.sales.find((row) => row.id === 'sale-queued').total === 32, 'flush preserves the original sale total while completing missing items');
 
 delayTable = 'sale_items';
 const inFlightSalePromise = financial.saveSaleToSupabase({

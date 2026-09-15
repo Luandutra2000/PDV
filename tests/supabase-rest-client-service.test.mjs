@@ -49,6 +49,7 @@ await client.from('sales').selectRange('id,total', 1000, 1999);
 await client.from('sales').upsert([{ id: 'sale-1', total: 10 }]);
 await client.from('sales').update({ status: 'cancelada' }).eq('id', 'sale-1');
 await client.from('sale_items').delete().in('id', ['item-1', 'item-2']);
+await client.from('sales').upsert([{ id: 'sale-1', total: 10 }], { onConflict: 'id', ignoreDuplicates: true });
 
 assert(calls[0].url === 'https://example.supabase.co/rest/v1/sales?select=id%2Ctotal', 'select should call REST endpoint with selected columns');
 assert(calls[0].options.headers.Authorization === 'Bearer session-jwt', 'REST should use the authenticated session token');
@@ -59,5 +60,7 @@ assert(calls[3].options.method === 'PATCH', 'update eq should use PATCH');
 assert(calls[3].url.includes('id=eq.sale-1'), 'update eq should filter by id');
 assert(calls[4].options.method === 'DELETE', 'delete in should use DELETE');
 assert(calls[4].url.includes('id=in.('), 'delete in should filter by id list');
+assert(calls[5].options.headers.Prefer.includes('resolution=ignore-duplicates'), 'immutable sale retry must not request UPDATE permissions');
+assert(calls[5].url.endsWith('?on_conflict=id'), 'upsert options must reach the real PostgREST conflict target');
 
 console.log('supabase rest client service ok');

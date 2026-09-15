@@ -830,6 +830,7 @@ function renderPaymentModal() {
               </label>
             `).join('')}
           </fieldset>
+          <p class="form-hint" role="note">Registro manual de recebimento. Antes de finalizar Pix, debito ou credito, confira a confirmacao no aplicativo do banco ou na maquininha. Em dinheiro, confira o valor recebido.</p>
           <div ${needsCash ? '' : 'hidden'}>
             <label class="stacked-label">
               Valor recebido

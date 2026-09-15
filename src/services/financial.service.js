@@ -6,6 +6,7 @@ import { getItem, setItem } from './storage.service.js?v=20260804-06';
 import { recordAudit } from './audit.service.js?v=20260804-06';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
 import { cancelFinancialTransactionInSupabase, saveFinancialTransactionToSupabase } from './financial-sync.service.js?v=20260804-06';
+import { deferLocalEffect } from './providers/local.provider.js?v=20260804-06';
 
 export const PAYMENT_METHODS = ['dinheiro', 'pix', 'cartao', 'boleto', 'transferencia', 'outro'];
 export const FINANCIAL_STATUSES = ['paid', 'pending', 'overdue', 'canceled'];
@@ -77,7 +78,7 @@ export function getLocalDateKey(value = new Date()) {
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
 }
 
-export function createFinancialTransaction(input, { enforcePermission = true } = {}) {
+export function createFinancialTransaction(input, { enforcePermission = true, sync = true } = {}) {
   const user = getCurrentUser();
   if (enforcePermission) {
     assertPermission(user, getCreateFinancialTransactionPermission(input));
@@ -86,8 +87,8 @@ export function createFinancialTransaction(input, { enforcePermission = true } =
   const transaction = normalizeFinancialTransaction(input, user);
   const transactions = [transaction, ...getFinancialTransactions()];
   setItem(STORAGE_KEYS.financialTransactions, transactions);
-  syncFinancialTransaction(transaction);
-  emitFinanceChanged(transaction);
+  if (sync) syncFinancialTransaction(transaction);
+  deferLocalEffect(() => emitFinanceChanged(transaction));
   recordAudit({
     action: 'financial.transaction.create',
     entityType: 'financial_transaction',

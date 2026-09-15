@@ -1,5 +1,6 @@
 import { mockActiveComanda, mockCaixa, mockCategories, mockProducts } from '../database/mock-data.js?v=20260804-06';
 import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
+import { setLocalCache } from './providers/local.provider.js?v=20260804-06';
 import { getDataProvider } from './data-provider.service.js?v=20260804-06';
 
 export function getItem(key, fallback = null) {
@@ -13,84 +14,84 @@ export function setItem(key, value) {
 export function ensureSeedData() {
   const users = getItem(STORAGE_KEYS.users);
   if (!Array.isArray(users)) {
-    setItem(STORAGE_KEYS.users, []);
+    setLocalCache(STORAGE_KEYS.users, []);
   } else {
     const safeUsers = users.map(removeStoredPassword);
     if (safeUsers.some((user, index) => user !== users[index])) {
-      setItem(STORAGE_KEYS.users, safeUsers);
+      setLocalCache(STORAGE_KEYS.users, safeUsers);
     }
   }
 
   if (!getItem(STORAGE_KEYS.currentSession)) {
-    setItem(STORAGE_KEYS.currentSession, null);
+    setLocalCache(STORAGE_KEYS.currentSession, null);
   }
 
   if (!getItem(STORAGE_KEYS.userPermissionOverrides)) {
-    setItem(STORAGE_KEYS.userPermissionOverrides, {});
+    setLocalCache(STORAGE_KEYS.userPermissionOverrides, {});
   }
 
   if (!getItem(STORAGE_KEYS.auditLogs)) {
-    setItem(STORAGE_KEYS.auditLogs, []);
+    setLocalCache(STORAGE_KEYS.auditLogs, []);
   }
 
   if (!getItem(STORAGE_KEYS.categories)) {
-    setItem(STORAGE_KEYS.categories, mockCategories);
+    setLocalCache(STORAGE_KEYS.categories, mockCategories);
   }
 
   if (!getItem(STORAGE_KEYS.products)) {
-    setItem(STORAGE_KEYS.products, getInitialProducts());
+    setLocalCache(STORAGE_KEYS.products, getInitialProducts());
   }
 
   if (!getItem(STORAGE_KEYS.activeComanda)) {
-    setItem(STORAGE_KEYS.activeComanda, mockActiveComanda);
+    setLocalCache(STORAGE_KEYS.activeComanda, mockActiveComanda);
   }
 
   if (!getItem(STORAGE_KEYS.caixa)) {
-    setItem(STORAGE_KEYS.caixa, mockCaixa);
+    setLocalCache(STORAGE_KEYS.caixa, mockCaixa);
   }
 
   if (!getItem(STORAGE_KEYS.syncQueue)) {
-    setItem(STORAGE_KEYS.syncQueue, []);
+    setLocalCache(STORAGE_KEYS.syncQueue, []);
   }
 
   if (!getItem(STORAGE_KEYS.transactions)) {
-    setItem(STORAGE_KEYS.transactions, []);
+    setLocalCache(STORAGE_KEYS.transactions, []);
   }
 
   if (!getItem(STORAGE_KEYS.closedComandas)) {
-    setItem(STORAGE_KEYS.closedComandas, []);
+    setLocalCache(STORAGE_KEYS.closedComandas, []);
   }
 
   if (!getItem(STORAGE_KEYS.stockLaunches)) {
-    setItem(STORAGE_KEYS.stockLaunches, []);
+    setLocalCache(STORAGE_KEYS.stockLaunches, []);
   }
 
   if (!getItem(STORAGE_KEYS.hiddenStockComparisons)) {
-    setItem(STORAGE_KEYS.hiddenStockComparisons, []);
+    setLocalCache(STORAGE_KEYS.hiddenStockComparisons, []);
   }
 
   if (!getItem(STORAGE_KEYS.cashClosings)) {
-    setItem(STORAGE_KEYS.cashClosings, []);
+    setLocalCache(STORAGE_KEYS.cashClosings, []);
   }
 
   if (!getItem(STORAGE_KEYS.cashClosingDraft)) {
-    setItem(STORAGE_KEYS.cashClosingDraft, null);
+    setLocalCache(STORAGE_KEYS.cashClosingDraft, null);
   }
 
   if (!getItem(STORAGE_KEYS.showcaseWriteOffs)) {
-    setItem(STORAGE_KEYS.showcaseWriteOffs, []);
+    setLocalCache(STORAGE_KEYS.showcaseWriteOffs, []);
   }
 
   if (!getItem(STORAGE_KEYS.paymentAttempts)) {
-    setItem(STORAGE_KEYS.paymentAttempts, []);
+    setLocalCache(STORAGE_KEYS.paymentAttempts, []);
   }
 
   if (!getItem(STORAGE_KEYS.kitchenOrders)) {
-    setItem(STORAGE_KEYS.kitchenOrders, []);
+    setLocalCache(STORAGE_KEYS.kitchenOrders, []);
   }
 
   if (!getItem(STORAGE_KEYS.printJobs)) {
-    setItem(STORAGE_KEYS.printJobs, []);
+    setLocalCache(STORAGE_KEYS.printJobs, []);
   }
 }
 

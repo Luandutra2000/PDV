@@ -1,11 +1,14 @@
 import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
-import { getItem, setItem } from './storage.service.js?v=20260804-06';
+import { getItem } from './storage.service.js?v=20260804-06';
+import { getDataProviderMode } from './app-config.service.js?v=20260804-06';
+import { createLocalProvider } from './providers/local.provider.js?v=20260804-06';
 
 const BACKUP_VERSION = 1;
-const BACKUP_KEYS = Object.freeze([...new Set(Object.values(STORAGE_KEYS))]);
+const AUTH_KEYS = new Set([STORAGE_KEYS.users, STORAGE_KEYS.currentSession, STORAGE_KEYS.userPermissionOverrides]);
+const BACKUP_KEYS = Object.freeze([...new Set(Object.values(STORAGE_KEYS))].filter((key) => !AUTH_KEYS.has(key)));
 
 export function createBackup() {
-  const data = Object.fromEntries(BACKUP_KEYS.map((key) => [key, getItem(key, null)]));
+  const data = Object.fromEntries(BACKUP_KEYS.map((key) => [key, getItem(key, null)]).filter(([, value]) => value !== null));
   assertNoStoredPasswords(data);
   const payload = JSON.stringify(data);
   return JSON.stringify({
@@ -33,13 +36,28 @@ export function validateBackup(serialized) {
 
 export function restoreBackup(serialized) {
   const backup = validateBackup(serialized);
-  const previous = Object.fromEntries(BACKUP_KEYS.map((key) => [key, getItem(key, null)]));
+  if (getDataProviderMode() !== 'local') {
+    throw new Error('Restauracao permitida somente em ambiente local isolado. Solicite recuperacao assistida para o sistema online.');
+  }
+  const localProvider = createLocalProvider();
+  const previous = Object.fromEntries(BACKUP_KEYS.map((key) => [key, localProvider.read(key, null)]));
+  const written = [];
   try {
     BACKUP_KEYS.forEach((key) => {
-      if (Object.hasOwn(backup.data, key)) setItem(key, backup.data[key]);
+      if (Object.hasOwn(backup.data, key)) {
+        localProvider.write(key, backup.data[key]);
+        written.push(key);
+      }
     });
   } catch (error) {
-    BACKUP_KEYS.forEach((key) => setItem(key, previous[key]));
+    try {
+      written.reverse().forEach((key) => {
+        if (previous[key] === null) localProvider.remove(key);
+        else localProvider.write(key, previous[key]);
+      });
+    } catch (rollbackError) {
+      throw new Error(`Restauracao interrompida; reversao incompleta: ${rollbackError.message}. Preserve o backup e solicite suporte.`);
+    }
     throw new Error(`Restauracao revertida: ${error?.message || 'falha desconhecida'}`);
   }
   return { restoredAt: new Date().toISOString(), keysRestored: Object.keys(backup.data).length };
@@ -58,10 +76,10 @@ function assertNoStoredPasswords(value) {
     if (!candidate || typeof candidate !== 'object') return false;
     if (Array.isArray(candidate)) return candidate.some(containsPassword);
     return Object.entries(candidate).some(([key, nested]) => (
-      key.toLowerCase() === 'password' || containsPassword(nested)
+      /^(password|senha|access_?token|refresh_?token|id_?token|token|authorization|api_?key|service_?role_?key|secret)$/i.test(key) || containsPassword(nested)
     ));
   };
-  if (containsPassword(value)) throw new Error('Backup recusado por conter senha.');
+  if (containsPassword(value)) throw new Error('Backup recusado por conter senha, token ou credencial.');
 }
 
 function checksum(value) {

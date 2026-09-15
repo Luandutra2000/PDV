@@ -10,6 +10,7 @@ import { commandItemAdapter } from './repositories/command-item.adapter.js?v=202
 import { cashClosingAdapter } from './repositories/cash-closing.adapter.js?v=20260804-06';
 import { financialCategoryAdapter } from './repositories/financial-category.adapter.js?v=20260804-06';
 import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js?v=20260804-06';
+import { readLocalCache as readJson, setLocalCache as writeJson } from './providers/local.provider.js?v=20260804-06';
 
 const FINANCIAL_TABLES = [
   commandAdapter.table,
@@ -23,15 +24,14 @@ const FINANCIAL_TABLES = [
 ];
 const REALTIME_HYDRATE_DELAY_MS = 600;
 const SELECT_PAGE_SIZE = 1000;
-const MEMORY_CACHE_GLOBAL = '__PDV_MEMORY_CACHE__';
-const MAX_PERSISTED_VALUE_LENGTH = 2_000_000;
-const LARGE_ARRAY_PERSIST_LIMIT = 1000;
 
 let getClientOverride = null;
 let realtimeChannel = null;
 let realtimePromise = null;
 let realtimeHydrateTimer = null;
-let inFlightOperations = [];
+let flushPromise = null;
+let writeTail = Promise.resolve();
+const preparedRevisions = new Map();
 let status = createStatus('idle', readQueue().length);
 
 export function configureFinancialSyncForTests({ getClient } = {}) {
@@ -39,7 +39,9 @@ export function configureFinancialSyncForTests({ getClient } = {}) {
   status = createStatus('idle', readQueue().length);
   realtimeChannel = null;
   realtimePromise = null;
-  inFlightOperations = [];
+  flushPromise = null;
+  writeTail = Promise.resolve();
+  preparedRevisions.clear();
   clearRealtimeHydrateTimer();
 }
 
@@ -82,7 +84,7 @@ export async function hydrateFinancialData({ includePending = false } = {}) {
       ? rows.financialTransactions.rows.map(financialTransactionAdapter.fromRow)
       : currentFinancialTransactions;
 
-    const queue = [...inFlightOperations, ...readQueue()];
+    const queue = readQueue();
 
     writeFinancialCaches({
       transactions: sortNewestFirst(includePending
@@ -134,82 +136,25 @@ export async function hydrateFinancialData({ includePending = false } = {}) {
 }
 
 export async function saveSaleToSupabase({ sale, command }) {
-  const nextSale = { ...sale };
-  const nextCommand = { ...command };
-  const inFlightOperation = { action: 'saveSale', sale: nextSale, command: nextCommand };
-
-  try {
-    addInFlightOperation(inFlightOperation);
-    setStatus({ state: 'syncing', error: '' });
-    await writeComposedSale(await getWriteClient(), nextSale, nextCommand);
-    upsertTransactionCache(nextSale);
-    upsertCommandCache(nextCommand);
-    setStatusFromQueue(readQueue());
-    return nextSale;
-  } catch (error) {
-    const queue = enqueueOperation({ action: 'saveSale', sale: nextSale, command: nextCommand });
-    upsertTransactionCache({ ...nextSale, syncPending: true });
-    upsertCommandCache({ ...nextCommand, syncPending: true });
-    setPendingStatus(queue, error);
-    return nextSale;
-  } finally {
-    removeInFlightOperation(inFlightOperation);
-  }
+  const operation = prepareFinancialOperation({ action: 'saveSale', sale, command });
+  await sendPreparedOperation();
+  return operation.sale;
 }
 
 export async function saveCashMovementToSupabase(movement) {
-  const nextMovement = { ...movement };
-  const inFlightOperation = { action: 'saveCashMovement', movement: nextMovement };
-
-  try {
-    addInFlightOperation(inFlightOperation);
-    setStatus({ state: 'syncing', error: '' });
-    const client = await getWriteClient();
-    await upsertRows(client, cashMovementAdapter.table, [cashMovementAdapter.toRow(nextMovement)]);
-    upsertTransactionCache(nextMovement);
-    setStatusFromQueue(readQueue());
-    return nextMovement;
-  } catch (error) {
-    const queue = enqueueOperation({ action: 'saveCashMovement', movement: nextMovement });
-    upsertTransactionCache({ ...nextMovement, syncPending: true });
-    setPendingStatus(queue, error);
-    return nextMovement;
-  } finally {
-    removeInFlightOperation(inFlightOperation);
-  }
+  const operation = prepareFinancialOperation({ action: 'saveCashMovement', movement });
+  await sendPreparedOperation();
+  return operation.movement;
 }
 
 export async function saveFinancialTransactionToSupabase(transaction) {
-  const nextTransaction = { ...transaction };
-  const inFlightOperation = { action: 'saveFinancialTransaction', transaction: nextTransaction };
-
-  try {
-    addInFlightOperation(inFlightOperation);
-    setStatus({ state: 'syncing', error: '' });
-    const client = await getWriteClient();
-    await upsertRows(client, financialTransactionAdapter.table, [financialTransactionAdapter.toRow(nextTransaction)]);
-    upsertFinancialTransactionCache(nextTransaction);
-    setStatusFromQueue(readQueue());
-    return nextTransaction;
-  } catch (error) {
-    const queue = enqueueOperation({ action: 'saveFinancialTransaction', transaction: nextTransaction });
-    upsertFinancialTransactionCache({ ...nextTransaction, syncPending: true });
-    setPendingStatus(queue, error);
-    return nextTransaction;
-  } finally {
-    removeInFlightOperation(inFlightOperation);
-  }
+  const operation = prepareFinancialOperation({ action: 'saveFinancialTransaction', transaction });
+  await sendPreparedOperation();
+  return operation.transaction;
 }
 
-export async function saveFinancialTransactionToSupabaseStrict(transaction) {
-  const nextTransaction = { ...transaction };
-
-  setStatus({ state: 'syncing', error: '' });
-  const client = await getWriteClient();
-  await upsertRows(client, financialTransactionAdapter.table, [financialTransactionAdapter.toRow(nextTransaction)]);
-  upsertFinancialTransactionCache(nextTransaction);
-  setStatusFromQueue(readQueue());
-  return nextTransaction;
+export function saveFinancialTransactionToSupabaseStrict(transaction) {
+  return writeStrictOperation({ action: 'saveFinancialTransaction', transaction });
 }
 
 async function readFinancialTables(client) {
@@ -234,109 +179,107 @@ async function readFinancialTables(client) {
   return Object.fromEntries(results);
 }
 
-export async function updateFinancialTransactionInSupabaseStrict(transaction) {
-  const nextTransaction = { ...transaction };
-
-  setStatus({ state: 'syncing', error: '' });
-  const client = await getWriteClient();
-  await upsertRows(client, financialTransactionAdapter.table, [financialTransactionAdapter.toRow(nextTransaction)]);
-  upsertFinancialTransactionCache(nextTransaction);
-  setStatusFromQueue(readQueue());
-  return nextTransaction;
+export function updateFinancialTransactionInSupabaseStrict(transaction) {
+  return writeStrictOperation({ action: 'saveFinancialTransaction', transaction });
 }
 
 export async function cancelFinancialTransactionInSupabase({ transactionId, canceledAt, cancelReason = '' }) {
-  const nextCanceledAt = canceledAt || new Date().toISOString();
-
-  try {
-    setStatus({ state: 'syncing', error: '' });
-    await updateById(await getWriteClient(), financialTransactionAdapter.table, transactionId, {
-      status: 'canceled',
-      canceled_at: nextCanceledAt,
-      cancel_reason: cancelReason
-    });
-    markFinancialTransactionCanceledInCache({ transactionId, canceledAt: nextCanceledAt, cancelReason });
-    setStatusFromQueue(readQueue());
-  } catch (error) {
-    const queue = enqueueOperation({ action: 'cancelFinancialTransaction', transactionId, canceledAt: nextCanceledAt, cancelReason });
-    markFinancialTransactionCanceledInCache({ transactionId, canceledAt: nextCanceledAt, cancelReason, syncPending: true });
-    setPendingStatus(queue, error);
-  }
+  prepareFinancialOperation({ action: 'cancelFinancialTransaction', transactionId, canceledAt: canceledAt || new Date().toISOString(), cancelReason });
+  await sendPreparedOperation();
 }
 
 export async function saveCashClosingToSupabase(closing) {
-  const nextClosing = { ...closing };
-  const inFlightOperation = { action: 'saveCashClosing', closing: nextClosing };
-
-  try {
-    addInFlightOperation(inFlightOperation);
-    setStatus({ state: 'syncing', error: '' });
-    const client = await getWriteClient();
-    await upsertRows(client, cashClosingAdapter.table, [cashClosingAdapter.toRow(nextClosing)]);
-    upsertClosingCache(nextClosing);
-    setStatusFromQueue(readQueue());
-    return nextClosing;
-  } catch (error) {
-    const queue = enqueueOperation({ action: 'saveCashClosing', closing: nextClosing });
-    upsertClosingCache({ ...nextClosing, syncPending: true });
-    setPendingStatus(queue, error);
-    return nextClosing;
-  } finally {
-    removeInFlightOperation(inFlightOperation);
-  }
+  const operation = prepareFinancialOperation({ action: 'saveCashClosing', closing });
+  await sendPreparedOperation();
+  return operation.closing;
 }
 
-export async function saveCashClosingToSupabaseStrict(closing) {
-  const nextClosing = { ...closing };
-
-  setStatus({ state: 'syncing', error: '' });
-  const client = await getWriteClient();
-  await upsertRows(client, cashClosingAdapter.table, [cashClosingAdapter.toRow(nextClosing)]);
-  upsertClosingCache(nextClosing);
-  setStatusFromQueue(readQueue());
-  return nextClosing;
+export function saveCashClosingToSupabaseStrict(closing) {
+  return writeStrictOperation({ action: 'saveCashClosing', closing });
 }
 
 export async function cancelSaleInSupabase({ saleId, comandaId, canceledAt }) {
-  const nextCanceledAt = canceledAt || new Date().toISOString();
-
-  try {
-    setStatus({ state: 'syncing', error: '' });
-    await writeSaleCancellation(await getWriteClient(), { saleId, comandaId, canceledAt: nextCanceledAt });
-    markSaleCanceledInCache({ saleId, comandaId, canceledAt: nextCanceledAt });
-    setStatusFromQueue(readQueue());
-  } catch (error) {
-    const queue = enqueueOperation({
-      action: 'cancelSale',
-      saleId,
-      comandaId,
-      canceledAt: nextCanceledAt
-    });
-    markSaleCanceledInCache({ saleId, comandaId, canceledAt: nextCanceledAt, syncPending: true });
-    setPendingStatus(queue, error);
-  }
+  prepareFinancialOperation({ action: 'cancelSale', saleId, comandaId, canceledAt: canceledAt || new Date().toISOString() });
+  await sendPreparedOperation();
 }
 
 export async function cancelCashMovementInSupabase({ movementId, canceledAt }) {
-  const nextCanceledAt = canceledAt || new Date().toISOString();
-
-  try {
-    setStatus({ state: 'syncing', error: '' });
-    await writeMovementCancellation(await getWriteClient(), { movementId, canceledAt: nextCanceledAt });
-    markMovementCanceledInCache({ movementId, canceledAt: nextCanceledAt });
-    setStatusFromQueue(readQueue());
-  } catch (error) {
-    const queue = enqueueOperation({
-      action: 'cancelCashMovement',
-      movementId,
-      canceledAt: nextCanceledAt
-    });
-    markMovementCanceledInCache({ movementId, canceledAt: nextCanceledAt, syncPending: true });
-    setPendingStatus(queue, error);
-  }
+  prepareFinancialOperation({ action: 'cancelCashMovement', movementId, canceledAt: canceledAt || new Date().toISOString() });
+  await sendPreparedOperation();
 }
 
-export async function flushFinancialQueue() {
+// This synchronous boundary lets callers include the outbox in their local transaction.
+export function prepareFinancialOperation(operation) {
+  const snapshot = JSON.parse(JSON.stringify(operation));
+  if (snapshot.action === 'saveSale') {
+    const knownSale = readJson(STORAGE_KEYS.transactions, []).find((item) => item.id === snapshot.sale.id);
+    if (knownSale && saleCommercialSignature(knownSale) !== saleCommercialSignature(snapshot.sale)) {
+      throw new Error('Nao e possivel alterar os valores ou itens de uma venda finalizada. Cancele e registre uma nova venda.');
+    }
+    snapshot.sale = preserveCancellation(knownSale, snapshot.sale);
+    snapshot.command = preserveCancellation(readJson(STORAGE_KEYS.closedComandas, []).find((item) => item.id === snapshot.command.id), snapshot.command);
+  }
+  enqueueOperation(snapshot);
+  preparedRevisions.set(getOperationEntity(snapshot), {});
+  const pending = { ...snapshot, syncPending: true };
+  for (const key of ['sale', 'command', 'movement', 'transaction', 'closing']) {
+    if (snapshot[key]) pending[key] = { ...snapshot[key], syncPending: true };
+  }
+  applyCompletedOperationToCache(pending);
+  return snapshot;
+}
+
+async function sendPreparedOperation() {
+  const alreadyFlushing = Boolean(flushPromise);
+  const pendingFlush = flushFinancialQueue();
+  // A new operation is accepted once durable while the current writer continues.
+  if (!alreadyFlushing) await pendingFlush;
+}
+
+function serializeFinancialWrite(work) {
+  const next = writeTail.then(work);
+  writeTail = next.catch(() => {});
+  return next;
+}
+
+function writeStrictOperation(operation) {
+  const snapshot = JSON.parse(JSON.stringify(operation));
+  const savedValue = snapshot.transaction || snapshot.closing;
+  const entity = getOperationEntity(snapshot);
+  const expectedRevision = preparedRevisions.get(entity);
+  const assertCurrentRevision = () => {
+    if (preparedRevisions.get(entity) !== expectedRevision) throw new Error('Os dados foram alterados durante a espera. Confira a versao atual e tente novamente.');
+  };
+  return serializeFinancialWrite(async () => {
+    assertCurrentRevision();
+    await flushPendingFinancialOperations();
+    assertCurrentRevision();
+    if (readQueue().length) throw new Error('Sincronizacao pendente: confirme as operacoes anteriores antes de continuar.');
+    setStatus({ state: 'syncing', error: '' });
+    await writeQueuedOperation(await getWriteClient(), snapshot);
+    const warnings = [];
+    try {
+      if (preparedRevisions.get(entity) === expectedRevision) applyCompletedOperationToCache(snapshot);
+    } catch (error) {
+      warnings.push('Salvo no servidor; nao foi possivel atualizar o cache deste aparelho: ' + error.message);
+    }
+    try {
+      setStatusFromQueue(readQueue());
+    } catch (error) {
+      warnings.push('Salvo no servidor; nao foi possivel atualizar o status local: ' + error.message);
+    }
+    return warnings.length ? { ...savedValue, warnings } : savedValue;
+  });
+}
+
+export function flushFinancialQueue() {
+  if (!flushPromise) {
+    flushPromise = serializeFinancialWrite(flushPendingFinancialOperations).finally(() => { flushPromise = null; });
+  }
+  return flushPromise;
+}
+
+async function flushPendingFinancialOperations() {
   const queue = readQueue();
 
   if (!queue.length) {
@@ -344,17 +287,22 @@ export async function flushFinancialQueue() {
     return;
   }
 
-  const remaining = [];
+  let syncError = null;
 
   try {
     const client = await getWriteClient();
 
-    for (const operation of queue) {
+    while (readQueue().length) {
+      const operation = readQueue()[0];
       try {
         await writeQueuedOperation(client, operation);
-        applyCompletedOperationToCache(operation);
+        if (removeConfirmedOperation(operation) && !readQueue().some((candidate) => getOperationEntity(candidate) === getOperationEntity(operation))) {
+          applyCompletedOperationToCache(operation);
+        }
       } catch (error) {
-        remaining.push(operation);
+        syncError = error;
+        // Preserve ordering: a cancellation must not overtake its failed sale.
+        break;
       }
     }
   } catch (error) {
@@ -362,8 +310,17 @@ export async function flushFinancialQueue() {
     return;
   }
 
+  const pending = readQueue();
+  setStatusFromQueue(pending, syncError?.message || (pending.length ? 'Algumas alteracoes continuam pendentes.' : ''));
+}
+
+function removeConfirmedOperation(operation) {
+  const serialized = JSON.stringify(operation);
+  const pending = readQueue();
+  const remaining = pending.filter((candidate) => JSON.stringify(candidate) !== serialized);
+  if (pending.length === remaining.length) return false;
   writeQueue(remaining);
-  setStatusFromQueue(remaining, remaining.length ? 'Algumas alteracoes continuam pendentes.' : '');
+  return true;
 }
 
 export async function clearFinancialHistoryInSupabase({ period = 'today', customStart = '', customEnd = '' } = {}) {
@@ -472,15 +429,12 @@ function getWriteClient() {
 }
 
 async function writeComposedSale(client, sale, command) {
-  try {
-    await upsertRows(client, commandAdapter.table, [commandAdapter.toRow(command)]);
-    await upsertRows(client, commandItemAdapter.table, commandItemAdapter.toRows(command));
-    await upsertRows(client, saleAdapter.table, [saleAdapter.toRow(sale)]);
-    await upsertRows(client, saleItemAdapter.table, saleItemAdapter.toRows(sale));
-  } catch (error) {
-    await cleanupPartialComposedSale(client, sale, command);
-    throw error;
-  }
+  const immutable = { onConflict: 'id', ignoreDuplicates: true };
+  // Keep partial rows: the durable outbox completes them without changing a prior sale.
+  await upsertRows(client, commandAdapter.table, [commandAdapter.toRow(command)], immutable);
+  await upsertRows(client, commandItemAdapter.table, commandItemAdapter.toRows(command), immutable);
+  await upsertRows(client, saleAdapter.table, [saleAdapter.toRow(sale)], immutable);
+  await upsertRows(client, saleItemAdapter.table, saleItemAdapter.toRows(sale), immutable);
 }
 
 function scheduleRealtimeHydrate() {
@@ -538,14 +492,6 @@ async function writeQueuedOperation(client, operation) {
       cancel_reason: operation.cancelReason || ''
     });
   }
-}
-
-function addInFlightOperation(operation) {
-  inFlightOperations = [...inFlightOperations, operation];
-}
-
-function removeInFlightOperation(operation) {
-  inFlightOperations = inFlightOperations.filter((candidate) => candidate !== operation);
 }
 
 async function writeSaleCancellation(client, { saleId, comandaId, canceledAt }) {
@@ -629,12 +575,12 @@ async function selectRestRows(client, adapter) {
   }
 }
 
-async function upsertRows(client, table, rows) {
+async function upsertRows(client, table, rows, options) {
   if (!rows.length) {
     return;
   }
 
-  const { error } = await client.from(table).upsert(rows);
+  const { error } = await client.from(table).upsert(rows, options);
 
   if (error) {
     throw error;
@@ -650,20 +596,6 @@ async function updateById(client, table, id, patch) {
 
   if (error) {
     throw error;
-  }
-}
-
-async function cleanupPartialComposedSale(client, sale, command) {
-  const saleItemRows = saleItemAdapter.toRows(sale);
-  const commandItemRows = commandItemAdapter.toRows(command);
-
-  try {
-    await deleteByIds(client, saleItemAdapter.table, saleItemRows.map((row) => row.id));
-    await deleteById(client, saleAdapter.table, sale.id);
-    await deleteByIds(client, commandItemAdapter.table, commandItemRows.map((row) => row.id));
-    await deleteById(client, commandAdapter.table, command.id);
-  } catch (cleanupError) {
-    console.warn('Nao foi possivel limpar venda parcial no Supabase.', cleanupError);
   }
 }
 
@@ -701,24 +633,6 @@ async function deleteByForeignIds(client, table, column, ids) {
   }
 
   const { error } = await query.delete().in(column, nextIds);
-
-  if (error) {
-    throw error;
-  }
-}
-
-async function deleteById(client, table, id) {
-  if (!id) {
-    return;
-  }
-
-  const query = client.from(table);
-
-  if (typeof query.delete !== 'function') {
-    return;
-  }
-
-  const { error } = await query.delete().eq('id', id);
 
   if (error) {
     throw error;
@@ -786,8 +700,8 @@ function isRowInRange(value, { start, end }) {
 
 function applyCompletedOperationToCache(operation) {
   if (operation.action === 'saveSale') {
-    upsertTransactionCache(operation.sale);
-    upsertCommandCache(operation.command);
+    upsertTransactionCache(preserveCancellation(readJson(STORAGE_KEYS.transactions, []).find((item) => item.id === operation.sale.id), operation.sale));
+    upsertCommandCache(preserveCancellation(readJson(STORAGE_KEYS.closedComandas, []).find((item) => item.id === operation.command.id), operation.command));
   }
 
   if (operation.action === 'saveCashMovement') {
@@ -818,7 +732,7 @@ function applyCompletedOperationToCache(operation) {
 function applyQueueToTransactions(transactions, queue = readQueue()) {
   return queue.reduce((nextTransactions, operation) => {
     if (operation.action === 'saveSale') {
-      return upsertInList(nextTransactions, { ...operation.sale, syncPending: true });
+      return upsertInList(nextTransactions, preserveCancellation(nextTransactions.find((item) => item.id === operation.sale.id), { ...operation.sale, syncPending: true }));
     }
 
     if (operation.action === 'saveCashMovement') {
@@ -840,7 +754,7 @@ function applyQueueToTransactions(transactions, queue = readQueue()) {
 function applyQueueToCommands(commands, queue = readQueue()) {
   return queue.reduce((nextCommands, operation) => {
     if (operation.action === 'saveSale') {
-      return upsertInList(nextCommands, { ...operation.command, syncPending: true });
+      return upsertInList(nextCommands, preserveCancellation(nextCommands.find((item) => item.id === operation.command.id), { ...operation.command, syncPending: true }));
     }
 
     if (operation.action === 'cancelSale') {
@@ -976,6 +890,20 @@ function upsertInList(items, item) {
   return sortNewestFirst(nextItems);
 }
 
+function preserveCancellation(current, next) {
+  return current?.status === 'cancelada'
+    ? { ...next, status: current.status, canceledAt: current.canceledAt, cancelReason: current.cancelReason }
+    : next;
+}
+
+function saleCommercialSignature(sale) {
+  const row = saleAdapter.toRow(sale);
+  const items = saleItemAdapter.toRows(sale).map(({ product_id, name, quantity, unit_price, total }) => (
+    JSON.stringify([product_id, name, quantity, unit_price, total])
+  )).sort();
+  return JSON.stringify([row.total, row.payment_method, row.received_amount, row.change_amount, items]);
+}
+
 function sortNewestFirst(items) {
   return items
     .map((item, index) => ({ item, index, timestamp: getSortTimestamp(item) }))
@@ -1009,10 +937,11 @@ function getSortTimestamp(item) {
 }
 
 function enqueueOperation(operation) {
-  const nextOperation = { ...operation, createdAt: new Date().toISOString() };
+  const nextOperation = { ...operation, createdAt: new Date().toISOString(), queueRevision: globalThis.crypto?.randomUUID?.() || Date.now() + '-' + Math.random() };
   const operationKey = getOperationKey(nextOperation);
   const currentQueue = readQueue();
-  const existingIndex = currentQueue.findIndex((candidate) => getOperationKey(candidate) === operationKey);
+  const lastEntityIndex = currentQueue.findLastIndex((candidate) => getOperationEntity(candidate) === getOperationEntity(nextOperation));
+  const existingIndex = lastEntityIndex >= 0 && getOperationKey(currentQueue[lastEntityIndex]) === operationKey ? lastEntityIndex : -1;
   const queue = existingIndex < 0
     ? [...currentQueue, nextOperation]
     : currentQueue.map((candidate, index) => (
@@ -1045,6 +974,11 @@ function mergeRemoteWithCache(remoteItems, cachedItems) {
   return Array.from(merged.values());
 }
 
+function getOperationEntity(operation) {
+  const key = getOperationKey(operation);
+  return key.slice(key.indexOf(':') + 1);
+}
+
 function getOperationKey(operation) {
   const entityId = operation.sale?.id
     || operation.movement?.id
@@ -1052,6 +986,7 @@ function getOperationKey(operation) {
     || operation.transaction?.id
     || operation.saleId
     || operation.movementId
+    || operation.transactionId
     || operation.id
     || '';
   return `${operation.action || operation.type || 'operation'}:${entityId}`;
@@ -1063,64 +998,6 @@ function readQueue() {
 
 function writeQueue(queue) {
   return writeJson(STORAGE_KEYS.financialSyncQueue, queue);
-}
-
-function readJson(key, fallback) {
-  const memoryCache = getMemoryCache();
-  if (!globalThis.localStorage) {
-    return memoryCache.has(key) ? memoryCache.get(key) : fallback;
-  }
-
-  const rawValue = globalThis.localStorage.getItem(key);
-
-  if (rawValue === null) {
-    memoryCache.delete(key);
-    return fallback;
-  }
-
-  if (memoryCache.has(key)) {
-    return memoryCache.get(key);
-  }
-
-  try {
-    const value = JSON.parse(rawValue);
-    memoryCache.set(key, value);
-    return value;
-  } catch (error) {
-    console.warn(`Valor local invalido para ${key}.`, error);
-    return fallback;
-  }
-}
-
-function writeJson(key, value) {
-  getMemoryCache().set(key, value);
-
-  if (!globalThis.localStorage) {
-    return value;
-  }
-
-  const serialized = serializeForLocalStorage(value);
-  try {
-    globalThis.localStorage.setItem(key, serialized);
-  } catch (error) {
-    console.warn(`Limite de armazenamento local atingido para ${key}; mantendo dados completos em memoria.`, error);
-  }
-  return value;
-}
-
-function serializeForLocalStorage(value) {
-  const serialized = JSON.stringify(value);
-  if (serialized.length <= MAX_PERSISTED_VALUE_LENGTH || !Array.isArray(value)) {
-    return serialized;
-  }
-  return JSON.stringify(value.slice(0, LARGE_ARRAY_PERSIST_LIMIT));
-}
-
-function getMemoryCache() {
-  if (!(globalThis[MEMORY_CACHE_GLOBAL] instanceof Map)) {
-    globalThis[MEMORY_CACHE_GLOBAL] = new Map();
-  }
-  return globalThis[MEMORY_CACHE_GLOBAL];
 }
 
 function createStatus(state = 'idle', pending = 0, error = '') {

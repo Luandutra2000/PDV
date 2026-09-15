@@ -134,7 +134,7 @@
 .product-card--empty-stock::before { background: #d8574f; }
 .product-card--empty-stock:hover { border-color: var(--color-danger); box-shadow: 0 16px 30px rgba(194, 65, 59, .14); }
 .product-card__main { min-height: 98px; }
-.product-card__name { font-size: 13px; letter-spacing: -.01em; }
+.product-card__name { color: #2e2a27; font-size: 13px; letter-spacing: -.01em; }
 .product-card__meta { margin-top: 5px; font-size: 11px; }
 .stock-badge { min-height: 22px; margin-top: 7px; border-radius: 999px; }
 .product-card__price { padding: 4px 8px; border-radius: 8px; background: #fff0e7; color: #e65322; font-size: 16px; }

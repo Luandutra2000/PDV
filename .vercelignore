@@ -1,4 +1,9 @@
 .git
+.vercel
+.codex
+.playwright-cli
+.env*
+output
 .worktrees
 .agents
 .superpowers
