@@ -14,6 +14,8 @@ Correções dos bloqueios reproduzidos na auditoria, preservando o modelo de rec
 
 ## Evidências
 
+Suíte final: **79 arquivos aprovados, zero falhas**, em 11 segundos. Commit de implementação: `2b20c4d`.
+
 Jornada Playwright em ambiente local isolado: quatro meios de pagamento, total R$37,50, troco R$5,00; cancelamento de crédito leva a R$30,00 e repõe o estoque de 5 para 6 unidades. Entrada R$65,00 e saída R$14,65; fechamento contado R$65,35 com diferença zero. Digitação por tecla, observação, recarregamento e exportação de backup aprovados.
 
 Banco Supabase `inquppkbkmhnbtwpriuw`: migrations `202609150001_harden_showcase_operations.sql` e `202609150002_harden_audit_authorship.sql` aplicadas pelo painel autenticado. Pré-verificação: zero produtos com saldos duplicados, 100 vendas e 30 registros de auditoria.
@@ -24,7 +26,11 @@ Revisão independente em PostgreSQL/PGlite: contrato de itens, idempotência e r
 
 ## Publicação
 
-Endereço confirmado pelo usuário: https://pdv-qdelicia.vercel.app/ . Atualizar esta seção após validar a implantação.
+Publicado em https://pdv-qdelicia.vercel.app/ . Implantação `dpl_CYwGXfrj111ufuadNfNPNCNUvWh3`, estado **READY**, endereço técnico `https://pdv-hz0mmlesd-luandutra2000s-projects.vercel.app`.
+
+Conferência após publicação: **98/98 arquivos idênticos** à versão local; nove consultas anônimas não expuseram registros. Arquivos de ambiente, backup de teste e documentação privada retornam 404. Cache atualizado para `pdv-v80`.
+
+Conferência final do banco: 100 vendas e 30 registros de auditoria preservados, índice único instalado, gatilho de autoria instalado e quatro funções de estoque com bloqueio de repetição.
 
 Implantação anterior para recuperação: `dpl_LKcPns9hvYeJzLaaHBxm1R5LCFfH`, `https://pdv-4495h1zpk-luandutra2000s-projects.vercel.app`.
 
