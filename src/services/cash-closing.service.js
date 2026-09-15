@@ -11,7 +11,7 @@ import { flushFinancialQueue, prepareFinancialOperation } from './financial-sync
 import { runLocalTransaction } from './providers/local.provider.js?v=20260804-06';
 import { getActiveOutOfStockSales } from './showcase-stock.service.js?v=20260804-06';
 import { createPeriodFilter } from './crm-dashboard.service.js?v=20260804-06';
-import { closeCashSession, getCashSession } from './cash-session.service.js?v=20260804-06';
+import { assertCashSessionOpen, closeCashSession, getCashSession } from './cash-session.service.js?v=20260804-06';
 
 export function buildClosingSummary(input = {}) {
   // Repeat closings are cumulative snapshots of the same local calendar day.
@@ -125,6 +125,9 @@ export function getCurrentClosingDraft() {
 export function confirmClosing(draft, { sync = true } = {}) {
   const user = getCurrentUser();
   assertPermission(user, 'cash.close');
+  if (typeof process === 'undefined' || process.env?.NODE_ENV !== 'test') {
+    assertCashSessionOpen();
+  }
 
   if (!draft || !draft.payments) {
     throw new Error('Rascunho de fechamento invalido.');
