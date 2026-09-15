@@ -16,7 +16,7 @@ A primeira venda de um aparelho novo recebe uma comanda com identificador único
 
 ## Evidências
 
-Suíte final: **79 arquivos aprovados, zero falhas**, em 11 segundos. Commit de implementação: `2b20c4d`.
+Suíte final: **79 arquivos aprovados, zero falhas**, em 11 segundos. Commits de implementação: `2b20c4d` e `f217ff5`.
 
 Jornada Playwright em ambiente local isolado: quatro meios de pagamento, total R$37,50, troco R$5,00; cancelamento de crédito leva a R$30,00 e repõe o estoque de 5 para 6 unidades. Entrada R$65,00 e saída R$14,65; fechamento contado R$65,35 com diferença zero. Digitação por tecla, observação, recarregamento e exportação de backup aprovados.
 
@@ -28,7 +28,7 @@ Revisão independente em PostgreSQL/PGlite: contrato de itens, idempotência e r
 
 ## Publicação
 
-Publicado em https://pdv-qdelicia.vercel.app/ . Implantação `dpl_CYwGXfrj111ufuadNfNPNCNUvWh3`, estado **READY**, endereço técnico `https://pdv-hz0mmlesd-luandutra2000s-projects.vercel.app`.
+Publicado em https://pdv-qdelicia.vercel.app/ . Implantação `dpl_sjY85ezTM7r9Evk2gnhp6aBCKyCx`, estado **READY**, endereço técnico `https://pdv-an2ptwlsb-luandutra2000s-projects.vercel.app`.
 
 Conferência após publicação: **98/98 arquivos idênticos** à versão local; nove consultas anônimas não expuseram registros. Arquivos de ambiente, backup de teste e documentação privada retornam 404. Cache atualizado para `pdv-v81`.
 
