@@ -4,7 +4,7 @@ import { ensureSeedData } from './services/storage.service.js?v=20260804-06';
 import { hydrateDataProvider } from './services/data-provider.service.js?v=20260804-06';
 import { flushDataProvider } from './services/data-provider.service.js?v=20260804-06';
 import { loadCategories, loadProducts, startCatalogRealtime, syncCatalogNow } from './services/product.service.js?v=20260804-06';
-import { hydrateFinancialData, startFinancialRealtime } from './services/financial-sync.service.js?v=20260804-06';
+import { flushFinancialQueue, hydrateFinancialData, startFinancialRealtime } from './services/financial-sync.service.js?v=20260804-06';
 import { isSupabaseEnabled } from './services/app-config.service.js?v=20260804-06';
 import { hydrateOnlineOperationalData } from './services/online-data.service.js?v=20260804-06';
 import { getDashboardResumo } from './services/dashboard-resumo.service.js?v=20260804-06';
@@ -370,6 +370,8 @@ function bindNavigation(app, workspace) {
     }
 
     if (event.target.closest('[data-action="refresh"]')) {
+      await flushDataProvider();
+      await flushFinancialQueue();
       const activeRoute = workspace.dataset.activeRoute;
       const activeRouteInitializer = routes[activeRoute];
 
