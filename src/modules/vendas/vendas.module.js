@@ -16,6 +16,7 @@ import { on } from '../../services/event-bus.service.js?v=20260804-06';
 import { UI_EVENTS } from '../../database/schema.js?v=20260804-06';
 import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
 import { hasPermission } from '../../services/permission.service.js?v=20260804-06';
+import { isCashSessionOpen } from '../../services/cash-session.service.js?v=20260804-06';
 
 const CATEGORY_ALL = 'todos';
 const CATEGORY_FAVORITES = '__favoritos';
@@ -62,6 +63,7 @@ function renderScreen(container) {
             ${canCurrentUser('stock.writeoff') ? '<button class="button button--danger" type="button" data-action="open-write-off">Perda / Consumo</button>' : ''}
           </div>
         </header>
+        ${isCashSessionOpen() ? '' : '<div class="cash-session-alert">Caixa fechado. Abra o caixa antes de registrar uma venda.</div>'}
         ${renderQuickAccess()}
         <section class="products-panel">
           <div class="category-tabs" data-category-tabs></div>
@@ -123,6 +125,7 @@ function bindEvents(container) {
     }
 
     if (actionButton?.dataset.action === 'add-product') {
+      if (!isCashSessionOpen()) { showNotification({ title: 'Caixa fechado', message: 'Abra o caixa do dia antes de registrar vendas.', type: 'warning' }); return; }
       const product = getProductById(actionButton.dataset.productId);
       warnIfProductOutOfStock(product);
       addItem(product);
@@ -131,6 +134,7 @@ function bindEvents(container) {
     }
 
     if (actionButton?.dataset.action === 'quick-add') {
+      if (!isCashSessionOpen()) { showNotification({ title: 'Caixa fechado', message: 'Abra o caixa do dia antes de registrar vendas.', type: 'warning' }); return; }
       try {
         const product = getProductById(actionButton.dataset.productId);
         warnIfProductOutOfStock(product);

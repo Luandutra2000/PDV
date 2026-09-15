@@ -11,6 +11,7 @@ import { flushFinancialQueue, prepareFinancialOperation } from './financial-sync
 import { runLocalTransaction } from './providers/local.provider.js?v=20260804-06';
 import { getActiveOutOfStockSales } from './showcase-stock.service.js?v=20260804-06';
 import { createPeriodFilter } from './crm-dashboard.service.js?v=20260804-06';
+import { closeCashSession, getCashSession } from './cash-session.service.js?v=20260804-06';
 
 export function buildClosingSummary(input = {}) {
   // Repeat closings are cumulative snapshots of the same local calendar day.
@@ -41,7 +42,8 @@ export function buildPaymentConference(input = {}, period = createPeriodFilter('
   const sales = transactions.filter((transaction) => transaction.type === 'venda');
   const entriesTotal = sumTransactions(transactions.filter((transaction) => transaction.type === 'entrada'));
   const outputsTotal = sumTransactions(transactions.filter(isCashOutput));
-  const expectedCash = normalizeMoney(input.expectedCash, sumPayment(sales, 'dinheiro') + entriesTotal - outputsTotal);
+  const openingAmount = Number(getCashSession()?.openingAmount || 0);
+  const expectedCash = normalizeMoney(input.expectedCash, openingAmount + sumPayment(sales, 'dinheiro') + entriesTotal - outputsTotal);
   const expectedPix = normalizeMoney(input.expectedPix, sumPayment(sales, 'pix'));
   const expectedDebit = normalizeMoney(input.expectedDebit, sumPayment(sales, 'debito'));
   const expectedCredit = normalizeMoney(input.expectedCredit, sumPayment(sales, 'credito'));
@@ -186,6 +188,7 @@ export function confirmClosing(draft, { sync = true } = {}) {
     if (sync && isSupabaseEnabled()) prepareFinancialOperation({ action: 'saveCashClosing', closing });
   });
   const result = completeClosingLocalEffects(closing, user);
+  closeCashSession({ closingId: closing.id, closedAt });
   if (sync) {
     syncClosingWithSupabase();
   }

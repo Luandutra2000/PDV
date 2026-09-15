@@ -20,7 +20,7 @@ assert(cacheControl.includes('max-age=0'), 'source modules should revalidate so 
 assert(indexHtml.includes('./src/app.js?v=20260804-06'), 'app entrypoint should use the latest cache-busting version');
 assert(indexHtml.includes('Nao foi possivel iniciar o PDV.'), 'startup should show a visible fallback when module boot fails');
 assert(indexHtml.includes('Nao foi possivel limpar service workers antigos.'), 'startup should not block app boot when browser cache cleanup fails');
-assert(serviceWorkerJs.includes('pdv-v81'), 'service worker cache name should change when app modules change');
+assert(serviceWorkerJs.includes('pdv-v83'), 'service worker cache name should change when app modules change');
 assert(serviceWorkerJs.includes('./src/app.js?v=20260804-06'), 'service worker should precache the latest app entrypoint');
 assert(appJs.includes('./utils/dom.js?v=20260804-06'), 'shared DOM helper import should be versioned with the module graph');
 assert(appJs.includes('./modules/vendas/vendas.module.js?v=20260804-06'), 'critical UI modules should be versioned with the module graph');

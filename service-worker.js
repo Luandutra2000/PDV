@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdv-v82';
+const CACHE_NAME = 'pdv-v83';
 const STATIC_ASSETS = [
   './',
   './index.html',

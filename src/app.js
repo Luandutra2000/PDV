@@ -32,6 +32,7 @@ import { on } from './services/event-bus.service.js?v=20260804-06';
 import { UI_EVENTS } from './database/schema.js?v=20260804-06';
 import { escapeHtml } from './utils/dom.js?v=20260804-06';
 import { bindBubbleBackground, renderBubbleBackground } from './components/ui/components-backgrounds-bubble.js?v=20260804-06';
+import { getCashSessionStatus, openCashSession } from './services/cash-session.service.js?v=20260804-06';
 
 const routes = {
   'frente-caixa': initVendasModule,
@@ -123,6 +124,7 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
       <section class="workspace">
         <header class="topbar">
           <div class="cash-strip" aria-label="Resumo do caixa" data-cash-strip></div>
+          <div data-cash-session-indicator></div>
           <div class="header-actions">
             <span class="current-user">${escapeHtml(currentUser.name)}</span>
             ${hasPermission(currentUser, 'owner_app.view') ? '<button class="button" type="button" data-action="open-mobile">App do Dono</button>' : ''}
@@ -131,6 +133,7 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
           </div>
         </header>
         <div class="workspace-body" data-workspace-body></div>
+        <div data-global-modal></div>
       </section>
     </div>
   `;
@@ -139,6 +142,7 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   const workspace = app.querySelector('[data-workspace-body]');
   const initialView = getAuthorizedInitialView(currentUser);
   renderCashStrip(app);
+  renderCashSessionIndicator(app);
   workspace.dataset.activeRoute = initialView;
   setRouteShellMode(app, initialView);
   routes[initialView](workspace);
@@ -218,6 +222,36 @@ function renderCashMetric(label, value, signed = false, fixedClass = '') {
 
 function bindCashUpdates(app) {
   on(UI_EVENTS.cashSummaryChanged, () => renderCashStrip(app));
+  on(UI_EVENTS.cashSessionChanged, () => {
+    renderCashSessionIndicator(app);
+    const workspace = app.querySelector('[data-workspace-body]');
+    if (workspace?.dataset.activeRoute === 'frente-caixa') routes['frente-caixa'](workspace);
+  });
+}
+
+function renderCashSessionIndicator(root = document) {
+  const target = root.querySelector('[data-cash-session-indicator]');
+  if (!target) return;
+  const status = getCashSessionStatus();
+  target.innerHTML = status.open
+    ? '<span class="cash-session-pill cash-session-pill--open">Caixa aberto</span>'
+    : '<button class="button button--success cash-session-open" type="button" data-action="open-cash-session">Abrir caixa</button>';
+}
+
+function renderOpenCashSessionModal(app) {
+  const target = app.querySelector('[data-global-modal]');
+  if (!target) return;
+  target.innerHTML = `
+    <div class="modal-backdrop is-open">
+      <section class="modal modal--small" role="dialog" aria-modal="true" aria-labelledby="open-cash-title">
+        <header class="modal__header"><div><h2 id="open-cash-title">Abrir caixa</h2><p>Informe o dinheiro disponível para troco no início do dia.</p></div><button class="icon-button" type="button" data-action="close-cash-session-modal">X</button></header>
+        <form data-open-cash-form>
+          <label class="stacked-label">Dinheiro inicial<input class="field" name="openingAmount" type="number" min="0" step="0.01" value="0" required></label>
+          <p class="form-help">Esse valor entra no dinheiro esperado do fechamento, mas não é registrado como venda.</p>
+          <footer class="form-actions"><button class="button button--ghost" type="button" data-action="close-cash-session-modal">Cancelar</button><button class="button button--success" type="submit">Abrir caixa</button></footer>
+        </form>
+      </section>
+    </div>`;
 }
 
 function bindCompanySettingsUpdates(app, workspace) {
@@ -348,6 +382,16 @@ function bindNavigation(app, workspace) {
       return;
     }
 
+    if (event.target.closest('[data-action="open-cash-session"]')) {
+      renderOpenCashSessionModal(app);
+      return;
+    }
+
+    if (event.target.closest('[data-action="close-cash-session-modal"]')) {
+      app.querySelector('[data-global-modal]').innerHTML = '';
+      return;
+    }
+
     const menuButton = event.target.closest('[data-menu-id]');
 
     if (!menuButton) {
@@ -371,6 +415,17 @@ function bindNavigation(app, workspace) {
     }
 
     renderModulePlaceholder(workspace, menuButton.querySelector('.sidebar__label').textContent);
+  });
+
+  app.addEventListener('submit', (event) => {
+    if (!event.target.matches('[data-open-cash-form]')) return;
+    event.preventDefault();
+    try {
+      openCashSession({ openingAmount: new FormData(event.target).get('openingAmount') });
+      app.querySelector('[data-global-modal]').innerHTML = '';
+    } catch (error) {
+      window.alert(error.message || 'Não foi possível abrir o caixa.');
+    }
   });
 }
 

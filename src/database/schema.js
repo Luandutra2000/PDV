@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
   categories: 'pdv.categories',
   activeComanda: 'pdv.activeComanda',
   caixa: 'pdv.caixa',
+  cashSession: 'pdv.cashSession',
   transactions: 'pdv.transactions',
   closedComandas: 'pdv.closedComandas',
   stockLaunches: 'pdv.stockLaunches',
@@ -51,5 +52,6 @@ export const UI_EVENTS = {
   financeChanged: 'FINANCE_CHANGED',
   usersChanged: 'USERS_CHANGED',
   permissionsChanged: 'PERMISSIONS_CHANGED',
-  companySettingsChanged: 'COMPANY_SETTINGS_CHANGED'
+  companySettingsChanged: 'COMPANY_SETTINGS_CHANGED',
+  cashSessionChanged: 'CASH_SESSION_CHANGED'
 };

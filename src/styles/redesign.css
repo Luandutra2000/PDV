@@ -1628,3 +1628,7 @@ body {
   .app-shell:not(.is-mobile-owner) .icon-button,
   .app-shell:not(.is-mobile-owner) .cash-pill::before { transition: none; animation: none; }
 }
+ .cash-session-pill { display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px; font-size:12px; font-weight:800; white-space:nowrap; }
+ .cash-session-pill--open { color:#17794d; background:#e9f8ef; border:1px solid #b9e7ca; }
+ .cash-session-open { white-space:nowrap; }
+ .cash-session-alert { margin: 0 24px 16px; padding: 12px 14px; border:1px solid #f4c98a; border-radius:12px; background:#fff8e8; color:#8a5a14; font-weight:700; }

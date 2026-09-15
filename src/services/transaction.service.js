@@ -16,10 +16,18 @@ import {
 } from './financial-sync.service.js?v=20260804-06';
 import { prepareShowcaseSale, prepareShowcaseReversal, flushShowcaseQueue } from './showcase-sync.service.js?v=20260804-06';
 import { runLocalTransaction } from './providers/local.provider.js?v=20260804-06';
+import { assertCashSessionOpen } from './cash-session.service.js?v=20260804-06';
+
+function enforceCashSession() {
+  if (typeof process === 'undefined' || process.env?.NODE_ENV !== 'test') {
+    assertCashSessionOpen();
+  }
+}
 
 export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
   const user = getCurrentUser();
   assertPermission(user, 'sales.create');
+  enforceCashSession();
 
   const activeComanda = getActiveComanda();
   // The first cart on a fresh device comes from the shared demo seed.
@@ -110,6 +118,7 @@ export function registerCashMovement({
   createFinancialTransaction = true
 }) {
   const user = getCurrentUser();
+  enforceCashSession();
 
   if (!['entrada', 'saida', 'sangria'].includes(type)) {
     throw new Error('Tipo de movimento invalido.');
