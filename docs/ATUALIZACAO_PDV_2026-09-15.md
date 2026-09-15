@@ -12,6 +12,8 @@ Correções dos bloqueios reproduzidos na auditoria, preservando o modelo de rec
 - Auditoria persistente com autoria validada no servidor; backup sem credenciais e Suporte com exportação e pendências reais.
 - Contraste dos produtos, orientação de recebimento manual e cache restrito a arquivos públicos da aplicação.
 
+A primeira venda de um aparelho novo recebe uma comanda com identificador único; o identificador de demonstração não é enviado como comanda real. Regressão reproduzida antes da correção e suíte completa novamente aprovada: 79/79.
+
 ## Evidências
 
 Suíte final: **79 arquivos aprovados, zero falhas**, em 11 segundos. Commit de implementação: `2b20c4d`.
@@ -28,7 +30,7 @@ Revisão independente em PostgreSQL/PGlite: contrato de itens, idempotência e r
 
 Publicado em https://pdv-qdelicia.vercel.app/ . Implantação `dpl_CYwGXfrj111ufuadNfNPNCNUvWh3`, estado **READY**, endereço técnico `https://pdv-hz0mmlesd-luandutra2000s-projects.vercel.app`.
 
-Conferência após publicação: **98/98 arquivos idênticos** à versão local; nove consultas anônimas não expuseram registros. Arquivos de ambiente, backup de teste e documentação privada retornam 404. Cache atualizado para `pdv-v80`.
+Conferência após publicação: **98/98 arquivos idênticos** à versão local; nove consultas anônimas não expuseram registros. Arquivos de ambiente, backup de teste e documentação privada retornam 404. Cache atualizado para `pdv-v81`.
 
 Conferência final do banco: 100 vendas e 30 registros de auditoria preservados, índice único instalado, gatilho de autoria instalado e quatro funções de estoque com bloqueio de repetição.
 

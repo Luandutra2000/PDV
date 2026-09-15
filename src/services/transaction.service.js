@@ -21,7 +21,11 @@ export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
   const user = getCurrentUser();
   assertPermission(user, 'sales.create');
 
-  const comanda = getActiveComanda();
+  const activeComanda = getActiveComanda();
+  // The first cart on a fresh device comes from the shared demo seed.
+  const comanda = activeComanda.id === 'comanda-local'
+    ? { ...activeComanda, id: `comanda-${crypto.randomUUID()}` }
+    : activeComanda;
   const total = getSubtotal(comanda);
   const paidAmount = paymentMethod === 'dinheiro' ? Number(receivedAmount) || 0 : total;
   const change = paymentMethod === 'dinheiro' ? Math.max(paidAmount - total, 0) : 0;

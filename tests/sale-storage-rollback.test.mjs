@@ -40,6 +40,7 @@ try {
   console.warn = originalWarn;
 }
 assert.equal(sale.total, 7.5);
+assert.notEqual(sale.comandaId, 'comanda-local', 'new devices must not reuse the demo command identity');
 assert.equal(storage.getItem(keys.transactions).length, 1);
 assert.equal(comanda.getActiveComanda().items.length, 0);
 assert.equal(laterListeners, 3, 'all later observers must run despite earlier observer failures');
