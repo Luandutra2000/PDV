@@ -1,6 +1,5 @@
 import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
-import { getItem } from './storage.service.js?v=20260804-06';
+import { getSupabaseAuthSession } from './supabase-client.service.js?v=20260804-06';
 
 export function getSupabaseRestClient() {
   if (!isSupabaseEnabled()) {
@@ -9,11 +8,8 @@ export function getSupabaseRestClient() {
 
   const config = getRuntimeConfig();
   const baseUrl = `${config.supabaseUrl.replace(/\/$/, '')}/rest/v1`;
-  const session = getItem(STORAGE_KEYS.currentSession, null);
-  const accessToken = session?.accessToken || session?.access_token || config.supabaseAnonKey;
   const headers = {
     apikey: config.supabaseAnonKey,
-    Authorization: `Bearer ${accessToken}`,
     'Content-Type': 'application/json'
   };
 
@@ -87,7 +83,10 @@ function createTableClient({ baseUrl, headers, table }) {
 
 async function requestJson(url, options) {
   try {
-    const response = await fetch(url, options);
+    let response = await fetchAuthenticated(url, options);
+    if (response.status === 401) {
+      response = await fetchAuthenticated(url, options, true);
+    }
     const text = await response.text();
     const data = text ? JSON.parse(text) : null;
 
@@ -99,6 +98,18 @@ async function requestJson(url, options) {
   } catch (error) {
     return { data: null, error };
   }
+}
+
+async function fetchAuthenticated(url, options, forceRefresh = false) {
+  // The SDK renews its session while the local user profile may still hold an expired token.
+  const session = await getSupabaseAuthSession({ forceRefresh });
+  if (!session?.access_token) {
+    throw new Error('Sessao expirada. Entre novamente para sincronizar as vendas.');
+  }
+  return fetch(url, {
+    ...options,
+    headers: { ...options.headers, Authorization: `Bearer ${session.access_token}` }
+  });
 }
 
 function createRestError(data, status) {
