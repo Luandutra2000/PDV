@@ -34,6 +34,8 @@ Conferência após publicação: **98/98 arquivos idênticos** à versão local;
 
 Conferência final do banco: 100 vendas e 30 registros de auditoria preservados, índice único instalado, gatilho de autoria instalado e quatro funções de estoque com bloqueio de repetição.
 
+Sessão real do usuário no PDV publicado: recarregamento restaurou o login; frente de caixa e catálogo carregaram. Suporte apresentou **financeiro 0, vitrine 0 e auditoria 0** pendentes. Não foi registrada venda real durante essa conferência. A frente de caixa ficou aberta com comanda vazia.
+
 Implantação anterior para recuperação: `dpl_LKcPns9hvYeJzLaaHBxm1R5LCFfH`, `https://pdv-4495h1zpk-luandutra2000s-projects.vercel.app`.
 
 ## Limites
