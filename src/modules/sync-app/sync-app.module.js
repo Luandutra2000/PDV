@@ -3,11 +3,14 @@ import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
 import { hasPermission, requirePermission } from '../../services/permission.service.js?v=20260804-06';
 import { getItem } from '../../services/storage.service.js?v=20260804-06';
 import { STORAGE_KEYS } from '../../database/schema.js?v=20260804-06';
+import { flushFinancialQueue, getFinancialSyncStatus } from '../../services/financial-sync.service.js?v=20260804-06';
+import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
 
 export function initSyncAppModule(container) {
   const pendingFinancial = getItem(STORAGE_KEYS.financialSyncQueue, [])?.length || 0;
   const pendingShowcase = getItem(STORAGE_KEYS.showcaseSyncQueue, [])?.length || 0;
   const pendingAudit = (getItem(STORAGE_KEYS.auditLogs, []) || []).filter((entry) => entry.pendingSync === true).length;
+  const financialStatus = getFinancialSyncStatus();
   container.innerHTML = `
     <section class="module-screen">
       <header class="module-header"><h1 class="pdv-title">Suporte e recuperação</h1></header>
@@ -21,6 +24,8 @@ export function initSyncAppModule(container) {
       <section class="panel">
         <h2>Se a internet cair ou os valores divergirem</h2>
         <p>Pendências neste aparelho: financeiro ${pendingFinancial}, vitrine ${pendingShowcase}, auditoria ${pendingAudit}. Reabra esta tela para atualizar a contagem.</p>
+        ${financialStatus.error ? `<p class="form-help" role="alert">Último erro financeiro: ${escapeHtml(financialStatus.error.message || 'não informado')}</p>` : ''}
+        ${pendingFinancial ? '<button type="button" class="button button--ghost" data-retry-financial>Sincronizar pendências agora</button>' : ''}
         <p>Auditorias pendentes de outro usuário aguardam que ele entre novamente para confirmar a autoria.</p>
         <ol>
           <li>Mantenha este navegador e seus dados; não limpe o armazenamento nem repita vendas já registradas.</li>
@@ -52,4 +57,11 @@ export function initSyncAppModule(container) {
       status.textContent = error.message || 'Não foi possível gerar o backup.';
     }
   });
+  if (pendingFinancial) {
+    container.querySelector('[data-retry-financial]')?.addEventListener('click', async (event) => {
+      event.currentTarget.disabled = true;
+      await flushFinancialQueue();
+      initSyncAppModule(container);
+    });
+  }
 }
