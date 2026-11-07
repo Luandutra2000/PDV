@@ -1,0 +1,223 @@
+/* Frente de caixa do visual B claro. Escopo: .pdv-screen.fc e classes fc-*,
+   para nao herdar pdv.css / redesign.css. Valores: secao "B. Turno da noite,
+   versao clara" (.opt-b2) de docs/superpowers/specs/mockups/2026-11-07-opcoes-design.html */
+
+/* Neutraliza o degrade e a altura que o CSS antigo poe em .pdv-screen
+   (redesign.css usa .app-shell:not(...) .pdv-screen, especificidade 0,3,0). */
+.app-shell .pdv-screen.fc,
+.pdv-screen.fc {
+  background: var(--bg);
+}
+
+.pdv-screen.fc {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 352px;
+  min-height: 0;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 14px;
+}
+
+/* A tela ocupa a altura da janela: a grade rola por dentro e a comanda fica fixa. */
+@media (min-width: 761px) {
+  .pdv-layout:has(.pdv-screen.fc) { height: 100dvh; min-height: 0; }
+  .pdv-screen.fc { height: 100%; }
+  .pdv-screen.fc .fc-main { overflow-y: auto; }
+}
+
+.fc-main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+  padding: 20px 22px;
+}
+
+/* Cabecalho: a busca encolhe primeiro; os botoes nao quebram linha entre si.
+   Sem espaco nem para a busca minima, o grupo de botoes desce inteiro. */
+.fc-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; min-width: 0; }
+.fc-title { margin: 0; flex: none; font-size: 19px; font-weight: 600; white-space: nowrap; color: var(--ink); }
+.fc-search {
+  flex: 1 1 180px;
+  min-width: 160px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border-radius: var(--radius-control);
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.fc-search svg { width: 17px; height: 17px; flex: none; }
+.fc-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+.fc-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+}
+.fc-search input::placeholder { color: var(--muted); }
+.fc-bar__actions { display: flex; flex: none; gap: 8px; }
+
+.pdv-screen.fc .fc-alert {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-ink-soft);
+  font-weight: 600;
+}
+
+/* Escolha de categoria (chips) */
+.fc-cats { display: flex; flex-wrap: wrap; gap: 8px; }
+.fc-chip {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  padding: 8px 15px;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fc-chip:hover { border-color: var(--muted); }
+.fc-chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.fc-chip.is-on { background: var(--ink); color: var(--card); border-color: transparent; }
+
+/* Grade de produtos */
+.fc-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-content: start; }
+.fc-empty { grid-column: 1 / -1; padding: 28px; text-align: center; color: var(--muted); }
+
+.fc-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 100px;
+  padding: 14px;
+  border: 0;
+  border-left: 4px solid var(--c, var(--muted));
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(28, 35, 49, .06);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.fc-card:hover { box-shadow: 0 2px 8px rgba(28, 35, 49, .10); }
+.fc-card:active { background: var(--line-soft); }
+.fc-card:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.fc-card__name { font-weight: 600; font-size: 15px; line-height: 1.25; }
+.fc-card__stock { font-size: 12.5px; color: var(--muted); }
+.fc-card__stock.is-low { color: var(--accent-ink-soft); font-weight: 500; }
+.fc-card__price { margin-top: auto; font-weight: 600; font-size: 16px; }
+.fc-card__qty {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.fc-card.is-in { box-shadow: inset 0 0 0 2px var(--accent); }
+.fc-card.is-in .fc-card__name { padding-right: 26px; }
+.fc-card.is-out { opacity: .5; }
+
+:root[data-theme="dark"] .fc-card { box-shadow: none; }
+:root[data-theme="dark"] .fc-card:hover { box-shadow: 0 0 0 1px var(--line); }
+:root[data-theme="dark"] .fc-card.is-in { box-shadow: inset 0 0 0 2px var(--accent); }
+
+/* Comanda */
+.fc-side { min-width: 0; min-height: 0; background: var(--card); border-left: 1px solid var(--line); }
+.fc-order { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 20px 20px 0; }
+.fc-order__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.fc-order__title { margin: 0; font-size: 17px; font-weight: 600; color: var(--ink); }
+.fc-order__clear {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.fc-order__clear:hover:not(:disabled) { color: var(--ink); background: var(--line-soft); }
+.fc-order__clear:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.fc-order__clear:disabled { opacity: .45; cursor: default; }
+.fc-order__lines { flex: 1; min-height: 0; overflow-y: auto; padding: 6px 0; }
+.fc-order__empty { display: grid; place-content: center; gap: 4px; min-height: 160px; height: 100%; text-align: center; color: var(--muted); }
+.fc-order__empty strong { color: var(--ink); font-weight: 600; }
+.fc-order__empty p { margin: 0; font-size: 13px; }
+
+.fc-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
+.fc-line__name { font-weight: 600; overflow-wrap: anywhere; }
+.fc-line__total { font-weight: 600; text-align: right; white-space: nowrap; }
+.fc-line__unit { font-size: 12.5px; color: var(--muted); align-self: center; }
+.fc-line__step { display: inline-flex; align-items: center; gap: 2px; justify-self: end; }
+.fc-line__step button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.fc-line__step button:hover { background: var(--line-soft); }
+.fc-line__step button:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.fc-line__step .fc-line__remove { margin-left: 6px; border-color: transparent; background: transparent; color: var(--muted); }
+.fc-line__step .fc-line__remove:hover { color: var(--red); background: var(--red-soft); }
+.fc-line__qty { min-width: 26px; text-align: center; font-weight: 600; }
+
+.fc-order__total { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 0; border-top: 1px solid var(--line); font-size: 22px; font-weight: 700; }
+.fc-order__actions { padding: 0 0 20px; }
+.fc-pay { width: 100%; height: 58px; justify-content: center; border-radius: 12px; font-size: 17px; font-weight: 700; }
+
+/* Caixa fechado: a area de venda fica apagada e nao aceita cliques; o aviso continua. */
+.pdv-screen.fc.is-cash-closed .fc-grid,
+.pdv-screen.fc.is-cash-closed .fc-side {
+  opacity: .45;
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (max-width: 1180px) {
+  .fc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 1100px) {
+  .pdv-screen.fc { grid-template-columns: minmax(0, 1fr) 300px; }
+}
+@media (max-width: 760px) {
+  .pdv-screen.fc { grid-template-columns: 1fr; }
+  .fc-main { padding: 16px; }
+  .fc-bar__actions { flex-wrap: wrap; }
+  .fc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fc-side { border-left: 0; border-top: 1px solid var(--line); }
+}

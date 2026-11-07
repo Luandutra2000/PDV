@@ -2,30 +2,29 @@ import { formatCurrency } from '../utils/currency.js?v=20260804-06';
 import { getSubtotal } from '../services/comanda.service.js?v=20260804-06';
 import { escapeHtml } from '../utils/dom.js?v=20260804-06';
 
+// Comanda da frente de caixa (visual B claro). + Entrada e - Saida ficam no
+// cabecalho da tela (renderCashActionButtons), nao aqui.
 export function renderOrderPanel(comanda) {
+  const items = comanda?.items || [];
   const subtotal = getSubtotal(comanda);
-  const body = comanda.items.length ? renderOrderItems(comanda.items) : renderEmptyState();
+  const hasNumber = comanda?.number !== undefined && comanda?.number !== null && comanda?.number !== '';
+  const title = hasNumber ? `Comanda ${escapeHtml(comanda.number)}` : 'Comanda';
+  const body = items.length ? renderOrderItems(items) : renderEmptyState();
 
   return `
-    <aside class="order-panel">
-      <header class="order-panel__header">
-        <h2 class="order-panel__title">Comanda</h2>
+    <aside class="fc-order" aria-label="Comanda">
+      <header class="fc-order__head">
+        <h2 class="fc-order__title">${title}</h2>
+        <button class="fc-order__clear" type="button" data-action="clear-order" ${items.length ? '' : 'disabled'}>Limpar</button>
       </header>
-      <div class="order-panel__body">${body}</div>
-      <footer class="order-panel__footer">
-        <div class="subtotal-row">
-          <span>Subtotal</span>
-          <span class="subtotal-value">${formatCurrency(subtotal)}</span>
-        </div>
-        <div class="cash-actions">
-          <button class="button button--success" type="button" data-action="open-entry">+ Entrada</button>
-          <button class="button button--danger" type="button" data-action="open-output">- Saida</button>
-        </div>
-        <div class="order-actions">
-          <button class="icon-button" type="button" data-action="clear-order" title="Limpar comanda">L</button>
-          <button class="button" type="button" data-action="open-payment" ${subtotal <= 0 ? 'disabled' : ''}>Receber ${formatCurrency(subtotal)}</button>
-        </div>
-      </footer>
+      <div class="fc-order__lines">${body}</div>
+      <div class="fc-order__total">
+        <span>Total</span>
+        <strong>${formatCurrency(subtotal)}</strong>
+      </div>
+      <div class="fc-order__actions">
+        <button class="ui-btn ui-btn--primary fc-pay" type="button" data-action="open-payment" ${subtotal <= 0 ? 'disabled' : ''}>Receber ${formatCurrency(subtotal)}</button>
+      </div>
     </aside>
   `;
 }
@@ -33,31 +32,28 @@ export function renderOrderPanel(comanda) {
 function renderOrderItems(items) {
   return items.map((item) => {
     const productId = escapeHtml(item.productId);
+    const name = escapeHtml(item.name);
     return `
-    <article class="order-item">
-      <div>
-        <h3 class="order-item__name">${escapeHtml(item.name)}</h3>
-        <div class="order-item__price">${formatCurrency(item.unitPrice)} cada</div>
-        <div class="order-item__controls">
-          <button class="icon-button" type="button" data-action="decrease" data-product-id="${productId}">-</button>
-          <span class="quantity">${item.quantity}</span>
-          <button class="icon-button" type="button" data-action="increase" data-product-id="${productId}">+</button>
-          <button class="icon-button" type="button" data-action="remove" data-product-id="${productId}">x</button>
-        </div>
-      </div>
-      <strong class="order-item__total">${formatCurrency(item.total)}</strong>
-    </article>
+    <div class="fc-line">
+      <span class="fc-line__name">${name}</span>
+      <span class="fc-line__total">${formatCurrency(item.total)}</span>
+      <span class="fc-line__unit">${formatCurrency(item.unitPrice)} cada</span>
+      <span class="fc-line__step">
+        <button type="button" data-action="decrease" data-product-id="${productId}" aria-label="Tirar um de ${name}">&minus;</button>
+        <span class="fc-line__qty">${item.quantity}</span>
+        <button type="button" data-action="increase" data-product-id="${productId}" aria-label="Pôr mais um de ${name}">+</button>
+        <button class="fc-line__remove" type="button" data-action="remove" data-product-id="${productId}" aria-label="Remover ${name}">&times;</button>
+      </span>
+    </div>
   `;
   }).join('');
 }
 
 function renderEmptyState() {
   return `
-    <div class="order-empty">
-      <div>
-        <strong>Vazio</strong>
-        <p>Adicione produtos para montar a comanda.</p>
-      </div>
+    <div class="fc-order__empty">
+      <strong>Comanda vazia</strong>
+      <p>Toque num produto para adicionar.</p>
     </div>
   `;
 }

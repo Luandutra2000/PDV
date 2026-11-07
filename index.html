@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="./src/styles/redesign.css?v=20260807-48">
   <link rel="stylesheet" href="./src/styles/tokens.css?v=20260807-07">
   <link rel="stylesheet" href="./src/styles/components.css?v=20260807-06">
+  <link rel="stylesheet" href="./src/styles/pdv-b.css?v=20260807-09">
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -105,7 +106,7 @@
 
     try {
       await clearStaleClientCaches();
-      await import('./src/app.js?v=20260807-08');
+      await import('./src/app.js?v=20260807-09');
     } catch (error) {
       console.error('Nao foi possivel iniciar o PDV.', error);
       const app = document.getElementById('app');

@@ -1,5 +1,7 @@
-import { renderOrderPanel } from '../../components/order-panel.component.js?v=20260804-06';
-import { renderProductCard } from '../../components/product-card.component.js?v=20260804-06';
+import { renderOrderPanel } from '../../components/order-panel.component.js?v=20260807-09';
+import { renderProductCard } from '../../components/product-card.component.js?v=20260807-09';
+import { icon } from '../../components/icons.js?v=20260807-06';
+import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-07';
 import { renderFechamentoRapidoModal } from '../../components/fechamento-rapido-modal.component.js?v=20260804-06';
 import { buildClosingSummary, buildShowcaseConference, confirmClosing, saveClosingDraft } from '../../services/cash-closing.service.js?v=20260804-06';
 import { getActiveComanda, addItem, addItemQuantity, clearComanda, removeItem, updateQuantity } from '../../services/comanda.service.js?v=20260804-06';
@@ -15,11 +17,14 @@ import { UI_EVENTS } from '../../database/schema.js?v=20260804-06';
 import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
 import { hasPermission } from '../../services/permission.service.js?v=20260804-06';
 import { isCashSessionOpen } from '../../services/cash-session.service.js?v=20260804-06';
-import { renderCashMovementModal, renderWriteOffModal, submitCashMovementForm, submitWriteOffForm } from '../../components/cash-actions.component.js?v=20260807-08';
+import { renderCashActionButtons, renderCashMovementModal, renderWriteOffModal, submitCashMovementForm, submitWriteOffForm } from '../../components/cash-actions.component.js?v=20260807-08';
 
 const CATEGORY_ALL = 'todos';
 const CATEGORY_FAVORITES = '__favoritos';
 const CATEGORY_BEST_SELLERS = '__mais-vendidos';
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_TOLERANCE = 10;
+const CASH_CLOSED_MESSAGE = 'Abra o caixa do dia antes de registrar vendas.';
 
 const state = {
   query: '',
@@ -48,26 +53,27 @@ export function initVendasModule(container) {
 }
 
 function renderScreen(container) {
+  const cashOpen = isCashSessionOpen();
+
   container.innerHTML = `
-    <section class="pdv-screen">
-      <main class="pdv-main">
-        <header class="pdv-header">
-          <h1 class="pdv-title">Frente de Caixa</h1>
-          <div class="pdv-actions">
-            <label class="sr-only" for="product-search">Buscar produto</label>
-            <input id="product-search" class="field" type="search" placeholder="Buscar produto..." value="${state.query}">
-            ${canCurrentUser('cash.close') ? '<button class="button button--ghost" type="button" data-action="open-quick-closing">Fechamento Rapido</button>' : ''}
-            ${canCurrentUser('stock.writeoff') ? '<button class="button button--danger" type="button" data-action="open-write-off">Perda / Consumo</button>' : ''}
+    <section class="pdv-screen fc${cashOpen ? '' : ' is-cash-closed'}">
+      <main class="fc-main">
+        <header class="fc-bar">
+          <h1 class="fc-title">Frente de caixa</h1>
+          <label class="fc-search">
+            ${icon('search')}
+            <span class="sr-only">Buscar produto</span>
+            <input id="product-search" type="search" placeholder="Buscar produto" autocomplete="off" value="${escapeHtml(state.query)}">
+          </label>
+          <div class="fc-bar__actions">
+            ${renderCashActionButtons(getCurrentUser(), { includeQuickClosing: true })}
           </div>
         </header>
-        ${isCashSessionOpen() ? '' : '<div class="cash-session-alert">Caixa fechado. Abra o caixa antes de registrar uma venda.</div>'}
-        ${renderQuickAccess()}
-        <section class="products-panel">
-          <div class="category-tabs" data-category-tabs></div>
-          <div class="product-grid" data-product-grid></div>
-        </section>
+        ${cashOpen ? '' : '<div class="cash-session-alert fc-alert" role="status">Caixa fechado. Abra o caixa antes de registrar uma venda.</div>'}
+        <div class="fc-cats" data-category-tabs></div>
+        <div class="fc-grid" data-product-grid></div>
       </main>
-      <div data-order-panel></div>
+      <div class="fc-side" data-order-panel></div>
       <div data-vendas-modal></div>
     </section>
   `;
@@ -79,6 +85,85 @@ function renderScreen(container) {
 }
 
 function bindEvents(container) {
+  const longPress = { timer: null, card: null, x: 0, y: 0, firedOn: null };
+
+  const cancelLongPress = () => {
+    clearTimeout(longPress.timer);
+    longPress.timer = null;
+    longPress.card = null;
+  };
+
+  const findProductCard = (event) => {
+    const card = event.target?.closest?.('[data-action="add-product"]');
+    return card && event.target.closest('.pdv-screen') ? card : null;
+  };
+
+  // Toque longo (500 ms) num cartao abre a quantidade, igual ao antigo "Qtd".
+  container.addEventListener('pointerdown', (event) => {
+    cancelLongPress();
+    longPress.firedOn = null;
+    const card = findProductCard(event);
+
+    if (!card || (event.pointerType === 'mouse' && event.button !== 0)) {
+      return;
+    }
+
+    longPress.card = card;
+    longPress.x = event.clientX;
+    longPress.y = event.clientY;
+    longPress.timer = setTimeout(() => {
+      longPress.timer = null;
+      longPress.card = null;
+      longPress.firedOn = card;
+      openQuantityModal(container, card.dataset.productId);
+    }, LONG_PRESS_MS);
+  });
+
+  container.addEventListener('pointermove', (event) => {
+    if (!longPress.timer) {
+      return;
+    }
+
+    const movedX = Math.abs(event.clientX - longPress.x);
+    const movedY = Math.abs(event.clientY - longPress.y);
+    if (movedX > LONG_PRESS_MOVE_TOLERANCE || movedY > LONG_PRESS_MOVE_TOLERANCE) {
+      cancelLongPress();
+    }
+  });
+
+  ['pointerup', 'pointercancel'].forEach((type) => container.addEventListener(type, cancelLongPress));
+  // pointerleave e scroll nao sobem pela arvore: escuta na captura.
+  container.addEventListener('pointerleave', (event) => {
+    if (event.target === longPress.card) {
+      cancelLongPress();
+    }
+  }, true);
+  container.addEventListener('scroll', cancelLongPress, true);
+
+  container.addEventListener('contextmenu', (event) => {
+    const card = findProductCard(event);
+
+    if (!card) {
+      return;
+    }
+
+    event.preventDefault();
+
+    // No toque, o navegador manda contextmenu perto dos 500 ms: abre uma vez so.
+    if (longPress.firedOn === card) {
+      return;
+    }
+
+    // Se o dedo ainda esta no cartao, o clique que vem ao soltar nao deve somar 1.
+    // Botao direito e tecla de menu nao geram esse clique.
+    if (longPress.card === card) {
+      longPress.firedOn = card;
+    }
+
+    cancelLongPress();
+    openQuantityModal(container, card.dataset.productId);
+  });
+
   container.addEventListener('input', (event) => {
     if (!event.target.closest('.pdv-screen')) {
       return;
@@ -105,6 +190,8 @@ function bindEvents(container) {
 
     const categoryButton = event.target.closest('[data-category-id]');
     const actionButton = event.target.closest('[data-action]');
+    const followsLongPress = Boolean(actionButton) && longPress.firedOn === actionButton;
+    longPress.firedOn = null;
 
     if (categoryButton) {
       event.stopPropagation();
@@ -122,7 +209,11 @@ function bindEvents(container) {
     }
 
     if (actionButton?.dataset.action === 'add-product') {
-      if (!isCashSessionOpen()) { showNotification({ title: 'Caixa fechado', message: 'Abra o caixa do dia antes de registrar vendas.', type: 'warning' }); return; }
+      // O clique que segue um toque longo ja abriu a quantidade: nao soma 1.
+      if (followsLongPress) {
+        return;
+      }
+      if (!isCashSessionOpen()) { showNotification({ title: 'Caixa fechado', message: CASH_CLOSED_MESSAGE, type: 'warning' }); return; }
       const product = getProductById(actionButton.dataset.productId);
       warnIfProductOutOfStock(product);
       addItem(product);
@@ -130,27 +221,8 @@ function bindEvents(container) {
       return;
     }
 
-    if (actionButton?.dataset.action === 'quick-add') {
-      if (!isCashSessionOpen()) { showNotification({ title: 'Caixa fechado', message: 'Abra o caixa do dia antes de registrar vendas.', type: 'warning' }); return; }
-      try {
-        const product = getProductById(actionButton.dataset.productId);
-        warnIfProductOutOfStock(product);
-        addItemQuantity(product, actionButton.dataset.quantity);
-        renderComanda(container);
-      } catch (error) {
-        showNotification({
-          title: 'Quantidade invalida',
-          message: error.message || 'Informe uma quantidade maior que zero.',
-          type: 'danger'
-        });
-      }
-      return;
-    }
-
     if (actionButton?.dataset.action === 'open-quantity') {
-      state.modal = 'quantity';
-      state.quantityProductId = actionButton.dataset.productId;
-      renderModal(container);
+      openQuantityModal(container, actionButton.dataset.productId);
       return;
     }
 
@@ -269,44 +341,17 @@ function renderCategories(container) {
     ...getCategories().filter((category) => category.id !== CATEGORY_ALL)
   ];
 
-  target.innerHTML = categories.map((category) => `
+  target.innerHTML = categories.map((category) => {
+    const isActive = category.id === state.categoryId;
+    return `
     <button
-      class="category-tab ${category.id === state.categoryId ? 'is-active' : ''}"
+      class="fc-chip${isActive ? ' is-on' : ''}"
       type="button"
+      aria-pressed="${isActive}"
       data-category-id="${escapeHtml(category.id)}"
-    >
-      ${escapeHtml(category.name)}
-    </button>
-  `).join('');
-}
-
-function renderQuickAccess() {
-  const favorites = getFavoriteProducts().slice(0, 4);
-  const bestSellers = getActiveBestSellingProducts().slice(0, 4);
-  const quickProducts = [...favorites, ...bestSellers]
-    .filter((product, index, list) => list.findIndex((item) => item.id === product.id) === index)
-    .slice(0, 6);
-
-  if (!quickProducts.length) {
-    return '';
-  }
-
-  return `
-    <section class="quick-access" aria-label="Acesso rapido">
-      <div class="quick-access__header">
-        <strong>Acesso rapido</strong>
-        <span>Favoritos e mais vendidos</span>
-      </div>
-      <div class="quick-access__list">
-        ${quickProducts.map((product) => `
-          <button class="quick-access__item" type="button" data-action="add-product" data-product-id="${product.id}">
-            <span>${escapeHtml(product.name)}</span>
-            <strong>${formatCurrency(product.price)}</strong>
-          </button>
-        `).join('')}
-      </div>
-    </section>
+    >${escapeHtml(category.name)}</button>
   `;
+  }).join('');
 }
 
 function renderProducts(container) {
@@ -316,19 +361,72 @@ function renderProducts(container) {
     return;
   }
 
+  // Lista completa, sem filtro: a cor da categoria fica igual em todas as telas.
   const categories = getCategories();
   const products = getVisibleProducts();
 
   if (!products.length) {
-    target.innerHTML = '<div class="empty-products">Nenhum produto encontrado.</div>';
+    target.innerHTML = '<div class="fc-empty">Nenhum produto encontrado.</div>';
     return;
   }
 
+  const quantities = getOrderQuantities();
   target.innerHTML = products.map((product) => {
     const category = categories.find((item) => item.id === product.categoryId);
     const showcaseStock = getShowcaseStockByProductId(product.id).quantityAvailable;
-    return renderProductCard({ ...product, showcaseStock }, category ? category.name : 'Sem categoria');
+    return renderProductCard({ ...product, showcaseStock }, category ? category.name : 'Sem categoria', {
+      colorVar: category ? getCategoryColorVar(category, categories) : 'var(--muted)',
+      quantityInOrder: quantities.get(product.id) || 0
+    });
   }).join('');
+}
+
+function getOrderQuantities() {
+  const quantities = new Map();
+  getActiveComanda().items.forEach((item) => {
+    quantities.set(item.productId, (quantities.get(item.productId) || 0) + Number(item.quantity || 0));
+  });
+  return quantities;
+}
+
+// Atualiza so o contorno e o circulo de quantidade dos cartoes ja na tela,
+// sem redesenhar a grade a cada item somado.
+function syncProductQuantities(container) {
+  const grid = qs('[data-product-grid]', container);
+
+  if (typeof grid?.querySelectorAll !== 'function') {
+    return;
+  }
+
+  const quantities = getOrderQuantities();
+  grid.querySelectorAll('[data-action="add-product"]').forEach((card) => {
+    const quantity = quantities.get(card.dataset.productId) || 0;
+    let badge = card.querySelector('.fc-card__qty');
+    card.classList.toggle('is-in', quantity > 0);
+
+    if (quantity <= 0) {
+      badge?.remove();
+      return;
+    }
+
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'fc-card__qty';
+      card.prepend(badge);
+    }
+    badge.textContent = String(quantity);
+  });
+}
+
+function openQuantityModal(container, productId) {
+  if (!isCashSessionOpen()) {
+    showNotification({ title: 'Caixa fechado', message: CASH_CLOSED_MESSAGE, type: 'warning' });
+    return;
+  }
+
+  state.modal = 'quantity';
+  state.quantityProductId = productId;
+  renderModal(container);
 }
 
 function getVisibleProducts() {
@@ -366,37 +464,20 @@ function renderComanda(container) {
   }
 
   target.innerHTML = gateOrderPanelActions(renderOrderPanel(getActiveComanda()));
+  syncProductQuantities(container);
 }
 
 function canCurrentUser(permissionId) {
   return hasPermission(getCurrentUser(), permissionId);
 }
 
+// + Entrada e - Saida sairam da comanda (vao no cabecalho, com a mesma permissao).
 function gateOrderPanelActions(markup) {
-  let gatedMarkup = markup;
-
-  if (!canCurrentUser('cash.movement')) {
-    gatedMarkup = gatedMarkup.replace(
-      '<button class="button button--success" type="button" data-action="open-entry">+ Entrada</button>',
-      ''
-    );
+  if (canCurrentUser('sales.create')) {
+    return markup;
   }
 
-  if (!canCurrentUser('cash.withdrawal')) {
-    gatedMarkup = gatedMarkup.replace(
-      '<button class="button button--danger" type="button" data-action="open-output">- Saida</button>',
-      ''
-    );
-  }
-
-  if (!canCurrentUser('sales.create')) {
-    gatedMarkup = gatedMarkup.replace(
-      /<button class="button" type="button" data-action="open-payment"[^>]*>Receber [\s\S]*?<\/button>/,
-      ''
-    );
-  }
-
-  return gatedMarkup;
+  return markup.replace(/<button\b[^>]*data-action="open-payment"[^>]*>[\s\S]*?<\/button>/, '');
 }
 
 function handleOrderAction(actionButton, container) {

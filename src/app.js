@@ -9,7 +9,7 @@ import { flushFinancialQueue, hydrateFinancialData, startFinancialRealtime } fro
 import { isSupabaseEnabled } from './services/app-config.service.js?v=20260804-06';
 import { hydrateOnlineOperationalData } from './services/online-data.service.js?v=20260804-06';
 import { getDashboardResumo } from './services/dashboard-resumo.service.js?v=20260804-06';
-import { initVendasModule } from './modules/vendas/vendas.module.js?v=20260807-08';
+import { initVendasModule } from './modules/vendas/vendas.module.js?v=20260807-09';
 import { initProdutosModule } from './modules/produtos/produtos.module.js?v=20260804-06';
 import { initDashboardModule } from './modules/dashboard/dashboard.module.js?v=20260804-06';
 import { initEstoqueModule } from './modules/estoque/estoque.module.js?v=20260804-06';

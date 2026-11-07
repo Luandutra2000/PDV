@@ -17,8 +17,8 @@ const products = await import('../src/services/product.service.js?v=20260804-06'
 const comandas = await import('../src/services/comanda.service.js?v=20260804-06');
 const transactions = await import('../src/services/transaction.service.js?v=20260804-06');
 const backup = await import('../src/services/backup.service.js?v=20260804-06');
-const { renderProductCard } = await import('../src/components/product-card.component.js?v=20260804-06');
-const { renderOrderPanel } = await import('../src/components/order-panel.component.js?v=20260804-06');
+const { renderProductCard } = await import('../src/components/product-card.component.js?v=20260807-09');
+const { renderOrderPanel } = await import('../src/components/order-panel.component.js?v=20260807-09');
 const { seedTestAdmin, setTestUserSession } = await import('./test-auth-fixture.mjs?v=20260804-06');
 
 storage.resetAppData();
