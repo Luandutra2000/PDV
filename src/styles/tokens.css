@@ -28,6 +28,10 @@
   --cat-porcoes: #F0663F;
   --cat-bebidas: #22A3DB;
   --cat-combos: #9A68EE;
+  --cat-extra-1: #0F9D8A;
+  --cat-extra-2: #D6489A;
+  --cat-extra-3: #7F9A2B;
+  --cat-extra-4: #4F6FB8;
 
   --radius-card: 14px;
   --radius-control: 10px;
@@ -56,6 +60,10 @@
   --cat-porcoes: #FF7A59;
   --cat-bebidas: #4FC3F7;
   --cat-combos: #B58CFF;
+  --cat-extra-1: #3DD6BF;
+  --cat-extra-2: #FF7EBB;
+  --cat-extra-3: #B5D04F;
+  --cat-extra-4: #8FA8F0;
 }
 
 body {
