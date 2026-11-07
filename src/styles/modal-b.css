@@ -1,0 +1,365 @@
+/* Moldura clara dos modais do visual B (claro e escuro). Carrega depois de
+   modal.css, forms.css, pdv.css e redesign.css, entao usa seletores um pouco
+   mais fortes (.app-shell .modal-backdrop ...) para vencer o CSS antigo.
+   Valores: secao "Receber comanda" do mockup
+   docs/superpowers/specs/mockups/2026-11-07-telas-b-claro.html */
+
+/* Fundo e tokens legados: o CSS antigo dos modais le --color-* e --crm-*.
+   Dentro do modal eles passam a apontar para os tokens do visual B, que
+   ja trocam sozinhos entre claro e escuro. --color-primary nao muda. */
+.modal-backdrop {
+  --color-surface: var(--card);
+  --color-surface-muted: var(--bg);
+  --color-border: var(--line);
+  --color-text: var(--ink);
+  --color-text-muted: var(--muted);
+  --color-danger: var(--red);
+  --color-success: var(--green);
+  --crm-surface: var(--card);
+  --crm-muted: var(--bg);
+  --crm-border: var(--line);
+  --crm-text: var(--ink);
+  --crm-text-muted: var(--muted);
+  --crm-orange-soft: var(--accent-soft);
+  color-scheme: light;
+}
+:root[data-theme="dark"] .modal-backdrop { color-scheme: dark; }
+
+.modal-backdrop.is-open,
+.modal-backdrop--soft.is-open {
+  background: rgba(28, 35, 49, .42);
+  backdrop-filter: none;
+}
+
+/* A janela de venda concluida tem acabamento proprio (redesign.css). */
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--font);
+  box-shadow: 0 24px 60px rgba(28, 35, 49, .28);
+}
+
+.modal__header {
+  padding: 20px 24px 6px;
+  border-bottom: 0;
+}
+.modal__header h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.modal__header h2 span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+/* Botao de fechar: icone discreto, sem moldura. */
+.app-shell .modal-backdrop .modal__header .icon-button {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+  cursor: pointer;
+}
+.app-shell .modal-backdrop .modal__header .icon-button:hover {
+  border: 0;
+  background: var(--line-soft);
+  color: var(--ink);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+.app-shell .modal-backdrop .modal__header .icon-button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.modal .product-form {
+  padding: 14px 24px 24px;
+  background: transparent;
+  color: var(--ink);
+}
+
+.quick-closing-modal .modal__header { background: transparent; }
+
+.modal-text { color: var(--muted); }
+
+/* Rotulos e campos */
+.modal .stacked-label {
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.app-shell .modal-backdrop .modal .field,
+.app-shell .modal-backdrop .modal select,
+.app-shell .modal-backdrop .modal textarea {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  padding: 0 12px;
+  box-shadow: none;
+}
+.app-shell .modal-backdrop .modal textarea { min-height: 88px; padding: 10px 12px; }
+.app-shell .modal-backdrop .modal .field::placeholder,
+.app-shell .modal-backdrop .modal textarea::placeholder { color: var(--muted); }
+.app-shell .modal-backdrop .modal .field:focus,
+.app-shell .modal-backdrop .modal select:focus,
+.app-shell .modal-backdrop .modal textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+  outline: none;
+}
+
+.modal .payment-total {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--bg);
+}
+.modal .payment-total span { color: var(--muted); font-weight: 500; }
+.modal .payment-total strong { font-size: 20px; font-weight: 700; color: var(--ink); }
+
+/* Acoes */
+.modal .form-actions {
+  justify-content: flex-end;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.app-shell .modal-backdrop .modal .button {
+  min-height: 40px;
+  padding: 0 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  font-weight: 600;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+.app-shell .modal-backdrop .modal .button:not(.button--ghost):not(.button--danger):not(.button--success) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.app-shell .modal-backdrop .modal .button:not(.button--ghost):not(.button--danger):not(.button--success):hover:not(:disabled) {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+.app-shell .modal-backdrop .modal .button--ghost {
+  border-color: var(--line);
+  background: var(--card);
+  color: var(--ink);
+}
+.app-shell .modal-backdrop .modal .button--ghost:hover:not(:disabled) {
+  border-color: var(--line);
+  background: var(--line-soft);
+  color: var(--ink);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+.app-shell .modal-backdrop .modal .button--danger {
+  border-color: var(--red);
+  background: var(--red);
+  color: var(--card);
+}
+.app-shell .modal-backdrop .modal .button--success {
+  border-color: var(--green);
+  background: var(--green);
+  color: var(--green-ink);
+}
+.app-shell .modal-backdrop .modal .button:disabled { opacity: .5; cursor: not-allowed; }
+.app-shell .modal-backdrop .modal .button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ---------- Receber comanda ---------- */
+.modal--pay { width: min(760px, 100%); }
+.modal--pay:not(:has(.pay__keypad)) { width: min(460px, 100%); }
+
+.pay {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px 24px;
+}
+.modal--pay:not(:has(.pay__keypad)) .pay { grid-template-columns: minmax(0, 1fr); }
+
+.pay__main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.pay__due {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--bg);
+}
+.pay__due span { color: var(--muted); }
+.pay__due b { font-size: 28px; font-weight: 700; color: var(--ink); }
+
+.pay__methods {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.pay__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.pay__method {
+  position: relative;
+  height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+.pay__method:hover { background: var(--line-soft); }
+.pay__method svg { width: 20px; height: 20px; }
+.pay__method input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.pay__method:has(input:focus-visible) { outline: 2px solid var(--ink); outline-offset: 2px; }
+.pay__method.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink-soft);
+}
+
+.pay__field { display: flex; flex-direction: column; gap: 5px; }
+.pay__field > span { color: var(--muted); font-size: 12px; font-weight: 500; }
+.app-shell .modal-backdrop .modal .pay__input {
+  height: 52px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+[data-pay-live] { display: flex; flex-direction: column; gap: 14px; }
+
+.pay__quick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.pay__quick button {
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pay__quick button:hover { background: var(--line-soft); }
+.pay__quick button.is-on { border-color: var(--ink); background: var(--ink); color: var(--card); }
+.pay__quick button:focus-visible,
+.pay__keypad button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.pay__change {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--green-soft);
+  color: var(--green);
+}
+.pay__change span { font-weight: 600; }
+.pay__change b { font-size: 26px; font-weight: 700; }
+.pay__change.is-short { background: var(--red-soft); color: var(--red); }
+
+.pay__note {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.pay__keypad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-content: start; }
+.pay__keypad button {
+  height: 60px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pay__keypad button:hover { background: var(--line-soft); }
+.pay__keypad button:active { background: var(--line); }
+
+.pay__acts {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.modal--pay .pay__acts .ui-btn { height: 50px; padding: 0 22px; font-size: 15px; justify-content: center; }
+
+@media (max-width: 760px) {
+  .modal-backdrop.is-open { padding: 10px; }
+  .modal .product-form { padding: 12px 16px 18px; }
+  .modal__header { padding: 16px 16px 4px; }
+  .pay { grid-template-columns: minmax(0, 1fr); }
+  .pay__method { font-size: 13px; }
+  .pay__keypad button { height: 52px; }
+  .pay__acts .ui-btn { flex: 1; }
+}

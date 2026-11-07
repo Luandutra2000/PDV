@@ -1,6 +1,7 @@
 import { renderOrderPanel } from '../../components/order-panel.component.js?v=20260807-09';
 import { renderProductCard } from '../../components/product-card.component.js?v=20260807-09';
 import { icon } from '../../components/icons.js?v=20260807-06';
+import { applyKeypadKey, formatReceivedText, getQuickCashOptions, parseReceivedAmount } from '../../utils/payment-keypad.js?v=20260807-10';
 import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-07';
 import { renderFechamentoRapidoModal } from '../../components/fechamento-rapido-modal.component.js?v=20260804-06';
 import { buildClosingSummary, buildShowcaseConference, confirmClosing, saveClosingDraft } from '../../services/cash-closing.service.js?v=20260804-06';
@@ -31,6 +32,8 @@ const state = {
   categoryId: CATEGORY_ALL,
   modal: null,
   paymentMethod: 'dinheiro',
+  receivedText: '',
+  receivedFresh: true,
   quantityProductId: null,
   saleSuccess: null,
   quickClosingTab: 'resumo',
@@ -175,6 +178,9 @@ function bindEvents(container) {
     }
 
     if (event.target.matches('[name="receivedAmount"]')) {
+      // Digitacao direta: o texto fica como esta (aceita virgula) e so o troco e recalculado.
+      state.receivedText = event.target.value;
+      state.receivedFresh = false;
       renderPaymentChange(container);
     }
 
@@ -185,6 +191,23 @@ function bindEvents(container) {
 
   container.addEventListener('click', (event) => {
     if (!event.target.closest('.pdv-screen')) {
+      return;
+    }
+
+    const keypadButton = event.target.closest('[data-keypad-key]');
+    if (keypadButton) {
+      event.stopPropagation();
+      // O valor sugerido (total ou cedula) e substituido na primeira tecla, como texto selecionado.
+      const key = keypadButton.dataset.keypadKey;
+      const current = state.receivedFresh ? '' : state.receivedText;
+      setReceivedText(container, applyKeypadKey(current, key), false);
+      return;
+    }
+
+    const quickCashButton = event.target.closest('[data-quick-cash]');
+    if (quickCashButton) {
+      event.stopPropagation();
+      setReceivedText(container, formatReceivedText(quickCashButton.dataset.quickCash), true);
       return;
     }
 
@@ -240,6 +263,7 @@ function bindEvents(container) {
     if (event.target.matches('[name="paymentMethod"]')) {
       state.paymentMethod = event.target.value;
       renderModal(container);
+      qs('[name="paymentMethod"]:checked', container)?.focus?.();
     }
 
     if (event.target.matches('[data-quick-payment]')) {
@@ -265,7 +289,7 @@ function bindEvents(container) {
       try {
         const sale = finalizeComandaPayment({
           paymentMethod: data.get('paymentMethod'),
-          receivedAmount: data.get('receivedAmount')
+          receivedAmount: parseReceivedAmount(data.get('receivedAmount'))
         });
         state.saleSuccess = sale;
         state.modal = 'sale-success';
@@ -505,6 +529,8 @@ function handleOrderAction(actionButton, container) {
   if (action === 'open-payment') {
     state.modal = 'payment';
     state.paymentMethod = 'dinheiro';
+    state.receivedText = formatReceivedText(getComandaTotal());
+    state.receivedFresh = true;
   }
 
   if (action === 'open-entry') {
@@ -569,7 +595,6 @@ function renderModal(container) {
 
   if (state.modal === 'payment') {
     target.innerHTML = renderPaymentModal();
-    renderPaymentChange(container);
     return;
   }
 
@@ -789,45 +814,82 @@ function renderQuantityModal() {
   `;
 }
 
+function getComandaTotal() {
+  return getActiveComanda().items.reduce((total, item) => total + item.total, 0);
+}
+
+const PAYMENT_METHODS = [
+  { id: 'dinheiro', icon: 'cash' },
+  { id: 'pix', icon: 'pix' },
+  { id: 'debito', icon: 'card' },
+  { id: 'credito', icon: 'card' }
+];
+
+const KEYPAD_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', 'back'];
+
+// Quanto falta (ou sobra) para o valor digitado. Compara em centavos para nao errar por ponto flutuante.
+function getPaymentBalance(total, receivedText) {
+  const received = parseReceivedAmount(receivedText);
+  const diffCents = Math.round(received * 100) - Math.round(total * 100);
+
+  return {
+    received,
+    missing: diffCents < 0 ? -diffCents / 100 : 0,
+    change: diffCents > 0 ? diffCents / 100 : 0,
+    isShort: diffCents < 0
+  };
+}
+
 function renderPaymentModal() {
-  const subtotal = getActiveComanda().items.reduce((total, item) => total + item.total, 0);
+  const comanda = getActiveComanda();
+  const total = getComandaTotal();
   const needsCash = state.paymentMethod === 'dinheiro';
+  const balance = getPaymentBalance(total, state.receivedText);
+  const itemCount = comanda.items.reduce((count, item) => count + (Number(item.quantity) || 0), 0);
+  const hasNumber = comanda.number !== undefined && comanda.number !== null && comanda.number !== '';
+  const title = hasNumber ? `Receber comanda ${escapeHtml(comanda.number)}` : 'Receber comanda';
+  const canSubmit = !needsCash || !balance.isShort;
 
   return `
     <div class="modal-backdrop is-open">
-      <div class="modal modal--small" role="dialog" aria-modal="true">
+      <div class="modal modal--pay" role="dialog" aria-modal="true" aria-labelledby="pay-title">
         <header class="modal__header">
-          <h2>Receber comanda</h2>
-          <button class="icon-button" type="button" data-action="close-modal">X</button>
+          <h2 id="pay-title">${title} <span>${itemCount} ${itemCount === 1 ? 'item' : 'itens'}</span></h2>
+          <button class="icon-button" type="button" data-action="close-modal" aria-label="Fechar">×</button>
         </header>
-        <form class="product-form" data-payment-form>
-          <div class="payment-total">
-            <span>Total da comanda</span>
-            <strong>${formatCurrency(subtotal)}</strong>
-          </div>
-          <fieldset class="payment-methods">
-            <legend>Forma de pagamento</legend>
-            ${['dinheiro', 'debito', 'credito', 'pix'].map((method) => `
-              <label class="payment-method ${state.paymentMethod === method ? 'is-selected' : ''}">
-                <input type="radio" name="paymentMethod" value="${method}" ${state.paymentMethod === method ? 'checked' : ''}>
-                ${getPaymentLabel(method)}
+        <form class="product-form pay" data-payment-form>
+          <div class="pay__main">
+            <div class="pay__due"><span>Total a receber</span><b>${formatCurrency(total)}</b></div>
+            <fieldset class="pay__methods">
+              <legend class="pay__sr">Forma de pagamento</legend>
+              ${PAYMENT_METHODS.map(({ id, icon: iconName }) => `
+                <label class="pay__method${state.paymentMethod === id ? ' is-selected' : ''}">
+                  <input type="radio" name="paymentMethod" value="${id}"${state.paymentMethod === id ? ' checked' : ''}>
+                  ${icon(iconName)}
+                  <span>${getPaymentLabel(id)}</span>
+                </label>
+              `).join('')}
+            </fieldset>
+            ${needsCash ? `
+              <label class="pay__field">
+                <span>Valor recebido</span>
+                <input class="field pay__input" name="receivedAmount" type="text" inputmode="decimal" autocomplete="off" value="${escapeHtml(state.receivedText)}">
               </label>
-            `).join('')}
-          </fieldset>
-          <p class="form-hint" role="note">Registro manual de recebimento. Antes de finalizar Pix, debito ou credito, confira a confirmacao no aplicativo do banco ou na maquininha. Em dinheiro, confira o valor recebido.</p>
-          <div ${needsCash ? '' : 'hidden'}>
-            <label class="stacked-label">
-              Valor recebido
-              <input class="field" name="receivedAmount" type="number" min="0" step="0.01" value="${subtotal.toFixed(2)}">
-            </label>
-            <div class="payment-total">
-              <span>Troco</span>
-              <strong data-change-value>${formatCurrency(0)}</strong>
-            </div>
+              <div data-pay-live>${renderPaymentLive(total, balance)}</div>
+            ` : `
+              <p class="pay__note" role="note">Confirme o pagamento na maquininha ou no app do banco antes de finalizar.</p>
+            `}
           </div>
-          <div class="form-actions">
-            <button class="button button--ghost" type="button" data-action="close-modal">Cancelar</button>
-            <button class="button" type="submit">Finalizar</button>
+          ${needsCash ? `
+            <div class="pay__keypad" role="group" aria-label="Teclado numérico">
+              ${KEYPAD_KEYS.map((key) => key === 'back'
+                ? '<button type="button" data-keypad-key="back" aria-label="Apagar">⌫</button>'
+                : `<button type="button" data-keypad-key="${key}">${key}</button>`).join('')}
+            </div>
+          ` : ''}
+          <div class="pay__acts">
+            <button class="ui-btn" type="button" data-action="close-modal">Cancelar</button>
+            <button class="ui-btn ui-btn--primary pay__submit" type="submit" data-pay-submit${canSubmit ? '' : ' disabled'}>Finalizar venda</button>
           </div>
         </form>
       </div>
@@ -835,24 +897,62 @@ function renderPaymentModal() {
   `;
 }
 
-function renderPaymentChange(container) {
-  const changeTarget = qs('[data-change-value]', container);
-  const receivedInput = qs('[name="receivedAmount"]', container);
+// Parte que muda a cada tecla: cedulas rapidas e troco (ou quanto falta).
+function renderPaymentLive(total, balance) {
+  const options = [
+    { value: total, label: 'Exato' },
+    ...getQuickCashOptions(total).map((value) => ({ value, label: formatCurrency(value).replace(/,00$/, '') }))
+  ];
 
-  if (!changeTarget || !receivedInput) {
+  return `
+    <div class="pay__quick">
+      ${options.map(({ value, label }) => {
+        const isOn = Math.round(balance.received * 100) === Math.round(value * 100);
+        return `<button type="button"${isOn ? ' class="is-on"' : ''} aria-pressed="${isOn}" data-quick-cash="${formatReceivedText(value)}">${label}</button>`;
+      }).join('')}
+    </div>
+    <div class="pay__change${balance.isShort ? ' is-short' : ''}" role="status">
+      <span>${balance.isShort ? 'Faltam' : 'Troco'}</span>
+      <b>${formatCurrency(balance.isShort ? balance.missing : balance.change)}</b>
+    </div>
+  `;
+}
+
+function renderPaymentChange(container) {
+  const live = qs('[data-pay-live]', container);
+
+  if (!live) {
     return;
   }
 
-  const subtotal = getActiveComanda().items.reduce((total, item) => total + item.total, 0);
-  const received = Number(receivedInput.value) || 0;
-  changeTarget.textContent = formatCurrency(Math.max(received - subtotal, 0));
+  const total = getComandaTotal();
+  const balance = getPaymentBalance(total, state.receivedText);
+  live.innerHTML = renderPaymentLive(total, balance);
+
+  const submit = qs('[data-pay-submit]', container);
+  if (submit) {
+    submit.disabled = state.paymentMethod === 'dinheiro' && balance.isShort;
+  }
+}
+
+// Teclado e cedulas mudam o texto do campo e recalculam o troco sem redesenhar o modal.
+function setReceivedText(container, text, fresh) {
+  state.receivedText = text;
+  state.receivedFresh = fresh;
+
+  const input = qs('[name="receivedAmount"]', container);
+  if (input) {
+    input.value = text;
+  }
+
+  renderPaymentChange(container);
 }
 
 function getPaymentLabel(method) {
   const labels = {
     dinheiro: 'Dinheiro',
-    debito: 'Debito',
-    credito: 'Credito',
+    debito: 'Débito',
+    credito: 'Crédito',
     pix: 'Pix'
   };
 

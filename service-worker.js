@@ -15,7 +15,7 @@ const STATIC_ASSETS = [
   './src/styles/mobile.css',
   './src/config/runtime-config.js',
   './src/modules/auth/login.module.js',
-  './src/app.js?v=20260807-09'
+  './src/app.js?v=20260807-10'
 ];
 
 self.addEventListener('install', (event) => {
