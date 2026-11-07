@@ -15,6 +15,14 @@ const LOGO_EXTENSIONS_BY_MIME = {
   'image/webp': 'webp',
   'image/svg+xml': 'svg'
 };
+const BRAND_INK_DARK = '#1C2331';
+const BRAND_INK_LIGHT = '#FFFFFF';
+// Cores padrao do visual antigo: contam como "nao personalizadas".
+const LEGACY_BRAND_COLORS = {
+  primary: '#ff6b1a',
+  secondary: '#e65b11',
+  highlight: '#fff0e6'
+};
 const DEFAULT_COMPANY_SETTINGS = {
   id: '',
   empresaId: LOCAL_COMPANY_ID,
@@ -27,9 +35,9 @@ const DEFAULT_COMPANY_SETTINGS = {
   email: '',
   endereco: '',
   logoUrl: '',
-  corPrimaria: '#ff6b1a',
-  corSecundaria: '#e65b11',
-  corDestaque: '#fff0e6',
+  corPrimaria: '#FFB547',
+  corSecundaria: '#F0A030',
+  corDestaque: '#FFF1D6',
   updatedAt: ''
 };
 
@@ -107,6 +115,28 @@ export function resetCompanySettingsLocal() {
   return saveCompanySettingsLocal(getDefaultCompanySettings());
 }
 
+export function resolveBrandColors(settings = {}) {
+  return {
+    accent: resolveBrandColor(settings.corPrimaria, LEGACY_BRAND_COLORS.primary, DEFAULT_COMPANY_SETTINGS.corPrimaria),
+    accentStrong: resolveBrandColor(settings.corSecundaria, LEGACY_BRAND_COLORS.secondary, DEFAULT_COMPANY_SETTINGS.corSecundaria),
+    accentSoft: resolveBrandColor(settings.corDestaque, LEGACY_BRAND_COLORS.highlight, DEFAULT_COMPANY_SETTINGS.corDestaque),
+    accentInk: pickReadableInk(resolveBrandColor(settings.corPrimaria, LEGACY_BRAND_COLORS.primary, DEFAULT_COMPANY_SETTINGS.corPrimaria))
+  };
+}
+
+export function pickReadableInk(hex) {
+  const luminance = relativeLuminance(hex);
+
+  if (luminance === null) {
+    return BRAND_INK_DARK;
+  }
+
+  const darkContrast = contrastRatio(luminance, relativeLuminance(BRAND_INK_DARK));
+  const lightContrast = contrastRatio(luminance, relativeLuminance(BRAND_INK_LIGHT));
+
+  return lightContrast > darkContrast ? BRAND_INK_LIGHT : BRAND_INK_DARK;
+}
+
 export function applyCompanyIdentity(input = loadCompanySettingsLocal()) {
   const settings = normalizeCompanySettings(input);
   const root = globalThis.document?.documentElement;
@@ -115,6 +145,12 @@ export function applyCompanyIdentity(input = loadCompanySettingsLocal()) {
     return settings;
   }
 
+  const brand = resolveBrandColors(settings);
+
+  root.style.setProperty('--accent', brand.accent);
+  root.style.setProperty('--accent-strong', brand.accentStrong);
+  root.style.setProperty('--accent-soft', brand.accentSoft);
+  root.style.setProperty('--accent-ink', brand.accentInk);
   root.style.setProperty('--color-primary', settings.corPrimaria);
   root.style.setProperty('--color-primary-strong', settings.corSecundaria);
   root.style.setProperty('--crm-orange', settings.corPrimaria);
@@ -331,6 +367,37 @@ export function unmapCompanySettings(row = {}) {
     corDestaque: row.cor_destaque,
     updatedAt: row.updated_at || ''
   });
+}
+
+function resolveBrandColor(value, legacyDefault, tokenDefault) {
+  const color = String(value || '').trim();
+
+  if (!HEX_COLOR_PATTERN.test(color) || color.toLowerCase() === legacyDefault) {
+    return tokenDefault;
+  }
+
+  return color;
+}
+
+function relativeLuminance(hex) {
+  const color = String(hex || '').trim();
+
+  if (!HEX_COLOR_PATTERN.test(color)) {
+    return null;
+  }
+
+  const [red, green, blue] = [1, 3, 5].map((start) => {
+    const channel = parseInt(color.slice(start, start + 2), 16) / 255;
+    return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+}
+
+function contrastRatio(first, second) {
+  const lighter = Math.max(first, second);
+  const darker = Math.min(first, second);
+  return (lighter + 0.05) / (darker + 0.05);
 }
 
 function normalizeHex(value) {

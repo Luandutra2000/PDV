@@ -1,0 +1,61 @@
+/* Tokens do visual B claro. Os valores claros sao o padrao; os escuros
+   ficam sob [data-theme="dark"]. --accent* podem ser sobrescritos em runtime
+   pelas cores da empresa (applyCompanyIdentity). */
+:root {
+  --font: "Sora", system-ui, sans-serif;
+
+  --bg: #F1F3F7;
+  --card: #FFFFFF;
+  --rail: #FFFFFF;
+  --ink: #1C2331;
+  --muted: #6B7488;
+  --line: #E0E4EB;
+  --line-soft: #EBEEF3;
+
+  --accent: #FFB547;
+  --accent-strong: #F0A030;
+  --accent-soft: #FFF1D6;
+  --accent-ink: #1C2331;
+  --accent-ink-soft: #8A5500;
+
+  --green: #17784A;
+  --green-soft: #E3F5EC;
+  --red: #B8392F;
+  --red-soft: #FBE9E7;
+
+  --cat-lanches: #F5A524;
+  --cat-porcoes: #F0663F;
+  --cat-bebidas: #22A3DB;
+  --cat-combos: #9A68EE;
+
+  --radius-card: 14px;
+  --radius-control: 10px;
+}
+
+:root[data-theme="dark"] {
+  --bg: #1C2331;
+  --card: #242D3E;
+  --rail: #161C28;
+  --ink: #EDF0F5;
+  --muted: #8E99AE;
+  --line: #2F3A4E;
+  --line-soft: #2A3447;
+
+  --accent: #FFB547;
+
+  --green: #4CC38A;
+  --green-soft: #1E3A2F;
+  --red: #FF8A7E;
+  --red-soft: #3D2523;
+
+  --cat-lanches: #FFB547;
+  --cat-porcoes: #FF7A59;
+  --cat-bebidas: #4FC3F7;
+  --cat-combos: #B58CFF;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--ink);
+}

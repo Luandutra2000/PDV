@@ -1,13 +1,14 @@
 const THEME_KEY = 'pdv.theme';
+const DEFAULT_THEME = 'light';
 
 export function initTheme() {
-  const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+  const savedTheme = localStorage.getItem(THEME_KEY) || DEFAULT_THEME;
   applyTheme(savedTheme);
   return savedTheme;
 }
 
 export function toggleTheme() {
-  const currentTheme = document.documentElement.dataset.theme || 'dark';
+  const currentTheme = document.documentElement.dataset.theme || DEFAULT_THEME;
   const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
   applyTheme(nextTheme);
   localStorage.setItem(THEME_KEY, nextTheme);
@@ -15,7 +16,7 @@ export function toggleTheme() {
 }
 
 export function getThemeLabel() {
-  return (document.documentElement.dataset.theme || 'dark') === 'dark' ? 'Modo claro' : 'Modo escuro';
+  return (document.documentElement.dataset.theme || DEFAULT_THEME) === 'dark' ? 'Modo claro' : 'Modo escuro';
 }
 
 function applyTheme(theme) {
