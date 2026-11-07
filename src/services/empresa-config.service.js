@@ -147,10 +147,15 @@ export function applyCompanyIdentity(input = loadCompanySettingsLocal()) {
 
   const brand = resolveBrandColors(settings);
 
-  root.style.setProperty('--accent', brand.accent);
-  root.style.setProperty('--accent-strong', brand.accentStrong);
-  root.style.setProperty('--accent-soft', brand.accentSoft);
-  root.style.setProperty('--accent-ink', brand.accentInk);
+  // Cores personalizadas valem inline nos dois temas. Cores padrao saem do
+  // inline para que tokens.css (inclusive o tema escuro) governe.
+  const accentIsCustom = isCustomBrandColor(settings.corPrimaria, DEFAULT_COMPANY_SETTINGS.corPrimaria);
+  setOrClearProperty(root.style, '--accent', brand.accent, accentIsCustom);
+  setOrClearProperty(root.style, '--accent-ink', brand.accentInk, accentIsCustom);
+  setOrClearProperty(root.style, '--accent-strong', brand.accentStrong,
+    isCustomBrandColor(settings.corSecundaria, DEFAULT_COMPANY_SETTINGS.corSecundaria));
+  setOrClearProperty(root.style, '--accent-soft', brand.accentSoft,
+    isCustomBrandColor(settings.corDestaque, DEFAULT_COMPANY_SETTINGS.corDestaque));
   root.style.setProperty('--color-primary', settings.corPrimaria);
   root.style.setProperty('--color-primary-strong', settings.corSecundaria);
   root.style.setProperty('--crm-orange', settings.corPrimaria);
@@ -377,6 +382,22 @@ function resolveBrandColor(value, legacyDefault, tokenDefault) {
   }
 
   return color;
+}
+
+function isCustomBrandColor(value, tokenDefault) {
+  const color = String(value || '').trim().toLowerCase();
+
+  return HEX_COLOR_PATTERN.test(color)
+    && color !== tokenDefault.toLowerCase()
+    && !Object.values(LEGACY_BRAND_COLORS).includes(color);
+}
+
+function setOrClearProperty(style, name, value, shouldSet) {
+  if (shouldSet) {
+    style.setProperty(name, value);
+  } else {
+    style.removeProperty?.(name);
+  }
 }
 
 function relativeLuminance(hex) {

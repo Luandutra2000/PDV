@@ -53,19 +53,37 @@ assert(defaults.corPrimaria === '#FFB547', 'padrao corPrimaria deve ser #FFB547'
 assert(defaults.corSecundaria === '#F0A030', 'padrao corSecundaria deve ser #F0A030');
 assert(defaults.corDestaque === '#FFF1D6', 'padrao corDestaque deve ser #FFF1D6');
 
-// applyCompanyIdentity define as variaveis novas e mantem as antigas.
+// applyCompanyIdentity: inline so para cores personalizadas; padrao deixa o tokens.css governar.
 const props = new Map();
 globalThis.document = {
   documentElement: {
-    style: { setProperty: (name, value) => props.set(name, value) }
+    style: {
+      setProperty: (name, value) => props.set(name, value),
+      removeProperty: (name) => props.delete(name)
+    }
   }
 };
-company.applyCompanyIdentity({ corPrimaria: '#ff6b1a', corSecundaria: '#e65b11', corDestaque: '#fff0e6' });
-assert(props.get('--accent') === '#FFB547', 'applyCompanyIdentity deve definir --accent');
-assert(props.get('--accent-strong') === '#F0A030', 'applyCompanyIdentity deve definir --accent-strong');
-assert(props.get('--accent-soft') === '#FFF1D6', 'applyCompanyIdentity deve definir --accent-soft');
-assert(props.get('--accent-ink') === '#1C2331', 'applyCompanyIdentity deve definir --accent-ink');
-assert(props.has('--color-primary') && props.has('--crm-orange'), 'variaveis antigas continuam definidas');
+const legacyColors = { corPrimaria: '#ff6b1a', corSecundaria: '#e65b11', corDestaque: '#fff0e6' };
+
+// Estado inline anterior (cores personalizadas) e limpo ao voltar ao padrao.
+company.applyCompanyIdentity({ corPrimaria: '#0055aa', corSecundaria: '#003377', corDestaque: '#e6f0ff' });
+assert(props.get('--accent') === '#0055aa', 'cor personalizada deve definir --accent inline');
+assert(props.get('--accent-strong') === '#003377', 'secundaria personalizada deve definir --accent-strong');
+assert(props.get('--accent-soft') === '#e6f0ff', 'destaque personalizado deve definir --accent-soft');
+assert(props.get('--accent-ink') === '#FFFFFF', 'texto sobre azul escuro deve ser branco');
+
+company.applyCompanyIdentity(legacyColors);
+for (const name of ['--accent', '--accent-strong', '--accent-soft', '--accent-ink']) {
+  assert(!props.has(name), name + ' nao deve ficar inline com cores padrao');
+}
+assert(props.get('--color-primary') === '#ff6b1a' && props.has('--crm-orange'), 'variaveis antigas continuam definidas');
+
+company.applyCompanyIdentity(company.getDefaultCompanySettings());
+assert(!props.has('--accent') && !props.has('--accent-soft'), 'padrao novo tambem nao fica inline');
+
+// Parcial: so a principal personalizada.
+company.applyCompanyIdentity({ ...legacyColors, corPrimaria: '#0055aa' });
+assert(props.get('--accent') === '#0055aa' && !props.has('--accent-soft') && !props.has('--accent-strong'), 'so a cor personalizada fica inline');
 
 props.clear();
 company.applyCompanyIdentity({ corPrimaria: '#FFFFFF', corSecundaria: '#EEEEEE', corDestaque: '#F5F5F5' });
