@@ -87,4 +87,32 @@ assert(userMenu.includes('<details'), 'menu do usuario e um details');
 assert(userMenu.includes('>L<') && userMenu.includes('Luan'), 'avatar com a inicial e o nome');
 assert(renderUserMenu({ name: '<b>x</b>' }, 'Modo escuro').includes('&lt;b&gt;'), 'nome do usuario deve ser escapado');
 
+// CSS: rail/top so somem dentro das media queries do app do dono (desktop mantem o menu).
+const { readFile } = await import('node:fs/promises');
+const css = await readFile(new URL('../src/styles/components.css', import.meta.url), 'utf8');
+function stripMediaBlocks(source) {
+  let output = '';
+  let index = 0;
+  while (index < source.length) {
+    const start = source.indexOf('@media', index);
+    if (start === -1) {
+      output += source.slice(index);
+      break;
+    }
+    output += source.slice(index, start);
+    let depth = 0;
+    let cursor = source.indexOf('{', start);
+    do {
+      depth += source[cursor] === '{' ? 1 : source[cursor] === '}' ? -1 : 0;
+      cursor += 1;
+    } while (depth > 0 && cursor < source.length);
+    index = cursor;
+  }
+  return output;
+}
+const outsideMedia = stripMediaBlocks(css);
+assert(!/is-mobile-owner[^{]*.(rail|top)/.test(outsideMedia), 'regra que esconde rail/top no app do dono deve ficar dentro de @media');
+assert(!/:has(.mobile-shell)[^{]*.(rail|top)/.test(outsideMedia), 'regra :has(.mobile-shell) que esconde rail/top deve ficar dentro de @media');
+assert(css.includes('@media (max-width: 900px), (pointer: coarse)') && css.includes('@media (max-width: 760px)'), 'condicoes das media queries legadas devem ser preservadas');
+
 console.log('shell-components tests passed');

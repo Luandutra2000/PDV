@@ -138,10 +138,32 @@
   transition: none;
 }
 .app-shell:not(.is-mobile-owner) .workspace { grid-template-rows: auto minmax(0, 1fr); }
-.app-shell.is-mobile-owner .rail,
-.app-shell.is-mobile-owner .top,
-.pdv-layout:has(.mobile-shell) .rail,
-.pdv-layout:has(.mobile-shell) .top { display: none; }
+
+/* App do dono em desktop: mantem rail + topo (o rail e o caminho de volta).
+   E o complemento das media queries legadas abaixo, que o escondem. */
+@media (min-width: 901px) and (pointer: fine) {
+  .app-shell.is-mobile-owner { padding: 0; }
+  .app-shell.is-mobile-owner .pdv-layout {
+    grid-template-columns: 84px minmax(0, 1fr);
+    min-height: 100vh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--bg);
+    transition: none;
+  }
+  .app-shell.is-mobile-owner .workspace { grid-template-rows: auto minmax(0, 1fr); }
+}
+
+/* Mesmas condicoes das regras legadas (layout.css e mobile.css) que escondiam sidebar/topbar. */
+@media (max-width: 900px), (pointer: coarse) {
+  .app-shell.is-mobile-owner .rail,
+  .app-shell.is-mobile-owner .top { display: none; }
+}
+@media (max-width: 760px) {
+  .pdv-layout:has(.mobile-shell) .rail,
+  .pdv-layout:has(.mobile-shell) .top { display: none; }
+}
 
 .rail {
   display: flex;
