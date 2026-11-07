@@ -18,10 +18,14 @@
   font-size: 14px;
 }
 
+/* O container dos modais nao ocupa celula da grade (o fundo do modal e position: fixed).
+   Sem isso ele vira uma segunda linha implicita e a comanda para no meio da altura. */
+.pdv-screen.fc > [data-vendas-modal] { display: contents; }
+
 /* A tela ocupa a altura da janela: a grade rola por dentro e a comanda fica fixa. */
 @media (min-width: 761px) {
   .pdv-layout:has(.pdv-screen.fc) { height: 100dvh; min-height: 0; }
-  .pdv-screen.fc { height: 100%; }
+  .pdv-screen.fc { height: 100%; grid-template-rows: minmax(0, 1fr); }
   .pdv-screen.fc .fc-main { overflow-y: auto; }
 }
 

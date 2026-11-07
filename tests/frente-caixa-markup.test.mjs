@@ -263,4 +263,13 @@ assert(menuEvent.defaultPrevented, 'contextmenu no cartao bloqueia o menu do nav
 assert(menuScreen.part('[data-vendas-modal]').includes('data-quantity-form'), 'contextmenu abre o modal de quantidade');
 assert(quantityOf('x-burger') === 0, 'contextmenu nao adiciona');
 
+// ---------- Layout: o container dos modais nao pode virar linha da grade ----------
+const { readFile } = await import('node:fs/promises');
+const pdvCss = await readFile(new URL('../src/styles/pdv-b.css', import.meta.url), 'utf8');
+assert(pdvCss.includes('.pdv-screen.fc > [data-vendas-modal] { display: contents; }'), 'container dos modais fica fora da grade (display: contents)');
+const wideStart = pdvCss.indexOf('@media (min-width: 761px) {');
+const wideBlock = wideStart >= 0 ? pdvCss.slice(wideStart, pdvCss.indexOf('\n}', wideStart)) : '';
+assert(wideBlock.includes('.pdv-screen.fc { height: 100%; grid-template-rows: minmax(0, 1fr); }'), 'em tela larga a grade tem uma unica linha que ocupa a altura toda');
+assert(/<\/main>\s*<div class="fc-side" data-order-panel><\/div>\s*<div data-vendas-modal><\/div>\s*<\/section>/.test(openScreen.innerHTML), 'a secao tem so a grade, a comanda e o container dos modais');
+
 console.log('frente de caixa markup ok');
