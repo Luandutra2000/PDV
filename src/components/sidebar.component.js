@@ -1,78 +1,46 @@
 import { hasPermission } from '../services/permission.service.js?v=20260804-06';
+import { icon } from './icons.js?v=20260807-06';
 
-const menuGroups = [
-  {
-    title: 'Vendas',
-    items: [
-      { id: 'frente-caixa', label: 'Frente de Caixa', icon: 'FC', permission: 'sales.access' },
-      { id: 'estoque', label: 'Vitrine', icon: 'VT', permission: 'showcase.access' },
-      { id: 'dashboard', label: 'Historico de Transacoes', icon: 'HT', permission: 'reports.view' }
-    ]
-  },
-  {
-    title: 'Gestao',
-    items: [
-      { id: 'produtos', label: 'Produtos', icon: 'PR', permission: 'products.manage' },
-      { id: 'pessoas', label: 'Pessoas', icon: 'PS', permission: ['users.manage', 'users.edit', 'users.delete', 'permissions.manage', 'audit.view'] }
-    ]
-  },
-  {
-    title: 'Financeiro',
-    items: [
-      { id: 'fechar-caixa', label: 'Fechar Caixa / CRM', icon: 'CX', permission: 'cash.close' },
-      { id: 'despesas', label: 'Financeiro', icon: 'FI', permission: 'financial.expense.access' }
-    ]
-  },
-  {
-    title: 'Outros',
-    items: [
-      { id: 'relatorios', label: 'Relatorios', icon: 'RE', permission: 'reports.view' },
-      { id: 'mobile', label: 'App do Dono', icon: 'AD', permission: 'owner_app.view' },
-      { id: 'empresa-config', label: 'Design de Layout', icon: 'CE', permission: 'company_settings.manage' }
-    ]
-  },
-  {
-    title: 'Ajuda',
-    items: [
-      { id: 'suporte', label: 'Suporte', icon: '?' }
-    ]
-  }
+const menuItems = [
+  { id: 'frente-caixa', label: 'Vender', icon: 'sell', permission: 'sales.access' },
+  { id: 'estoque', label: 'Vitrine', icon: 'store', permission: 'showcase.access' },
+  { id: 'dashboard', label: 'Histórico', icon: 'hist', permission: 'reports.view' },
+  { id: 'produtos', label: 'Produtos', icon: 'box', permission: 'products.manage' },
+  { id: 'pessoas', label: 'Pessoas', icon: 'people', permission: ['users.manage', 'users.edit', 'users.delete', 'permissions.manage', 'audit.view'] },
+  { id: 'fechar-caixa', label: 'Caixa', icon: 'cash', permission: 'cash.close' },
+  { id: 'despesas', label: 'Financeiro', icon: 'wallet', permission: 'financial.expense.access' },
+  { id: 'relatorios', label: 'Relatórios', icon: 'chart', permission: 'reports.view' },
+  { id: 'mobile', label: 'App do dono', icon: 'phone', permission: 'owner_app.view' },
+  { id: 'empresa-config', label: 'Empresa', icon: 'gear', permission: 'company_settings.manage' }
 ];
 
+const supportItem = { id: 'suporte', label: 'Suporte', icon: 'help' };
+
 export function renderSidebar(currentUser, companySettings = {}) {
-  const systemName = escapeHtml(companySettings.nomeSistema || 'Zelo PDV');
-  const companyName = escapeHtml(companySettings.nomeFantasia || 'Lanchonete');
-  const logo = renderLogo(companySettings.logoUrl);
+  const systemName = String(companySettings.nomeSistema || 'Zelo PDV');
+  const companyName = String(companySettings.nomeFantasia || 'Lanchonete');
+  const brand = renderBrand(companySettings.logoUrl, systemName);
 
-  const visibleGroups = menuGroups.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => hasAnyPermission(currentUser, item.permission))
-  })).filter((group) => group.items.length);
-
-  const groups = visibleGroups.map((group) => `
-    <section class="sidebar__section">
-      <div class="sidebar__title">${group.title}</div>
-      ${group.items.map((item) => `
-        <button class="sidebar__item" type="button" data-menu-id="${item.id}">
-          <span class="sidebar__icon" aria-hidden="true">${item.icon}</span>
-          <span class="sidebar__label">${item.label}</span>
-        </button>
-      `).join('')}
-    </section>
-  `).join('');
+  const items = menuItems
+    .filter((item) => hasAnyPermission(currentUser, item.permission))
+    .map((item) => renderNavItem(item))
+    .join('');
 
   return `
-    <aside class="sidebar">
-      <div class="sidebar__brand">
-        ${logo}
-        <span class="sidebar__brand-name">${systemName}</span>
-      </div>
-      <div class="sidebar__content">${groups}</div>
-      <footer class="sidebar__footer">
-        <div class="sidebar__store">${companyName}</div>
-        <button class="sidebar__exit" type="button" data-action="logout">Sair</button>
-      </footer>
-    </aside>
+    <nav class="rail" aria-label="Menu principal ${escapeHtml(companyName)}">
+      <div class="rail__brand" title="${escapeHtml(systemName)}">${brand}</div>
+      ${items}
+      ${renderNavItem(supportItem, 'rail__nav--footer')}
+    </nav>
+  `;
+}
+
+function renderNavItem(item, extraClass = '') {
+  return `
+    <button class="rail__nav${extraClass ? ` ${extraClass}` : ''}" type="button" data-menu-id="${item.id}">
+      ${icon(item.icon)}
+      <span class="nav__label">${item.label}</span>
+    </button>
   `;
 }
 
@@ -88,12 +56,13 @@ function hasAnyPermission(currentUser, permission) {
   return hasPermission(currentUser, permission);
 }
 
-function renderLogo(logoUrl) {
+function renderBrand(logoUrl, systemName) {
   if (!isAllowedLogoUrl(logoUrl)) {
-    return '<span class="sidebar__badge">PDV</span>';
+    const initial = Array.from(systemName.trim())[0]?.toLocaleUpperCase('pt-BR') || 'P';
+    return `<span class="rail__badge">${escapeHtml(initial)}</span>`;
   }
 
-  return `<img class="sidebar__logo" src="${escapeHtml(logoUrl.trim())}" alt="">`;
+  return `<img class="rail__logo" src="${escapeHtml(logoUrl.trim())}" alt="">`;
 }
 
 function isAllowedLogoUrl(logoUrl) {

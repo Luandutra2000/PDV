@@ -1,5 +1,6 @@
 import './config/runtime-config.js?v=20260807-02';
-import { renderSidebar } from './components/sidebar.component.js?v=20260804-06';
+import { renderSidebar } from './components/sidebar.component.js?v=20260807-06';
+import { renderCashKpis, renderCashSessionStatus, renderUserMenu } from './components/topbar.component.js?v=20260807-06';
 import { ensureSeedData } from './services/storage.service.js?v=20260804-06';
 import { hydrateDataProvider } from './services/data-provider.service.js?v=20260804-06';
 import { flushDataProvider } from './services/data-provider.service.js?v=20260804-06';
@@ -19,7 +20,6 @@ import { initDespesasModule } from './modules/despesas/despesas.module.js?v=2026
 import { initEmpresaConfigModule } from './modules/empresa-config/empresa-config.module.js?v=20260804-06';
 import { initRelatoriosModule } from './modules/relatorios/relatorios.module.js?v=20260804-06';
 import { initSyncAppModule } from './modules/sync-app/sync-app.module.js?v=20260804-06';
-import { formatCurrency } from './utils/currency.js?v=20260804-06';
 import { initNotificationService } from './services/notification.service.js?v=20260804-06';
 import { initRealtimeService } from './services/realtime.service.js?v=20260804-06';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js?v=20260807-05';
@@ -30,8 +30,6 @@ import { applyCompanyIdentity, loadCompanySettings, loadCompanySettingsLocal } f
 import { renderLoginModule } from './modules/auth/login.module.js?v=20260807-04';
 import { on } from './services/event-bus.service.js?v=20260804-06';
 import { UI_EVENTS } from './database/schema.js?v=20260804-06';
-import { escapeHtml } from './utils/dom.js?v=20260804-06';
-import { bindBubbleBackground, renderBubbleBackground } from './components/ui/components-backgrounds-bubble.js?v=20260804-06';
 import { getCashSessionStatus, openCashSession } from './services/cash-session.service.js?v=20260804-06';
 
 const routes = {
@@ -118,19 +116,13 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   applyCompanyIdentity(companySettings);
 
   app.innerHTML = `
-    ${renderBubbleBackground({ interactive: true })}
     <div class="pdv-layout">
       ${renderSidebar(currentUser, companySettings)}
       <section class="workspace">
-        <header class="topbar">
-          <div class="cash-strip" aria-label="Resumo do caixa" data-cash-strip></div>
-          <div data-cash-session-indicator></div>
-          <div class="header-actions">
-            <span class="current-user">${escapeHtml(currentUser.name)}</span>
-            ${hasPermission(currentUser, 'owner_app.view') ? '<button class="button" type="button" data-action="open-mobile">App do Dono</button>' : ''}
-            <button class="button button--ghost" type="button" data-action="toggle-theme">${getThemeLabel()}</button>
-            <button class="button button--ghost" type="button" data-action="refresh">Atualizar</button>
-          </div>
+        <header class="top">
+          <div class="ui-kpis" aria-label="Resumo do caixa" data-cash-strip></div>
+          <div class="ui-session" data-cash-session-indicator></div>
+          ${renderUserMenu(currentUser, getThemeLabel())}
         </header>
         <div class="workspace-body" data-workspace-body></div>
         <div data-global-modal></div>
@@ -138,7 +130,6 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
     </div>
   `;
 
-  bindBubbleBackground(app);
   const workspace = app.querySelector('[data-workspace-body]');
   const initialView = getAuthorizedInitialView(currentUser);
   renderCashStrip(app);
@@ -199,25 +190,7 @@ function renderCashStrip(root = document) {
 
   const resumo = getDashboardResumo({ period: 'today' });
 
-  target.innerHTML = `
-    ${renderCashMetric('Caixa atual', resumo.caixaAtual, false, 'money-info')}
-    ${renderCashMetric('Vitrine estimada', resumo.vitrineEstimada, false, 'money-warning')}
-    ${renderCashMetric('Total vendido', resumo.totalVendido, false, 'money-primary')}
-    ${renderCashMetric('Entradas', resumo.entradas, false, 'money-positive')}
-    ${renderCashMetric('Saídas', resumo.saidas, false, 'money-negative')}
-  `;
-}
-
-function renderCashMetric(label, value, signed = false, fixedClass = '') {
-  const amount = Number(value || 0);
-  const stateClass = fixedClass || (signed && amount < 0 ? 'money-negative' : 'money-positive');
-
-  return `
-    <div class="cash-pill ${stateClass}">
-      <span>${label}:</span>
-      <strong>${formatCurrency(amount)}</strong>
-    </div>
-  `;
+  target.innerHTML = renderCashKpis(resumo);
 }
 
 function bindCashUpdates(app) {
@@ -232,10 +205,7 @@ function bindCashUpdates(app) {
 function renderCashSessionIndicator(root = document) {
   const target = root.querySelector('[data-cash-session-indicator]');
   if (!target) return;
-  const status = getCashSessionStatus();
-  target.innerHTML = status.open
-    ? '<span class="cash-session-pill cash-session-pill--open">Caixa aberto</span><button class="button button--ghost cash-session-close" type="button" data-action="go-to-cash-closing">Fechar caixa</button>'
-    : '<span class="cash-session-pill cash-session-pill--closed">Caixa fechado</span><button class="button button--success cash-session-open" type="button" data-action="open-cash-session">Abrir caixa</button>';
+  target.innerHTML = renderCashSessionStatus(getCashSessionStatus());
 }
 
 function renderOpenCashSessionModal(app) {
@@ -273,7 +243,7 @@ function refreshCompanySettingsAsync(app, workspace) {
 }
 
 function refreshSidebar(app, workspace, settings) {
-  const currentSidebar = app.querySelector('.sidebar');
+  const currentSidebar = app.querySelector('.rail');
 
   if (!currentSidebar) {
     return;
@@ -342,6 +312,8 @@ function ensureFreshLoginAfterAuthUpdate() {
 
 function bindNavigation(app, workspace) {
   app.addEventListener('click', async (event) => {
+    closeUserMenuIfNeeded(app, event);
+
     const themeButton = event.target.closest('[data-action="toggle-theme"]');
 
     if (themeButton) {
@@ -427,7 +399,7 @@ function bindNavigation(app, workspace) {
       return;
     }
 
-    renderModulePlaceholder(workspace, menuButton.querySelector('.sidebar__label').textContent);
+    renderModulePlaceholder(workspace, menuButton.querySelector('.nav__label').textContent);
   });
 
   app.addEventListener('submit', (event) => {
@@ -440,6 +412,21 @@ function bindNavigation(app, workspace) {
       window.alert(error.message || 'Não foi possível abrir o caixa.');
     }
   });
+}
+
+function closeUserMenuIfNeeded(app, event) {
+  const openMenu = app.querySelector('.ui-user[open]');
+
+  if (!openMenu) {
+    return;
+  }
+
+  const clickedInsideMenu = Boolean(event.target.closest('.ui-user'));
+  const clickedAction = Boolean(event.target.closest('.ui-user [data-action]'));
+
+  if (!clickedInsideMenu || clickedAction) {
+    openMenu.open = false;
+  }
 }
 
 function setRouteShellMode(app, routeId) {

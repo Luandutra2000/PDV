@@ -17,12 +17,12 @@ const cacheControl = srcHeader?.headers.find((header) => header.key.toLowerCase(
 assert(srcHeader, 'vercel config should define cache headers for source modules');
 assert(!cacheControl.includes('immutable'), 'source modules should not be immutable because URLs are not content-hashed');
 assert(cacheControl.includes('max-age=0'), 'source modules should revalidate so fixes appear after deploy');
-assert(indexHtml.includes('./src/app.js?v=20260804-06'), 'app entrypoint should use the latest cache-busting version');
+assert(indexHtml.includes('./src/app.js?v=20260807-06'), 'app entrypoint should use the latest cache-busting version');
 assert(indexHtml.includes('Nao foi possivel iniciar o PDV.'), 'startup should show a visible fallback when module boot fails');
 assert(indexHtml.includes('Nao foi possivel limpar service workers antigos.'), 'startup should not block app boot when browser cache cleanup fails');
 assert(serviceWorkerJs.includes('pdv-v85'), 'service worker cache name should change when app modules change');
-assert(serviceWorkerJs.includes('./src/app.js?v=20260804-06'), 'service worker should precache the latest app entrypoint');
-assert(appJs.includes('./utils/dom.js?v=20260804-06'), 'shared DOM helper import should be versioned with the module graph');
+assert(serviceWorkerJs.includes('./src/app.js?v=20260807-06'), 'service worker should precache the latest app entrypoint');
+assert(appJs.includes('./components/topbar.component.js?v=20260807-06'), 'shell component import should be versioned with the module graph');
 assert(appJs.includes('./modules/vendas/vendas.module.js?v=20260804-06'), 'critical UI modules should be versioned with the module graph');
 assert(!serviceWorkerJs.includes('./src/app.js?v=20260602-06'), 'service worker should not keep the stale app entrypoint');
 assert(indexHtml.includes('clearStaleClientCaches'), 'stale app caches should be cleared before boot');
