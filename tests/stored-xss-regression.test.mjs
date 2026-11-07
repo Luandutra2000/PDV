@@ -20,7 +20,8 @@ const files = [
   'src/modules/pessoas/pessoas.module.js',
   'src/modules/produtos/produtos.module.js',
   'src/modules/relatorios/relatorios.module.js',
-  'src/modules/vendas/vendas.module.js'
+  'src/modules/vendas/vendas.module.js',
+  'src/components/cash-actions.component.js'
 ];
 const riskyProperty = /\$\{[^}\n]*\.(?:name|description|notes|note|reason|categoryName|userName|produtoNome|categoriaNome)\b/;
 const offenders = [];

@@ -5,24 +5,21 @@ import { buildClosingSummary, buildShowcaseConference, confirmClosing, saveClosi
 import { getActiveComanda, addItem, addItemQuantity, clearComanda, removeItem, updateQuantity } from '../../services/comanda.service.js?v=20260804-06';
 import { createPeriodFilter, getCrmSummary } from '../../services/crm-dashboard.service.js?v=20260804-06';
 import { getCategories, getFavoriteProducts, getProductById, searchProducts } from '../../services/product.service.js?v=20260804-06';
-import { finalizeComandaPayment, getBestSellingProducts, registerCashMovement } from '../../services/transaction.service.js?v=20260804-06';
+import { finalizeComandaPayment, getBestSellingProducts } from '../../services/transaction.service.js?v=20260804-06';
 import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
 import { escapeHtml, qs } from '../../utils/dom.js?v=20260804-06';
 import { showNotification } from '../../services/notification.service.js?v=20260804-06';
-import { createShowcaseWriteOff, getTodayShowcaseProducts } from '../../services/estoque.service.js?v=20260804-06';
-import { getFinancialCategories } from '../../services/financial.service.js?v=20260804-06';
 import { getShowcaseStockByProductId } from '../../services/showcase-stock.service.js?v=20260804-06';
 import { on } from '../../services/event-bus.service.js?v=20260804-06';
 import { UI_EVENTS } from '../../database/schema.js?v=20260804-06';
 import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
 import { hasPermission } from '../../services/permission.service.js?v=20260804-06';
 import { isCashSessionOpen } from '../../services/cash-session.service.js?v=20260804-06';
+import { renderCashMovementModal, renderWriteOffModal, submitCashMovementForm, submitWriteOffForm } from '../../components/cash-actions.component.js?v=20260807-08';
 
 const CATEGORY_ALL = 'todos';
 const CATEGORY_FAVORITES = '__favoritos';
 const CATEGORY_BEST_SELLERS = '__mais-vendidos';
-const ENTRY_CATEGORIES = ['Reforco de caixa', 'Pagamento de cliente', 'Dinheiro extra', 'Ajuste manual', 'Outros'];
-const OUTPUT_CATEGORIES = ['Compra de material', 'Compra de ingredientes', 'Pagamento de fornecedor', 'Despesa operacional', 'Retirada do dono', 'Troco', 'Manutencao', 'Outros'];
 
 const state = {
   query: '',
@@ -214,66 +211,25 @@ function bindEvents(container) {
     if (event.target.matches('[data-cash-form]')) {
       event.preventDefault();
       const data = new FormData(event.target);
-      const description = String(data.get('description') || '').trim();
 
-      if (!description) {
-        showNotification({
-          title: 'Descricao obrigatoria',
-          message: 'Informe o motivo do movimento de dinheiro.',
-          type: 'danger'
-        });
-        return;
-      }
-
-      try {
-        registerCashMovement({
-          type: data.get('type'),
-          amount: data.get('amount'),
-          category: data.get('category'),
-          description,
-          userName: 'Operador local'
-        });
-        showNotification({
-          title: data.get('type') === 'entrada' ? 'Entrada registrada' : 'Saida registrada',
-          message: `${formatCurrency(data.get('amount'))} lancado no historico.`,
-          type: data.get('type') === 'entrada' ? 'success' : 'danger'
-        });
-        state.modal = null;
-        renderModal(container);
-      } catch (error) {
-        showNotification({
-          title: 'Nao foi possivel registrar',
-          message: error.message || 'Confira os dados do movimento.',
-          type: 'danger'
-        });
-      }
+      submitCashMovementForm(data).then((saved) => {
+        if (saved) {
+          state.modal = null;
+          renderModal(container);
+        }
+      });
     }
 
     if (event.target.matches('[data-write-off-form]')) {
       event.preventDefault();
       const data = new FormData(event.target);
 
-      try {
-        createShowcaseWriteOff({
-          productId: data.get('productId'),
-          quantity: data.get('quantity'),
-          reason: data.get('reason'),
-          note: data.get('note')
-        });
-        showNotification({
-          title: 'Baixa registrada',
-          message: 'Perda ou consumo entrou na conferencia da vitrine.',
-          type: 'success'
-        });
-        state.modal = null;
-        renderModal(container);
-      } catch (error) {
-        showNotification({
-          title: 'Nao foi possivel registrar',
-          message: error.message || 'Confira produto, quantidade e motivo.',
-          type: 'danger'
-        });
-      }
+      submitWriteOffForm(data).then((saved) => {
+        if (saved) {
+          state.modal = null;
+          renderModal(container);
+        }
+      });
     }
 
     if (event.target.matches('[data-quantity-form]')) {
@@ -752,63 +708,6 @@ function renderQuantityModal() {
   `;
 }
 
-function renderWriteOffModal() {
-  const showcaseProducts = getTodayShowcaseProducts();
-
-  return `
-    <div class="modal-backdrop is-open">
-      <div class="modal modal--small" role="dialog" aria-modal="true">
-        <header class="modal__header">
-          <h2>Perda / Consumo</h2>
-          <button class="icon-button" type="button" data-action="close-modal">X</button>
-        </header>
-        ${showcaseProducts.length ? `
-          <form class="product-form" data-write-off-form>
-            <label class="stacked-label">
-              Produto da vitrine
-              <select class="field" name="productId" required>
-                ${showcaseProducts.map((product) => `
-                  <option value="${escapeHtml(product.id)}">${escapeHtml(product.name)} - ${formatCurrency(product.price)}</option>
-                `).join('')}
-              </select>
-            </label>
-            <label class="stacked-label">
-              Quantidade
-              <input class="field" name="quantity" type="number" min="1" step="1" required>
-            </label>
-            <label class="stacked-label">
-              Motivo
-              <select class="field" name="reason" required>
-                <option value="quebra">Quebra</option>
-                <option value="consumo-interno">Consumo interno</option>
-                <option value="cortesia">Cortesia</option>
-                <option value="vencido">Vencido</option>
-                <option value="erro-lancamento">Erro de lancamento</option>
-                <option value="outro">Outro</option>
-              </select>
-            </label>
-            <label class="stacked-label">
-              Observacao
-              <input class="field" name="note" placeholder="Opcional">
-            </label>
-            <div class="form-actions">
-              <button class="button button--ghost" type="button" data-action="close-modal">Cancelar</button>
-              <button class="button button--danger" type="submit">Registrar baixa</button>
-            </div>
-          </form>
-        ` : `
-          <div class="product-form">
-            <p class="modal-text">Nenhum produto foi lancado na vitrine hoje. Lance estoque antes de registrar perda ou consumo.</p>
-            <div class="form-actions">
-              <button class="button" type="button" data-action="close-modal">Entendi</button>
-            </div>
-          </div>
-        `}
-      </div>
-    </div>
-  `;
-}
-
 function renderPaymentModal() {
   const subtotal = getActiveComanda().items.reduce((total, item) => total + item.total, 0);
   const needsCash = state.paymentMethod === 'dinheiro';
@@ -848,48 +747,6 @@ function renderPaymentModal() {
           <div class="form-actions">
             <button class="button button--ghost" type="button" data-action="close-modal">Cancelar</button>
             <button class="button" type="submit">Finalizar</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  `;
-}
-
-function renderCashMovementModal(type) {
-  const title = type === 'entrada' ? 'Registrar entrada' : 'Registrar saida';
-  const financeType = type === 'entrada' ? 'income' : 'expense';
-  const fallbackCategories = type === 'entrada' ? ENTRY_CATEGORIES : OUTPUT_CATEGORIES;
-  const categories = getFinancialCategories({ type: financeType })
-    .map((category) => ({ id: category.id, name: category.name }))
-    .concat(fallbackCategories.map((category) => ({ id: category, name: category })))
-    .filter((category, index, list) => list.findIndex((item) => item.id === category.id) === index);
-
-  return `
-    <div class="modal-backdrop is-open">
-      <div class="modal modal--small" role="dialog" aria-modal="true">
-        <header class="modal__header">
-          <h2>${title}</h2>
-          <button class="icon-button" type="button" data-action="close-modal">X</button>
-        </header>
-        <form class="product-form" data-cash-form>
-          <input type="hidden" name="type" value="${type}">
-          <label class="stacked-label">
-            Valor
-            <input class="field" name="amount" type="number" min="0.01" step="0.01" required>
-          </label>
-          <label class="stacked-label">
-            Categoria
-            <select class="field" name="category" required>
-              ${categories.map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`).join('')}
-            </select>
-          </label>
-          <label class="stacked-label">
-            Descricao obrigatoria
-            <input class="field" name="description" placeholder="Ex: Sangria, reforco de caixa" required>
-          </label>
-          <div class="form-actions">
-            <button class="button button--ghost" type="button" data-action="close-modal">Cancelar</button>
-            <button class="button" type="submit">Salvar</button>
           </div>
         </form>
       </div>
