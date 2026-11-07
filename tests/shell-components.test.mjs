@@ -111,8 +111,8 @@ function stripMediaBlocks(source) {
   return output;
 }
 const outsideMedia = stripMediaBlocks(css);
-assert(!/is-mobile-owner[^{]*.(rail|top)/.test(outsideMedia), 'regra que esconde rail/top no app do dono deve ficar dentro de @media');
-assert(!/:has(.mobile-shell)[^{]*.(rail|top)/.test(outsideMedia), 'regra :has(.mobile-shell) que esconde rail/top deve ficar dentro de @media');
+assert(!/is-mobile-owner[^{]*\.(rail|top)\b/.test(outsideMedia), 'regra que esconde rail/top no app do dono deve ficar dentro de @media');
+assert(!/:has\(\.mobile-shell\)[^{]*\.(rail|top)\b/.test(outsideMedia), 'regra :has(.mobile-shell) que esconde rail/top deve ficar dentro de @media');
 assert(css.includes('@media (max-width: 900px), (pointer: coarse)') && css.includes('@media (max-width: 760px)'), 'condicoes das media queries legadas devem ser preservadas');
 
 console.log('shell-components tests passed');
