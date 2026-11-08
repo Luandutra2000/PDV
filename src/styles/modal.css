@@ -165,11 +165,12 @@
 
 .sale-success-change {
   background: var(--accent-soft);
+  color: var(--accent-soft-ink, var(--accent-ink-soft));
 }
 
 .sale-success-change span,
 .sale-success-change strong {
-  color: var(--accent-ink-soft);
+  color: var(--accent-soft-ink, var(--accent-ink-soft));
 }
 
 .sale-success-change strong {

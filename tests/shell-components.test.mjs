@@ -115,4 +115,21 @@ assert(!/is-mobile-owner[^{]*\.(rail|top)\b/.test(outsideMedia), 'regra que esco
 assert(!/:has\(\.mobile-shell\)[^{]*\.(rail|top)\b/.test(outsideMedia), 'regra :has(.mobile-shell) que esconde rail/top deve ficar dentro de @media');
 assert(css.includes('@media (max-width: 900px), (pointer: coarse)') && css.includes('@media (max-width: 760px)'), 'condicoes das media queries legadas devem ser preservadas');
 
+// Foco visivel nos campos igual ao dos botoes: contorno de 2px em --ink (o ambar nao tem contraste no claro).
+const { readdir } = await import('node:fs/promises');
+const stylesDir = new URL('../src/styles/', import.meta.url);
+const allCss = (await Promise.all((await readdir(stylesDir)).filter((file) => file.endsWith('.css'))
+  .map(async (file) => [file, await readFile(new URL(file, stylesDir), 'utf8')])));
+const inkOutline = /outline:\s*2px solid var\(--ink\);\s*outline-offset:\s*[12]px/;
+const ruleFor = (source, selector) => source.match(new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`))?.[1] || '';
+assert(inkOutline.test(ruleFor(css, '.ui-input:focus-visible')), '.ui-input:focus-visible usa contorno --ink');
+const formsCss = allCss.find(([file]) => file === 'forms.css')[1];
+assert(inkOutline.test(ruleFor(formsCss, '.field:focus-visible')), '.field:focus-visible usa contorno --ink');
+const modalBCss = allCss.find(([file]) => file === 'modal-b.css')[1];
+assert(inkOutline.test(ruleFor(modalBCss, '.app-shell .modal-backdrop .modal:not(.sale-success-modal) textarea:focus-visible')), 'campos dos modais usam contorno --ink');
+for (const [file, source] of allCss) {
+  assert(!/outline:\s*2px solid var\(--accent\)/.test(source), `${file}: foco nao usa contorno ambar`);
+  assert(!/(\.field|select|textarea|input|\.ui-input)[^{,]*:focus(-visible)?[^{]*\{[^}]*outline:\s*(none|0)/.test(source), `${file}: foco de campo nao remove o contorno`);
+}
+
 console.log('shell-components tests passed');

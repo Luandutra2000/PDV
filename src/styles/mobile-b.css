@@ -23,9 +23,6 @@
   font-size: 14px;
 }
 .own *, .own *::before, .own *::after { box-sizing: border-box; }
-/* Controles nativos (datas, selects, rolagem) seguem o tema em qualquer largura. */
-.own { color-scheme: light; }
-:root[data-theme="dark"] .own { color-scheme: dark; }
 .own h1, .own h2, .own p, .own dl, .own dd { margin: 0; }
 
 .own-app {
@@ -48,8 +45,7 @@
 
 /* No celular (e janela estreita): tela cheia, sem moldura. */
 @media (max-width: 900px), (pointer: coarse) {
-  body:has(.app-shell.is-mobile-owner) { background: var(--bg); color-scheme: light; }
-  :root[data-theme="dark"] body:has(.app-shell.is-mobile-owner) { color-scheme: dark; }
+  body:has(.app-shell.is-mobile-owner) { background: var(--bg); }
   html body .app-shell.is-mobile-owner { background: var(--bg) !important; }
 
   .mobile-shell.own,
@@ -200,9 +196,10 @@
   padding: 12px 14px;
   border-radius: var(--radius-card);
   background: var(--accent-soft);
+  color: var(--accent-soft-ink, var(--ink));
 }
 .own-alert b { font-size: 13px; font-weight: 600; }
-.own-alert small { color: var(--accent-ink-soft); font-size: 12px; }
+.own-alert small { color: var(--accent-soft-ink, var(--accent-ink-soft)); font-size: 12px; }
 
 /* Linhas de lista */
 .own-list { display: flex; flex-direction: column; }
@@ -341,7 +338,7 @@ button.own-event__main:focus-visible { outline: 2px solid var(--ink); outline-of
 .own-error,
 .own-note { margin: 0 0 8px; padding: 9px 12px; border-radius: 10px; font-size: 12.5px; }
 .own-error { background: var(--red-soft); color: var(--red); }
-.own-note { background: var(--accent-soft); color: var(--accent-ink-soft); }
+.own-note { background: var(--accent-soft); color: var(--accent-soft-ink, var(--accent-ink-soft)); }
 
 /* Abas de baixo ----------------------------------------------------------- */
 .own-tabs {

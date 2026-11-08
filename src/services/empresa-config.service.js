@@ -137,6 +137,18 @@ export function pickReadableInk(hex) {
   return lightContrast > darkContrast ? BRAND_INK_LIGHT : BRAND_INK_DARK;
 }
 
+// Contraste WCAG entre duas cores #rrggbb (1 a 21). Cor invalida devolve 1.
+export function getContrastRatio(firstHex, secondHex) {
+  const first = relativeLuminance(firstHex);
+  const second = relativeLuminance(secondHex);
+
+  if (first === null || second === null) {
+    return 1;
+  }
+
+  return contrastRatio(first, second);
+}
+
 export function applyCompanyIdentity(input = loadCompanySettingsLocal()) {
   const settings = normalizeCompanySettings(input);
   const root = globalThis.document?.documentElement;
@@ -154,8 +166,11 @@ export function applyCompanyIdentity(input = loadCompanySettingsLocal()) {
   setOrClearProperty(root.style, '--accent-ink', brand.accentInk, accentIsCustom);
   setOrClearProperty(root.style, '--accent-strong', brand.accentStrong,
     isCustomBrandColor(settings.corSecundaria, DEFAULT_COMPANY_SETTINGS.corSecundaria));
-  setOrClearProperty(root.style, '--accent-soft', brand.accentSoft,
-    isCustomBrandColor(settings.corDestaque, DEFAULT_COMPANY_SETTINGS.corDestaque));
+  // O fundo suave personalizado vale nos dois temas, entao o texto sobre ele
+  // (--accent-soft-ink) tambem vem inline, escolhido pelo contraste.
+  const accentSoftIsCustom = isCustomBrandColor(settings.corDestaque, DEFAULT_COMPANY_SETTINGS.corDestaque);
+  setOrClearProperty(root.style, '--accent-soft', brand.accentSoft, accentSoftIsCustom);
+  setOrClearProperty(root.style, '--accent-soft-ink', pickReadableInk(brand.accentSoft), accentSoftIsCustom);
 
   return settings;
 }

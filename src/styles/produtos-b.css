@@ -74,11 +74,11 @@
   border-radius: 12px;
   background: var(--card);
 }
-.pd-cat.is-active { background: var(--accent-soft); border-color: var(--accent); border-left-color: var(--c, var(--accent)); }
+.pd-cat.is-active { background: var(--accent-soft); border-color: var(--accent); border-left-color: var(--c, var(--accent)); color: var(--accent-soft-ink, var(--ink)); }
 .pd-cat__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .pd-cat__body b { font-weight: 600; overflow-wrap: anywhere; }
 .pd-cat__body span { color: var(--muted); font-size: 12px; }
-.pd-cat.is-active .pd-cat__body span { color: var(--accent-ink-soft); }
+.pd-cat.is-active .pd-cat__body span { color: var(--accent-soft-ink, var(--accent-ink-soft)); }
 .pd-cat__actions { display: flex; gap: 6px; margin-top: auto; }
 
 /* Tabela de produtos */

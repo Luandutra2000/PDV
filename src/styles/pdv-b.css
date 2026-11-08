@@ -50,7 +50,7 @@
   color: var(--muted);
 }
 .fc-search svg { width: 17px; height: 17px; flex: none; }
-.fc-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+.fc-search:focus-within { outline: 2px solid var(--ink); outline-offset: 1px; }
 .fc-search input {
   flex: 1;
   min-width: 0;
@@ -71,7 +71,7 @@
   border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
   border-radius: 12px;
   background: var(--accent-soft);
-  color: var(--accent-ink-soft);
+  color: var(--accent-soft-ink, var(--accent-ink-soft));
   font-weight: 600;
 }
 

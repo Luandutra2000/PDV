@@ -12,9 +12,10 @@
   outline: none;
 }
 
-.field:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+/* Foco igual ao dos botoes: contorno de 2px em --ink. */
+.field:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
 }
 
 .form-actions {
@@ -54,7 +55,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-control);
   background: var(--accent-soft);
-  color: var(--ink);
+  color: var(--accent-soft-ink, var(--ink));
 }
 
 .people-form {

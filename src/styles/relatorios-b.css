@@ -10,7 +10,7 @@
 .rp-empty { margin: 0; padding: 6px 0; color: var(--muted); }
 .rp .ui-seg { flex-wrap: wrap; }
 .rp .ui-seg button { font-size: 13px; }
-.rp .ui-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rp .ui-seg button:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 
 /* Datas do periodo personalizado: o campo de data herdava o visual antigo do app-shell */
 .rp-range { display: flex; flex-wrap: wrap; gap: 8px; }

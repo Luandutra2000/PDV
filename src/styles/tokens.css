@@ -1,7 +1,10 @@
 /* Tokens do visual B claro. Os valores claros sao o padrao; os escuros
    ficam sob [data-theme="dark"]. --accent* podem ser sobrescritos em runtime
-   pelas cores da empresa (applyCompanyIdentity). */
+   pelas cores da empresa (applyCompanyIdentity). Com destaque personalizado,
+   --accent-soft-ink (texto sobre --accent-soft) tambem vem inline; sem ele, quem
+   pinta sobre --accent-soft usa var(--accent-soft-ink, <token do tema>). */
 :root {
+  color-scheme: light; /* controles nativos (datas, selects, rolagem) seguem o tema */
   --font: "Sora", system-ui, sans-serif;
 
   --bg: #F1F3F7;
@@ -38,6 +41,7 @@
 }
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #1C2331;
   --card: #242D3E;
   --rail: #161C28;

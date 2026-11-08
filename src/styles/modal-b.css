@@ -4,10 +4,6 @@
    Valores: secao "Receber comanda" do mockup
    docs/superpowers/specs/mockups/2026-11-07-telas-b-claro.html */
 
-/* Controles nativos (datas, selects) seguem o tema. */
-.modal-backdrop { color-scheme: light; }
-:root[data-theme="dark"] .modal-backdrop { color-scheme: dark; }
-
 .modal-backdrop.is-open,
 .modal-backdrop--soft.is-open {
   background: rgba(28, 35, 49, .42);
@@ -107,12 +103,11 @@
 .app-shell .modal-backdrop .modal:not(.sale-success-modal) textarea { min-height: 88px; padding: 10px 12px; }
 .app-shell .modal-backdrop .modal:not(.sale-success-modal) .field::placeholder,
 .app-shell .modal-backdrop .modal:not(.sale-success-modal) textarea::placeholder { color: var(--muted); }
-.app-shell .modal-backdrop .modal:not(.sale-success-modal) .field:focus,
-.app-shell .modal-backdrop .modal:not(.sale-success-modal) select:focus,
-.app-shell .modal-backdrop .modal:not(.sale-success-modal) textarea:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
-  outline: none;
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) .field:focus-visible,
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) select:focus-visible,
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) textarea:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
 }
 
 .modal .payment-total {
@@ -259,7 +254,7 @@
 .pay__method.is-selected {
   border-color: var(--accent);
   background: var(--accent-soft);
-  color: var(--accent-ink-soft);
+  color: var(--accent-soft-ink, var(--accent-ink-soft));
 }
 
 .pay__field { display: flex; flex-direction: column; gap: 5px; }

@@ -98,7 +98,7 @@
   color: var(--muted);
 }
 .ui-pill--ok { background: var(--green-soft); color: var(--green); }
-.ui-pill--warn { background: var(--accent-soft); color: var(--accent-ink-soft); }
+.ui-pill--warn { background: var(--accent-soft); color: var(--accent-soft-ink, var(--accent-ink-soft)); }
 .ui-pill--danger { background: var(--red-soft); color: var(--red); }
 
 /* Campos */
@@ -116,7 +116,7 @@
   align-items: center;
   justify-content: space-between;
 }
-.ui-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.ui-input:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 
 /* Barras horizontais */
 .ui-bars { display: grid; gap: 9px; }
@@ -212,7 +212,7 @@
 .rail__nav svg { width: 20px; height: 20px; flex: none; }
 .rail__nav:hover { background: var(--line-soft); color: var(--ink); }
 .rail__nav:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
-.rail__nav.is-active { background: var(--accent-soft); color: var(--accent-ink-soft); font-weight: 600; }
+.rail__nav.is-active { background: var(--accent-soft); color: var(--accent-soft-ink, var(--accent-ink-soft)); font-weight: 600; }
 .rail__nav--footer { margin-top: auto; }
 
 .top {
