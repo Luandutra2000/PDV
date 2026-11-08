@@ -99,8 +99,6 @@
   color: var(--ink);
 }
 
-.quick-closing-modal .modal__header { background: transparent; }
-
 .modal-text { color: var(--muted); }
 
 /* Rotulos e campos */
@@ -364,8 +362,106 @@
   .pay__acts .ui-btn { flex: 1; }
 }
 
-/* Vitrine do fechamento rapido: a linha tinha fundo branco fixo. */
-.quick-showcase-row { background: var(--card); }
+/* Fechamento rapido (visual B claro): indicadores .ui-stat, abas .ui-seg e
+   listas/tabela com os tokens. A moldura, os campos e os botoes vem das regras acima. */
+.quick-closing-modal {
+  align-self: flex-start;
+  width: min(980px, 100%);
+  margin-top: 18px;
+}
+
+.quick-closing-body {
+  display: grid;
+  gap: 16px;
+  padding: 14px 24px 24px;
+}
+
+.quick-closing-modal .quick-closing-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.quick-closing-card { background: var(--bg); border-color: var(--line-soft); }
+.quick-closing-card b { font-size: 20px; }
+
+.quick-closing-tabs { justify-self: start; }
+
+.quick-closing-section {
+  display: grid;
+  gap: 14px;
+}
+
+.quick-closing-list {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.quick-closing-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.quick-closing-line:last-child { border-bottom: 0; }
+.quick-closing-line span { color: var(--muted); font-size: 13px; }
+.quick-closing-line strong { font-weight: 600; }
+
+.quick-closing-payments {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.quick-closing-section .stacked-label { margin-bottom: 0; }
+.quick-closing-expected { color: var(--muted); font-size: 12px; font-weight: 400; }
+
+.quick-showcase-table {
+  display: grid;
+  gap: 6px;
+}
+
+.quick-showcase-head,
+.quick-showcase-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.4fr) 90px 100px 70px;
+  gap: 10px;
+  align-items: center;
+}
+
+.quick-showcase-head {
+  padding: 0 12px 6px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.quick-showcase-row {
+  min-height: 48px;
+  padding: 6px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.quick-closing-modal .closing-small-input { width: 100%; max-width: 96px; }
+.quick-closing-modal .money-positive { color: var(--green); }
+.quick-closing-modal .money-negative { color: var(--red); }
+
+.quick-closing-out-of-stock { display: grid; gap: 10px; }
+.quick-closing-table { overflow-x: auto; }
+.quick-closing-table .ui-table { min-width: 720px; }
+
+.quick-closing-modal .empty-products { padding: 28px; }
+
+@media (max-width: 760px) {
+  .quick-closing-body { padding: 12px 16px 18px; }
+  .quick-closing-modal .quick-closing-summary,
+  .quick-closing-payments { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .quick-showcase-head,
+  .quick-showcase-row { grid-template-columns: minmax(0, 1fr) 70px 90px 50px; }
+}
 
 /* Venda concluida: mantem o acabamento proprio (fundo claro fixo do
    redesign.css) nos dois temas. Como o fundo nao troca com o tema, o texto

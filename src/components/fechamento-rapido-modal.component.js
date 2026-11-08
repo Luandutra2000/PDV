@@ -15,22 +15,22 @@ export function renderFechamentoRapidoModal({ summary, closingSummary, showcase,
       <div class="modal quick-closing-modal" role="dialog" aria-modal="true">
         <header class="modal__header">
           <div>
-            <h2>Fechamento rapido</h2>
-            <p class="modal-text">Resumo do dia, conferencia de pagamentos e vitrine em uma tela.</p>
+            <h2>Fechamento rápido</h2>
+            <p class="modal-text">Resumo do dia, conferência de pagamentos e vitrine em uma tela.</p>
           </div>
           <button class="icon-button" type="button" data-action="close-modal">X</button>
         </header>
         <div class="quick-closing-body">
-          <section class="quick-closing-summary">
+          <section class="ui-stats quick-closing-summary" style="--n: 4">
             ${cards.map(([label, value]) => `
-              <article class="quick-closing-card">
-                <span>${label}</span>
-                <strong>${value}</strong>
+              <article class="ui-stat quick-closing-card">
+                <small>${label}</small>
+                <b>${value}</b>
               </article>
             `).join('')}
           </section>
 
-          <div class="quick-closing-tabs">
+          <div class="ui-seg quick-closing-tabs" role="group" aria-label="Seções do fechamento">
             ${renderTab('resumo', 'Resumo', state.quickClosingTab)}
             ${renderTab('pagamentos', 'Pagamentos', state.quickClosingTab)}
             ${renderTab('vitrine', 'Vitrine', state.quickClosingTab)}
@@ -46,10 +46,10 @@ export function renderFechamentoRapidoModal({ summary, closingSummary, showcase,
 }
 
 function renderTab(id, label, activeTab) {
+  const active = activeTab === id;
+
   return `
-    <button class="quick-closing-tab ${activeTab === id ? 'is-active' : ''}" type="button" data-quick-closing-tab="${id}">
-      ${label}
-    </button>
+    <button class="quick-closing-tab${active ? ' is-on' : ''}" type="button" data-quick-closing-tab="${id}" aria-pressed="${active ? 'true' : 'false'}">${label}</button>
   `;
 }
 
@@ -62,16 +62,16 @@ function renderSummary(summary, closingSummary, showcase, state, cardTotals) {
       <div class="quick-closing-list">
         ${renderLine('Dinheiro esperado', formatCurrency(expectedCash))}
         ${renderLine('Pix esperado', formatCurrency(summary.paymentTotals.pix))}
-        ${renderLine('Cartoes esperados', formatCurrency(cardTotals))}
-        ${renderLine('Diferenca geral', formatCurrency(closingSummary.payments.generalDifference), closingSummary.payments.generalDifference ? 'money-negative' : 'money-positive')}
-        ${renderLine('Divergencias na vitrine', `${showcaseDifferences.length} produto(s)`)}
+        ${renderLine('Cartões esperados', formatCurrency(cardTotals))}
+        ${renderLine('Diferença geral', formatCurrency(closingSummary.payments.generalDifference), closingSummary.payments.generalDifference ? 'money-negative' : 'money-positive')}
+        ${renderLine('Divergências na vitrine', `${showcaseDifferences.length} produto(s)`)}
       </div>
       <label class="stacked-label">
-        Observacao do fechamento
-        <input class="field" data-quick-note value="${escapeHtml(state.quickClosing.note)}" placeholder="Obrigatoria se houver sobra, falta ou diferenca">
+        Observação do fechamento
+        <input class="field" data-quick-note value="${escapeHtml(state.quickClosing.note)}" placeholder="Obrigatória se houver sobra, falta ou diferença">
       </label>
       ${renderOutOfStockSales(closingSummary.outOfStockSales)}
-      <button class="button" type="button" data-action="confirm-quick-closing">Fechar caixa agora</button>
+      <button class="button quick-closing-confirm" type="button" data-action="confirm-quick-closing">Fechar caixa agora</button>
     </section>
   `;
 }
@@ -84,12 +84,12 @@ function renderPayments(summary, closingSummary, state, cardTotals) {
       <div class="quick-closing-payments">
         ${renderPaymentInput('countedCash', 'Dinheiro contado', expectedCash, state.quickClosing.countedCash)}
         ${renderPaymentInput('checkedPix', 'Pix conferido', summary.paymentTotals.pix, state.quickClosing.checkedPix)}
-        ${renderPaymentInput('checkedDebit', 'Debito conferido', summary.paymentTotals.debito, state.quickClosing.checkedDebit)}
-        ${renderPaymentInput('checkedCredit', 'Credito conferido', summary.paymentTotals.credito, state.quickClosing.checkedCredit)}
+        ${renderPaymentInput('checkedDebit', 'Débito conferido', summary.paymentTotals.debito, state.quickClosing.checkedDebit)}
+        ${renderPaymentInput('checkedCredit', 'Crédito conferido', summary.paymentTotals.credito, state.quickClosing.checkedCredit)}
       </div>
       <div class="quick-closing-list">
-        ${renderLine('Cartoes esperados', formatCurrency(cardTotals))}
-        ${renderLine('Diferenca geral', formatCurrency(closingSummary.payments.generalDifference), closingSummary.payments.generalDifference ? 'money-negative' : 'money-positive')}
+        ${renderLine('Cartões esperados', formatCurrency(cardTotals))}
+        ${renderLine('Diferença geral', formatCurrency(closingSummary.payments.generalDifference), closingSummary.payments.generalDifference ? 'money-negative' : 'money-positive')}
       </div>
     </section>
   `;
@@ -101,7 +101,7 @@ function renderPaymentInput(name, label, expected, value) {
   return `
     <label class="stacked-label">
       ${label}
-      <span>Esperado: ${formatCurrency(expected)}</span>
+      <span class="quick-closing-expected">Esperado: ${formatCurrency(expected)}</span>
       <input class="field" data-quick-payment="${name}" type="number"${minimum} step="0.01" value="${value}">
     </label>
   `;
@@ -111,7 +111,7 @@ function renderShowcase(showcase, state, outOfStockSales = []) {
   if (!showcase.length) {
     return `
       <section class="quick-closing-section">
-        <div class="empty-products">Nenhum produto lancado na vitrine hoje.</div>
+        <div class="empty-products">Nenhum produto lançado na vitrine hoje.</div>
         ${renderOutOfStockSales(outOfStockSales)}
       </section>
     `;
@@ -142,21 +142,18 @@ function renderOutOfStockSales(rows = []) {
 
   return `
     <section class="quick-closing-out-of-stock">
-      <header class="manager-section__header">
-        <strong>Produtos vendidos sem estoque</strong>
-        <span>${rows.length} registro(s)</span>
-      </header>
-      <div class="comparison-table">
-        <table>
+      <h3 class="ui-head">Produtos vendidos sem estoque <span>${rows.length} registro(s)</span></h3>
+      <div class="quick-closing-table">
+        <table class="ui-table">
           <thead>
             <tr>
               <th>Produto</th>
               <th>Categoria</th>
               <th>Qtd.</th>
-              <th>Unitario</th>
+              <th>Unitário</th>
               <th>Total</th>
               <th>Venda</th>
-              <th>Usuario</th>
+              <th>Usuário</th>
             </tr>
           </thead>
           <tbody>
