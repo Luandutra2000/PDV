@@ -345,3 +345,58 @@
 @media (min-width: 761px) {
   .app-shell:not(.is-mobile-owner) .pdv-layout:has(.ui-screen) { height: 100dvh; min-height: 0; }
 }
+
+/* Avisos (toasts) do notification.service: cartao com faixa de 4px a esquerda pela
+   cor do tipo (success, danger/error, warning, info). */
+.toast-root {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 50;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 36px));
+}
+.app-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 10px 12px 14px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 13.5px;
+  box-shadow: 0 8px 24px rgba(20, 24, 30, .12);
+}
+:root[data-theme="dark"] .app-toast { box-shadow: 0 8px 24px rgba(0, 0, 0, .4); }
+.app-toast > div { flex: 1; min-width: 0; }
+.app-toast strong { display: block; font-weight: 600; }
+.app-toast p { margin: 3px 0 0; color: var(--muted); line-height: 1.4; overflow-wrap: anywhere; }
+.app-toast--success { border-left-color: var(--green); }
+.app-toast--danger,
+.app-toast--error { border-left-color: var(--red); }
+.app-toast--warning { border-left-color: var(--accent); }
+.app-toast--info { border-left-color: var(--ink); }
+.app-toast__close {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+}
+.app-toast__close:hover { background: var(--line-soft); color: var(--ink); }
+.app-toast__close:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }

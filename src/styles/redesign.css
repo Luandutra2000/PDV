@@ -723,7 +723,6 @@ body {
 
 /* BorderBeam adaptado aos popups de venda e avisos do PDV. */
 .mobile-feed-event,
-.app-toast,
 .sale-success-modal {
   position: relative;
   isolation: isolate;
@@ -731,7 +730,6 @@ body {
   border: 1px solid transparent;
 }
 .mobile-feed-event::before,
-.app-toast::before,
 .sale-success-modal::before {
   position: absolute;
   z-index: 0;
@@ -743,7 +741,6 @@ body {
   animation: pdv-border-beam 4.8s linear infinite;
 }
 .mobile-feed-event::after,
-.app-toast::after,
 .sale-success-modal::after {
   position: absolute;
   z-index: 0;
@@ -754,7 +751,6 @@ body {
   content: '';
 }
 .mobile-feed-event > *,
-.app-toast > *,
 .sale-success-modal > * { position: relative; z-index: 1; }
 .mobile-feed-event--success::before { background: conic-gradient(from 0deg, transparent 0deg 250deg, #4ade80 276deg, #22d3ee 310deg, transparent 360deg); }
 .mobile-feed-event--danger::before,
@@ -764,13 +760,10 @@ body {
   box-shadow: 0 5px 12px rgba(43, 63, 100, .1);
 }
 .mobile-feed-event strong,
-.app-toast strong,
 .sale-success-modal strong { color: #1e293b; font-family: Inter, ui-sans-serif, system-ui, sans-serif; letter-spacing: -.02em; }
 .mobile-feed-event p,
-.mobile-feed-event time,
-.app-toast p { color: #68758d; }
+.mobile-feed-event time { color: #68758d; }
 .mobile-feed-hint { color: #e65322; font-weight: 800; }
-.app-toast__close { position: relative; z-index: 2; }
 @keyframes pdv-border-beam { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
@@ -787,7 +780,6 @@ body {
   .cash-actions .button::before,
   .order-actions .button::before,
   .mobile-feed-event::before,
-  .app-toast::before,
   .sale-success-modal::before,
   .mobile-topbar__actions > button,
   .mobile-feed-filters button,
