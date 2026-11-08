@@ -4,10 +4,10 @@ import {
   cancelTransaction,
   getClosedComandas,
   getMoneySummary,
-  getTransactions,
-  registerCashMovement
+  getTransactions
 } from '../../services/transaction.service.js?v=20260804-06';
-import { getDashboardResumo } from '../../services/dashboard-resumo.service.js?v=20260804-06';
+import { renderCashActionButtons, renderCashMovementModal, submitCashMovementForm } from '../../components/cash-actions.component.js?v=20260807-08';
+import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
 import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
 import { showNotification } from '../../services/notification.service.js?v=20260804-06';
 import { hydrateOnlineOperationalData } from '../../services/online-data.service.js?v=20260804-06';
@@ -34,66 +34,68 @@ export function initDashboardModule(container) {
 
 function renderDashboard(container) {
   const moneySummary = getMoneySummary({ period: dashboardState.period });
-  const resumo = getDashboardResumo({ period: dashboardState.period });
+  const comandas = getFilteredClosedComandas();
+  const movements = getFilteredTransactions();
 
   container.innerHTML = `
-    <section class="module-screen products-module" data-dashboard-screen>
-      <header class="module-header">
-        <div>
-          <h1 class="pdv-title">Historico de Transacoes</h1>
-          <p class="module-subtitle">Comandas finalizadas, entradas, saidas e movimentos do dinheiro.</p>
+    <section class="ui-screen hs" data-dashboard-screen>
+      <header class="ui-head hs-head">
+        <div class="hs-head__title">
+          <h1 class="hs-title">Histórico de transações</h1>
+          <p class="hs-sub">Comandas finalizadas, entradas, saídas e o movimento do dinheiro.</p>
         </div>
-        <div class="header-actions">
-          <select class="field compact-select" data-dashboard-period aria-label="Periodo">
-            ${renderPeriodOptions()}
-          </select>
-          <button class="button button--success" type="button" data-action="open-entry">+ Entrada</button>
-          <button class="button button--danger" type="button" data-action="open-output">- Saida</button>
-        </div>
+        ${renderPeriodFilters()}
       </header>
 
-      <div class="summary-grid money-summary-grid">
-        ${renderSummaryCard('Caixa atual', resumo.caixaAtual)}
-        ${renderSummaryCard('Vitrine estimada', resumo.vitrineEstimada)}
-        ${renderSummaryCard('Total vendido', resumo.totalVendido)}
-        ${renderSummaryCard('Entradas', resumo.entradas)}
-        ${renderSummaryCard('Saídas', resumo.saidas)}
-        ${renderSummaryCard('Pix', moneySummary.paymentTotals.pix)}
-        ${renderSummaryCard('Debito', moneySummary.paymentTotals.debito)}
-        ${renderSummaryCard('Credito', moneySummary.paymentTotals.credito)}
-        <article class="summary-card"><span>Comandas canceladas</span><strong>${moneySummary.canceledComandas}</strong></article>
-      </div>
+      ${renderStats(moneySummary)}
 
-      <div class="history-grid">
-        <section class="manager-section">
-          <header class="manager-section__header">
-            <strong>Historico de comandas</strong>
-            <button class="button button--ghost" type="button" data-action="clear-history">Limpar historico</button>
-          </header>
-          <div class="manager-list history-list">
-            ${renderClosedComandas()}
-          </div>
+      <div class="ui-cols hs-cols">
+        <section class="ui-panel hs-main">
+          <h2 class="ui-head">
+            Comandas
+            <span>${comandas.length} ${comandas.length === 1 ? 'comanda' : 'comandas'} no período</span>
+            <button class="ui-btn ui-btn--ghost ui-btn--sm hs-clear" type="button" data-action="clear-history">Limpar histórico</button>
+          </h2>
+          ${renderClosedComandas(comandas)}
         </section>
 
-        <section class="manager-section">
-          <header class="manager-section__header">
-            <strong>Movimento do dinheiro</strong>
-          </header>
-          <div class="manager-list history-list">
-            ${renderTransactions()}
+        <section class="ui-panel hs-side">
+          <h2 class="ui-head">Movimento do dinheiro</h2>
+          ${renderTransactions(movements)}
+          <div class="hs-side__foot">
+            ${renderCashActionButtons(getCurrentUser(), { includeWriteOff: false })}
           </div>
         </section>
       </div>
 
-      ${dashboardState.modal === 'entrada' || dashboardState.modal === 'saida' ? renderCashMovementModal(dashboardState.modal) : ''}
-      ${dashboardState.modal === 'cancel-comanda' ? renderCancelComandaModal() : ''}
+      <div class="hs-modal" data-dashboard-modal>${renderDashboardModal()}</div>
     </section>
   `;
+}
+
+function renderDashboardModal() {
+  if (dashboardState.modal === 'entrada' || dashboardState.modal === 'saida') {
+    return renderCashMovementModal(dashboardState.modal);
+  }
+
+  if (dashboardState.modal === 'cancel-comanda') {
+    return renderCancelComandaModal();
+  }
+
+  return '';
 }
 
 function bindDashboardEvents(container) {
   container.addEventListener('click', async (event) => {
     if (!event.target.closest('[data-dashboard-screen]')) {
+      return;
+    }
+
+    const periodButton = event.target.closest('[data-dashboard-period]');
+
+    if (periodButton) {
+      dashboardState.period = periodButton.dataset.dashboardPeriod;
+      renderDashboard(container);
       return;
     }
 
@@ -121,7 +123,7 @@ function bindDashboardEvents(container) {
 
     if (button.dataset.action === 'clear-history') {
       const periodLabel = getPeriodLabel(dashboardState.period);
-      const confirmed = window.confirm(`Limpar historico de ${periodLabel}? Isso tambem apaga esse periodo no Supabase.`);
+      const confirmed = window.confirm(`Limpar histórico de ${periodLabel}? Isso também apaga esse período no Supabase.`);
 
       if (!confirmed) {
         return;
@@ -130,14 +132,14 @@ function bindDashboardEvents(container) {
       try {
         await clearTransactionHistory({ period: dashboardState.period });
         showNotification({
-          title: 'Historico limpo',
+          title: 'Histórico limpo',
           message: `Comandas e movimentos de ${periodLabel} foram removidos.`,
           type: 'danger'
         });
         renderDashboard(container);
       } catch (error) {
         showNotification({
-          title: 'Nao foi possivel limpar',
+          title: 'Não foi possível limpar',
           message: error.message || 'Tente novamente em instantes.',
           type: 'danger'
         });
@@ -165,7 +167,7 @@ function bindDashboardEvents(container) {
         renderDashboard(container);
       } catch (error) {
         showNotification({
-          title: 'Nao foi possivel cancelar',
+          title: 'Não foi possível cancelar',
           message: error.message || 'Informe o motivo do cancelamento.',
           type: 'danger'
         });
@@ -177,8 +179,8 @@ function bindDashboardEvents(container) {
 
       if (!reason.trim()) {
         showNotification({
-          title: 'Motivo obrigatorio',
-          message: 'Informe o motivo para cancelar a movimentacao.',
+          title: 'Motivo obrigatório',
+          message: 'Informe o motivo para cancelar a movimentação.',
           type: 'danger'
         });
         return;
@@ -187,34 +189,23 @@ function bindDashboardEvents(container) {
       try {
         cancelTransaction(button.dataset.transactionId, { reason });
         showNotification({
-          title: 'Movimentacao cancelada',
-          message: 'O lancamento foi mantido no historico em vermelho.',
+          title: 'Movimentação cancelada',
+          message: 'O lançamento foi mantido no histórico em vermelho.',
           type: 'danger'
         });
         renderDashboard(container);
       } catch (error) {
         showNotification({
-          title: 'Nao foi possivel cancelar',
-          message: error.message || 'Confira sua permissao e tente novamente.',
+          title: 'Não foi possível cancelar',
+          message: error.message || 'Confira sua permissão e tente novamente.',
           type: 'danger'
         });
       }
     }
   });
 
-  container.addEventListener('change', (event) => {
-    if (!event.target.closest('[data-dashboard-screen]')) {
-      return;
-    }
-
-    if (event.target.matches('[data-dashboard-period]')) {
-      dashboardState.period = event.target.value;
-      renderDashboard(container);
-    }
-  });
-
   container.addEventListener('submit', (event) => {
-    if (!event.target.closest('[data-dashboard-screen]')) {
+    if (!event.target.closest?.('[data-dashboard-screen]')) {
       return;
     }
 
@@ -223,24 +214,55 @@ function bindDashboardEvents(container) {
     }
 
     event.preventDefault();
-    const data = new FormData(event.target);
-    registerCashMovement({
-      type: data.get('type'),
-      amount: data.get('amount'),
-      description: data.get('description')
+    submitCashMovementForm(new FormData(event.target)).then((saved) => {
+      if (saved) {
+        dashboardState.modal = null;
+        renderDashboard(container);
+      }
     });
-    showNotification({
-      title: data.get('type') === 'entrada' ? 'Entrada registrada' : 'Saida registrada',
-      message: `${formatCurrency(data.get('amount'))} lancado no historico.`,
-      type: data.get('type') === 'entrada' ? 'success' : 'danger'
-    });
-    dashboardState.modal = null;
-    renderDashboard(container);
   });
 }
 
-function renderSummaryCard(label, value) {
-  return `<article class="summary-card"><span>${label}</span><strong>${formatCurrency(value)}</strong></article>`;
+function renderPeriodFilters() {
+  return `
+    <div class="ui-seg hs-period" role="group" aria-label="Período">
+      ${getPeriodOptions().map(([value, label]) => `
+        <button${dashboardState.period === value ? ' class="is-on" aria-pressed="true"' : ' aria-pressed="false"'} type="button" data-dashboard-period="${value}">${label}</button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderStats(moneySummary) {
+  const canceled = getFilteredClosedComandas().filter((comanda) => comanda.status === 'cancelada');
+  const canceledTotal = canceled.reduce((total, comanda) => total + (Number(comanda.total) || 0), 0);
+  let canceledDetail = '';
+
+  if (canceled.length === 1) {
+    canceledDetail = `Comanda ${formatComandaNumber(canceled[0].number)}, ${formatCurrency(canceledTotal)}`;
+  } else if (canceled.length > 1) {
+    canceledDetail = `${formatCurrency(canceledTotal)} no total`;
+  }
+
+  const cards = [
+    ['Dinheiro', formatCurrency(moneySummary.paymentTotals.dinheiro), ''],
+    ['Pix', formatCurrency(moneySummary.paymentTotals.pix), ''],
+    ['Débito', formatCurrency(moneySummary.paymentTotals.debito), ''],
+    ['Crédito', formatCurrency(moneySummary.paymentTotals.credito), ''],
+    ['Comandas canceladas', String(moneySummary.canceledComandas), canceledDetail]
+  ];
+
+  return `
+    <section class="ui-stats hs-stats" style="--n:${cards.length}" aria-label="Resumo do período">
+      ${cards.map(([label, value, detail]) => `
+        <div class="ui-stat">
+          <small>${label}</small>
+          <b>${value}</b>
+          ${detail ? `<em>${escapeHtml(detail)}</em>` : ''}
+        </div>
+      `).join('')}
+    </section>
+  `;
 }
 
 export function formatHistoryItemQuantity(item) {
@@ -253,68 +275,94 @@ export function formatHistoryItemQuantity(item) {
   return `${quantity}x`;
 }
 
-function renderClosedComandas() {
-  const comandas = getFilteredClosedComandas();
-
+function renderClosedComandas(comandas) {
   if (!comandas.length) {
-    return '<div class="empty-products product-empty-large">NENHUMA COMANDA FINALIZADA</div>';
+    return '<p class="hs-empty">Nenhuma comanda finalizada neste período.</p>';
   }
 
-  return comandas.map((comanda) => `
-    <article class="history-comanda ${comanda.status === 'cancelada' ? 'is-canceled' : ''}">
-      <header class="history-comanda__header">
-        <div>
-          <strong>Comanda ${formatComandaNumber(comanda.number)}</strong>
-          <span>${formatDate(comanda.closedAt)}${comanda.status === 'cancelada' ? ' - Cancelada' : ''}</span>
-        </div>
-        <button class="button button--danger" type="button" data-action="cancel-comanda" data-comanda-id="${comanda.id}" ${comanda.status === 'cancelada' ? 'disabled' : ''}>
-          Cancelar comanda
-        </button>
-      </header>
-      <div class="history-comanda__items">
-        ${comanda.items.map((item) => `
-          <div>
-            <span class="history-comanda__item-name">
-              <span class="history-comanda__qty">${formatHistoryItemQuantity(item)}</span>
-              <span>${escapeHtml(item.name)}</span>
-            </span>
-            <strong>${formatCurrency(item.total)}</strong>
-          </div>
-        `).join('')}
-      </div>
-      <footer class="history-comanda__footer">
-        <span>${getPaymentLabel(comanda.paymentMethod)}</span>
-        <strong>Total: ${formatCurrency(comanda.total)}</strong>
-        <span>Troco: ${formatCurrency(comanda.change || 0)}</span>
-      </footer>
-    </article>
-  `).join('');
+  return `
+    <div class="hs-scroll">
+      <table class="ui-table hs-table">
+        <thead>
+          <tr>
+            <th>Hora</th>
+            <th>Comanda</th>
+            <th>Itens</th>
+            <th>Pagamento</th>
+            <th class="r">Valor</th>
+            <th>Status</th>
+            <th><span class="hs-sr">Ações</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${comandas.map(renderComandaRow).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
-function renderTransactions() {
-  const transactions = getFilteredTransactions();
+function renderComandaRow(comanda) {
+  const canceled = comanda.status === 'cancelada';
+  const itemsLabel = (comanda.items || [])
+    .map((item) => `${formatHistoryItemQuantity(item)} ${escapeHtml(item.name)}`)
+    .join(', ');
+  const change = Number(comanda.change) || 0;
 
-  if (!transactions.length) {
-    return '<div class="empty-products product-empty-large">NENHUM MOVIMENTO REGISTRADO</div>';
+  return `
+    <tr class="${canceled ? 'is-canceled' : ''}">
+      <td class="hs-muted">${formatWhen(comanda.closedAt)}</td>
+      <td><b>${formatComandaNumber(comanda.number)}</b></td>
+      <td class="hs-items" title="${itemsLabel}">${itemsLabel}</td>
+      <td>${escapeHtml(getPaymentLabel(comanda.paymentMethod))}${change > 0 ? `<small class="hs-muted"> troco ${formatCurrency(change)}</small>` : ''}</td>
+      <td class="r"><b class="hs-value">${formatCurrency(comanda.total)}</b></td>
+      <td><span class="ui-pill ${canceled ? 'ui-pill--danger' : 'ui-pill--ok'}">${canceled ? 'Cancelada' : 'Finalizada'}</span></td>
+      <td class="r">
+        <button class="ui-btn ui-btn--loss ui-btn--sm" type="button" data-action="cancel-comanda" data-comanda-id="${escapeHtml(comanda.id)}" ${canceled ? 'disabled' : ''}>Cancelar</button>
+      </td>
+    </tr>
+  `;
+}
+
+function renderTransactions(movements) {
+  if (!movements.length) {
+    return '<p class="hs-empty">Nenhum movimento registrado neste período.</p>';
   }
 
-  return transactions.map((transaction) => `
-    <article class="money-row ${transaction.status === 'cancelada' ? 'is-canceled' : ''}">
-      <div>
-        <strong>${escapeHtml(getMoneyTitle(transaction))}</strong>
-        <span>${escapeHtml(transaction.status === 'cancelada' ? `Cancelada - ${getTransactionDetail(transaction)}` : getTransactionDetail(transaction))}</span>
-      </div>
-      <div class="money-row__right">
-        <span>${formatDate(transaction.createdAt)}</span>
-        <strong class="${transaction.status === 'cancelada' || transaction.type === 'saida' ? 'money-negative' : 'money-positive'}">
-          ${transaction.type === 'saida' ? '-' : '+'} ${formatCurrency(transaction.total || transaction.amount)}
-        </strong>
-        <button class="button button--ghost" type="button" data-action="cancel-transaction" data-transaction-id="${transaction.id}" ${transaction.status === 'cancelada' ? 'disabled' : ''}>
-          Cancelar
-        </button>
-      </div>
-    </article>
-  `).join('');
+  return `
+    <div class="hs-moves">
+      ${movements.map((transaction) => {
+        const canceled = transaction.status === 'cancelada';
+        const isLoss = getMoveTone(transaction) === 'loss';
+        const isOutput = transaction.type === 'saida' || transaction.type === 'sangria';
+        const amount = formatCurrency(transaction.total || transaction.amount);
+        const detail = getTransactionDetail(transaction);
+
+        return `
+          <article class="hs-move ${canceled ? 'is-canceled' : ''}">
+            <span class="hs-dot hs-dot--${getMoveTone(transaction)}" aria-hidden="true"></span>
+            <div class="hs-move__main">
+              <b>${escapeHtml(getMoneyTitle(transaction))}</b>
+              <small>${formatWhen(transaction.createdAt)}, ${escapeHtml(canceled ? `cancelada - ${detail}` : detail)}</small>
+            </div>
+            <div class="hs-move__right">
+              <b class="${isLoss ? 'hs-muted' : (canceled || isOutput ? 'hs-minus' : 'hs-plus')}">${isLoss ? amount : `${isOutput ? '−' : '+'} ${amount}`}</b>
+              <button class="ui-btn ui-btn--ghost ui-btn--sm" type="button" data-action="cancel-transaction" data-transaction-id="${escapeHtml(transaction.id)}" ${canceled ? 'disabled' : ''}>Cancelar</button>
+            </div>
+          </article>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// Ponto colorido: verde entra dinheiro, vermelho sai, ambar e perda.
+function getMoveTone(transaction) {
+  if (['perda', 'baixa', 'consumo'].includes(transaction.type)) {
+    return 'loss';
+  }
+
+  return transaction.type === 'saida' || transaction.type === 'sangria' ? 'out' : 'in';
 }
 
 function getFilteredTransactions() {
@@ -325,19 +373,15 @@ function getFilteredClosedComandas() {
   return getClosedComandas().filter((comanda) => isInSelectedPeriod(comanda.closedAt));
 }
 
-function renderPeriodOptions() {
-  const options = [
+function getPeriodOptions() {
+  return [
     ['hour', 'Hora atual'],
     ['today', 'Hoje'],
     ['yesterday', 'Ontem'],
-    ['month', 'Este mes'],
+    ['month', 'Este mês'],
     ['year', 'Este ano'],
-    ['all', 'Todo periodo']
+    ['all', 'Todo período']
   ];
-
-  return options.map(([value, label]) => `
-    <option value="${value}" ${dashboardState.period === value ? 'selected' : ''}>${label}</option>
-  `).join('');
 }
 
 function getPeriodLabel(period) {
@@ -345,12 +389,12 @@ function getPeriodLabel(period) {
     hour: 'hora atual',
     today: 'hoje',
     yesterday: 'ontem',
-    month: 'este mes',
+    month: 'este mês',
     year: 'este ano',
-    all: 'todo o periodo'
+    all: 'todo o período'
   };
 
-  return labels[period] || 'periodo selecionado';
+  return labels[period] || 'período selecionado';
 }
 
 function isInSelectedPeriod(value) {
@@ -385,36 +429,6 @@ function isInSelectedPeriod(value) {
   return date.toDateString() === now.toDateString();
 }
 
-function renderCashMovementModal(type) {
-  const title = type === 'entrada' ? 'Registrar entrada' : 'Registrar saida';
-
-  return `
-    <div class="modal-backdrop is-open">
-      <div class="modal modal--small" role="dialog" aria-modal="true">
-        <header class="modal__header">
-          <h2>${title}</h2>
-          <button class="icon-button" type="button" data-action="close-modal">X</button>
-        </header>
-        <form class="product-form" data-cash-form>
-          <input type="hidden" name="type" value="${type}">
-          <label class="stacked-label">
-            Valor
-            <input class="field" name="amount" type="number" min="0.01" step="0.01" required>
-          </label>
-          <label class="stacked-label">
-            Descricao
-            <input class="field" name="description" placeholder="Ex: Sangria, reforco de caixa">
-          </label>
-          <div class="form-actions">
-            <button class="button button--ghost" type="button" data-action="close-modal">Cancelar</button>
-            <button class="button" type="submit">Salvar</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  `;
-}
-
 function renderCancelComandaModal() {
   const comanda = getClosedComandas().find((item) => item.id === dashboardState.pendingCancelComandaId);
 
@@ -431,7 +445,7 @@ function renderCancelComandaModal() {
         </header>
         <div class="product-form">
           <p class="modal-text">
-            Deseja cancelar esta comanda? Ela ficara registrada como cancelada e o valor sera removido dos totais.
+            Deseja cancelar esta comanda? Ela ficará registrada como cancelada e o valor será removido dos totais.
           </p>
           <label class="stacked-label">
             Motivo do cancelamento
@@ -451,7 +465,9 @@ function getTransactionLabel(type) {
   const labels = {
     venda: 'Venda',
     entrada: 'Entrada de dinheiro',
-    saida: 'Saida de dinheiro'
+    saida: 'Saída de dinheiro',
+    sangria: 'Sangria',
+    perda: 'Perda'
   };
 
   return labels[type] || type;
@@ -476,21 +492,31 @@ function getTransactionDetail(transaction) {
       return `${itemCount} item(ns)`;
     }
 
-    return 'Venda registrada';
+    return 'venda registrada';
   }
 
-  return transaction.description || 'Sem descricao';
+  return transaction.description || 'sem descrição';
 }
 
 function formatComandaNumber(number) {
   return String(number || 0).padStart(4, '0');
 }
 
-function formatDate(value) {
-  return new Date(value).toLocaleString('pt-BR', {
+// Hoje e hora atual mostram so a hora; os outros periodos mostram dia e hora.
+function formatWhen(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  if (dashboardState.period === 'today' || dashboardState.period === 'hour') {
+    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  return date.toLocaleString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
   });
@@ -499,8 +525,8 @@ function formatDate(value) {
 function getPaymentLabel(method) {
   const labels = {
     dinheiro: 'Dinheiro',
-    debito: 'Debito',
-    credito: 'Credito',
+    debito: 'Débito',
+    credito: 'Crédito',
     pix: 'Pix'
   };
 

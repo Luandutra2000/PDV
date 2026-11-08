@@ -1,0 +1,47 @@
+/* Tela Historico de transacoes do visual B claro. Escopo: .hs e classes hs-*; a estrutura
+   vem de .ui-screen / .ui-cols / .ui-panel / .ui-table / .ui-pill (components.css).
+   Valores: secao "Historico de transacoes" de
+   docs/superpowers/specs/mockups/2026-11-07-telas-b-claro.html */
+
+/* Cabecalho: titulo e periodo */
+.hs-head { flex-wrap: wrap; gap: 10px 16px; font-size: 14px; }
+.hs-head__title { min-width: 0; margin-right: auto; }
+.hs-title { font-size: 19px; font-weight: 600; line-height: 1.2; }
+.hs-sub { margin-top: 3px; color: var(--muted); font-size: 12.5px; font-weight: 400; }
+.hs-period { flex-wrap: wrap; }
+
+/* Paineis: a tabela larga rola dentro do cartao em vez de cortar */
+.hs .ui-panel { overflow: visible; }
+.hs-main, .hs-side { align-self: stretch; }
+.hs-clear { margin-left: auto; }
+.hs-scroll { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+.hs .ui-table th, .hs .ui-table td { white-space: nowrap; }
+.hs-table td.hs-items { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.hs-table tr.is-canceled td { color: var(--muted); }
+.hs-table tr.is-canceled .hs-value { text-decoration: line-through; font-weight: 500; }
+.hs-muted { color: var(--muted); }
+.hs-empty { color: var(--muted); padding: 6px 0; }
+.hs-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Movimento do dinheiro: ponto colorido, descricao e valor */
+.hs-moves { display: grid; }
+.hs-move { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
+.hs-move:last-child { border-bottom: 0; }
+.hs-move.is-canceled { opacity: .6; }
+.hs-move.is-canceled .hs-move__main b, .hs-move.is-canceled .hs-move__right > b { text-decoration: line-through; }
+.hs-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.hs-dot--in { background: var(--green); }
+.hs-dot--out { background: var(--red); }
+.hs-dot--loss { background: var(--accent); }
+.hs-move__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hs-move__main b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hs-move__main small { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hs-move__right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.hs-move__right > b { font-weight: 600; white-space: nowrap; }
+.hs-plus { color: var(--green); }
+.hs-minus { color: var(--red); }
+.hs-side__foot { margin-top: auto; display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.hs-side__foot:empty { display: none; }
+
+/* O container dos modais nao ocupa celula da coluna (o fundo do modal e position: fixed). */
+.hs-modal { display: contents; }

@@ -11,7 +11,7 @@ import { hydrateOnlineOperationalData } from './services/online-data.service.js?
 import { getDashboardResumo } from './services/dashboard-resumo.service.js?v=20260804-06';
 import { initVendasModule } from './modules/vendas/vendas.module.js?v=20260807-10';
 import { initProdutosModule } from './modules/produtos/produtos.module.js?v=20260804-06';
-import { initDashboardModule } from './modules/dashboard/dashboard.module.js?v=20260804-06';
+import { initDashboardModule } from './modules/dashboard/dashboard.module.js?v=20260807-13';
 import { initEstoqueModule } from './modules/estoque/estoque.module.js?v=20260804-06';
 import { initCaixaModule } from './modules/caixa/caixa.module.js?v=20260807-12';
 import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js?v=20260804-06';
