@@ -441,7 +441,7 @@ function renderCancelComandaModal() {
       <div class="modal modal--small" role="dialog" aria-modal="true">
         <header class="modal__header">
           <h2>Cancelar comanda ${formatComandaNumber(comanda.number)}</h2>
-          <button class="icon-button" type="button" data-action="close-modal">X</button>
+          <button class="icon-button" type="button" data-action="close-modal" aria-label="Fechar">X</button>
         </header>
         <div class="product-form">
           <p class="modal-text">

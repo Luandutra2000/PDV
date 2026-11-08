@@ -268,6 +268,12 @@ function renderPaymentPanel(totals = {}) {
   `;
 }
 
+// Categoria apagada ou desconhecida (fora de getCategories) fica em --muted e nao gasta cor da paleta.
+function getKnownCategoryColorVar(categoryId, allCategories = []) {
+  const category = allCategories.find((current) => current.id === categoryId);
+  return category ? getCategoryColorVar(category, allCategories) : 'var(--muted)';
+}
+
 function renderCategoryPanel(ranking = [], allCategories = []) {
   const rows = ranking.slice(0, 10).map((item) => {
     const label = escapeHtml(item.name);
@@ -275,7 +281,7 @@ function renderCategoryPanel(ranking = [], allCategories = []) {
     return {
       label,
       value: Number(item.revenue || 0),
-      color: getCategoryColorVar({ id: item.categoryId, name: item.name }, allCategories)
+      color: getKnownCategoryColorVar(item.categoryId, allCategories)
     };
   });
 
@@ -310,8 +316,7 @@ function renderBars(rows, emptyText) {
 function renderProductsPanel(ranking = [], allCategories = []) {
   const rows = (ranking || []).slice(0, 10).map((item) => {
     const name = escapeHtml(item.name);
-    const category = allCategories.find((current) => current.id === item.categoryId) || { id: item.categoryId, name: '' };
-    const color = getCategoryColorVar(category, allCategories);
+    const color = getKnownCategoryColorVar(item.categoryId, allCategories);
 
     return `
       <tr>

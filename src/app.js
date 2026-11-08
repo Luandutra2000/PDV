@@ -214,7 +214,7 @@ function renderOpenCashSessionModal(app) {
   target.innerHTML = `
     <div class="modal-backdrop is-open">
       <section class="modal modal--small" role="dialog" aria-modal="true" aria-labelledby="open-cash-title">
-        <header class="modal__header"><div><h2 id="open-cash-title">Abrir caixa</h2><p>Informe o dinheiro disponível para troco no início do dia.</p></div><button class="icon-button" type="button" data-action="close-cash-session-modal">X</button></header>
+        <header class="modal__header"><div><h2 id="open-cash-title">Abrir caixa</h2><p>Informe o dinheiro disponível para troco no início do dia.</p></div><button class="icon-button" type="button" data-action="close-cash-session-modal" aria-label="Fechar">X</button></header>
         <form data-open-cash-form>
           <label class="stacked-label">Dinheiro inicial<input class="field" name="openingAmount" type="number" min="0" step="0.01" value="0" required></label>
           <p class="form-help">Esse valor entra no dinheiro esperado do fechamento, mas não é registrado como venda.</p>

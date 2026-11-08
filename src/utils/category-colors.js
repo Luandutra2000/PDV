@@ -3,6 +3,8 @@
 const FIXED_CATEGORIES = ['lanches', 'porcoes', 'bebidas', 'combos'];
 const EXTRA_COLORS = 4;
 const INTERNAL_PREFIX = '__';
+// Pseudo-categorias do app (filtro "Todos"): nao sao categorias de verdade.
+const INTERNAL_IDS = ['todos'];
 
 function normalize(value) {
   return String(value ?? '')
@@ -22,7 +24,8 @@ function fixedKey(category) {
 }
 
 function isInternal(category) {
-  return String(category?.id ?? '').startsWith(INTERNAL_PREFIX);
+  const id = String(category?.id ?? '');
+  return id.startsWith(INTERNAL_PREFIX) || INTERNAL_IDS.includes(id);
 }
 
 export function getCategoryColorVar(category, allCategories = []) {

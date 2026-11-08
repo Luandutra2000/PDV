@@ -897,7 +897,7 @@ function renderCategoryModal() {
       <div class="modal modal--small" role="dialog" aria-modal="true" aria-labelledby="category-modal-title">
         <header class="modal__header">
           <h2 id="category-modal-title">${title}</h2>
-          <button class="icon-button" type="button" data-action="close-modal" title="Fechar">X</button>
+          <button class="icon-button" type="button" data-action="close-modal" title="Fechar" aria-label="Fechar">X</button>
         </header>
 
         <form class="product-form" data-category-form>

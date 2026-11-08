@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync } from 'node:fs';
+
 const store = new Map();
 
 globalThis.localStorage = {
@@ -83,6 +85,37 @@ assert(entradaModal.includes('Reforco de caixa'), 'categorias de entrada continu
 const writeOffModal = cashActions.renderWriteOffModal();
 assert(writeOffModal.includes('Perda / Consumo') && writeOffModal.includes('modal-backdrop'), 'modal de baixa renderiza');
 
+// Botao X de fechar tem nome acessivel
+[saidaModal, entradaModal, writeOffModal].forEach((markup) => {
+  assert(markup.includes('data-action="close-modal" aria-label="Fechar">X</button>'), 'X de fechar tem aria-label="Fechar"');
+});
+
+// Em todo o app, botao cujo unico conteudo e X/× precisa de aria-label
+const sourceFiles = readdirSync(new URL('../src/', import.meta.url), { recursive: true }).filter((file) => String(file).endsWith('.js'));
+const unnamedCloseButtons = sourceFiles.flatMap((file) => {
+  const source = readFileSync(new URL(`../src/${String(file).replaceAll('\\', '/')}`, import.meta.url), 'utf8');
+  return [...source.matchAll(/<button\b([^>]*)>\s*(X|×|&times;)\s*<\/button>/g)]
+    .filter((match) => !/aria-label=/.test(match[1]))
+    .map((match) => `${file}: ${match[0]}`);
+});
+assert(unnamedCloseButtons.length === 0, `botoes X sem aria-label: ${unnamedCloseButtons.join('; ')}`);
+
+// Textos visiveis com acento; valores gravados e categorias ficam iguais
+assert(saidaModal.includes('Descrição obrigatória') && saidaModal.includes('Ex: Sangria, reforço de caixa'), 'descricao com acento');
+assert(!saidaModal.includes('Descricao obrigatoria') && !saidaModal.includes('reforco de caixa"'), 'descricao sem acento saiu');
+assert(writeOffModal.includes('Nenhum produto foi lançado na vitrine hoje.'), 'vitrine vazia com acento');
+const cashActionsSource = readFileSync(new URL('../src/components/cash-actions.component.js', import.meta.url), 'utf8');
+assert(cashActionsSource.includes('<option value="erro-lancamento">Erro de lançamento</option>'), 'motivo com acento e valor igual');
+assert(/\n\s*Observação\n/.test(cashActionsSource), 'rotulo Observação com acento');
+assert(cashActionsSource.includes("const ENTRY_CATEGORIES = ['Reforco de caixa', 'Pagamento de cliente', 'Dinheiro extra', 'Ajuste manual', 'Outros'];"), 'categorias de entrada gravadas sem mudanca');
+assert(cashActionsSource.includes("const OUTPUT_CATEGORIES = ['Compra de material', 'Compra de ingredientes', 'Pagamento de fornecedor', 'Despesa operacional', 'Retirada do dono', 'Troco', 'Manutencao', 'Outros'];"), 'categorias de saida gravadas sem mudanca');
+['Saída registrada', 'lançado no histórico.', 'Perda ou consumo entrou na conferência da vitrine.'].forEach((text) => {
+  assert(cashActionsSource.includes(text), `aviso com acento: ${text}`);
+});
+['Saida registrada', 'Nao foi possivel', 'lancado no historico', 'conferencia da vitrine', 'Descricao obrigatoria'].forEach((text) => {
+  assert(!cashActionsSource.includes(text), `aviso sem acento saiu: ${text}`);
+});
+
 // Envio: descricao vazia nao registra e avisa
 const toasts = [];
 globalThis.document = {
@@ -102,6 +135,8 @@ emptyDescription.set('description', '   ');
 const emptyResult = await cashActions.submitCashMovementForm(emptyDescription);
 assert(emptyResult === false, 'descricao vazia nao conclui o envio');
 assert(toasts.length === 1 && toasts[0].className.includes('app-toast--danger'), 'descricao vazia avisa com toast de perigo');
+const toastTitle = (toast) => toast.children[0].children[0].textContent;
+assert(toastTitle(toasts[0]) === 'Descrição obrigatória', 'titulo do aviso com acento');
 
 // Envio: erro do servico (sem sessao/usuario) devolve false e avisa
 const failing = new FormData();
@@ -112,6 +147,7 @@ failing.set('description', 'Teste');
 const failResult = await cashActions.submitCashMovementForm(failing);
 assert(failResult === false, 'erro do servico nao conclui o envio');
 assert(toasts.length === 2, 'erro do servico avisa');
+assert(toastTitle(toasts[1]) === 'Não foi possível registrar', 'titulo do erro com acento');
 
 const badWriteOff = new FormData();
 badWriteOff.set('productId', 'inexistente');
@@ -121,5 +157,6 @@ badWriteOff.set('note', '');
 const writeOffResult = await cashActions.submitWriteOffForm(badWriteOff);
 assert(writeOffResult === false, 'baixa invalida nao conclui o envio');
 assert(toasts.length === 3, 'baixa invalida avisa');
+assert(toastTitle(toasts[2]) === 'Não foi possível registrar', 'titulo do erro da baixa com acento');
 
 console.log('cash actions component ok');

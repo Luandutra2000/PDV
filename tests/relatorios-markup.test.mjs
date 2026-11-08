@@ -106,6 +106,19 @@ assert(/--c:\s*var\(--cat-lanches\)/.test(catSection), 'Lanches na cor da catego
 assert(/--c:\s*var\(--cat-extra-\d\)/.test(catSection), 'categoria criada pelo usuario recebe cor extra');
 assert(/width:\s*100%/.test(catSection), 'maior categoria com barra cheia');
 
+// Categoria apagada/desconhecida (fora de getCategories) fica em --muted e nao gasta cor da paleta
+const withDeleted = plain(renderReportsMarkup({
+  ...base,
+  categories: [...base.categories, { categoryId: 'apagada', name: 'Apagada', quantity: 1, revenue: 10 }],
+  products: { byQuantity: [...base.products.byQuantity, { name: 'Orfao', categoryId: 'apagada', quantity: 1, revenue: 10 }] }
+}));
+const deletedCatSection = between(withDeleted, 'Por categoria', 'Produtos mais vendidos');
+const deletedCategoryRow = deletedCatSection.split('class="ui-bar-row"').find((row) => row.includes('>Apagada<')) || '';
+assert(/--c:\s*var\(--muted\)/.test(deletedCategoryRow), 'categoria desconhecida em --muted');
+assert((deletedCatSection.match(/--cat-extra-/g) || []).length === 1, 'so a categoria cadastrada usa cor extra');
+const orphanRow = between(withDeleted, 'Produtos mais vendidos', 'Movimentações recentes').split('<tr>').find((row) => row.includes('Orfao')) || '';
+assert(/--c:\s*var\(--muted\)/.test(orphanRow), 'produto de categoria desconhecida em --muted');
+
 // Tabelas
 assert(html.includes('ui-table'), 'tabelas em ui-table');
 const products = between(html, 'Produtos mais vendidos', 'Movimentações recentes');

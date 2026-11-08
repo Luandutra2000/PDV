@@ -190,7 +190,7 @@ assert(transactions.getTransactions().length === 7, 'recusar a confirmacao nao a
 // + Entrada abre o modal compartilhado, e salvar registra e fecha
 await clickOn(screen, { '[data-action]': { dataset: { action: 'open-entry' } } });
 assert(screen.innerHTML.includes('Registrar entrada') && screen.innerHTML.includes('data-cash-form'), '+ Entrada abre o modal compartilhado (Registrar entrada)');
-assert(screen.innerHTML.includes('name="category"') && screen.innerHTML.includes('Descricao obrigatoria'), 'modal compartilhado tem categoria e descricao obrigatoria');
+assert(screen.innerHTML.includes('name="category"') && screen.innerHTML.includes('Descrição obrigatória'), 'modal compartilhado tem categoria e descricao obrigatoria');
 await clickOn(screen, { '[data-action]': { dataset: { action: 'close-modal' } } });
 assert(!screen.innerHTML.includes('data-cash-form'), 'close-modal fecha o modal');
 await clickOn(screen, { '[data-action]': { dataset: { action: 'open-output' } } });

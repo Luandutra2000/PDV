@@ -793,7 +793,7 @@ function renderQuantityModal() {
       <div class="modal modal--small" role="dialog" aria-modal="true">
         <header class="modal__header">
           <h2>Adicionar quantidade</h2>
-          <button class="icon-button" type="button" data-action="close-modal">X</button>
+          <button class="icon-button" type="button" data-action="close-modal" aria-label="Fechar">X</button>
         </header>
         <form class="product-form" data-quantity-form>
           <div class="payment-total">

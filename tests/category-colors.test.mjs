@@ -59,4 +59,10 @@ assert(getCategoryColorVar({ id: '__mais-vendidos', name: 'Mais vendidos' }, lis
 const withoutInternal = list.filter((c) => !c.id.startsWith('__'));
 assert(getCategoryColorVar({ id: 'sobremesas', name: 'Sobremesas' }, withoutInternal) === extra, 'internas nao contam');
 
+// Pseudo-categoria "todos" (filtro Todos) e interna: --muted e nao ocupa cor da paleta
+assert(getCategoryColorVar({ id: 'todos', name: 'Todos' }, list) === 'var(--muted)', 'todos usa --muted');
+const withTodos = [{ id: 'todos', name: 'Todos' }, ...list];
+assert(getCategoryColorVar({ id: 'sobremesas', name: 'Sobremesas' }, withTodos) === extra, 'todos nao desloca as extras');
+assert(getCategoryColorVar({ id: 'cafes', name: 'Cafés' }, withTodos) === 'var(--cat-extra-1)', 'todos nao ocupa a primeira cor extra');
+
 console.log('category-colors tests passed');

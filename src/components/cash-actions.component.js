@@ -39,7 +39,7 @@ export function renderWriteOffModal() {
       <div class="modal modal--small" role="dialog" aria-modal="true">
         <header class="modal__header">
           <h2>Perda / Consumo</h2>
-          <button class="icon-button" type="button" data-action="close-modal">X</button>
+          <button class="icon-button" type="button" data-action="close-modal" aria-label="Fechar">X</button>
         </header>
         ${showcaseProducts.length ? `
           <form class="product-form" data-write-off-form>
@@ -62,12 +62,12 @@ export function renderWriteOffModal() {
                 <option value="consumo-interno">Consumo interno</option>
                 <option value="cortesia">Cortesia</option>
                 <option value="vencido">Vencido</option>
-                <option value="erro-lancamento">Erro de lancamento</option>
+                <option value="erro-lancamento">Erro de lançamento</option>
                 <option value="outro">Outro</option>
               </select>
             </label>
             <label class="stacked-label">
-              Observacao
+              Observação
               <input class="field" name="note" placeholder="Opcional">
             </label>
             <div class="form-actions">
@@ -77,7 +77,7 @@ export function renderWriteOffModal() {
           </form>
         ` : `
           <div class="product-form">
-            <p class="modal-text">Nenhum produto foi lancado na vitrine hoje. Lance estoque antes de registrar perda ou consumo.</p>
+            <p class="modal-text">Nenhum produto foi lançado na vitrine hoje. Lance estoque antes de registrar perda ou consumo.</p>
             <div class="form-actions">
               <button class="button" type="button" data-action="close-modal">Entendi</button>
             </div>
@@ -102,7 +102,7 @@ export function renderCashMovementModal(type) {
       <div class="modal modal--small" role="dialog" aria-modal="true">
         <header class="modal__header">
           <h2>${title}</h2>
-          <button class="icon-button" type="button" data-action="close-modal">X</button>
+          <button class="icon-button" type="button" data-action="close-modal" aria-label="Fechar">X</button>
         </header>
         <form class="product-form" data-cash-form>
           <input type="hidden" name="type" value="${type}">
@@ -117,8 +117,8 @@ export function renderCashMovementModal(type) {
             </select>
           </label>
           <label class="stacked-label">
-            Descricao obrigatoria
-            <input class="field" name="description" placeholder="Ex: Sangria, reforco de caixa" required>
+            Descrição obrigatória
+            <input class="field" name="description" placeholder="Ex: Sangria, reforço de caixa" required>
           </label>
           <div class="form-actions">
             <button class="button button--ghost" type="button" data-action="close-modal">Cancelar</button>
@@ -137,7 +137,7 @@ export async function submitCashMovementForm(formData) {
 
   if (!description) {
     showNotification({
-      title: 'Descricao obrigatoria',
+      title: 'Descrição obrigatória',
       message: 'Informe o motivo do movimento de dinheiro.',
       type: 'danger'
     });
@@ -153,14 +153,14 @@ export async function submitCashMovementForm(formData) {
       userName: 'Operador local'
     });
     showNotification({
-      title: formData.get('type') === 'entrada' ? 'Entrada registrada' : 'Saida registrada',
-      message: `${formatCurrency(formData.get('amount'))} lancado no historico.`,
+      title: formData.get('type') === 'entrada' ? 'Entrada registrada' : 'Saída registrada',
+      message: `${formatCurrency(formData.get('amount'))} lançado no histórico.`,
       type: formData.get('type') === 'entrada' ? 'success' : 'danger'
     });
     return true;
   } catch (error) {
     showNotification({
-      title: 'Nao foi possivel registrar',
+      title: 'Não foi possível registrar',
       message: error.message || 'Confira os dados do movimento.',
       type: 'danger'
     });
@@ -179,13 +179,13 @@ export async function submitWriteOffForm(formData) {
     });
     showNotification({
       title: 'Baixa registrada',
-      message: 'Perda ou consumo entrou na conferencia da vitrine.',
+      message: 'Perda ou consumo entrou na conferência da vitrine.',
       type: 'success'
     });
     return true;
   } catch (error) {
     showNotification({
-      title: 'Nao foi possivel registrar',
+      title: 'Não foi possível registrar',
       message: error.message || 'Confira produto, quantidade e motivo.',
       type: 'danger'
     });
