@@ -233,19 +233,45 @@ click(['[data-action]'], { action: 'close-modal' });
 click(['[data-action]'], { action: 'open-payment' });
 assert(/name="receivedAmount"[^>]*value="74"/.test(modalOf(screen)), 'reabrir recomeca com o total');
 
-// Envio: dinheiro com R$ 100 finaliza com troco de R$ 26,00
-screen.dispatch('input', event(target(['[name="receivedAmount"]'], { value: '100' })));
-const form = target(['[data-payment-form]'], {});
+// Envio: o FormData le o valor que esta de fato no campo (o DOM real guarda o texto digitado, com virgula)
 const originalFormData = globalThis.FormData;
-globalThis.FormData = class {
-  get(name) {
-    return { paymentMethod: 'dinheiro', receivedAmount: '100' }[name];
+function submitPayment(method) {
+  globalThis.FormData = class {
+    get(name) {
+      if (name === 'paymentMethod') return method;
+      if (name === 'receivedAmount') return screen.stub('[name="receivedAmount"]')?.value;
+      return null;
+    }
+  };
+  try {
+    screen.dispatch('submit', event(target(['[data-payment-form]'], {})));
+  } finally {
+    globalThis.FormData = originalFormData;
   }
-};
-screen.dispatch('submit', event(form));
-globalThis.FormData = originalFormData;
+}
+
+screen.querySelector('[name="receivedAmount"]').value = '100,00';
+screen.dispatch('input', event(target(['[name="receivedAmount"]'], { value: '100,00' })));
+submitPayment('dinheiro');
 assert(modalOf(screen).includes('sale-success'), 'finaliza e mostra o sucesso da venda');
-assert(textOf(modalOf(screen)).includes('R$ 26,00'), 'o sucesso mostra o troco de R$ 26,00');
+assert(textOf(modalOf(screen)).includes('R$ 26,00'), 'o valor "100,00" (com virgula) chega ao envio: troco de R$ 26,00');
+
+// ---------- Total com centavos: Exato preenche o campo ----------
+globalThis.document = { querySelectorAll: () => [] };
+click(['[data-action]'], { action: 'close-sale-success' });
+comandas.clearComanda();
+comandas.addItem({ id: 'combo-centavos', name: 'Combo', price: 74.5 });
+click(['[data-action]'], { action: 'open-payment' });
+assert(/name="receivedAmount"[^>]*value="74,50"/.test(modalOf(screen)), 'campo comeca com 74,50');
+assert(modalOf(screen).includes('data-quick-cash="74.5"'), 'Exato guarda o numero cru no atributo');
+screen.dispatch('input', event(target(['[name="receivedAmount"]'], { value: '10' })));
+click(['[data-quick-cash]'], { quickCash: '74.5' });
+assert(screen.stub('[name="receivedAmount"]').value === '74,50', 'Exato com centavos preenche 74,50 (nao esvazia o campo)');
+assert(textOf(screen.part('[data-pay-live]')).includes('Troco R$ 0,00'), 'Exato com centavos: Troco R$ 0,00');
+assert(!textOf(screen.part('[data-pay-live]')).includes('Faltam'), 'Exato com centavos: sem Faltam');
+assert(screen.stub('[data-pay-submit]').disabled === false, 'Exato com centavos: Finalizar habilitado');
+submitPayment('dinheiro');
+assert(modalOf(screen).includes('sale-success'), 'finaliza R$ 74,50 com o valor exato');
 
 // ---------- Estilos: moldura clara dos modais ----------
 const { readFile } = await import('node:fs/promises');

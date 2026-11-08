@@ -908,7 +908,7 @@ function renderPaymentLive(total, balance) {
     <div class="pay__quick">
       ${options.map(({ value, label }) => {
         const isOn = Math.round(balance.received * 100) === Math.round(value * 100);
-        return `<button type="button"${isOn ? ' class="is-on"' : ''} aria-pressed="${isOn}" data-quick-cash="${formatReceivedText(value)}">${label}</button>`;
+        return `<button type="button"${isOn ? ' class="is-on"' : ''} aria-pressed="${isOn}" data-quick-cash="${String(value)}">${label}</button>`;
       }).join('')}
     </div>
     <div class="pay__change${balance.isShort ? ' is-short' : ''}" role="status">

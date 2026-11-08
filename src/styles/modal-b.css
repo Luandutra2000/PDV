@@ -111,9 +111,9 @@
   font-weight: 500;
 }
 
-.app-shell .modal-backdrop .modal .field,
-.app-shell .modal-backdrop .modal select,
-.app-shell .modal-backdrop .modal textarea {
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) .field,
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) select,
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) textarea {
   min-height: 44px;
   border: 1px solid var(--line);
   border-radius: var(--radius-control);
@@ -123,12 +123,12 @@
   padding: 0 12px;
   box-shadow: none;
 }
-.app-shell .modal-backdrop .modal textarea { min-height: 88px; padding: 10px 12px; }
-.app-shell .modal-backdrop .modal .field::placeholder,
-.app-shell .modal-backdrop .modal textarea::placeholder { color: var(--muted); }
-.app-shell .modal-backdrop .modal .field:focus,
-.app-shell .modal-backdrop .modal select:focus,
-.app-shell .modal-backdrop .modal textarea:focus {
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) textarea { min-height: 88px; padding: 10px 12px; }
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) .field::placeholder,
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) textarea::placeholder { color: var(--muted); }
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) .field:focus,
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) select:focus,
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
   outline: none;
@@ -151,7 +151,7 @@
   border-top: 1px solid var(--line);
 }
 
-.app-shell .modal-backdrop .modal .button {
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) .button {
   min-height: 40px;
   padding: 0 15px;
   border: 1px solid var(--line);
@@ -161,24 +161,24 @@
   filter: none;
   transform: none;
 }
-.app-shell .modal-backdrop .modal .button:not(.button--ghost):not(.button--danger):not(.button--success) {
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) .button:not(.button--ghost):not(.button--danger):not(.button--success) {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-ink);
 }
-.app-shell .modal-backdrop .modal .button:not(.button--ghost):not(.button--danger):not(.button--success):hover:not(:disabled) {
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) .button:not(.button--ghost):not(.button--danger):not(.button--success):hover:not(:disabled) {
   border-color: var(--accent-strong);
   background: var(--accent-strong);
   box-shadow: none;
   filter: none;
   transform: none;
 }
-.app-shell .modal-backdrop .modal .button--ghost {
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) .button--ghost {
   border-color: var(--line);
   background: var(--card);
   color: var(--ink);
 }
-.app-shell .modal-backdrop .modal .button--ghost:hover:not(:disabled) {
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) .button--ghost:hover:not(:disabled) {
   border-color: var(--line);
   background: var(--line-soft);
   color: var(--ink);
@@ -186,18 +186,18 @@
   filter: none;
   transform: none;
 }
-.app-shell .modal-backdrop .modal .button--danger {
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) .button--danger {
   border-color: var(--red);
   background: var(--red);
   color: var(--card);
 }
-.app-shell .modal-backdrop .modal .button--success {
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) .button--success {
   border-color: var(--green);
   background: var(--green);
   color: var(--green-ink);
 }
-.app-shell .modal-backdrop .modal .button:disabled { opacity: .5; cursor: not-allowed; }
-.app-shell .modal-backdrop .modal .button:focus-visible {
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) .button:disabled { opacity: .5; cursor: not-allowed; }
+.app-shell .modal-backdrop .modal:not(.sale-success-modal) .button:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
@@ -362,4 +362,23 @@
   .pay__method { font-size: 13px; }
   .pay__keypad button { height: 52px; }
   .pay__acts .ui-btn { flex: 1; }
+}
+
+/* Vitrine do fechamento rapido: a linha tinha fundo branco fixo. */
+.quick-showcase-row { background: var(--card); }
+
+/* Venda concluida: mantem o acabamento proprio (fundo claro fixo do
+   redesign.css) nos dois temas. Como o fundo nao troca com o tema, o texto
+   e as bordas voltam aos valores claros em vez de seguir os tokens. */
+.modal-backdrop .sale-success-modal {
+  --color-surface: #fff;
+  --color-surface-muted: #f4ebe3;
+  --color-border: #eee0d6;
+  --color-text: #2e2a27;
+  --color-text-muted: #8b8179;
+  --crm-border: #eee0d6;
+  --crm-text: #2e2a27;
+  --crm-text-muted: #8b8179;
+  --crm-orange-soft: #fff0e6;
+  color: var(--color-text);
 }
