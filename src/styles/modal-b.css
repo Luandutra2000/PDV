@@ -1,28 +1,11 @@
-/* Moldura clara dos modais do visual B (claro e escuro). Carrega depois de
-   modal.css, forms.css, pdv.css e redesign.css, entao usa seletores um pouco
-   mais fortes (.app-shell .modal-backdrop ...) para vencer o CSS antigo.
+/* Moldura dos modais do visual B (claro e escuro), por cima da base de modal.css,
+   buttons.css e forms.css. Usa seletores um pouco mais fortes
+   (.app-shell .modal-backdrop ...) para valer sobre a base.
    Valores: secao "Receber comanda" do mockup
    docs/superpowers/specs/mockups/2026-11-07-telas-b-claro.html */
 
-/* Fundo e tokens legados: o CSS antigo dos modais le --color-* e --crm-*.
-   Dentro do modal eles passam a apontar para os tokens do visual B, que
-   ja trocam sozinhos entre claro e escuro. --color-primary nao muda. */
-.modal-backdrop {
-  --color-surface: var(--card);
-  --color-surface-muted: var(--bg);
-  --color-border: var(--line);
-  --color-text: var(--ink);
-  --color-text-muted: var(--muted);
-  --color-danger: var(--red);
-  --color-success: var(--green);
-  --crm-surface: var(--card);
-  --crm-muted: var(--bg);
-  --crm-border: var(--line);
-  --crm-text: var(--ink);
-  --crm-text-muted: var(--muted);
-  --crm-orange-soft: var(--accent-soft);
-  color-scheme: light;
-}
+/* Controles nativos (datas, selects) seguem o tema. */
+.modal-backdrop { color-scheme: light; }
 :root[data-theme="dark"] .modal-backdrop { color-scheme: dark; }
 
 .modal-backdrop.is-open,
@@ -31,7 +14,7 @@
   backdrop-filter: none;
 }
 
-/* A janela de venda concluida tem acabamento proprio (redesign.css). */
+/* A janela de venda concluida tem acabamento proprio (modal.css). */
 .app-shell .modal-backdrop .modal:not(.sale-success-modal) {
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -445,6 +428,7 @@
   background: var(--card);
 }
 
+.quick-showcase-row > span { min-width: 0; overflow-wrap: anywhere; }
 .quick-closing-modal .closing-small-input { width: 100%; max-width: 96px; }
 .quick-closing-modal .money-positive { color: var(--green); }
 .quick-closing-modal .money-negative { color: var(--red); }
@@ -453,28 +437,19 @@
 .quick-closing-table { overflow-x: auto; }
 .quick-closing-table .ui-table { min-width: 720px; }
 
-.quick-closing-modal .empty-products { padding: 28px; }
+.quick-closing-modal .empty-products {
+  padding: 28px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--muted);
+  text-align: center;
+}
 
 @media (max-width: 760px) {
   .quick-closing-body { padding: 12px 16px 18px; }
   .quick-closing-modal .quick-closing-summary,
   .quick-closing-payments { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .quick-showcase-head,
-  .quick-showcase-row { grid-template-columns: minmax(0, 1fr) 70px 90px 50px; }
-}
-
-/* Venda concluida: mantem o acabamento proprio (fundo claro fixo do
-   redesign.css) nos dois temas. Como o fundo nao troca com o tema, o texto
-   e as bordas voltam aos valores claros em vez de seguir os tokens. */
-.modal-backdrop .sale-success-modal {
-  --color-surface: #fff;
-  --color-surface-muted: #f4ebe3;
-  --color-border: #eee0d6;
-  --color-text: #2e2a27;
-  --color-text-muted: #8b8179;
-  --crm-border: #eee0d6;
-  --crm-text: #2e2a27;
-  --crm-text-muted: #8b8179;
-  --crm-orange-soft: #fff0e6;
-  color: var(--color-text);
+  .quick-showcase-row { grid-template-columns: minmax(0, 1fr) 56px 76px 36px; gap: 8px; }
 }

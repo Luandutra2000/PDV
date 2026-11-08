@@ -1,3 +1,5 @@
+/* Botoes das janelas (modais) que ainda usam .button / .icon-button. O acabamento
+   dentro do modal fica em modal-b.css; aqui a base, com os tokens. */
 .button {
   display: inline-flex;
   align-items: center;
@@ -6,74 +8,59 @@
   min-height: 42px;
   padding: 0 16px;
   border: 1px solid transparent;
-  border-radius: 7px;
-  background: var(--color-primary);
-  color: #ffffff;
-  font-weight: 800;
+  border-radius: var(--radius-control);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
 }
 
 .button:hover {
-  background: var(--color-primary-strong);
-  box-shadow: 0 12px 30px rgba(255, 107, 26, 0.2);
+  background: var(--accent-strong);
 }
 
 .button:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.5;
 }
 
 .button--ghost {
-  border-color: var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text);
+  border-color: var(--line);
+  background: var(--card);
+  color: var(--ink);
 }
 
 .button--ghost:hover {
-  background: var(--crm-orange-soft);
-  color: var(--color-primary);
-}
-
-.button--active {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: #ffffff;
+  background: var(--line-soft);
 }
 
 .button--danger {
-  background: var(--color-danger);
-  color: #ffffff;
+  background: var(--red);
+  color: var(--card);
 }
 
 .button--danger:hover {
-  background: #9f302b;
-}
-
-.button--small {
-  min-height: 34px;
-  padding: 0 12px;
-  font-size: 13px;
+  background: color-mix(in srgb, var(--red) 85%, var(--ink));
 }
 
 .button--success {
-  background: var(--color-success);
-  color: #ffffff;
+  background: var(--green);
+  color: var(--green-ink);
 }
 
 .button--success:hover {
-  background: #106b40;
+  background: color-mix(in srgb, var(--green) 85%, var(--ink));
 }
 
 .icon-button {
   width: 36px;
   height: 36px;
-  border: 1px solid var(--color-border);
-  border-radius: 7px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-weight: 800;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .icon-button:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  background: var(--line-soft);
 }

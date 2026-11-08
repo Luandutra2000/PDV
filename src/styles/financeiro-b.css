@@ -87,8 +87,11 @@ td.fn-empty { padding: 14px 10px; white-space: normal; }
 /* Janela de lancamento: a moldura vem de modal-b.css; so falta o marcador sem estilo */
 .fn .permission-check { display: flex; align-items: center; gap: 8px; margin: 4px 0 12px; color: var(--ink); font-size: 13px; }
 .fn .permission-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--green); }
+/* Conta a pagar: valor, vencimento, categoria e status em duas colunas */
+.closing-form-grid--compact { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 14px 0; }
 
 @media (max-width: 560px) {
   .ui-screen.fn { padding: 14px 12px 24px; }
   .fn-filters select.ui-input { flex: 1 1 140px; }
+  .closing-form-grid--compact { grid-template-columns: minmax(0, 1fr); }
 }

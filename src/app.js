@@ -328,19 +328,6 @@ function bindNavigation(app, workspace) {
       return;
     }
 
-    if (event.target.closest('[data-action="open-mobile"]')) {
-      if (!canAccessRoute(getCurrentUser(), 'mobile')) {
-        renderPermissionDenied(workspace);
-        return;
-      }
-
-      setActiveMenu(app, 'mobile');
-      workspace.dataset.activeRoute = 'mobile';
-      setRouteShellMode(app, 'mobile');
-      initMobileDashboardModule(workspace);
-      return;
-    }
-
     if (event.target.closest('[data-action="refresh"]')) {
       await flushDataProvider();
       await flushFinancialQueue();
@@ -435,11 +422,9 @@ function setRouteShellMode(app, routeId) {
 
 function renderPermissionDenied(workspace) {
   workspace.innerHTML = `
-    <section class="module-screen">
-      <header class="module-header">
-        <h1 class="pdv-title">Acesso bloqueado</h1>
-      </header>
-      <div class="empty-products">Usuario sem permissao para acessar esta area.</div>
+    <section class="ui-screen app-placeholder">
+      <h1 class="app-placeholder__title">Acesso bloqueado</h1>
+      <div class="ui-panel app-placeholder__note">Usuário sem permissão para acessar esta área.</div>
     </section>
   `;
 }
@@ -451,11 +436,9 @@ function setActiveMenu(app, menuId) {
 
 function renderModulePlaceholder(workspace, label) {
   workspace.innerHTML = `
-    <section class="module-screen">
-      <header class="module-header">
-        <h1 class="pdv-title">${label}</h1>
-      </header>
-      <div class="empty-products">Modulo preparado para a proxima etapa.</div>
+    <section class="ui-screen app-placeholder">
+      <h1 class="app-placeholder__title">${label}</h1>
+      <div class="ui-panel app-placeholder__note">Módulo preparado para a próxima etapa.</div>
     </section>
   `;
 }

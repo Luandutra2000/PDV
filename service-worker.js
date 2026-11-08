@@ -6,13 +6,9 @@ const STATIC_ASSETS = [
   './src/assets/pwa-icon.svg',
   './src/styles/base.css',
   './src/styles/layout.css',
-  './src/styles/sidebar.css',
   './src/styles/buttons.css',
-  './src/styles/cards.css',
   './src/styles/forms.css',
   './src/styles/modal.css',
-  './src/styles/pdv.css',
-  './src/styles/mobile.css?v=20260807-19',
   './src/config/runtime-config.js',
   './src/modules/auth/login.module.js',
   './src/app.js?v=20260807-19'

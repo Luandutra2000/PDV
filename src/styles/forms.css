@@ -1,54 +1,20 @@
+/* Campos e formularios que ainda usam .field / .form-actions / .form-error e a
+   janela de usuario de Pessoas (.people-modal). Valores com os tokens; o
+   acabamento de cada tela fica nos *-b.css. */
 .field {
   width: 100%;
-  min-height: 52px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  padding: 0 14px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--ink);
+  padding: 0 12px;
   outline: none;
 }
 
 .field:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(255, 107, 26, 0.15);
-}
-
-.category-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.category-tab {
-  min-height: 34px;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  padding: 0 14px;
-  font-weight: 800;
-}
-
-.category-tab.is-active {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: #ffffff;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 14px;
-}
-
-.form-grid label {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  font-weight: 800;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .form-actions {
@@ -58,45 +24,15 @@
   margin-top: 16px;
 }
 
-.login-screen {
-  position: relative;
-  z-index: 1;
-  min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: transparent;
-}
-
-.login-card {
-  width: min(100%, 420px);
-  display: grid;
-  gap: 18px;
-  padding: 28px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  box-shadow: var(--shadow-soft);
-}
-
-.login-card .field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  font-weight: 800;
-}
-
 .form-error {
   margin: 0;
-  border-left: 4px solid var(--color-danger);
-  border-radius: 8px;
-  background: rgba(216, 66, 58, 0.08);
-  color: var(--color-danger);
+  border-left: 4px solid var(--red);
+  border-radius: var(--radius-control);
+  background: var(--red-soft);
+  color: var(--red);
   padding: 10px 12px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .checkbox-field {
@@ -115,10 +51,10 @@
   min-height: 48px;
   margin: 4px 0 16px;
   padding: 0 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--crm-orange-soft);
-  color: var(--color-text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--accent-soft);
+  color: var(--ink);
 }
 
 .people-form {
@@ -126,63 +62,22 @@
   gap: 14px;
 }
 
-.permission-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 14px;
+.people-modal-backdrop { position: fixed; inset: 0; z-index: 80; display: none; place-items: center; padding: 24px; background: rgba(28, 35, 49, .42); }
+.people-modal-backdrop.is-open { display: grid; }
+.people-modal { width: min(980px, 96vw); max-height: 92vh; overflow: auto; border: 1px solid var(--line); border-radius: 18px; background: var(--card); color: var(--ink); box-shadow: 0 24px 60px rgba(28, 35, 49, .28); }
+.people-modal__header,
+.people-modal__footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 18px 22px; background: var(--card); }
+.people-modal__header { position: sticky; top: 0; z-index: 2; border-bottom: 1px solid var(--line); }
+.people-modal__header div { display: grid; gap: 3px; }
+.people-modal__header strong { color: var(--ink); font-size: 17px; font-weight: 600; }
+.people-modal__header span { color: var(--muted); font-size: 12.5px; }
+.people-modal__body { padding: 20px 22px 0; }
+.people-modal__footer { margin: 8px -22px 0; border-top: 1px solid var(--line); }
+@media (max-width: 600px) {
+  .people-modal-backdrop { padding: 0; }
+  .people-modal { width: 100%; max-height: 100vh; min-height: 100vh; border-radius: 0; }
+  .people-modal__header,
+  .people-modal__footer { padding: 15px; }
+  .people-modal__body { padding: 16px 15px 0; }
+  .people-modal__footer { margin-inline: -15px; }
 }
-
-.permission-group {
-  display: grid;
-  align-content: start;
-  gap: 10px;
-}
-
-.permission-group h3 {
-  margin: 0;
-  font-size: 14px;
-}
-
-.permission-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(132px, 156px);
-  align-items: center;
-  gap: 10px;
-  min-height: 62px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 10px;
-}
-
-.permission-row span {
-  display: grid;
-  gap: 4px;
-}
-
-.permission-row small {
-  color: var(--color-text-muted);
-}
-
-.people-feedback { margin:0; border-radius:12px; }
-.people-feedback--success { padding:11px 14px; border:1px solid #b8dfc5; border-left:4px solid #31945a; border-radius:12px; color:#24633d; background:#effaf2; font-weight:700; }
-.people-modal-backdrop { position:fixed; inset:0; z-index:80; display:none; place-items:center; padding:24px; background:rgba(41,27,20,.58); backdrop-filter:blur(5px); }
-.people-modal-backdrop.is-open { display:grid; }
-.people-modal { width:min(980px,96vw); max-height:92vh; overflow:auto; border:1px solid #e7d6cb; border-radius:22px; background:#fffdfb; box-shadow:0 30px 90px rgba(36,21,14,.3); }
-.people-modal__header,.people-modal__footer { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:18px 22px; }
-.people-modal__header { position:sticky; top:0; z-index:2; border-bottom:1px solid #eadbd2; background:rgba(255,253,251,.96); backdrop-filter:blur(8px); }
-.people-modal__header div { display:grid; gap:3px; }
-.people-modal__header strong { color:#291b15; font-size:1.08rem; }
-.people-modal__header span { color:#806c61; font-size:.8rem; }
-.people-modal__body { padding:20px 22px 0; }
-.people-modal__footer { margin:8px -22px 0; border-top:1px solid #eadbd2; background:#fff9f5; }
-.people-audit-panel { border-radius:19px; overflow-x:auto; }
-.people-audit-filters { display:grid; grid-template-columns:repeat(5,minmax(130px,1fr)); gap:10px; padding:14px; border-bottom:1px solid #eadbd2; background:#fff9f5; }
-.people-audit-filters label { display:grid; gap:6px; color:#6e5b50; font-size:.72rem; font-weight:800; }
-.people-audit-table { min-width:840px; }
-.people-audit-table__head,.people-audit-row { display:grid; grid-template-columns:1.05fr 1.15fr 1fr .8fr .65fr 1.7fr; }
-.people-audit-table__head { color:#7b665a; background:#f8eee8; font-size:.7rem; font-weight:900; text-transform:uppercase; }
-.people-audit-table__head span,.people-audit-row span { padding:11px 13px; border-right:1px solid #efe2da; }
-.people-audit-row { border-top:1px solid #efe2da; color:#514139; font-size:.76rem; }
-.people-audit-row:nth-child(odd) { background:#fffbf8; }
-@media (max-width:900px) { .people-audit-filters{grid-template-columns:repeat(2,minmax(0,1fr))} }
-@media (max-width:600px) { .people-modal-backdrop{padding:0} .people-modal{width:100%;max-height:100vh;min-height:100vh;border-radius:0} .people-modal__header,.people-modal__footer{padding:15px} .people-modal__body{padding:16px 15px 0} .people-modal__footer{margin-inline:-15px} }

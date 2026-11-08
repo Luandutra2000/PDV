@@ -59,6 +59,7 @@
 
 /* Listas e tabelas */
 .vt-scroll { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+.vt-table.showcase-movement-table { min-width: 1040px; }
 .vt .ui-table th, .vt .ui-table td { white-space: nowrap; }
 .vt-table tr.is-canceled td { color: var(--muted); }
 .vt-table tr.is-canceled .vt-total { text-decoration: line-through; font-weight: 500; }

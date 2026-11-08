@@ -1,6 +1,4 @@
-/* Tela de entrar do visual B claro. Escopo: .lg e classes lg-*, sem reaproveitar
-   .login-screen/.login-card (o CSS antigo do login em redesign.css e forms.css
-   ainda existe e nao deve vazar aqui). Valores: secao "Entrar" de
+/* Tela de entrar do visual B claro. Escopo: .lg e classes lg-*. Valores: secao "Entrar" de
    docs/superpowers/specs/mockups/2026-11-07-telas-b-claro.html */
 
 .lg {

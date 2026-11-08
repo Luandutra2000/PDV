@@ -76,7 +76,7 @@ company.applyCompanyIdentity(legacyColors);
 for (const name of ['--accent', '--accent-strong', '--accent-soft', '--accent-ink']) {
   assert(!props.has(name), name + ' nao deve ficar inline com cores padrao');
 }
-assert(props.get('--color-primary') === '#ff6b1a' && props.has('--crm-orange'), 'variaveis antigas continuam definidas');
+assert(!['--color-primary', '--color-primary-strong', '--crm-orange', '--crm-orange-soft'].some((name) => props.has(name)), 'variaveis antigas nao sao mais definidas');
 
 company.applyCompanyIdentity(company.getDefaultCompanySettings());
 assert(!props.has('--accent') && !props.has('--accent-soft'), 'padrao novo tambem nao fica inline');

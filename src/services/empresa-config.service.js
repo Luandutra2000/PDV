@@ -156,10 +156,6 @@ export function applyCompanyIdentity(input = loadCompanySettingsLocal()) {
     isCustomBrandColor(settings.corSecundaria, DEFAULT_COMPANY_SETTINGS.corSecundaria));
   setOrClearProperty(root.style, '--accent-soft', brand.accentSoft,
     isCustomBrandColor(settings.corDestaque, DEFAULT_COMPANY_SETTINGS.corDestaque));
-  root.style.setProperty('--color-primary', settings.corPrimaria);
-  root.style.setProperty('--color-primary-strong', settings.corSecundaria);
-  root.style.setProperty('--crm-orange', settings.corPrimaria);
-  root.style.setProperty('--crm-orange-soft', settings.corDestaque);
 
   return settings;
 }

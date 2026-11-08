@@ -1,15 +1,9 @@
-/* Frente de caixa do visual B claro. Escopo: .pdv-screen.fc e classes fc-*,
-   para nao herdar pdv.css / redesign.css. Valores: secao "B. Turno da noite,
-   versao clara" (.opt-b2) de docs/superpowers/specs/mockups/2026-11-07-opcoes-design.html */
+/* Frente de caixa do visual B claro. Escopo: .pdv-screen.fc e classes fc-*.
+   Valores: secao "B. Turno da noite, versao clara" (.opt-b2) de
+   docs/superpowers/specs/mockups/2026-11-07-opcoes-design.html */
 
-/* Neutraliza o degrade e a altura que o CSS antigo poe em .pdv-screen
-   (redesign.css usa .app-shell:not(...) .pdv-screen, especificidade 0,3,0). */
-.app-shell .pdv-screen.fc,
 .pdv-screen.fc {
   background: var(--bg);
-}
-
-.pdv-screen.fc {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 352px;
   min-height: 0;

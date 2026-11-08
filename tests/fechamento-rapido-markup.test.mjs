@@ -69,7 +69,7 @@ assert(vitrine.includes('money-positive'), 'linha sem diferenca em verde');
 
 // CSS do fechamento rapido saiu do legado e usa tokens
 const modalB = await readFile(new URL('../src/styles/modal-b.css', import.meta.url), 'utf8');
-const quickCss = modalB.slice(modalB.indexOf('.quick-closing-modal {'), modalB.indexOf('/* Venda concluida'));
+const quickCss = modalB.slice(modalB.indexOf('.quick-closing-modal {'), modalB.indexOf('@media (max-width: 760px)', modalB.indexOf('.quick-closing-modal {')));
 assert(quickCss.includes('.quick-closing-card') && !/#[0-9a-f]{3,6}\b/i.test(quickCss), 'fechamento rapido sem cores fixas');
 assert(!/uppercase|gradient/.test(quickCss), 'fechamento rapido sem caixa alta e sem degrade');
 

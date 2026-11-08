@@ -1,5 +1,4 @@
-/* Componentes compartilhados do visual B claro. Prefixo ui- para nao colidir
-   com o CSS antigo enquanto ele existir. Valores visuais: mockup
+/* Componentes compartilhados do visual B claro (prefixo ui-). Valores visuais: mockup
    docs/superpowers/specs/mockups/2026-11-07-telas-b-claro.html */
 
 /* Botoes */
@@ -143,7 +142,7 @@
 .app-shell:not(.is-mobile-owner) .workspace { grid-template-rows: auto minmax(0, 1fr); }
 
 /* App do dono em desktop: mantem rail + topo (o rail e o caminho de volta).
-   E o complemento das media queries legadas abaixo, que o escondem. */
+   E o complemento das media queries de layout.css (tela cheia no celular). */
 @media (min-width: 901px) and (pointer: fine) {
   .app-shell.is-mobile-owner { padding: 0; }
   .app-shell.is-mobile-owner .pdv-layout {
@@ -158,7 +157,7 @@
   .app-shell.is-mobile-owner .workspace { grid-template-rows: auto minmax(0, 1fr); }
 }
 
-/* Mesmas condicoes das regras legadas (layout.css e mobile.css) que escondiam sidebar/topbar. */
+/* Mesmas condicoes das media queries de layout.css: no celular o app do dono fica sem rail e topo. */
 @media (max-width: 900px), (pointer: coarse) {
   .app-shell.is-mobile-owner .rail,
   .app-shell.is-mobile-owner .top { display: none; }
@@ -400,3 +399,7 @@
 }
 .app-toast__close:hover { background: var(--line-soft); color: var(--ink); }
 .app-toast__close:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+
+/* Tela de aviso do app.js (acesso bloqueado, modulo sem tela). */
+.app-placeholder__title { font-size: 22px; font-weight: 600; }
+.app-placeholder__note { align-items: center; padding: 34px 16px; color: var(--muted); text-align: center; }

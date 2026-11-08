@@ -19,7 +19,7 @@ assert(!cacheControl.includes('immutable'), 'source modules should not be immuta
 assert(cacheControl.includes('max-age=0'), 'source modules should revalidate so fixes appear after deploy');
 assert(indexHtml.includes('./src/app.js?v=20260807-19'), 'app entrypoint should use the latest cache-busting version');
 assert(indexHtml.indexOf('./src/styles/pdv-b.css?v=20260807-09') > indexHtml.indexOf('./src/styles/components.css'), 'front-of-house styles should load after the shared components');
-assert(indexHtml.indexOf('./src/styles/modal-b.css?v=20260807-10') > indexHtml.indexOf('./src/styles/redesign.css'), 'modal frame styles should load after the legacy modal and redesign styles');
+assert(indexHtml.indexOf('./src/styles/modal-b.css?v=20260807-10') > indexHtml.indexOf('./src/styles/modal.css'), 'modal frame styles should load after the base modal styles');
 assert(indexHtml.indexOf('./src/styles/historico-b.css?v=20260807-13') > indexHtml.indexOf('./src/styles/components.css'), 'history screen styles should load after the shared components');
 assert(appJs.includes('./modules/dashboard/dashboard.module.js?v=20260807-13'), 'history module import should use the latest cache-busting version');
 assert(indexHtml.indexOf('./src/styles/vitrine-b.css?v=20260807-14') > indexHtml.indexOf('./src/styles/components.css'), 'showcase screen styles should load after the shared components');
@@ -37,7 +37,7 @@ assert(appJs.includes('./modules/empresa-config/empresa-config.module.js?v=20260
 assert(indexHtml.indexOf('./src/styles/suporte-b.css?v=20260807-18') > indexHtml.indexOf('./src/styles/components.css'), 'support screen styles should load after the shared components');
 assert(appJs.includes('./modules/sync-app/sync-app.module.js?v=20260807-18'), 'support module import should use the latest cache-busting version');
 assert(indexHtml.indexOf('./src/styles/mobile-b.css?v=20260807-19') > indexHtml.indexOf('./src/styles/components.css'), 'owner app styles should load after the shared components');
-assert(indexHtml.includes('./src/styles/mobile.css?v=20260807-19'), 'legacy owner app stylesheet should be re-versioned after its rules were removed');
+['redesign', 'sidebar', 'cards', 'pdv', 'mobile'].forEach((name) => assert(!indexHtml.includes(`./src/styles/${name}.css`) && !serviceWorkerJs.includes(`./src/styles/${name}.css`), `removed stylesheet ${name}.css should not be linked or precached`));
 assert(indexHtml.includes('Nao foi possivel iniciar o PDV.'), 'startup should show a visible fallback when module boot fails');
 assert(indexHtml.includes('Nao foi possivel limpar service workers antigos.'), 'startup should not block app boot when browser cache cleanup fails');
 assert(serviceWorkerJs.includes('pdv-v85'), 'service worker cache name should change when app modules change');

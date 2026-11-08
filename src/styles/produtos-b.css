@@ -30,7 +30,7 @@
 .pd-sync[data-sync-state="cache"] .pd-sync__label::before,
 .pd-sync[data-sync-state="syncing"] .pd-sync__label::before { background: var(--accent); }
 .pd-sync[data-sync-state="error"] .pd-sync__label::before { background: var(--red); }
-.pd-sync .sync-status__error { color: var(--red); overflow-wrap: anywhere; }
+.pd-sync .sync-status__error { color: var(--red); font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
 .pd-sync__actions { display: flex; gap: 6px; }
 
 /* Cartoes de numeros e alertas */

@@ -1,3 +1,6 @@
+/* Estrutura dos modais (.modal-backdrop > .modal) com os tokens. O acabamento
+   do visual B (moldura, campos, botoes, Receber comanda, Fechamento rapido) fica
+   em modal-b.css; aqui a base e a janela de venda concluida. */
 .modal-backdrop {
   display: none;
 }
@@ -10,22 +13,18 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(11, 18, 32, 0.54);
-}
-
-.modal-backdrop--soft.is-open {
-  background: rgba(46, 42, 39, 0.34);
-  backdrop-filter: blur(8px);
+  background: rgba(28, 35, 49, .42);
 }
 
 .modal {
   width: min(620px, 100%);
   max-height: calc(100vh - 40px);
   overflow-y: auto;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  box-shadow: 0 22px 70px rgba(18, 31, 53, 0.28);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 24px 60px rgba(28, 35, 49, .28);
 }
 
 .modal__header {
@@ -33,51 +32,16 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 18px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.modal__header h2 {
-  margin: 0;
-  font-size: 20px;
-}
-
-.modal .product-form {
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.category-choice {
-  display: grid;
-  gap: 10px;
-  margin: 16px 0;
-  padding: 14px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-}
-
-.category-choice legend {
-  padding: 0 6px;
-  color: var(--color-text-muted);
-  font-weight: 800;
-}
-
-.category-choice label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
 }
 
 .stacked-label {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 5px;
   margin-bottom: 14px;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  font-weight: 800;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 500;
 }
 
 .modal--small {
@@ -90,7 +54,6 @@
 }
 
 .product-quick-modal .modal__header {
-  border-bottom: 0;
   padding-bottom: 0;
 }
 
@@ -101,16 +64,27 @@
 
 .modal-text {
   margin: 0 0 16px;
-  color: var(--color-text-muted);
+  color: var(--muted);
   line-height: 1.5;
 }
 
+.payment-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Venda concluida: cabecalho verde-claro com o total, itens e pagamento em listas. */
 .sale-success-modal {
-  width: min(720px, 100%);
+  width: min(560px, 100%);
   overflow: hidden;
-  border-color: rgba(255, 255, 255, 0.76);
-  background: rgba(255, 250, 246, 0.94);
-  box-shadow: 0 30px 90px rgba(46, 42, 39, 0.3);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--font);
+  box-shadow: 0 24px 60px rgba(28, 35, 49, .28);
 }
 
 .sale-success-header {
@@ -118,43 +92,43 @@
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 24px;
-  background: linear-gradient(135deg, rgba(255, 107, 26, 0.95), rgba(255, 145, 72, 0.9));
-  color: #ffffff;
+  padding: 20px 24px;
+  background: var(--green-soft);
 }
 
 .sale-success-header span {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
+  color: var(--green);
   font-size: 13px;
-  font-weight: 900;
-  opacity: 0.86;
-  text-transform: uppercase;
+  font-weight: 600;
 }
 
 .sale-success-header h2 {
   margin: 0;
-  font-size: 28px;
+  font-size: 22px;
+  font-weight: 600;
 }
 
 .sale-success-header > strong {
-  font-size: 30px;
+  font-size: 28px;
+  font-weight: 700;
   white-space: nowrap;
 }
 
 .sale-success-body {
   display: grid;
-  gap: 16px;
-  padding: 22px;
+  gap: 14px;
+  padding: 20px 24px 24px;
 }
 
 .sale-success-list,
 .sale-success-totals {
   display: grid;
   overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
 }
 
 .sale-success-item,
@@ -163,9 +137,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  min-height: 52px;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--color-border);
+  min-height: 48px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .sale-success-item:last-child,
@@ -173,36 +147,55 @@
   border-bottom: 0;
 }
 
-.sale-success-item span,
-.sale-success-line span {
+.sale-success-item strong,
+.sale-success-line strong {
+  font-weight: 600;
+}
+
+.sale-success-item span {
   display: block;
-  margin-top: 4px;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  font-weight: 800;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.sale-success-line span {
+  color: var(--muted);
 }
 
 .sale-success-change {
-  background: var(--crm-orange-soft);
+  background: var(--accent-soft);
+}
+
+.sale-success-change span,
+.sale-success-change strong {
+  color: var(--accent-ink-soft);
 }
 
 .sale-success-change strong {
-  color: var(--color-primary);
-  font-size: 24px;
+  font-size: 22px;
+  font-weight: 700;
 }
 
 .sale-success-ok {
   justify-self: center;
   width: min(260px, 100%);
-  min-height: 52px;
-  font-size: 16px;
+  min-height: 50px;
+  font-size: 15px;
+}
+
+.sale-success-ok:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 @media (max-width: 760px) {
-  .sale-success-header,
-  .sale-success-item,
-  .sale-success-line {
-    align-items: stretch;
-    flex-direction: column;
+  .sale-success-header {
+    flex-wrap: wrap;
+    padding: 18px 18px;
+  }
+
+  .sale-success-body {
+    padding: 16px 18px 18px;
   }
 }
