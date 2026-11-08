@@ -28,7 +28,7 @@ for (const value of ['6', '65', '65.', '65.3', '65.35']) {
   assert.equal(replacements, 1, 'typing must preserve existing input nodes, focus and decimal edits');
 }
 assert.match(difference.textContent, /65,35/, 'live difference follows the typed amount');
-assert.equal(difference.className, 'money-negative');
+assert.match(difference.className, /is-pos/, 'a diferenca positiva fica verde (is-pos); so a negativa fica vermelha');
 field.dataset.crmClosingInput = 'note';
 for (const value of ['C', 'Conferido', 'Conferido no caixa']) {
   field.value = value;

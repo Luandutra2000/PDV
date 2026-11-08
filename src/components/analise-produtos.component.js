@@ -1,45 +1,48 @@
 import { formatCurrency } from '../utils/currency.js?v=20260804-06';
 import { escapeHtml } from '../utils/dom.js?v=20260804-06';
 
-export function renderAnaliseProdutos({ productRanking, categoryRanking }) {
-  const quantityRows = productRanking.byQuantity.slice(0, 6);
-  const revenueRows = productRanking.byRevenue.slice(0, 6);
+// Mais vendidos: lista curta com a faixa de cor da categoria (ui-stripe).
+// `getColorVar(item)` devolve a cor da categoria do produto.
+export function renderMaisVendidos({ productRanking, categoryRanking, getColorVar = () => 'var(--muted)' }) {
+  const rows = productRanking.byQuantity.slice(0, 5);
   const bestCategory = categoryRanking[0];
 
   return `
-    <div class="crm-grid">
-      <section class="crm-panel">
-        <header class="crm-panel__header">
-          <h3>Mais vendidos</h3>
-          <span>${bestCategory ? `Categoria destaque: ${escapeHtml(bestCategory.name)}` : 'Sem vendas'}</span>
-        </header>
-        ${renderProductRows(quantityRows)}
-      </section>
-      <section class="crm-panel">
-        <header class="crm-panel__header">
-          <h3>Ranking por faturamento</h3>
-        </header>
-        ${renderProductRows(revenueRows)}
-      </section>
-    </div>
+    <h2 class="ui-head">Mais vendidos <span>${bestCategory ? `Categoria destaque: ${escapeHtml(bestCategory.name)}` : 'Sem vendas'}</span></h2>
+    ${rows.length ? `
+      <div class="cx-list">
+        ${rows.map((item) => `
+          <div class="cx-list__row">
+            <span class="ui-stripe" style="--c:${escapeHtml(getColorVar(item))}"></span>
+            <span class="cx-list__name">${escapeHtml(item.name)}</span>
+            <b>${item.quantity} un.</b>
+          </div>
+        `).join('')}
+      </div>
+    ` : '<p class="cx-empty">Nenhum produto vendido no período.</p>'}
   `;
 }
 
-function renderProductRows(rows) {
-  if (!rows.length) {
-    return '<div class="empty-products">Nenhum produto vendido no periodo.</div>';
-  }
+export function renderRankingFaturamento({ productRanking }) {
+  const rows = productRanking.byRevenue.slice(0, 6);
 
   return `
-    <div class="crm-table">
-      <div class="crm-table__head"><span>Produto</span><span>Qtd</span><span>Total</span></div>
-      ${rows.map((item) => `
-        <div class="crm-table__row">
-          <span>${escapeHtml(item.name)}</span>
-          <span>${item.quantity}</span>
-          <strong>${formatCurrency(item.revenue)}</strong>
-        </div>
-      `).join('')}
-    </div>
+    <section class="ui-panel">
+      <h2 class="ui-head">Ranking por faturamento</h2>
+      ${rows.length ? `
+        <table class="ui-table">
+          <thead><tr><th>Produto</th><th class="r">Qtd</th><th class="r">Total</th></tr></thead>
+          <tbody>
+            ${rows.map((item) => `
+              <tr>
+                <td>${escapeHtml(item.name)}</td>
+                <td class="r">${item.quantity}</td>
+                <td class="r"><b>${formatCurrency(item.revenue)}</b></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      ` : '<p class="cx-empty">Nenhum produto vendido no período.</p>'}
+    </section>
   `;
 }

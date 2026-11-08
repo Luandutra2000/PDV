@@ -1,0 +1,74 @@
+/* Tela Caixa do visual B claro. Escopo: .cx e classes cx-*; a estrutura vem de
+   .ui-screen / .ui-cols / .ui-panel / .ui-table (components.css). Nao reaproveita
+   as classes crm-* do CSS antigo. Valores: secao "Caixa e fechamento" de
+   docs/superpowers/specs/mockups/2026-11-07-telas-b-claro.html */
+
+/* Cabecalho: titulo e linha de abertura, periodo e botoes de caixa */
+.cx-head { flex-wrap: wrap; gap: 10px 16px; font-size: 14px; }
+.cx-head__title { min-width: 0; margin-right: auto; }
+.cx-title { font-size: 19px; font-weight: 600; line-height: 1.2; }
+.cx-open { margin-top: 3px; color: var(--muted); font-size: 12.5px; font-weight: 400; }
+.cx-period { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cx-date { width: 150px; }
+.cx-head__actions { margin-left: 0; flex-wrap: wrap; }
+
+/* Estado da sincronizacao financeira */
+.cx-sync { display: flex; }
+
+/* Cartoes de resumo */
+.cx .ui-stat b.is-plus { color: var(--green); }
+.cx .ui-stat b.is-minus { color: var(--red); }
+
+/* Paineis: a tabela larga rola dentro do cartao em vez de cortar */
+.cx .ui-panel { overflow: visible; }
+.cx-scroll { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+.cx .ui-table th, .cx .ui-table td { white-space: nowrap; }
+.cx-closing { align-self: stretch; }
+.cx-side { align-self: stretch; }
+.cx-note { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.cx-muted { color: var(--muted); }
+.cx-empty { color: var(--muted); padding: 6px 0; }
+
+/* Campo "Contado" dentro da tabela */
+.cx-count { display: inline-block; width: 130px; height: 36px; text-align: right; font-weight: 500; }
+.cx-count::-webkit-outer-spin-button,
+.cx-count::-webkit-inner-spin-button { margin: 0; }
+
+/* Diferenca: vermelho se faltar, verde se zerar ou sobrar */
+.cx-diff { font-weight: 600; }
+.cx-diff.is-neg, .cx-minus { color: var(--red); }
+.cx-diff.is-pos, .cx-plus { color: var(--green); }
+.cx-diff.is-none { color: var(--muted); font-weight: 400; }
+.cx-diff--big { font-size: 20px; }
+
+/* Rodape da conferencia: diferenca geral e Fechar caixa */
+.cx-closing__foot {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.cx-close-btn { margin-left: auto; height: 46px; padding: 0 22px; }
+
+/* Lista curta (Mais vendidos, fechamentos salvos) */
+.cx-list { display: grid; }
+.cx-list__row { display: flex; align-items: center; gap: 0; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
+.cx-list__row:last-child { border-bottom: 0; }
+.cx-list__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cx-list__row--stack .cx-list__name { display: flex; flex-direction: column; gap: 2px; white-space: normal; }
+.cx-list__row--stack small { color: var(--muted); font-size: 12px; }
+.cx-list__row b { font-weight: 600; margin-left: 10px; white-space: nowrap; }
+
+/* Vendas por periodo: barras verticais, o pico em ambar */
+.cx-bars { display: flex; align-items: flex-end; gap: 8px; height: 150px; padding-bottom: 22px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.cx-bars__col { position: relative; flex: 1 0 28px; max-width: 64px; height: 100%; display: flex; align-items: flex-end; }
+.cx-bars__col i { display: block; width: 100%; background: var(--muted); opacity: .55; border-radius: 6px 6px 0 0; }
+.cx-bars__col.is-peak i { background: var(--accent); opacity: 1; }
+.cx-bars__col span { position: absolute; left: 0; right: 0; bottom: -20px; text-align: center; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+
+/* O container dos modais nao ocupa celula da coluna (o fundo do modal e position: fixed). */
+.cx-modal { display: contents; }
+.cx-side .cx-note + .ui-head { margin-top: 8px; }

@@ -2,22 +2,25 @@ import { formatCurrency } from '../utils/currency.js?v=20260804-06';
 import { escapeHtml } from '../utils/dom.js?v=20260804-06';
 
 export function renderEntradasSaidas(movements) {
+  const rows = movements.slice(0, 10);
+
   return `
-    <section class="crm-panel">
-      <header class="crm-panel__header">
-        <h3>Movimentacoes financeiras</h3>
-        <span>${movements.length} registro(s)</span>
-      </header>
-      <div class="crm-table">
-        <div class="crm-table__head"><span>Movimento</span><span>Categoria</span><span>Valor</span></div>
-        ${movements.slice(0, 10).map((movement) => `
-          <div class="crm-table__row">
-            <span>${escapeHtml(movement.description || movement.type)}</span>
-            <span>${escapeHtml(movement.category)}</span>
-            <strong class="${movement.type === 'saida' ? 'money-negative' : 'money-positive'}">${formatCurrency(movement.amount)}</strong>
-          </div>
-        `).join('')}
-      </div>
+    <section class="ui-panel">
+      <h2 class="ui-head">Movimentações financeiras <span>${movements.length} registro(s)</span></h2>
+      ${rows.length ? `
+        <table class="ui-table">
+          <thead><tr><th>Movimento</th><th>Categoria</th><th class="r">Valor</th></tr></thead>
+          <tbody>
+            ${rows.map((movement) => `
+              <tr>
+                <td>${escapeHtml(movement.description || movement.type)}</td>
+                <td>${escapeHtml(movement.category)}</td>
+                <td class="r"><b class="${movement.type === 'saida' ? 'cx-minus' : 'cx-plus'}">${formatCurrency(movement.amount)}</b></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      ` : '<p class="cx-empty">Nenhuma movimentação no período.</p>'}
     </section>
   `;
 }

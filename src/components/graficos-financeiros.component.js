@@ -1,43 +1,47 @@
 import { formatCurrency } from '../utils/currency.js?v=20260804-06';
 
-export function renderGraficosFinanceiros({ summary, series }) {
+// Vendas por periodo: barras verticais, a maior em ambar.
+export function renderVendasPorPeriodo(series) {
   const maxSales = Math.max(...series.map((item) => item.sales), 1);
-  const payments = summary.paymentTotals;
 
   return `
-    <div class="crm-grid">
-      <section class="crm-panel crm-panel--wide">
-        <header class="crm-panel__header">
-          <h3>Vendas por periodo</h3>
-          <span>${series.length} ponto(s)</span>
-        </header>
-        <div class="crm-bars">
+    <section class="ui-panel">
+      <h2 class="ui-head">Vendas por período <span>${series.length} ponto(s)</span></h2>
+      ${series.length ? `
+        <div class="cx-bars">
           ${series.map((item) => `
-            <div class="crm-bar" style="height:${Math.max((item.sales / maxSales) * 100, 8)}%">
+            <div class="cx-bars__col${item.sales > 0 && item.sales === maxSales ? ' is-peak' : ''}" title="${formatCurrency(item.sales)}">
+              <i style="height:${Math.max((item.sales / maxSales) * 100, 4)}%"></i>
               <span>${item.label.slice(5)}</span>
             </div>
           `).join('')}
         </div>
-      </section>
-      <section class="crm-panel">
-        <header class="crm-panel__header">
-          <h3>Formas de pagamento</h3>
-        </header>
-        ${renderPaymentRow('Dinheiro', payments.dinheiro)}
-        ${renderPaymentRow('Pix', payments.pix)}
-        ${renderPaymentRow('Debito', payments.debito)}
-        ${renderPaymentRow('Credito', payments.credito)}
-        ${renderPaymentRow('Outros', payments.outros)}
-      </section>
-    </div>
+      ` : '<p class="cx-empty">Nenhuma venda no período.</p>'}
+    </section>
   `;
 }
 
-function renderPaymentRow(label, value) {
+// Formas de pagamento em barras horizontais (ui-bars), proporcionais ao maior valor.
+export function renderFormasPagamento(summary) {
+  const payments = summary.paymentTotals;
+  const rows = [
+    ['Dinheiro', payments.dinheiro],
+    ['Pix', payments.pix],
+    ['Débito', payments.debito],
+    ['Crédito', payments.credito],
+    ['Outros', payments.outros]
+  ];
+  const max = Math.max(...rows.map(([, value]) => Number(value) || 0), 0);
+
   return `
-    <div class="crm-payment-row">
-      <span>${label}</span>
-      <strong>${formatCurrency(value)}</strong>
+    <div class="ui-bars">
+      ${rows.map(([label, value]) => `
+        <div class="ui-bar-row">
+          <span>${label}</span>
+          <div class="track"><i style="width:${max > 0 ? Math.round(((Number(value) || 0) / max) * 100) : 0}%;--c:var(--ink)"></i></div>
+          <b>${formatCurrency(value)}</b>
+        </div>
+      `).join('')}
     </div>
   `;
 }

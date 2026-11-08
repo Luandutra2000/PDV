@@ -2,27 +2,32 @@ import { formatCurrency } from '../utils/currency.js?v=20260804-06';
 
 export function renderHistoricoFechamentos(closings, getSalesAfterClosing) {
   if (!closings.length) {
-    return '<div class="empty-products">Nenhum fechamento salvo.</div>';
+    return `
+      <section class="ui-panel">
+        <h2 class="ui-head">Fechamentos salvos</h2>
+        <p class="cx-empty">Nenhum fechamento salvo.</p>
+      </section>
+    `;
   }
 
   return `
-    <section class="crm-panel">
-      <header class="crm-panel__header">
-        <h3>Historico de fechamentos</h3>
-        <span>${closings.length} fechamento(s)</span>
-      </header>
-      ${closings.slice(0, 5).map((closing) => {
-        const afterClosing = getSalesAfterClosing(closing);
-        return `
-          <article class="crm-closing-row">
-            <div>
-              <strong>${formatDate(closing.closedAt)}</strong>
-              <span>${afterClosing.length ? `${afterClosing.length} venda(s) apos fechamento` : 'Sem vendas apos fechamento'}</span>
-            </div>
-            <strong>${formatCurrency(closing.totals?.generalDifference || 0)}</strong>
-          </article>
-        `;
-      }).join('')}
+    <section class="ui-panel">
+      <h2 class="ui-head">Fechamentos salvos <span>${closings.length} fechamento(s)</span></h2>
+      <div class="cx-list">
+        ${closings.slice(0, 5).map((closing) => {
+          const afterClosing = getSalesAfterClosing(closing);
+          const difference = Number(closing.totals?.generalDifference || 0);
+          return `
+            <article class="cx-list__row cx-list__row--stack">
+              <div class="cx-list__name">
+                <strong>${formatDate(closing.closedAt)}</strong>
+                <small>${afterClosing.length ? `${afterClosing.length} venda(s) após o fechamento` : 'Sem vendas após o fechamento'}</small>
+              </div>
+              <b class="${difference < 0 ? 'cx-minus' : 'cx-plus'}">${formatCurrency(difference)}</b>
+            </article>
+          `;
+        }).join('')}
+      </div>
     </section>
   `;
 }

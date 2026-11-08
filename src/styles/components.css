@@ -315,3 +315,30 @@
   .rail__nav { flex: none; }
   .rail__nav--footer { margin-top: 0; margin-left: auto; }
 }
+
+/* Tela de modulo com rolagem (Caixa, Financeiro, Relatorios...): coluna de blocos
+   sobre o fundo --bg. .ui-cols poe dois blocos lado a lado (o segundo e a coluna
+   lateral); .ui-cols--even divide em duas colunas iguais. Abaixo de 980 px empilha. */
+.ui-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  min-height: 100%;
+  padding: 20px 22px 28px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 14px;
+}
+.ui-screen *, .ui-screen *::before, .ui-screen *::after { box-sizing: border-box; }
+.ui-screen h1, .ui-screen h2, .ui-screen p { margin: 0; }
+.ui-cols { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 14px; align-items: start; }
+.ui-cols--even { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 980px) {
+  .ui-cols, .ui-cols--even { grid-template-columns: minmax(0, 1fr); }
+}
+/* Em tela larga a moldura ocupa a janela e so o corpo da tela rola; o topo fica visivel. */
+@media (min-width: 761px) {
+  .app-shell:not(.is-mobile-owner) .pdv-layout:has(.ui-screen) { height: 100dvh; min-height: 0; }
+}

@@ -7,11 +7,16 @@ import {
   getSalesSeries
 } from '../../services/crm-dashboard.service.js?v=20260804-06';
 import { buildClosingSummary, confirmClosing, getCashClosings, getSalesAfterClosing, saveClosingDraft } from '../../services/cash-closing.service.js?v=20260804-06';
-import { renderDashboardResumo } from '../../components/dashboard-resumo.component.js?v=20260804-06';
-import { renderGraficosFinanceiros } from '../../components/graficos-financeiros.component.js?v=20260804-06';
-import { renderAnaliseProdutos } from '../../components/analise-produtos.component.js?v=20260804-06';
-import { renderEntradasSaidas } from '../../components/entradas-saidas.component.js?v=20260804-06';
-import { renderHistoricoFechamentos } from '../../components/historico-fechamentos.component.js?v=20260804-06';
+import { renderDashboardResumo } from '../../components/dashboard-resumo.component.js?v=20260807-12';
+import { renderFormasPagamento, renderVendasPorPeriodo } from '../../components/graficos-financeiros.component.js?v=20260807-12';
+import { renderMaisVendidos, renderRankingFaturamento } from '../../components/analise-produtos.component.js?v=20260807-12';
+import { renderEntradasSaidas } from '../../components/entradas-saidas.component.js?v=20260807-12';
+import { renderHistoricoFechamentos } from '../../components/historico-fechamentos.component.js?v=20260807-12';
+import { renderCashActionButtons, renderCashMovementModal, renderWriteOffModal, submitCashMovementForm, submitWriteOffForm } from '../../components/cash-actions.component.js?v=20260807-08';
+import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-07';
+import { getCategories } from '../../services/product.service.js?v=20260804-06';
+import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
+import { getCashSessionStatus } from '../../services/cash-session.service.js?v=20260804-06';
 import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
 import { showNotification } from '../../services/notification.service.js?v=20260804-06';
 import { getTransactionSyncStatus } from '../../services/transaction.service.js?v=20260804-06';
@@ -27,20 +32,24 @@ const caixaState = {
   checkedPix: '',
   checkedDebit: '',
   checkedCredit: '',
-  note: ''
+  note: '',
+  modal: null
 };
 const boundContainers = new WeakSet();
 
 export function initCaixaModule(container) {
+  caixaState.modal = null;
   renderCaixa(container);
 
   if (!boundContainers.has(container)) {
     bindCaixaEvents(container);
-    on(UI_EVENTS.financialSyncStatusChanged, () => {
+    const refresh = () => {
       if (container.querySelector('[data-caixa-screen]')) {
         renderCaixa(container);
       }
-    });
+    };
+    on(UI_EVENTS.financialSyncStatusChanged, refresh);
+    on(UI_EVENTS.cashSessionChanged, refresh);
     boundContainers.add(container);
   }
 }
@@ -59,43 +68,92 @@ function renderCaixa(container) {
     checkedDebit: caixaState.checkedDebit,
     checkedCredit: caixaState.checkedCredit
   }));
+  const categories = getCategories();
+  const getColorVar = (item) => {
+    const category = categories.find((candidate) => candidate.id === item.categoryId);
+    return category ? getCategoryColorVar(category, categories) : 'var(--muted)';
+  };
 
   container.innerHTML = `
-    <section class="module-screen crm-screen" data-caixa-screen>
-      <header class="crm-header">
-        <div>
-          <h1 class="pdv-title">Fechar Caixa / CRM</h1>
-          <p class="module-subtitle">Caixa, vendas, produtos, movimentacoes e fechamento em uma visao gerencial.</p>
+    <section class="ui-screen cx" data-caixa-screen>
+      <header class="ui-head cx-head">
+        <div class="cx-head__title">
+          <h1 class="cx-title">Caixa</h1>
+          <p class="cx-open">${renderOpeningLine()}</p>
         </div>
         ${renderPeriodFilters()}
+        <div class="ui-head__actions cx-head__actions">
+          ${renderCashActionButtons(getCurrentUser(), { includeQuickClosing: false })}
+        </div>
       </header>
 
       ${renderFinancialSyncStatus()}
       ${renderDashboardResumo(summary)}
-      ${renderGraficosFinanceiros({ summary, series })}
-      ${renderAnaliseProdutos({ productRanking, categoryRanking })}
-      <div class="crm-grid">
-        ${renderClosingPanel(summary, closingSummary)}
-        ${renderEntradasSaidas(movements)}
+      <div class="ui-cols cx-cols">
+        ${renderClosingPanel(closingSummary)}
+        <section class="ui-panel cx-side">
+          <h2 class="ui-head">Formas de pagamento</h2>
+          ${renderFormasPagamento(summary)}
+          <p class="cx-note">O dinheiro esperado soma as vendas em dinheiro e as entradas, menos as saídas.</p>
+          ${renderMaisVendidos({ productRanking, categoryRanking, getColorVar })}
+        </section>
       </div>
-      ${renderHistoricoFechamentos(closings, getSalesAfterClosing)}
+      <div class="ui-cols ui-cols--even">
+        ${renderVendasPorPeriodo(series)}
+        ${renderRankingFaturamento({ productRanking })}
+      </div>
+      <div class="ui-cols ui-cols--even">
+        ${renderEntradasSaidas(movements)}
+        ${renderHistoricoFechamentos(closings, getSalesAfterClosing)}
+      </div>
+      <div class="cx-modal" data-caixa-modal>${renderCaixaModal()}</div>
     </section>
   `;
+}
+
+function renderOpeningLine() {
+  const { open, session } = getCashSessionStatus();
+
+  if (!open || !session) {
+    return 'Caixa fechado';
+  }
+
+  const openedAt = session.openedAt ? new Date(session.openedAt) : null;
+  const time = openedAt && !Number.isNaN(openedAt.getTime())
+    ? openedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    : '';
+  const name = String(session.openedByName || '').trim();
+  const opening = formatCurrency(session.openingAmount || 0);
+
+  return `Aberto${time ? ` às ${time}` : ''}${name ? ` por ${escapeHtml(name)}` : ''}, com ${opening} de troco inicial.`;
+}
+
+function renderCaixaModal() {
+  if (caixaState.modal === 'entrada' || caixaState.modal === 'saida') {
+    return renderCashMovementModal(caixaState.modal);
+  }
+
+  if (caixaState.modal === 'write-off') {
+    return renderWriteOffModal();
+  }
+
+  return '';
 }
 
 function renderFinancialSyncStatus() {
   const status = getTransactionSyncStatus();
   const label = status.state === 'pending'
-    ? `${status.pending || 0} alteracao(oes) financeira(s) pendente(s)`
+    ? `${status.pending || 0} alteração(ões) financeira(s) pendente(s)`
     : status.state === 'local'
       ? 'Modo local'
       : status.state === 'error'
-        ? 'Sincronizacao financeira com erro'
+        ? 'Sincronização financeira com erro'
         : status.state === 'cache'
           ? 'Usando dados financeiros em cache'
           : 'Financeiro sincronizado';
+  const tone = status.state === 'error' ? ' ui-pill--danger' : ['pending', 'cache'].includes(status.state) ? ' ui-pill--warn' : status.state === 'synced' ? ' ui-pill--ok' : '';
 
-  return `<div class="sync-status" data-sync-state="${status.state}"><span>${label}</span></div>`;
+  return `<div class="cx-sync"><span class="ui-pill${tone}" data-sync-state="${status.state}">${label}</span></div>`;
 }
 
 function bindCaixaEvents(container) {
@@ -113,9 +171,48 @@ function bindCaixaEvents(container) {
       return;
     }
 
-    if (actionButton?.dataset.action === 'confirm-crm-closing') {
+    const action = actionButton?.dataset.action;
+    const modalByAction = { 'open-entry': 'entrada', 'open-output': 'saida', 'open-write-off': 'write-off' };
+
+    if (modalByAction[action]) {
+      caixaState.modal = modalByAction[action];
+      renderCaixa(container);
+      return;
+    }
+
+    if (action === 'close-modal') {
+      caixaState.modal = null;
+      renderCaixa(container);
+      return;
+    }
+
+    if (action === 'confirm-crm-closing') {
       confirmCrmClosing(container);
     }
+  });
+
+  container.addEventListener('submit', (event) => {
+    if (!event.target.closest?.('[data-caixa-screen]')) {
+      return;
+    }
+
+    const submitter = event.target.matches('[data-cash-form]')
+      ? submitCashMovementForm
+      : event.target.matches('[data-write-off-form]')
+        ? submitWriteOffForm
+        : null;
+
+    if (!submitter) {
+      return;
+    }
+
+    event.preventDefault();
+    submitter(new FormData(event.target)).then((saved) => {
+      if (saved) {
+        caixaState.modal = null;
+        renderCaixa(container);
+      }
+    });
   });
 
   container.addEventListener('input', (event) => {
@@ -142,14 +239,41 @@ function bindCaixaEvents(container) {
   });
 }
 
+// Diferenca negativa em vermelho; zero ou positiva em verde.
+function differenceTone(value) {
+  return Number(value) < 0 ? 'is-neg' : 'is-pos';
+}
+
+function formatDifference(value) {
+  const amount = Number(value) || 0;
+  return amount < 0 ? `− ${formatCurrency(Math.abs(amount))}` : formatCurrency(amount);
+}
+
+function applyDifference(element, value, extraClass = '') {
+  if (!element) {
+    return;
+  }
+
+  if (value === null || value === undefined) {
+    element.textContent = '—';
+    element.className = `cx-diff is-none ${extraClass}`.trim();
+    return;
+  }
+
+  element.textContent = formatDifference(value);
+  element.className = `cx-diff ${differenceTone(value)} ${extraClass}`.trim();
+}
+
 function updateClosingDifference(container) {
   const summary = getCrmSummary(createPeriodFilter(caixaState.period, caixaState.customStart, caixaState.customEnd));
   const closing = buildClosingSummary(buildCrmClosingInput(summary, caixaState));
-  const difference = container.querySelector('[data-crm-closing-difference]');
-  if (difference) {
-    difference.textContent = formatCurrency(closing.payments.generalDifference);
-    difference.className = closing.payments.generalDifference ? 'money-negative' : 'money-positive';
-  }
+  const { payments } = closing;
+
+  applyDifference(container.querySelector('[data-crm-closing-difference]'), payments.generalDifference, 'cx-diff--big');
+  applyDifference(container.querySelector('[data-crm-row-difference="cash"]'), payments.cashDifference);
+  applyDifference(container.querySelector('[data-crm-row-difference="pix"]'), payments.pixDifference);
+  applyDifference(container.querySelector('[data-crm-row-difference="debit"]'), payments.debitDifference);
+  applyDifference(container.querySelector('[data-crm-row-difference="credit"]'), payments.creditDifference);
 }
 
 function renderPeriodFilters() {
@@ -157,68 +281,78 @@ function renderPeriodFilters() {
     ['today', 'Hoje'],
     ['yesterday', 'Ontem'],
     ['week', 'Semana'],
-    ['month', 'Mes'],
+    ['month', 'Mês'],
     ['custom', 'Personalizado']
   ];
 
   return `
-    <div class="crm-filters">
-      ${options.map(([value, label]) => `
-        <button class="crm-filter ${caixaState.period === value ? 'is-active' : ''}" type="button" data-crm-period="${value}">${label}</button>
-      `).join('')}
+    <div class="cx-period">
+      <div class="ui-seg" role="group" aria-label="Período">
+        ${options.map(([value, label]) => `
+          <button${caixaState.period === value ? ' class="is-on" aria-pressed="true"' : ' aria-pressed="false"'} type="button" data-crm-period="${value}">${label}</button>
+        `).join('')}
+      </div>
       ${caixaState.period === 'custom' ? `
-        <input class="field" type="date" data-crm-custom-start value="${caixaState.customStart}">
-        <input class="field" type="date" data-crm-custom-end value="${caixaState.customEnd}">
+        <input class="ui-input cx-date" type="date" aria-label="Data inicial" data-crm-custom-start value="${escapeHtml(caixaState.customStart)}">
+        <input class="ui-input cx-date" type="date" aria-label="Data final" data-crm-custom-end value="${escapeHtml(caixaState.customEnd)}">
       ` : ''}
     </div>
   `;
 }
 
-function renderClosingPanel(summary, closingSummary) {
-  const expectedCash = closingSummary.payments.expectedCash;
+function renderClosingPanel(closingSummary) {
   const canClose = caixaState.period === 'today';
+  const { payments } = closingSummary;
+  const rows = [
+    ['Dinheiro', 'cash', 'countedCash', caixaState.countedCash, payments.expectedCash, payments.cashDifference],
+    ['Pix', 'pix', 'checkedPix', caixaState.checkedPix, payments.expectedPix, payments.pixDifference],
+    ['Débito', 'debit', 'checkedDebit', caixaState.checkedDebit, payments.expectedDebit, payments.debitDifference],
+    ['Crédito', 'credit', 'checkedCredit', caixaState.checkedCredit, payments.expectedCredit, payments.creditDifference]
+  ];
 
   return `
-    <section class="crm-panel crm-closing-card">
-      <header class="crm-panel__header">
-        <h3>Fechamento completo</h3>
-        <span>${canClose ? 'Acumulado de hoje; cada fechamento salva uma conferencia' : 'Resumo do periodo selecionado'}</span>
-      </header>
-      <div class="crm-payment-row"><span>Vendas</span><strong>${formatCurrency(summary.salesTotal)}</strong></div>
-      <div class="crm-payment-row"><span>Entradas</span><strong>${formatCurrency(summary.entriesTotal)}</strong></div>
-      <div class="crm-payment-row"><span>Saídas</span><strong>${formatCurrency(summary.outputsTotal)}</strong></div>
-      <div class="crm-payment-row"><span>Dinheiro esperado</span><strong>${formatCurrency(expectedCash)}</strong></div>
-      <div class="crm-payment-row"><span>Pix esperado</span><strong>${formatCurrency(summary.paymentTotals.pix)}</strong></div>
-      <div class="crm-payment-row"><span>Cartoes</span><strong>${formatCurrency(summary.paymentTotals.debito + summary.paymentTotals.credito)}</strong></div>
-      <div class="closing-form-grid closing-form-grid--compact">
-        ${renderClosingInput('countedCash', 'Dinheiro contado', caixaState.countedCash)}
-        ${renderClosingInput('checkedPix', 'Pix conferido', caixaState.checkedPix)}
-        ${renderClosingInput('checkedDebit', 'Debito conferido', caixaState.checkedDebit)}
-        ${renderClosingInput('checkedCredit', 'Credito conferido', caixaState.checkedCredit)}
+    <section class="ui-panel cx-closing">
+      <h2 class="ui-head">Conferência do fechamento <span>${canClose ? 'digite o que foi contado' : 'resumo do período selecionado'}</span></h2>
+      <div class="cx-scroll">
+        <table class="ui-table">
+          <thead><tr><th>Forma</th><th class="r">Esperado</th><th class="r">Contado</th><th class="r">Diferença</th></tr></thead>
+          <tbody>
+            ${rows.map(([label, key, field, value, expected, difference]) => `
+              <tr>
+                <td><b>${label}</b></td>
+                <td class="r">${formatCurrency(expected)}</td>
+                <td class="r">${renderClosingInput(field, `${label} contado`, value)}</td>
+                <td class="r">${renderDifference(difference, `data-crm-row-difference="${key}"`)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
       </div>
-      <label class="stacked-label">
-        Observacao do fechamento
-        <input class="field" data-crm-closing-input="note" value="${escapeHtml(caixaState.note)}" placeholder="Obrigatoria se houver diferenca">
-      </label>
-      <div class="crm-payment-row">
-        <span>Diferenca geral</span>
-        <strong data-crm-closing-difference class="${closingSummary.payments.generalDifference ? 'money-negative' : 'money-positive'}">${formatCurrency(closingSummary.payments.generalDifference)}</strong>
+      <div class="ui-field">
+        <label for="cx-closing-note">Observação do fechamento</label>
+        <input class="ui-input" id="cx-closing-note" data-crm-closing-input="note" value="${escapeHtml(caixaState.note)}" placeholder="Obrigatória se houver diferença">
       </div>
-      ${canClose ? '' : '<p class="form-help">Selecione Hoje para fechar a sessao atual.</p>'}
-      <button class="button" type="button" data-action="confirm-crm-closing"${canClose ? '' : ' disabled'}>${canClose ? 'Fechar caixa' : 'Selecione Hoje para fechar'}</button>
+      <footer class="cx-closing__foot">
+        <span class="cx-muted">Diferença geral</span>
+        ${renderDifference(payments.generalDifference, 'data-crm-closing-difference', 'cx-diff--big')}
+        <button class="ui-btn ui-btn--primary cx-close-btn" type="button" data-action="confirm-crm-closing"${canClose ? '' : ' disabled'}>${canClose ? 'Fechar caixa' : 'Selecione Hoje para fechar'}</button>
+      </footer>
     </section>
   `;
+}
+
+function renderDifference(value, attribute, extraClass = '') {
+  if (value === null || value === undefined) {
+    return `<b class="cx-diff is-none ${extraClass}" ${attribute}>—</b>`;
+  }
+
+  return `<b class="cx-diff ${differenceTone(value)} ${extraClass}" ${attribute}>${formatDifference(value)}</b>`;
 }
 
 function renderClosingInput(name, label, value) {
   const minimum = name === 'countedCash' ? '' : ' min="0"';
 
-  return `
-    <label class="stacked-label closing-field">
-      ${label}
-      <input class="field" data-crm-closing-input="${name}" type="number"${minimum} step="0.01" value="${value}">
-    </label>
-  `;
+  return `<input class="ui-input cx-count" data-crm-closing-input="${name}" type="number"${minimum} step="0.01" inputmode="decimal" aria-label="${label}" value="${escapeHtml(value)}">`;
 }
 
 function confirmCrmClosing(container) {
