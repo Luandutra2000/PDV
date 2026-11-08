@@ -23,7 +23,7 @@ const assert = (condition, message) => {
 
 const storage = await import('../src/services/storage.service.js?v=20260804-06');
 const auth = await import('../src/services/auth.service.js?v=20260804-06');
-const { initPessoasModule } = await import('../src/modules/pessoas/pessoas.module.js?v=20260804-06');
+const { initPessoasModule } = await import('../src/modules/pessoas/pessoas.module.js?v=20260807-16');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
 
@@ -43,14 +43,14 @@ const container = {
 
 initPessoasModule(container);
 
-assert(container.innerHTML.includes('Pessoas e Permissoes'), 'people screen should render modern title');
-assert(container.innerHTML.includes('Total de usuarios'), 'people screen should render summary cards');
+assert(container.innerHTML.includes('Pessoas e permissões'), 'people screen should render the new title');
+assert(container.innerHTML.includes('Total de usuários'), 'people screen should render summary cards');
 assert(container.innerHTML.includes('data-user-modal'), 'people screen should render user modal markup');
 assert(container.innerHTML.includes('data-permission-checkbox'), 'people modal should render permission checklist');
 assert(container.innerHTML.includes('Gerente'), 'role select should include Gerente');
 assert(container.innerHTML.includes('Operador/Caixa'), 'role select should include Operador/Caixa');
 assert(container.innerHTML.includes('Financeiro/Despesas'), 'permissions should include financial group');
-assert(container.innerHTML.includes('Historico de acoes'), 'people screen should render audit history section');
+assert(container.innerHTML.includes('Histórico de ações'), 'people screen should render audit history section');
 assert(container.innerHTML.includes('data-audit-user-filter'), 'history should expose user filter');
 assert(container.innerHTML.includes('data-action="delete-user"'), 'people screen should expose user deletion');
 

@@ -42,6 +42,23 @@ const peopleState = {
 };
 const boundContainers = new WeakSet();
 
+// Os nomes de grupo e de permissao vem do servico sem acento; aqui so o texto exibido
+// ganha acento. Ids, valores e filtros continuam os mesmos.
+const DISPLAY_WORD_FIXES = {
+  Gestao: 'Gestão',
+  saida: 'saída',
+  Lancar: 'Lançar',
+  producao: 'produção',
+  relatorios: 'relatórios',
+  lancamentos: 'lançamentos',
+  usuarios: 'usuários',
+  permissoes: 'permissões'
+};
+
+function displayText(text) {
+  return String(text ?? '').replace(/[A-Za-z]+/g, (word) => DISPLAY_WORD_FIXES[word] || word);
+}
+
 export function initPessoasModule(container) {
   ensureSelectedUser();
   renderPeople(container);
@@ -51,7 +68,7 @@ export function initPessoasModule(container) {
       renderPeople(container);
     })
     .catch((error) => {
-      renderPeople(container, error.message || 'Nao foi possivel carregar usuarios.');
+      renderPeople(container, error.message || 'Não foi possível carregar os usuários.');
     });
 
   if (!boundContainers.has(container)) {
@@ -69,43 +86,41 @@ function renderPeople(container, loadError = '') {
   const logs = getAuditRows();
   const error = loadError || peopleState.error;
 
+  const canSeeAudit = permissions.canManagePermissions || hasPermission(getCurrentUser(), 'audit.view');
+
   container.innerHTML = `
-    <section class="module-screen people-screen" data-people-screen>
-      <header class="module-header people-hero">
-        <div>
-          <span class="people-eyebrow">Equipe & seguranca</span>
-          <h1 class="pdv-title">Pessoas e Permissoes</h1>
-          <p class="module-subtitle">Gerencie acessos, perfis e acompanhe as acoes realizadas no sistema.</p>
+    <section class="ui-screen ps" data-people-screen>
+      <header class="ui-head ps-head">
+        <div class="ps-head__title">
+          <h1 class="ps-title">Pessoas e permissões</h1>
+          <p class="ps-sub">Acessos, perfis e o histórico do que cada pessoa fez no sistema.</p>
         </div>
-        ${permissions.canCreate ? '<button class="button people-new-button" type="button" data-action="new-user">+ Novo usuario</button>' : ''}
+        <div class="ui-head__actions">
+          ${canSeeAudit ? '<button class="ui-btn" type="button" data-action="show-audit">Histórico de ações</button>' : ''}
+          ${permissions.canCreate ? '<button class="ui-btn ui-btn--primary" type="button" data-action="new-user">Novo usuário</button>' : ''}
+        </div>
       </header>
 
       ${renderFeedback(error)}
       ${renderSummaryCards(users, logs)}
 
-      <div class="people-main-grid">
-        <section class="manager-section people-card-panel">
-          <header class="manager-section__header">
-            <strong>Usuarios</strong>
-            <span>${users.length} cadastrado(s)</span>
-          </header>
-          <div class="manager-list people-list">
+      <div class="ps-cols">
+        <section class="ui-panel ps-team">
+          <h2 class="ui-head">
+            Equipe
+            <span>${users.length} ${users.length === 1 ? 'pessoa' : 'pessoas'}</span>
+          </h2>
+          <div class="ps-people">
             ${renderUserList(users)}
           </div>
         </section>
 
-        <section class="manager-section people-card-panel">
-          <header class="manager-section__header">
-            <div>
-              <strong>Permissoes do usuario</strong>
-              <span>${selectedUser ? escapeHtml(selectedUser.name) : 'Selecione um usuario'}</span>
-            </div>
-          </header>
-          ${selectedUser ? renderSelectedPermissionPreview(selectedUser, permissions) : '<div class="empty-products">Nenhum usuario selecionado.</div>'}
+        <section class="ui-panel ps-perms">
+          ${selectedUser ? renderSelectedPermissionPreview(selectedUser, permissions) : '<h2 class="ui-head">Permissões</h2><p class="ps-empty">Nenhuma pessoa selecionada.</p>'}
         </section>
       </div>
 
-      ${permissions.canManagePermissions || hasPermission(getCurrentUser(), 'audit.view') ? renderAuditPanel(users, logs) : ''}
+      ${canSeeAudit ? renderAuditPanel(users, logs) : ''}
       ${renderUserModal(editingUser, permissions)}
       ${renderDeleteConfirmation(deletingUser)}
     </section>
@@ -114,11 +129,11 @@ function renderPeople(container, loadError = '') {
 
 function renderFeedback(error = '') {
   if (error) {
-    return `<p class="form-error people-feedback">${escapeHtml(error)}</p>`;
+    return `<p class="form-error ps-feedback">${escapeHtml(error)}</p>`;
   }
 
   if (peopleState.message) {
-    return `<p class="people-feedback people-feedback--success">${escapeHtml(peopleState.message)}</p>`;
+    return `<p class="ps-feedback ps-feedback--ok">${escapeHtml(peopleState.message)}</p>`;
   }
 
   return '';
@@ -131,18 +146,18 @@ function renderSummaryCards(users, logs) {
   const lastActivity = logs[0]?.createdAt ? formatDate(logs[0].createdAt) : 'Sem registro';
 
   return `
-    <div class="people-summary-grid">
-      ${renderSummaryCard('Total de usuarios', users.length)}
-      ${renderSummaryCard('Usuarios ativos', activeUsers.length)}
+    <div class="ui-stats">
+      ${renderSummaryCard('Total de usuários', users.length)}
+      ${renderSummaryCard('Ativos', activeUsers.length)}
       ${renderSummaryCard('Administradores', admins.length)}
       ${renderSummaryCard('Operadores', operators.length)}
-      ${renderSummaryCard('Ultima atividade', lastActivity)}
+      ${renderSummaryCard('Última atividade', lastActivity)}
     </div>
   `;
 }
 
 function renderSummaryCard(label, value) {
-  return `<article class="people-summary-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`;
+  return `<div class="ui-stat"><small>${escapeHtml(label)}</small><b>${escapeHtml(value)}</b></div>`;
 }
 
 function bindPeopleEvents(container) {
@@ -229,6 +244,12 @@ function bindPeopleEvents(container) {
       peopleState.auditFilters.user = user?.name || '';
       peopleState.selectedUserId = button.dataset.userId;
       renderPeople(container);
+      scrollToAudit(container);
+      return;
+    }
+
+    if (button.dataset.action === 'show-audit') {
+      scrollToAudit(container);
     }
   });
 
@@ -243,7 +264,7 @@ function bindPeopleEvents(container) {
     const permissions = getPeoplePermissions();
 
     if ((!editingUserId && !permissions.canCreate) || (editingUserId && !permissions.canEdit)) {
-      renderFormError(event.target, 'Usuario sem permissao para esta acao.');
+      renderFormError(event.target, 'Usuário sem permissão para esta ação.');
       return;
     }
 
@@ -305,11 +326,11 @@ function bindPeopleEvents(container) {
       peopleState.modalPermissions = buildUserPermissionState(user);
       peopleState.modalDraft = createUserDraft(user);
       peopleState.modalOpen = false;
-      peopleState.message = editingUserId ? 'Usuario atualizado com sucesso.' : 'Usuario cadastrado com sucesso.';
+      peopleState.message = editingUserId ? 'Usuário atualizado com sucesso.' : 'Usuário cadastrado com sucesso.';
       peopleState.error = '';
       renderPeople(container);
     } catch (error) {
-      renderFormError(event.target, error.message || 'Nao foi possivel salvar o usuario.');
+      renderFormError(event.target, error.message || 'Não foi possível salvar o usuário.');
     }
   });
 
@@ -364,61 +385,77 @@ function bindPeopleEvents(container) {
   });
 }
 
+function scrollToAudit(container) {
+  container.querySelector?.('[data-audit-panel]')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+}
+
 function renderUserList(users) {
   const permissions = getPeoplePermissions();
 
   if (!users.length) {
-    return '<div class="empty-products">Nenhum usuario cadastrado.</div>';
+    return '<p class="ps-empty">Nenhum usuário cadastrado.</p>';
   }
 
-  return users.map((user) => `
-    <article class="people-row ${user.id === peopleState.selectedUserId ? 'is-selected' : ''}">
-      <button class="people-row__main" type="button" data-action="select-user" data-user-id="${user.id}">
-        <span class="people-avatar">${escapeHtml(getInitials(user.name))}</span>
-        <span>
-          <strong>${escapeHtml(user.name)}</strong>
-          <small>${escapeHtml(user.username || 'E-mail nao informado')} · ${getRoleLabel(user.role)} - ${user.active === false ? 'Inativo' : 'Ativo'}</small>
+  return users.map((user) => {
+    const isSelected = user.id === peopleState.selectedUserId;
+    const isInactive = user.active === false;
+
+    return `
+    <article class="ps-person${isSelected ? ' is-selected' : ''}" data-user-id="${user.id}"${isSelected ? ' aria-current="true"' : ''}>
+      <button class="ps-person__main" type="button" data-action="select-user" data-user-id="${user.id}">
+        <span class="ps-avatar" aria-hidden="true">${escapeHtml(getInitials(user.name))}</span>
+        <span class="ps-person__text">
+          <b>${escapeHtml(user.name)}</b>
+          <small>${getRoleLabel(user.role)}</small>
         </span>
       </button>
-      <div class="people-row__meta">
-        <span class="status-pill ${user.active === false ? 'is-inactive' : 'is-active'}">${user.active === false ? 'Inativo' : 'Ativo'}</span>
-      </div>
-      <div class="people-row__actions">
-        ${permissions.canEdit ? `<button class="button button--ghost" type="button" data-action="edit-user" data-user-id="${user.id}">Editar</button>` : ''}
-        ${permissions.canDelete ? `<button class="button button--danger" type="button" data-action="delete-user" data-user-id="${user.id}">Excluir</button>` : ''}
-        <button class="button button--ghost" type="button" data-action="view-history" data-user-id="${user.id}">Historico</button>
+      <span class="ui-pill${isInactive ? '' : ' ui-pill--ok'}">${isInactive ? 'Inativo' : 'Ativo'}</span>
+      <div class="ps-person__actions">
+        ${permissions.canEdit ? `<button class="ui-btn ui-btn--ghost ui-btn--sm" type="button" data-action="edit-user" data-user-id="${user.id}">Editar</button>` : ''}
+        ${permissions.canDelete ? `<button class="ui-btn ui-btn--ghost ui-btn--sm ps-danger" type="button" data-action="delete-user" data-user-id="${user.id}">Excluir</button>` : ''}
+        <button class="ui-btn ui-btn--ghost ui-btn--sm" type="button" data-action="view-history" data-user-id="${user.id}">Histórico</button>
       </div>
     </article>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderSelectedPermissionPreview(user, permissions) {
-  const activePermissions = PERMISSIONS.filter((permission) => isPermissionAllowed(user, permission.id));
-  const grouped = groupPermissions(activePermissions);
+  const grouped = groupPermissions();
+  const allowedCount = PERMISSIONS.filter((permission) => isPermissionAllowed(user, permission.id)).length;
+  const isAdmin = normalizeRole(user.role) === 'admin';
 
   return `
-    <div class="people-selected-profile">
-      <div>
-        <strong>${getRoleLabel(user.role)}</strong>
-        <span>${user.active === false ? 'Usuario inativo' : `${activePermissions.length} permissoes liberadas`}</span>
-      </div>
-      ${permissions.canEdit ? `<button class="button" type="button" data-action="edit-user" data-user-id="${user.id}">Editar permissoes</button>` : ''}
+    <div class="ps-perms__head">
+      <h2 class="ui-head">
+        Permissões de ${escapeHtml(user.name)}
+        <span>${user.active === false ? 'Usuário inativo' : `${allowedCount} de ${PERMISSIONS.length} liberadas`}</span>
+      </h2>
+      ${permissions.canEdit ? `<button class="ui-btn ui-btn--sm" type="button" data-action="edit-user" data-user-id="${user.id}">Editar permissões</button>` : ''}
     </div>
-    <div class="permission-preview-grid">
-      ${grouped.map(([group, groupPermissions]) => `
-        <section class="permission-preview-group">
-          <h3>${escapeHtml(group)}</h3>
-          ${groupPermissions.slice(0, 5).map((permission) => `<span>${escapeHtml(permission.label)}</span>`).join('')}
-          ${groupPermissions.length > 5 ? `<small>+${groupPermissions.length - 5} permissoes</small>` : ''}
-        </section>
-      `).join('') || '<div class="empty-products">Nenhuma permissao liberada.</div>'}
+    ${isAdmin ? '<p class="ps-note">Administrador tem acesso a tudo e as permissões não podem ser retiradas.</p>' : ''}
+    <div class="ps-groups">
+      ${grouped.map(([group, groupItems]) => `
+        <div class="ps-group">
+          <b>${escapeHtml(displayText(group))}</b>
+          <div class="ps-perms-list">
+            ${groupItems.map((permission) => renderPermissionChip(user, permission)).join('')}
+          </div>
+        </div>
+      `).join('')}
     </div>
   `;
 }
 
+function renderPermissionChip(user, permission) {
+  const allowed = isPermissionAllowed(user, permission.id);
+
+  return `<span class="ps-perm${allowed ? '' : ' ps-perm--off'}" data-perm-view="${permission.id}" data-state="${allowed ? 'on' : 'off'}"><span class="ps-sr">${allowed ? 'Liberado: ' : 'Bloqueado: '}</span>${escapeHtml(displayText(permission.label))}</span>`;
+}
+
 function renderUserModal(user, permissions) {
   const canRenderForm = permissions.canCreate || (user && permissions.canEdit);
-  const title = user ? 'Editar usuario' : 'Novo usuario';
+  const title = user ? 'Editar usuário' : 'Novo usuário';
 
   return `
     <div class="people-modal-backdrop ${peopleState.modalOpen ? 'is-open' : ''}" data-user-modal aria-hidden="${peopleState.modalOpen ? 'false' : 'true'}">
@@ -426,11 +463,11 @@ function renderUserModal(user, permissions) {
         <header class="people-modal__header">
           <div>
             <strong>${title}</strong>
-            <span>${user ? 'Atualize dados, status e permissoes.' : 'Cadastre o acesso e defina as permissoes.'}</span>
+            <span>${user ? 'Atualize dados, status e permissões.' : 'Cadastre o acesso e defina as permissões.'}</span>
           </div>
-          <button class="button button--ghost" type="button" data-action="close-user-modal">Cancelar</button>
+          <button class="ui-btn ui-btn--ghost ui-btn--sm" type="button" data-action="close-user-modal">Cancelar</button>
         </header>
-        ${canRenderForm ? renderUserForm(user, permissions) : '<div class="empty-products">Sem permissao para cadastrar ou editar usuarios.</div>'}
+        ${canRenderForm ? renderUserForm(user, permissions) : '<p class="ps-empty">Sem permissão para cadastrar ou editar usuários.</p>'}
       </section>
     </div>
   `;
@@ -443,18 +480,18 @@ function renderDeleteConfirmation(user) {
 
   return `
     <div class="people-modal-backdrop is-open" data-delete-user-modal aria-hidden="false">
-      <section class="people-modal" role="dialog" aria-modal="true" aria-label="Confirmar exclusao de usuario">
+      <section class="people-modal" role="dialog" aria-modal="true" aria-label="Confirmar exclusão de usuário">
         <header class="people-modal__header">
           <div>
-            <strong>Excluir usuario</strong>
-            <span>Esta acao nao pode ser desfeita.</span>
+            <strong>Excluir usuário</strong>
+            <span>Esta ação não pode ser desfeita.</span>
           </div>
         </header>
         <div class="people-modal__body">
-          <p>Confirma a exclusao de <strong>${escapeHtml(user.name)}</strong>?</p>
-          <div class="form-actions">
-            <button class="button button--ghost" type="button" data-action="cancel-delete-user">Cancelar exclusao</button>
-            <button class="button button--danger" type="button" data-action="confirm-delete-user">Confirmar exclusao</button>
+          <p>Confirma a exclusão de <strong>${escapeHtml(user.name)}</strong>?</p>
+          <div class="form-actions ps-actions">
+            <button class="ui-btn" type="button" data-action="cancel-delete-user">Cancelar exclusão</button>
+            <button class="ui-btn ps-btn-danger" type="button" data-action="confirm-delete-user">Confirmar exclusão</button>
           </div>
         </div>
       </section>
@@ -466,13 +503,13 @@ function openDeleteConfirmation(container, userId) {
   const permissions = getPeoplePermissions();
 
   if (!permissions.canDelete) {
-    renderPeople(container, 'Usuario sem permissao para esta acao.');
+    renderPeople(container, 'Usuário sem permissão para esta ação.');
     return;
   }
 
   const user = getUsers().find((candidate) => candidate.id === userId);
   if (!user) {
-    renderPeople(container, 'Usuario nao encontrado.');
+    renderPeople(container, 'Usuário não encontrado.');
     return;
   }
 
@@ -486,14 +523,14 @@ async function handleDeleteUser(container, userId) {
   const permissions = getPeoplePermissions();
 
   if (!permissions.canDelete) {
-    renderPeople(container, 'Usuario sem permissao para esta acao.');
+    renderPeople(container, 'Usuário sem permissão para esta ação.');
     return;
   }
 
   const user = getUsers().find((candidate) => candidate.id === userId);
 
   if (!user) {
-    renderPeople(container, 'Usuario nao encontrado.');
+    renderPeople(container, 'Usuário não encontrado.');
     return;
   }
 
@@ -519,13 +556,13 @@ async function handleDeleteUser(container, userId) {
     peopleState.selectedUserId = null;
     peopleState.deletingUserId = null;
     ensureSelectedUser();
-    peopleState.message = 'Usuario excluido com sucesso.';
+    peopleState.message = 'Usuário excluído com sucesso.';
     peopleState.error = '';
     renderPeople(container);
   } catch (error) {
     peopleState.deletingUserId = null;
     peopleState.message = '';
-    peopleState.error = error.message || 'Nao foi possivel excluir o usuario.';
+    peopleState.error = error.message || 'Não foi possível excluir o usuário.';
     renderPeople(container);
   }
 }
@@ -537,40 +574,40 @@ function renderUserForm(user, permissions = getPeoplePermissions()) {
   const canManagePermissions = permissions.canManagePermissions;
 
   return `
-    <form class="product-form people-form people-modal__body" data-user-form>
+    <form class="people-form people-modal__body" data-user-form>
       <input type="hidden" name="id" value="${user?.id || ''}">
       <p class="form-error" data-user-form-error hidden></p>
-      <div class="form-grid">
-        <label>
+      <div class="ps-form-grid">
+        <label class="ui-field">
           Nome
-          <input class="field" name="name" value="${escapeHtml(draft.name ?? user?.name ?? '')}" required>
+          <input class="ui-input" name="name" value="${escapeHtml(draft.name ?? user?.name ?? '')}" required>
         </label>
-        <label>
-          Usuario/e-mail
-          <input class="field" type="email" name="username" value="${escapeHtml(draft.username ?? user?.username ?? '')}" required>
+        <label class="ui-field">
+          Usuário/e-mail
+          <input class="ui-input" type="email" name="username" value="${escapeHtml(draft.username ?? user?.username ?? '')}" required>
         </label>
-        <label>
+        <label class="ui-field">
           Senha
-          <input class="field" name="password" type="password" value="${escapeHtml(draft.password || '')}" ${user ? 'placeholder="Preencha para alterar"' : 'required'}>
+          <input class="ui-input" name="password" type="password" value="${escapeHtml(draft.password || '')}" ${user ? 'placeholder="Preencha para alterar"' : 'required'}>
         </label>
-        <label>
+        <label class="ui-field">
           Perfil
-          <select class="field" name="role" data-role-select required ${canManagePermissions ? '' : 'disabled'}>
+          <select class="ui-input" name="role" data-role-select required ${canManagePermissions ? '' : 'disabled'}>
             ${ROLE_OPTIONS.map((option) => `
               <option value="${option.value}"${role === option.value ? ' selected' : ''}>${option.label}</option>
             `).join('')}
           </select>
           ${canManagePermissions ? '' : `<input type="hidden" name="role" value="${role}">`}
         </label>
-        <label class="checkbox-field">
+        <label class="ps-check">
           <input type="checkbox" name="active" ${active ? 'checked' : ''}>
-          Usuario ativo
+          Usuário ativo
         </label>
       </div>
       ${canManagePermissions ? renderPermissionChecklist(role) : ''}
       <div class="form-actions people-modal__footer">
-        <button class="button button--ghost" type="button" data-action="close-user-modal">Cancelar</button>
-        <button class="button" type="submit">${user ? 'Salvar usuario' : 'Cadastrar usuario'}</button>
+        <button class="ui-btn" type="button" data-action="close-user-modal">Cancelar</button>
+        <button class="ui-btn ui-btn--primary" type="submit">${user ? 'Salvar usuário' : 'Cadastrar usuário'}</button>
       </div>
     </form>
   `;
@@ -630,11 +667,14 @@ function renderPermissionChecklist(role) {
   const groups = groupPermissions();
 
   return `
-    <div class="permission-grid">
+    <div class="ps-checklist">
+      <h3 class="ps-checklist__title">Permissões</h3>
       ${groups.map(([group, permissions]) => `
-        <section class="permission-group">
-          <h3>${group}</h3>
-          ${permissions.map((permission) => renderPermissionCheckbox(role, permission)).join('')}
+        <section class="ps-group">
+          <b>${escapeHtml(displayText(group))}</b>
+          <div class="ps-perms-list">
+            ${permissions.map((permission) => renderPermissionCheckbox(role, permission)).join('')}
+          </div>
         </section>
       `).join('')}
     </div>
@@ -647,11 +687,7 @@ function renderPermissionCheckbox(role, permission) {
   const isAdmin = normalizedRole === 'admin';
 
   return `
-    <label class="permission-row">
-      <span>
-        <strong>${escapeHtml(permission.label)}</strong>
-        <small>${checked ? 'Liberado no perfil' : 'Bloqueado no perfil'}</small>
-      </span>
+    <label class="ps-toggle${checked ? ' is-on' : ''}">
       <input
         type="checkbox"
         data-permission-checkbox
@@ -659,6 +695,8 @@ function renderPermissionCheckbox(role, permission) {
         ${checked ? 'checked' : ''}
         ${isAdmin ? 'disabled' : ''}
       >
+      <span class="ps-toggle__label">${escapeHtml(displayText(permission.label))}</span>
+      <small class="ps-sr">${checked ? 'Liberado no perfil' : 'Bloqueado no perfil'}</small>
     </label>
   `;
 }
@@ -703,32 +741,37 @@ function renderAuditPanel(users, logs) {
   const actions = [...new Set(logs.map((entry) => entry.action).filter(Boolean))];
 
   return `
-    <section class="manager-section people-audit-panel">
-      <header class="manager-section__header">
-        <div>
-          <strong>Historico de acoes</strong>
-          <span>Auditoria da equipe, organizada por usuario, modulo e data.</span>
-        </div>
-      </header>
-      <div class="people-audit-filters">
-        ${renderAuditSelect('user', 'Usuario', users.map((user) => ({ value: user.name, label: user.name })))}
-        ${renderAuditSelect('action', 'Tipo de acao', actions.map((action) => ({ value: action, label: getAuditLabel(action) })))}
-        ${renderAuditSelect('module', 'Modulo', modules.map((moduleName) => ({ value: moduleName, label: moduleName })))}
-        <label>Data inicial<input class="field" type="date" value="${peopleState.auditFilters.dateStart}" data-audit-filter="dateStart"></label>
-        <label>Data final<input class="field" type="date" value="${peopleState.auditFilters.dateEnd}" data-audit-filter="dateEnd"></label>
+    <section class="ui-panel ps-audit" data-audit-panel>
+      <h2 class="ui-head">
+        Histórico de ações
+        <span>Auditoria da equipe, organizada por usuário, módulo e data.</span>
+      </h2>
+      <div class="ps-audit__filters">
+        ${renderAuditSelect('user', 'Usuário', users.map((user) => ({ value: user.name, label: user.name })))}
+        ${renderAuditSelect('action', 'Tipo de ação', actions.map((action) => ({ value: action, label: getAuditLabel(action) })))}
+        ${renderAuditSelect('module', 'Módulo', modules.map((moduleName) => ({ value: moduleName, label: displayText(moduleName) })))}
+        <label class="ui-field">Data inicial<input class="ui-input" type="date" value="${peopleState.auditFilters.dateStart}" data-audit-filter="dateStart"></label>
+        <label class="ui-field">Data final<input class="ui-input" type="date" value="${peopleState.auditFilters.dateEnd}" data-audit-filter="dateEnd"></label>
       </div>
-      <div class="people-audit-table">
-        <div class="people-audit-table__head"><span>Usuario</span><span>Acao</span><span>Modulo</span><span>Data</span><span>Hora</span><span>Detalhes</span></div>
-        ${rows.map((entry) => `
-          <div class="people-audit-row">
-            <span>${escapeHtml(entry.userName)}</span>
-            <span>${escapeHtml(getAuditLabel(entry.action))}</span>
-            <span>${escapeHtml(entry.module)}</span>
-            <span>${formatOnlyDate(entry.createdAt)}</span>
-            <span>${formatOnlyTime(entry.createdAt)}</span>
-            <span>${escapeHtml(entry.details)}</span>
-          </div>
-        `).join('') || '<div class="empty-products">Nenhuma acao encontrada para estes filtros.</div>'}
+      <div class="ps-audit__scroll">
+        <table class="ui-table ps-audit__table">
+          <thead>
+            <tr><th>Usuário</th><th>Ação</th><th>Módulo</th><th>Data</th><th>Hora</th><th>Detalhes</th></tr>
+          </thead>
+          <tbody>
+            ${rows.map((entry) => `
+              <tr class="ps-audit__row">
+                <td>${escapeHtml(entry.userName)}</td>
+                <td>${escapeHtml(getAuditLabel(entry.action))}</td>
+                <td>${escapeHtml(displayText(entry.module))}</td>
+                <td>${formatOnlyDate(entry.createdAt)}</td>
+                <td>${formatOnlyTime(entry.createdAt)}</td>
+                <td class="ps-audit__details">${escapeHtml(entry.details)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        ${rows.length ? '' : '<p class="ps-empty">Nenhuma ação encontrada para estes filtros.</p>'}
       </div>
     </section>
   `;
@@ -737,9 +780,9 @@ function renderAuditPanel(users, logs) {
 function renderAuditSelect(key, label, options) {
   const legacyUserHook = key === 'user' ? ' data-audit-user-filter' : '';
   return `
-    <label>
+    <label class="ui-field">
       ${label}
-      <select class="field" data-audit-filter="${key}"${legacyUserHook}>
+      <select class="ui-input" data-audit-filter="${key}"${legacyUserHook}>
         <option value="">Todos</option>
         ${options.map((option) => `<option value="${escapeHtml(option.value)}" ${peopleState.auditFilters[key] === option.value ? 'selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}
       </select>
@@ -772,15 +815,15 @@ function getAuditModule(action = '') {
 
 function getAuditLabel(action) {
   const labels = {
-    'user.create': 'Usuario criado',
-    'user.update': 'Usuario editado',
-    'user.delete': 'Usuario excluido',
+    'user.create': 'Usuário criado',
+    'user.update': 'Usuário editado',
+    'user.delete': 'Usuário excluído',
     'user.role.change': 'Perfil alterado',
-    'permission.override': 'Permissoes alteradas',
+    'permission.override': 'Permissões alteradas',
     'sale.create': 'Venda finalizada',
     'sale.cancel': 'Venda cancelada',
     'cash.movement': 'Movimento de caixa',
-    'showcase.launch': 'Producao lancada',
+    'showcase.launch': 'Produção lançada',
     'product.stock.adjust': 'Estoque ajustado manualmente',
     'financial.bill.pay': 'Conta paga'
   };
@@ -792,7 +835,7 @@ function getAuditDetails(entry) {
     || entry.metadata?.reason
     || entry.metadata?.description
     || entry.metadata?.username
-    || 'Acao registrada no sistema';
+    || 'Ação registrada no sistema';
 }
 
 function formatDate(value) {
