@@ -4,7 +4,7 @@ const assert = (condition, message) => {
   }
 };
 
-const { getCategoryColorVar } = await import('../src/utils/category-colors.js?v=20260807-07');
+const { getCategoryColorVar } = await import('../src/utils/category-colors.js?v=20260807-21');
 
 const list = [
   { id: 'lanches', name: 'Lanches' },

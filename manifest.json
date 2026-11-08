@@ -5,8 +5,8 @@
   "start_url": "./?view=mobile",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f8f2ec",
-  "theme_color": "#ff6b1a",
+  "background_color": "#F1F3F7",
+  "theme_color": "#FFB547",
   "icons": [
     {
       "src": "./src/assets/pwa-icon.svg",

@@ -6,7 +6,7 @@ const assert = (condition, message) => {
   }
 };
 
-const { renderFechamentoRapidoModal } = await import('../src/components/fechamento-rapido-modal.component.js?v=20260807-20');
+const { renderFechamentoRapidoModal } = await import('../src/components/fechamento-rapido-modal.component.js?v=20260807-21');
 
 const summary = {
   salesTotal: 250,

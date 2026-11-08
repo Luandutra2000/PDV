@@ -27,7 +27,7 @@ const { seedTestAdmin, setTestUserSession } = await import('./test-auth-fixture.
 const cashSession = await import('../src/services/cash-session.service.js?v=20260804-06');
 const eventBus = await import('../src/services/event-bus.service.js?v=20260804-06');
 const { UI_EVENTS } = schema;
-const { buildCrmClosingInput, buildDifferences, initCaixaModule } = await import('../src/modules/caixa/caixa.module.js?v=20260807-12');
+const { buildCrmClosingInput, buildDifferences, initCaixaModule } = await import('../src/modules/caixa/caixa.module.js?v=20260807-21');
 
 const differences = buildDifferences({
   payments: {

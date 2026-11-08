@@ -10,7 +10,7 @@ import { UI_EVENTS } from '../../database/schema.js?v=20260804-06';
 import { on } from '../../services/event-bus.service.js?v=20260804-06';
 import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
-import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-07';
+import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-21';
 
 const reportState = {
   period: 'today',

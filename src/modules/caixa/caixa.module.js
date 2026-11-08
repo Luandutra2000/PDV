@@ -12,8 +12,8 @@ import { renderFormasPagamento, renderVendasPorPeriodo } from '../../components/
 import { renderMaisVendidos, renderRankingFaturamento } from '../../components/analise-produtos.component.js?v=20260807-12';
 import { renderEntradasSaidas } from '../../components/entradas-saidas.component.js?v=20260807-12';
 import { renderHistoricoFechamentos } from '../../components/historico-fechamentos.component.js?v=20260807-12';
-import { renderCashActionButtons, renderCashMovementModal, renderWriteOffModal, submitCashMovementForm, submitWriteOffForm } from '../../components/cash-actions.component.js?v=20260807-08';
-import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-07';
+import { renderCashActionButtons, renderCashMovementModal, renderWriteOffModal, submitCashMovementForm, submitWriteOffForm } from '../../components/cash-actions.component.js?v=20260807-21';
+import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-21';
 import { getCategories } from '../../services/product.service.js?v=20260804-06';
 import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
 import { getCashSessionStatus } from '../../services/cash-session.service.js?v=20260804-06';

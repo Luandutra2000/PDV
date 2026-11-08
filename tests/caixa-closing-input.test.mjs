@@ -6,7 +6,7 @@ globalThis.localStorage = {
   setItem: (key, value) => store.set(key, String(value)),
   removeItem: (key) => store.delete(key)
 };
-const { initCaixaModule } = await import('../src/modules/caixa/caixa.module.js?v=20260804-06');
+const { initCaixaModule } = await import('../src/modules/caixa/caixa.module.js?v=20260807-21');
 const listeners = new Map();
 const difference = { textContent: '', className: '' };
 let replacements = 0;

@@ -39,8 +39,8 @@ const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
 const products = await import('../src/services/product.service.js?v=20260804-06');
 const showcase = await import('../src/services/showcase-stock.service.js?v=20260804-06');
 const { mockProducts } = await import('../src/database/mock-data.js?v=20260804-06');
-const { getCategoryColorVar } = await import('../src/utils/category-colors.js?v=20260807-07');
-const { initEstoqueModule } = await import('../src/modules/estoque/estoque.module.js?v=20260807-14');
+const { getCategoryColorVar } = await import('../src/utils/category-colors.js?v=20260807-21');
+const { initEstoqueModule } = await import('../src/modules/estoque/estoque.module.js?v=20260807-21');
 
 // Intl usa espaco nao separavel entre "R$" e o valor.
 const plain = (markup) => String(markup).replace(/ /g, ' ');

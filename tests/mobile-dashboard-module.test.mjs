@@ -30,7 +30,7 @@ globalThis.document = {
   }
 };
 
-const mobileDashboard = await import('../src/modules/mobile/mobile-dashboard.module.js?v=20260804-06');
+const mobileDashboard = await import('../src/modules/mobile/mobile-dashboard.module.js?v=20260807-21');
 const eventBus = await import('../src/services/event-bus.service.js?v=20260804-06');
 const { UI_EVENTS } = await import('../src/database/schema.js?v=20260804-06');
 

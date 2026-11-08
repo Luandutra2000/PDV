@@ -31,13 +31,13 @@ import { getCashSession } from '../../services/cash-session.service.js?v=2026080
 import { getCurrentUser, logout } from '../../services/auth.service.js?v=20260804-06';
 import { hydrateOnlineOperationalData, syncOnlineOperationalData } from '../../services/online-data.service.js?v=20260804-06';
 import { isSupabaseEnabled } from '../../services/app-config.service.js?v=20260804-06';
-import { loadCompanySettingsLocal } from '../../services/empresa-config.service.js?v=20260807-20';
+import { loadCompanySettingsLocal } from '../../services/empresa-config.service.js?v=20260807-21';
 import { getThemeLabel, toggleTheme } from '../../services/theme.service.js?v=20260807-05';
 import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
 import { hasPermission } from '../../services/permission.service.js?v=20260804-06';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
 import { icon } from '../../components/icons.js?v=20260807-06';
-import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-07';
+import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-21';
 import { getDifferenceTone } from '../../utils/difference-tone.js?v=20260807-21';
 import { isAllowedLogoUrl } from '../../utils/logo-url.js?v=20260807-11';
 

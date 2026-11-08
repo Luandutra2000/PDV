@@ -22,7 +22,7 @@ import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
 import { hasPermission } from '../../services/permission.service.js?v=20260804-06';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
 import { recordAudit } from '../../services/audit.service.js?v=20260804-06';
-import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-07';
+import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-21';
 
 const productState = {
   modal: null,

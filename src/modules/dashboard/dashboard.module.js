@@ -6,7 +6,7 @@ import {
   getMoneySummary,
   getTransactions
 } from '../../services/transaction.service.js?v=20260804-06';
-import { renderCashActionButtons, renderCashMovementModal, submitCashMovementForm } from '../../components/cash-actions.component.js?v=20260807-08';
+import { renderCashActionButtons, renderCashMovementModal, submitCashMovementForm } from '../../components/cash-actions.component.js?v=20260807-21';
 import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
 import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
 import { showNotification } from '../../services/notification.service.js?v=20260804-06';

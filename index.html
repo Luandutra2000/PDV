@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#ff6b1a">
+  <meta name="theme-color" content="#FFB547" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1C2331" media="(prefers-color-scheme: dark)">
   <title>PDV Lanchonete</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,23 +14,23 @@
   <link rel="stylesheet" href="./src/styles/base.css?v=20260807-20">
   <link rel="stylesheet" href="./src/styles/layout.css?v=20260807-20">
   <link rel="stylesheet" href="./src/styles/buttons.css?v=20260807-20">
-  <link rel="stylesheet" href="./src/styles/modal.css?v=20260807-20">
-  <link rel="stylesheet" href="./src/styles/forms.css?v=20260807-20">
-  <link rel="stylesheet" href="./src/styles/tokens.css?v=20260807-07">
-  <link rel="stylesheet" href="./src/styles/components.css?v=20260807-20">
-  <link rel="stylesheet" href="./src/styles/pdv-b.css?v=20260807-20">
-  <link rel="stylesheet" href="./src/styles/modal-b.css?v=20260807-20">
-  <link rel="stylesheet" href="./src/styles/login-b.css?v=20260807-20">
+  <link rel="stylesheet" href="./src/styles/modal.css?v=20260807-21">
+  <link rel="stylesheet" href="./src/styles/forms.css?v=20260807-21">
+  <link rel="stylesheet" href="./src/styles/tokens.css?v=20260807-21">
+  <link rel="stylesheet" href="./src/styles/components.css?v=20260807-21">
+  <link rel="stylesheet" href="./src/styles/pdv-b.css?v=20260807-21">
+  <link rel="stylesheet" href="./src/styles/modal-b.css?v=20260807-21">
+  <link rel="stylesheet" href="./src/styles/login-b.css?v=20260807-21">
   <link rel="stylesheet" href="./src/styles/caixa-b.css?v=20260807-12">
   <link rel="stylesheet" href="./src/styles/historico-b.css?v=20260807-13">
-  <link rel="stylesheet" href="./src/styles/vitrine-b.css?v=20260807-20">
-  <link rel="stylesheet" href="./src/styles/produtos-b.css?v=20260807-20">
-  <link rel="stylesheet" href="./src/styles/pessoas-b.css?v=20260807-16">
-  <link rel="stylesheet" href="./src/styles/financeiro-b.css?v=20260807-20">
-  <link rel="stylesheet" href="./src/styles/relatorios-b.css?v=20260807-18">
+  <link rel="stylesheet" href="./src/styles/vitrine-b.css?v=20260807-21">
+  <link rel="stylesheet" href="./src/styles/produtos-b.css?v=20260807-21">
+  <link rel="stylesheet" href="./src/styles/pessoas-b.css?v=20260807-21">
+  <link rel="stylesheet" href="./src/styles/financeiro-b.css?v=20260807-21">
+  <link rel="stylesheet" href="./src/styles/relatorios-b.css?v=20260807-21">
   <link rel="stylesheet" href="./src/styles/empresa-config.css?v=20260807-18">
   <link rel="stylesheet" href="./src/styles/suporte-b.css?v=20260807-18">
-  <link rel="stylesheet" href="./src/styles/mobile-b.css?v=20260807-19">
+  <link rel="stylesheet" href="./src/styles/mobile-b.css?v=20260807-21">
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -99,7 +100,7 @@
 
     try {
       await clearStaleClientCaches();
-      await import('./src/app.js?v=20260807-20');
+      await import('./src/app.js?v=20260807-21');
     } catch (error) {
       console.error('Nao foi possivel iniciar o PDV.', error);
       const app = document.getElementById('app');

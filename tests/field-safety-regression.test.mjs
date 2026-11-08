@@ -24,7 +24,7 @@ const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
 seedTestAdmin(storage, STORAGE_KEYS);
 storage.ensureSeedData();
 
-const productModule = await import('../src/modules/produtos/produtos.module.js?v=20260804-06');
+const productModule = await import('../src/modules/produtos/produtos.module.js?v=20260807-21');
 const productService = await import('../src/services/product.service.js?v=20260804-06');
 
 const productListeners = {};
@@ -126,7 +126,7 @@ if (!productService.getCategories().some((candidate) => candidate.id === categor
   throw new Error('canceling category deletion must preserve the category');
 }
 
-const caixaModule = await import('../src/modules/caixa/caixa.module.js?v=20260804-06');
+const caixaModule = await import('../src/modules/caixa/caixa.module.js?v=20260807-21');
 const caixaListeners = {};
 const caixaContainer = {
   innerHTML: '',

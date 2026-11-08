@@ -10,7 +10,7 @@ const assert = (condition, message) => {
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (path) => readFile(resolve(projectRoot, path), 'utf8');
-const RELEASE = '20260807-20';
+const RELEASE = '20260807-21';
 
 const config = JSON.parse(await read('vercel.json'));
 const indexHtml = await read('index.html');
@@ -39,7 +39,7 @@ assert(styleFiles.length === stylesheets.length && styleFiles.every((file) => po
 
 // Service worker: cache novo e pre-cache igual ao que o index carrega
 const precached = [...serviceWorkerJs.matchAll(/'(\.\/[^']*)'/g)].map((match) => match[1]);
-assert(serviceWorkerJs.includes("const CACHE_NAME = 'pdv-v86';"), 'service worker cache name should change when app modules change');
+assert(serviceWorkerJs.includes("const CACHE_NAME = 'pdv-v87';"), 'service worker cache name should change when app modules change');
 assert(stylesheets.every((href) => precached.includes(href)), 'service worker should precache every linked stylesheet with its version');
 assert(precached.filter((href) => href.includes('/src/styles/')).length === stylesheets.length, 'service worker should not precache stylesheets the index does not load');
 assert(precached.includes(`./src/app.js?v=${RELEASE}`), 'service worker should precache the latest app entrypoint');
@@ -72,6 +72,13 @@ for (const file of [...await listModules(resolve(projectRoot, 'src')), resolve(p
 }
 const mixed = [...versionsByModule].filter(([, versions]) => versions.size > 1).map(([target, versions]) => `${target} ${[...versions].join(' ')}`);
 assert(mixed.length === 0, `every import of a module should use the same ?v=: ${mixed.join('; ')}`);
+
+// Moldura do PWA na paleta nova (ambar #FFB547, fundo #F1F3F7, escuro #1C2331)
+const manifest = JSON.parse(await read('manifest.json'));
+assert(manifest.theme_color === '#FFB547' && manifest.background_color === '#F1F3F7', 'manifest should use the new palette');
+assert(indexHtml.includes('<meta name="theme-color" content="#FFB547" media="(prefers-color-scheme: light)">'), 'light theme-color should be the new amber');
+assert(indexHtml.includes('<meta name="theme-color" content="#1C2331" media="(prefers-color-scheme: dark)">'), 'dark theme-color should follow the dark background');
+assert(!/#ff6b1a/i.test(indexHtml) && !/#ff6b1a/i.test(JSON.stringify(manifest)), 'old orange should not remain in the PWA chrome');
 
 // Inicializacao
 assert(indexHtml.includes('Nao foi possivel iniciar o PDV.'), 'startup should show a visible fallback when module boot fails');
