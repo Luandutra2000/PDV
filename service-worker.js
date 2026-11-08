@@ -1,17 +1,32 @@
-const CACHE_NAME = 'pdv-v85';
+const CACHE_NAME = 'pdv-v86';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './src/assets/pwa-icon.svg',
-  './src/styles/base.css',
-  './src/styles/layout.css',
-  './src/styles/buttons.css',
-  './src/styles/forms.css',
-  './src/styles/modal.css',
-  './src/config/runtime-config.js',
-  './src/modules/auth/login.module.js',
-  './src/app.js?v=20260807-19'
+  './src/styles/base.css?v=20260807-20',
+  './src/styles/layout.css?v=20260807-20',
+  './src/styles/buttons.css?v=20260807-20',
+  './src/styles/modal.css?v=20260807-20',
+  './src/styles/forms.css?v=20260807-20',
+  './src/styles/tokens.css?v=20260807-07',
+  './src/styles/components.css?v=20260807-20',
+  './src/styles/pdv-b.css?v=20260807-20',
+  './src/styles/modal-b.css?v=20260807-20',
+  './src/styles/login-b.css?v=20260807-20',
+  './src/styles/caixa-b.css?v=20260807-12',
+  './src/styles/historico-b.css?v=20260807-13',
+  './src/styles/vitrine-b.css?v=20260807-20',
+  './src/styles/produtos-b.css?v=20260807-20',
+  './src/styles/pessoas-b.css?v=20260807-16',
+  './src/styles/financeiro-b.css?v=20260807-20',
+  './src/styles/relatorios-b.css?v=20260807-18',
+  './src/styles/empresa-config.css?v=20260807-18',
+  './src/styles/suporte-b.css?v=20260807-18',
+  './src/styles/mobile-b.css?v=20260807-19',
+  './src/config/runtime-config.js?v=20260807-02',
+  './src/modules/auth/login.module.js?v=20260807-20',
+  './src/app.js?v=20260807-20'
 ];
 
 self.addEventListener('install', (event) => {

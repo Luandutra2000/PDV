@@ -28,10 +28,10 @@ import { getCategories, getShowcaseCategories, getShowcaseProducts, getProductBy
 import { getTransactionSyncStatus } from '../../services/transaction.service.js?v=20260804-06';
 import { getCatalogSyncStatus } from '../../services/product.service.js?v=20260804-06';
 import { getCashSession } from '../../services/cash-session.service.js?v=20260804-06';
-import { getCurrentUser, logout } from '../../services/auth.service.js?v=20260807-04';
+import { getCurrentUser, logout } from '../../services/auth.service.js?v=20260804-06';
 import { hydrateOnlineOperationalData, syncOnlineOperationalData } from '../../services/online-data.service.js?v=20260804-06';
 import { isSupabaseEnabled } from '../../services/app-config.service.js?v=20260804-06';
-import { loadCompanySettingsLocal } from '../../services/empresa-config.service.js?v=20260807-05';
+import { loadCompanySettingsLocal } from '../../services/empresa-config.service.js?v=20260807-20';
 import { getThemeLabel, toggleTheme } from '../../services/theme.service.js?v=20260807-05';
 import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
 import { hasPermission } from '../../services/permission.service.js?v=20260804-06';

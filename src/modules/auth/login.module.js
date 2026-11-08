@@ -1,5 +1,5 @@
-import { login } from '../../services/auth.service.js?v=20260807-03';
-import { loadCompanySettingsLocal } from '../../services/empresa-config.service.js?v=20260807-05';
+import { login } from '../../services/auth.service.js?v=20260804-06';
+import { loadCompanySettingsLocal } from '../../services/empresa-config.service.js?v=20260807-20';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
 import { isAllowedLogoUrl } from '../../utils/logo-url.js?v=20260807-11';
 

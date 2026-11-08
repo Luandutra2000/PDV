@@ -21,7 +21,7 @@ const assert = (condition, message) => {
   }
 };
 
-const company = await import('../src/services/empresa-config.service.js?v=20260807-05');
+const company = await import('../src/services/empresa-config.service.js?v=20260807-20');
 
 // Cores antigas (padrao) contam como nao personalizadas e viram os tokens novos.
 const legacy = company.resolveBrandColors({ corPrimaria: '#ff6b1a', corSecundaria: '#e65b11', corDestaque: '#fff0e6' });

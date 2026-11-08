@@ -65,7 +65,7 @@ const schema = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
 const comandas = await import('../src/services/comanda.service.js?v=20260804-06');
 const cashSession = await import('../src/services/cash-session.service.js?v=20260804-06');
-const { initVendasModule } = await import('../src/modules/vendas/vendas.module.js?v=20260807-10');
+const { initVendasModule } = await import('../src/modules/vendas/vendas.module.js?v=20260807-20');
 
 seedTestAdmin(storage, schema.STORAGE_KEYS);
 storage.ensureSeedData();

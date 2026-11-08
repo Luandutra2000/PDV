@@ -1,4 +1,6 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
+import { dirname, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const assert = (condition, message) => {
   if (!condition) {
@@ -6,45 +8,74 @@ const assert = (condition, message) => {
   }
 };
 
-const config = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
-const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-const serviceWorkerJs = await readFile(new URL('../service-worker.js?v=20260804-06', import.meta.url), 'utf8');
-const appJs = await readFile(new URL('../src/app.js?v=20260804-06', import.meta.url), 'utf8');
-const mobileDashboardJs = await readFile(new URL('../src/modules/mobile/mobile-dashboard.module.js?v=20260804-06', import.meta.url), 'utf8');
+const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const read = (path) => readFile(resolve(projectRoot, path), 'utf8');
+const RELEASE = '20260807-20';
+
+const config = JSON.parse(await read('vercel.json'));
+const indexHtml = await read('index.html');
+const serviceWorkerJs = await read('service-worker.js');
+const appJs = await read('src/app.js');
+const mobileDashboardJs = await read('src/modules/mobile/mobile-dashboard.module.js');
 const srcHeader = config.headers.find((entry) => entry.source === '/src/(.*)');
 const cacheControl = srcHeader?.headers.find((header) => header.key.toLowerCase() === 'cache-control')?.value || '';
 
+// Cabecalhos de cache do Vercel
 assert(srcHeader, 'vercel config should define cache headers for source modules');
 assert(!cacheControl.includes('immutable'), 'source modules should not be immutable because URLs are not content-hashed');
 assert(cacheControl.includes('max-age=0'), 'source modules should revalidate so fixes appear after deploy');
-assert(indexHtml.includes('./src/app.js?v=20260807-19'), 'app entrypoint should use the latest cache-busting version');
-assert(indexHtml.indexOf('./src/styles/pdv-b.css?v=20260807-09') > indexHtml.indexOf('./src/styles/components.css'), 'front-of-house styles should load after the shared components');
-assert(indexHtml.indexOf('./src/styles/modal-b.css?v=20260807-10') > indexHtml.indexOf('./src/styles/modal.css'), 'modal frame styles should load after the base modal styles');
-assert(indexHtml.indexOf('./src/styles/historico-b.css?v=20260807-13') > indexHtml.indexOf('./src/styles/components.css'), 'history screen styles should load after the shared components');
-assert(appJs.includes('./modules/dashboard/dashboard.module.js?v=20260807-13'), 'history module import should use the latest cache-busting version');
-assert(indexHtml.indexOf('./src/styles/vitrine-b.css?v=20260807-14') > indexHtml.indexOf('./src/styles/components.css'), 'showcase screen styles should load after the shared components');
-assert(appJs.includes('./modules/estoque/estoque.module.js?v=20260807-14'), 'showcase module import should use the latest cache-busting version');
-assert(indexHtml.indexOf('./src/styles/produtos-b.css?v=20260807-15') > indexHtml.indexOf('./src/styles/components.css'), 'products screen styles should load after the shared components');
-assert(appJs.includes('./modules/produtos/produtos.module.js?v=20260807-15'), 'products module import should use the latest cache-busting version');
-assert(indexHtml.indexOf('./src/styles/pessoas-b.css?v=20260807-16') > indexHtml.indexOf('./src/styles/components.css'), 'people screen styles should load after the shared components');
-assert(appJs.includes('./modules/pessoas/pessoas.module.js?v=20260807-16'), 'people module import should use the latest cache-busting version');
-assert(indexHtml.indexOf('./src/styles/financeiro-b.css?v=20260807-17') > indexHtml.indexOf('./src/styles/components.css'), 'finance screen styles should load after the shared components');
-assert(appJs.includes('./modules/despesas/despesas.module.js?v=20260807-17'), 'finance module import should use the latest cache-busting version');
-assert(indexHtml.indexOf('./src/styles/relatorios-b.css?v=20260807-18') > indexHtml.indexOf('./src/styles/components.css'), 'reports screen styles should load after the shared components');
-assert(appJs.includes('./modules/relatorios/relatorios.module.js?v=20260807-18'), 'reports module import should use the latest cache-busting version');
-assert(indexHtml.indexOf('./src/styles/empresa-config.css?v=20260807-18') > indexHtml.indexOf('./src/styles/components.css'), 'company screen styles should load after the shared components');
-assert(appJs.includes('./modules/empresa-config/empresa-config.module.js?v=20260807-18'), 'company module import should use the latest cache-busting version');
-assert(indexHtml.indexOf('./src/styles/suporte-b.css?v=20260807-18') > indexHtml.indexOf('./src/styles/components.css'), 'support screen styles should load after the shared components');
-assert(appJs.includes('./modules/sync-app/sync-app.module.js?v=20260807-18'), 'support module import should use the latest cache-busting version');
-assert(indexHtml.indexOf('./src/styles/mobile-b.css?v=20260807-19') > indexHtml.indexOf('./src/styles/components.css'), 'owner app styles should load after the shared components');
+
+// Folhas de estilo: todas versionadas, base antes dos tokens, telas depois dos componentes
+const stylesheets = [...indexHtml.matchAll(/<link rel="stylesheet" href="(\.\/src\/styles\/[^"]+)">/g)].map((match) => match[1]);
+const position = (name) => stylesheets.findIndex((href) => href.startsWith(`./src/styles/${name}.css?`));
+assert(stylesheets.length > 0 && stylesheets.every((href) => /\.css\?v=\d{8}-\d{2}$/.test(href)), 'every stylesheet link should carry a ?v= cache-busting version');
+assert(['base', 'layout', 'buttons', 'modal', 'forms'].every((name) => position(name) >= 0 && position(name) < position('tokens')), 'base styles should load before the design tokens');
+assert(position('components') === position('tokens') + 1, 'shared components should load right after the tokens');
+assert(['pdv-b', 'modal-b', 'login-b', 'caixa-b', 'historico-b', 'vitrine-b', 'produtos-b', 'pessoas-b', 'financeiro-b', 'relatorios-b', 'empresa-config', 'suporte-b', 'mobile-b'].every((name) => position(name) > position('components')), 'screen styles should load after the shared components');
+assert(position('modal-b') > position('modal'), 'modal frame styles should load after the base modal styles');
 ['redesign', 'sidebar', 'cards', 'pdv', 'mobile'].forEach((name) => assert(!indexHtml.includes(`./src/styles/${name}.css`) && !serviceWorkerJs.includes(`./src/styles/${name}.css`), `removed stylesheet ${name}.css should not be linked or precached`));
+const styleFiles = (await readdir(resolve(projectRoot, 'src/styles'))).filter((file) => file.endsWith('.css'));
+assert(styleFiles.length === stylesheets.length && styleFiles.every((file) => position(file.replace('.css', '')) >= 0), 'every stylesheet in src/styles should be linked from index.html');
+
+// Service worker: cache novo e pre-cache igual ao que o index carrega
+const precached = [...serviceWorkerJs.matchAll(/'(\.\/[^']*)'/g)].map((match) => match[1]);
+assert(serviceWorkerJs.includes("const CACHE_NAME = 'pdv-v86';"), 'service worker cache name should change when app modules change');
+assert(stylesheets.every((href) => precached.includes(href)), 'service worker should precache every linked stylesheet with its version');
+assert(precached.filter((href) => href.includes('/src/styles/')).length === stylesheets.length, 'service worker should not precache stylesheets the index does not load');
+assert(precached.includes(`./src/app.js?v=${RELEASE}`), 'service worker should precache the latest app entrypoint');
+assert(precached.includes(`./src/modules/auth/login.module.js?v=${RELEASE}`), 'service worker should precache the login module with the version app.js imports');
+assert(appJs.includes(`./modules/auth/login.module.js?v=${RELEASE}`), 'app should import the login module with the precached version');
+assert(precached.includes('./src/config/runtime-config.js?v=20260807-02') && appJs.includes('./config/runtime-config.js?v=20260807-02'), 'runtime config should be precached with the version app.js imports');
+
+// Entrada do app e imports alterados nesta versao
+assert(indexHtml.includes(`./src/app.js?v=${RELEASE}`), 'app entrypoint should use the latest cache-busting version');
+assert(appJs.includes(`./modules/vendas/vendas.module.js?v=${RELEASE}`), 'front-of-house module import should use the latest cache-busting version');
+assert(appJs.includes(`./modules/mobile/mobile-dashboard.module.js?v=${RELEASE}`), 'mobile dashboard import should use the latest cache-busting version');
+assert(appJs.includes(`./modules/empresa-config/empresa-config.module.js?v=${RELEASE}`), 'company module import should use the latest cache-busting version');
+assert(appJs.includes('./components/topbar.component.js?v=20260807-06'), 'shell component import should be versioned with the module graph');
+assert(mobileDashboardJs.includes('../../services/mobile-notifications.service.js?v=20260804-06'), 'mobile feed service import should keep its cache-busting version');
+
+// Um modulo, uma versao: imports do mesmo arquivo com ?v= diferentes viram instancias separadas no navegador
+async function listModules(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const nested = await Promise.all(entries.map((entry) => (entry.isDirectory() ? listModules(resolve(directory, entry.name)) : [resolve(directory, entry.name)])));
+  return nested.flat().filter((file) => file.endsWith('.js'));
+}
+const versionsByModule = new Map();
+for (const file of [...await listModules(resolve(projectRoot, 'src')), resolve(projectRoot, 'index.html'), resolve(projectRoot, 'service-worker.js')]) {
+  const source = await readFile(file, 'utf8');
+  for (const match of source.matchAll(/['"`](\.{1,2}\/[^'"`?]+\.(?:js|css))(\?v=[^'"`]*)?['"`]/g)) {
+    const target = relative(projectRoot, resolve(dirname(file), match[1])).replaceAll('\\', '/');
+    if (!versionsByModule.has(target)) versionsByModule.set(target, new Set());
+    versionsByModule.get(target).add(match[2] || '(none)');
+  }
+}
+const mixed = [...versionsByModule].filter(([, versions]) => versions.size > 1).map(([target, versions]) => `${target} ${[...versions].join(' ')}`);
+assert(mixed.length === 0, `every import of a module should use the same ?v=: ${mixed.join('; ')}`);
+
+// Inicializacao
 assert(indexHtml.includes('Nao foi possivel iniciar o PDV.'), 'startup should show a visible fallback when module boot fails');
 assert(indexHtml.includes('Nao foi possivel limpar service workers antigos.'), 'startup should not block app boot when browser cache cleanup fails');
-assert(serviceWorkerJs.includes('pdv-v85'), 'service worker cache name should change when app modules change');
-assert(serviceWorkerJs.includes('./src/app.js?v=20260807-19'), 'service worker should precache the latest app entrypoint');
-assert(appJs.includes('./components/topbar.component.js?v=20260807-06'), 'shell component import should be versioned with the module graph');
-assert(appJs.includes('./modules/vendas/vendas.module.js?v=20260807-10'), 'critical UI modules should be versioned with the module graph');
-assert(!serviceWorkerJs.includes('./src/app.js?v=20260602-06'), 'service worker should not keep the stale app entrypoint');
 assert(indexHtml.includes('clearStaleClientCaches'), 'stale app caches should be cleared before boot');
 assert(indexHtml.includes('LOCAL_CACHE_VERSION'), 'local development cache clearing should be versioned');
 assert(!indexHtml.includes('await new Promise(() => {})'), 'local cache clearing should not block app boot');
@@ -55,8 +86,6 @@ assert(indexHtml.includes('navigator.serviceWorker.addEventListener(\'controller
 assert(appJs.includes('AUTH_SESSION_VERSION'), 'auth updates should force one fresh login after deploy');
 assert(!appJs.includes('restoreSupabaseSession() || getCurrentUser()'), 'login screen should not wait for Supabase session restore before rendering');
 assert(appJs.includes('restoreSessionInBackground(app)'), 'valid Supabase sessions should recover after reload without blocking login rendering');
-assert(appJs.includes('./modules/mobile/mobile-dashboard.module.js?v=20260807-19'), 'mobile dashboard import should use the latest cache-busting version');
-assert(mobileDashboardJs.includes('../../services/mobile-notifications.service.js?v=20260804-06'), 'mobile feed service import should use the latest cache-busting version');
 assert(mobileDashboardJs.includes('Vendas por dia'), 'mobile CRM should render the sales per day chart');
 assert(mobileDashboardJs.includes('renderMobileSalesChart'), 'mobile CRM should include sales chart renderer');
 

@@ -31,7 +31,7 @@ const comandas = await import('../src/services/comanda.service.js?v=20260804-06'
 const cashSession = await import('../src/services/cash-session.service.js?v=20260804-06');
 const { renderProductCard } = await import('../src/components/product-card.component.js?v=20260807-09');
 const { renderOrderPanel } = await import('../src/components/order-panel.component.js?v=20260807-09');
-const { initVendasModule } = await import('../src/modules/vendas/vendas.module.js?v=20260807-10');
+const { initVendasModule } = await import('../src/modules/vendas/vendas.module.js?v=20260807-20');
 
 seedTestAdmin(storage, schema.STORAGE_KEYS);
 storage.ensureSeedData();
