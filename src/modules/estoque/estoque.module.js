@@ -23,6 +23,7 @@ import { getClosedComandas, getTransactions } from '../../services/transaction.s
 import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
 import { hasPermission } from '../../services/permission.service.js?v=20260804-06';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
+import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-07';
 
 const estoqueState = {
   period: 'today',
@@ -33,6 +34,9 @@ const estoqueState = {
   editingId: null,
   movementHistoryExpanded: false
 };
+
+// Ate esta quantidade a vitrine mostra "N restantes" (igual a frente de caixa).
+const LOW_STOCK_LIMIT = 3;
 
 const boundContainers = new WeakSet();
 
@@ -56,76 +60,111 @@ function renderEstoque(container) {
   const summary = getStockSummary(filters);
   const launches = getStockLaunches(filters);
   const liveSummary = getShowcaseLiveSummary(filters);
+  const periodLabel = getPeriodLabel();
 
   container.innerHTML = `
-    <section class="module-screen products-module" data-estoque-screen>
-      <header class="module-header estoque-header">
-        <div>
-          <h1 class="pdv-title">Lancar Estoque</h1>
-          <p class="module-subtitle">Registre o que foi produzido e enviado para a vitrine. Isso nao mexe no caixa.</p>
+    <section class="ui-screen vt" data-estoque-screen>
+      <header class="ui-head vt-head">
+        <div class="vt-head__title">
+          <h1 class="vt-title">Vitrine</h1>
+          <p class="vt-sub">Registre o que foi produzido e enviado para a vitrine. Isso não mexe no caixa.</p>
         </div>
-        <div class="header-actions estoque-filters">
-          <select class="field compact-select" data-stock-period aria-label="Periodo">
+        <div class="vt-filters">
+          <select class="ui-input vt-period" data-stock-period aria-label="Período">
             ${renderPeriodOptions()}
           </select>
-          ${renderFilterDropdown('Categorias', 'category', getShowcaseCategories(), estoqueState.categoryIds)}
           ${renderFilterDropdown('Produtos', 'product', getShowcaseProducts(), estoqueState.productIds)}
         </div>
       </header>
 
       ${estoqueState.period === 'custom' ? `
-        <div class="custom-period-row">
-          <input class="field" type="date" data-custom-start value="${estoqueState.customStart}" aria-label="Data inicial">
-          <input class="field" type="date" data-custom-end value="${estoqueState.customEnd}" aria-label="Data final">
+        <div class="vt-custom">
+          <input class="ui-input" type="date" data-custom-start value="${escapeHtml(estoqueState.customStart)}" aria-label="Data inicial">
+          <input class="ui-input" type="date" data-custom-end value="${escapeHtml(estoqueState.customEnd)}" aria-label="Data final">
         </div>
       ` : ''}
 
-      <div class="summary-grid stock-summary-grid">
-        ${renderSummaryCard('Estoque atual', liveSummary.availableUnits)}
-        ${renderSummaryCard('Vitrine estimada', liveSummary.estimatedValue, true)}
-        ${renderSummaryCard('Produzido hoje', liveSummary.producedUnits)}
-        ${renderSummaryCard('Vendido hoje', liveSummary.soldUnits)}
-        ${renderSummaryCard('Vendido sem estoque', liveSummary.outOfStockUnits)}
-        ${renderSummaryCard('Produtos zerados', liveSummary.zeroProducts)}
-        ${renderSummaryCard('Produtos diferentes', summary.uniqueProducts)}
-        ${renderSummaryCard('Vendido em comandas', summary.salesValue, true)}
-        ${renderSummaryCard('Valor produzido', summary.estimatedProductionValue, true)}
-        ${renderSummaryCard('Sobra estimada', summary.quantityBalance)}
+      ${renderStatsRow('Resumo da vitrine', [
+        ['Estoque atual', `${liveSummary.availableUnits} un.`],
+        ['Vitrine estimada', formatCurrency(liveSummary.estimatedValue)],
+        ['Produzido hoje', `${liveSummary.producedUnits} un.`],
+        ['Vendido hoje', `${liveSummary.soldUnits} un.`],
+        ['Sobra estimada', `${summary.quantityBalance} un.`],
+        ['Zerados', `${liveSummary.zeroProducts} ${liveSummary.zeroProducts === 1 ? 'produto' : 'produtos'}`, liveSummary.zeroProducts > 0 ? 'is-minus' : '']
+      ])}
+
+      ${renderStatsRow('Outros números do período', [
+        ['Vendido sem estoque', `${liveSummary.outOfStockUnits} un.`],
+        ['Produtos diferentes', String(summary.uniqueProducts)],
+        ['Vendido em comandas', formatCurrency(summary.salesValue)],
+        ['Valor produzido', formatCurrency(summary.estimatedProductionValue)]
+      ])}
+
+      <div class="ui-cols vt-cols">
+        ${renderLiveShowcase(liveSummary)}
+
+        <aside class="ui-panel vt-side">
+          <h2 class="ui-head">${estoqueState.editingId ? 'Editar lançamento' : 'Novo lançamento'}</h2>
+          <form class="vt-form" data-stock-form>
+            ${renderStockForm()}
+          </form>
+          <h2 class="ui-head vt-side__sub">Produção e vendas ${periodLabel}</h2>
+          ${renderProductionBars(liveSummary, summary)}
+        </aside>
       </div>
 
-      ${renderLiveShowcase(liveSummary)}
-
-      <section class="manager-section">
-        <header class="manager-section__header">
-          <strong>${estoqueState.editingId ? 'Editar lancamento' : 'Novo lancamento'}</strong>
-        </header>
-        <form class="stock-form" data-stock-form>
-          ${renderStockForm()}
-        </form>
+      <section class="ui-panel">
+        <h2 class="ui-head">
+          Lançamentos ${periodLabel}
+          <span>${launches.length === 1 ? '1 lançamento' : `${launches.length} lançamentos`}</span>
+        </h2>
+        ${renderLaunchRows(launches)}
       </section>
 
-      <section class="manager-section">
-        <header class="manager-section__header">
-          <strong>Producao vitrine ${getPeriodLabel()}</strong>
-          <span>${launches.length === 1 ? '1 lancamento' : `${launches.length} lancamentos`}</span>
-        </header>
-        <div class="manager-list">
-          ${renderLaunchRows(launches)}
-        </div>
-      </section>
-
-      <section class="manager-section">
-        <header class="manager-section__header">
-          <strong>Comparativo producao x vendas ${getPeriodLabel()}</strong>
+      <section class="ui-panel">
+        <h2 class="ui-head">
+          Comparativo produção x vendas ${periodLabel}
           ${renderComparisonCounters(filters)}
-        </header>
-        <div class="comparison-table">
-          ${renderComparison(filters)}
-        </div>
+        </h2>
+        ${renderComparison(filters)}
       </section>
 
       ${renderMovementHistory(liveSummary.movements)}
     </section>
+  `;
+}
+
+function renderStatsRow(label, cards) {
+  return `
+    <section class="ui-stats vt-stats" style="--n:${cards.length}" aria-label="${escapeHtml(label)}">
+      ${cards.map(([title, value, tone]) => `
+        <div class="ui-stat">
+          <small>${escapeHtml(title)}</small>
+          <b${tone ? ` class="${tone}"` : ''}>${escapeHtml(value)}</b>
+        </div>
+      `).join('')}
+    </section>
+  `;
+}
+
+function renderProductionBars(liveSummary, summary) {
+  const rows = [
+    ['Produzido', Number(liveSummary.producedUnits) || 0, 'var(--ink)'],
+    ['Vendido', Number(liveSummary.soldUnits) || 0, 'var(--accent)'],
+    ['Sobra', Math.max(Number(summary.quantityBalance) || 0, 0), 'var(--muted)']
+  ];
+  const largest = Math.max(...rows.map(([, value]) => value), 0);
+
+  return `
+    <div class="ui-bars">
+      ${rows.map(([label, value, color]) => `
+        <div class="ui-bar-row">
+          <span>${label}</span>
+          <div class="track"><i style="width:${largest > 0 ? Math.round((value / largest) * 100) : 0}%;--c:${color}"></i></div>
+          <b>${value} un.</b>
+        </div>
+      `).join('')}
+    </div>
   `;
 }
 
@@ -217,8 +256,8 @@ function bindEstoqueEvents(container) {
     if (button.dataset.action === 'cancel-launch') {
       cancelStockLaunch(button.dataset.launchId);
       showNotification({
-        title: 'Lancamento cancelado',
-        message: 'A producao saiu da vitrine sem alterar o caixa.',
+        title: 'Lançamento cancelado',
+        message: 'A produção saiu da vitrine sem alterar o caixa.',
         type: 'danger'
       });
       renderEstoque(container);
@@ -230,7 +269,7 @@ function bindEstoqueEvents(container) {
       showNotification({
         title: 'Linha apagada do comparativo',
         message: result.canceledLaunches
-          ? `${result.canceledLaunches} lancamento(s) da vitrine foram cancelados.`
+          ? `${result.canceledLaunches} lançamento(s) da vitrine foram cancelados.`
           : 'A linha foi ocultada do comparativo sem apagar venda do caixa.',
         type: 'danger'
       });
@@ -246,7 +285,7 @@ function updateSelectedProductFields(select) {
   form.elements.valorUnitario.value = product ? formatNumberInput(product.price) : '';
   form.querySelector('[data-product-category-name]').textContent = product
     ? getCategoryName(product.categoryId)
-    : 'Categoria automatica';
+    : 'Categoria automática';
 }
 
 function saveStockLaunch(form, container) {
@@ -259,7 +298,7 @@ function saveStockLaunch(form, container) {
       updateStockLaunch(estoqueState.editingId, { quantidade });
       estoqueState.editingId = null;
       showNotification({
-        title: 'Lancamento atualizado',
+        title: 'Lançamento atualizado',
         message: 'Cards, lista e comparativo recalculados.',
         type: 'success'
       });
@@ -269,7 +308,7 @@ function saveStockLaunch(form, container) {
       estoqueState.categoryIds = [];
       estoqueState.productIds = [];
       showNotification({
-        title: 'Estoque lancado',
+        title: 'Estoque lançado',
         message: 'Produto enviado para a vitrine.',
         type: 'success'
       });
@@ -278,7 +317,7 @@ function saveStockLaunch(form, container) {
     renderEstoque(container);
   } catch (error) {
     showNotification({
-      title: 'Nao foi possivel lancar',
+      title: 'Não foi possível lançar',
       message: error.message || 'Confira produto e quantidade.',
       type: 'danger'
     });
@@ -294,14 +333,14 @@ function renderStockForm() {
     ? getStockLaunches({ period: 'all' }).find((item) => item.id === estoqueState.editingId)
     : null;
   const selectedProduct = launch ? getProductById(launch.produtoId) : null;
-  const categoryName = launch ? launch.categoriaNome : selectedProduct ? getCategoryName(selectedProduct.categoryId) : 'Categoria automatica';
+  const categoryName = launch ? launch.categoriaNome : selectedProduct ? getCategoryName(selectedProduct.categoryId) : 'Categoria automática';
   const unitValue = launch ? launch.valorUnitario : selectedProduct ? selectedProduct.price : '';
   const canSubmit = launch ? canCurrentUser('showcase.edit') : canCurrentUser('showcase.launch');
 
   return `
-    <label>
-      Produto
-      <select class="field" name="produtoId" required ${launch ? 'disabled' : ''}>
+    <div class="ui-field">
+      <label for="vt-produto">Produto</label>
+      <select class="ui-input" id="vt-produto" name="produtoId" required ${launch ? 'disabled' : ''}>
         <option value="">Selecione um produto</option>
         ${getLaunchableProducts(launch).map((product) => `
           <option value="${escapeHtml(product.id)}" ${launch?.produtoId === product.id ? 'selected' : ''}>
@@ -309,82 +348,129 @@ function renderStockForm() {
           </option>
         `).join('')}
       </select>
-      ${launch ? `<input type="hidden" name="produtoId" value="${launch.produtoId}">` : ''}
-    </label>
-    <label>
-      Categoria
-      <div class="readonly-field" data-product-category-name>${categoryName}</div>
-    </label>
-    <label>
-      Quantidade
-      <input class="field" name="quantidade" type="number" min="1" step="1" placeholder="0" required value="${launch ? launch.quantidade : ''}">
-    </label>
-    <label>
-      Valor unitario
-      <input class="field" name="valorUnitario" type="number" min="0" step="0.01" readonly value="${unitValue === '' ? '' : formatNumberInput(unitValue)}">
-    </label>
-    <div class="form-actions stock-form__actions">
-      ${launch ? '<button class="button button--ghost" type="button" data-action="cancel-edit">Cancelar</button>' : ''}
-      ${canSubmit ? `<button class="button" type="submit">${launch ? 'Salvar edicao' : 'Lancar no estoque'}</button>` : ''}
+      ${launch ? `<input type="hidden" name="produtoId" value="${escapeHtml(launch.produtoId)}">` : ''}
+    </div>
+    <div class="ui-field">
+      <label id="vt-categoria-label">Categoria</label>
+      <div class="ui-input vt-readonly" aria-labelledby="vt-categoria-label" data-product-category-name>${escapeHtml(categoryName)}</div>
+    </div>
+    <div class="vt-form__row">
+      <div class="ui-field">
+        <label for="vt-quantidade">Quantidade</label>
+        <input class="ui-input" id="vt-quantidade" name="quantidade" type="number" min="1" step="1" placeholder="0" required value="${launch ? launch.quantidade : ''}">
+      </div>
+      <div class="ui-field">
+        <label for="vt-valor">Valor unitário</label>
+        <input class="ui-input" id="vt-valor" name="valorUnitario" type="number" min="0" step="0.01" readonly value="${unitValue === '' ? '' : formatNumberInput(unitValue)}">
+      </div>
+    </div>
+    <div class="vt-form__actions">
+      ${launch ? '<button class="ui-btn ui-btn--ghost" type="button" data-action="cancel-edit">Cancelar</button>' : ''}
+      ${canSubmit ? `<button class="ui-btn ui-btn--primary vt-submit" type="submit">${launch ? 'Salvar edição' : 'Lançar na vitrine'}</button>` : ''}
     </div>
   `;
 }
 
 function renderLaunchRows(launches) {
   if (!launches.length) {
-    return '<div class="empty-products product-empty-large">NENHUM LANCAMENTO NO PERIODO</div>';
+    return '<p class="vt-empty">Nenhum lançamento no período.</p>';
   }
 
   const canEditLaunch = canCurrentUser('showcase.edit');
 
-  return launches.map((launch) => `
-    <article class="manager-row ${launch.status === 'cancelado' ? 'is-canceled' : ''}">
-      <div>
-        <strong>${escapeHtml(launch.produtoNome)}</strong>
-        <span>${escapeHtml(launch.categoriaNome)} - ${launch.quantidade} un. x ${formatCurrency(launch.valorUnitario)} - ${formatDate(launch.dataHora)} - ${escapeHtml(resolveStockLaunchUserName(launch))}</span>
-      </div>
-      <div class="row-actions">
-        <strong class="stock-entry-total">${formatCurrency(launch.valorTotal)}</strong>
-        ${canEditLaunch ? `<button class="button button--ghost" type="button" data-action="edit-launch" data-launch-id="${launch.id}" ${launch.status === 'cancelado' ? 'disabled' : ''}>Editar</button>` : ''}
-        ${canEditLaunch ? `<button class="button button--danger" type="button" data-action="cancel-launch" data-launch-id="${launch.id}" ${launch.status === 'cancelado' ? 'disabled' : ''}>Cancelar</button>` : ''}
-      </div>
-    </article>
-  `).join('');
+  return `
+    <div class="vt-scroll">
+      <table class="ui-table vt-table">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Categoria</th>
+            <th class="r">Quantidade</th>
+            <th class="r">Valor unitário</th>
+            <th class="r">Total</th>
+            <th>Data</th>
+            <th>Usuário</th>
+            <th>Status</th>
+            ${canEditLaunch ? '<th></th>' : ''}
+          </tr>
+        </thead>
+        <tbody>
+          ${launches.map((launch) => `
+            <tr class="${launch.status === 'cancelado' ? 'is-canceled' : ''}">
+              <td><b>${escapeHtml(launch.produtoNome)}</b></td>
+              <td>${escapeHtml(launch.categoriaNome)}</td>
+              <td class="r">${launch.quantidade} un.</td>
+              <td class="r">${formatCurrency(launch.valorUnitario)}</td>
+              <td class="r"><b class="stock-entry-total vt-total">${formatCurrency(launch.valorTotal)}</b></td>
+              <td>${formatDate(launch.dataHora)}</td>
+              <td>${escapeHtml(resolveStockLaunchUserName(launch))}</td>
+              <td>${launch.status === 'cancelado' ? '<span class="ui-pill">Cancelado</span>' : '<span class="ui-pill ui-pill--ok">Lançado</span>'}</td>
+              ${canEditLaunch ? `
+                <td>
+                  <div class="vt-actions">
+                    <button class="ui-btn ui-btn--sm" type="button" data-action="edit-launch" data-launch-id="${launch.id}" ${launch.status === 'cancelado' ? 'disabled' : ''}>Editar</button>
+                    <button class="ui-btn ui-btn--loss ui-btn--sm" type="button" data-action="cancel-launch" data-launch-id="${launch.id}" ${launch.status === 'cancelado' ? 'disabled' : ''}>Cancelar</button>
+                  </div>
+                </td>
+              ` : ''}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderStockStatus(quantity) {
+  if (quantity <= 0) {
+    return '<span class="ui-pill ui-pill--danger">Esgotado</span>';
+  }
+
+  if (quantity <= LOW_STOCK_LIMIT) {
+    return `<span class="ui-pill ui-pill--warn">${quantity} ${quantity === 1 ? 'restante' : 'restantes'}</span>`;
+  }
+
+  return `<b class="vt-qty">${quantity} un.</b>`;
 }
 
 function renderLiveShowcase(liveSummary) {
+  const rows = liveSummary.stockRows.filter((item) => (
+    !estoqueState.categoryIds.length || estoqueState.categoryIds.includes(item.categoryId)
+  ));
+  const count = rows.length === 1 ? '1 produto' : `${rows.length} produtos`;
+  let body;
+
   if (!liveSummary.stockRows.length) {
-    return `
-      <section class="manager-section">
-        <header class="manager-section__header">
-          <strong>Estoque atual da vitrine</strong>
-          <span>Nenhum produto com saldo</span>
-        </header>
-        <div class="empty-products product-empty-large">SEM ESTOQUE REGISTRADO NA VITRINE</div>
-      </section>
+    body = '<p class="vt-empty">Sem estoque registrado na vitrine.</p>';
+  } else if (!rows.length) {
+    body = '<p class="vt-empty">Nenhum produto nas categorias escolhidas.</p>';
+  } else {
+    body = `
+      <div class="vt-list">
+        ${rows.map((item) => `
+          <article class="vt-row${item.quantityAvailable <= 0 ? ' is-out' : ''}">
+            <span class="ui-stripe" style="--c: ${escapeHtml(item.colorVar)}"></span>
+            <div class="vt-row__main">
+              <b>${escapeHtml(item.productName)}</b>
+              <small>${escapeHtml(item.categoryName)}</small>
+            </div>
+            ${renderStockStatus(item.quantityAvailable)}
+          </article>
+        `).join('')}
+      </div>
     `;
   }
 
   return `
-    <section class="manager-section">
-      <header class="manager-section__header">
-        <strong>Estoque atual da vitrine</strong>
-        <span>${liveSummary.zeroProducts ? `${liveSummary.zeroProducts} produto(s) zerado(s)` : 'Todos com saldo'}</span>
-      </header>
-      <div class="live-stock-list">
-        ${liveSummary.stockRows.map((item) => `
-          <article class="live-stock-row ${item.quantityAvailable <= 0 ? 'live-stock-row--empty' : ''}">
-            <div>
-              <strong>${escapeHtml(item.productName)}</strong>
-              <span>${escapeHtml(item.categoryName)}</span>
-            </div>
-            <div>
-              <strong>${item.quantityAvailable}</strong>
-              <span>${item.quantityAvailable <= 0 ? 'Sem estoque' : 'Disponivel'}</span>
-            </div>
-          </article>
-        `).join('')}
+    <section class="ui-panel vt-main">
+      <div class="ui-head vt-panel-head">
+        <h2 class="vt-panel-title">Estoque da vitrine</h2>
+        <span>${count}</span>
+        <div class="ui-head__actions">
+          ${renderFilterDropdown('Categorias', 'category', getShowcaseCategories(), estoqueState.categoryIds)}
+        </div>
       </div>
+      ${body}
     </section>
   `;
 }
@@ -405,46 +491,46 @@ function renderComparison(filters) {
   const canWriteOff = canCurrentUser('stock.writeoff');
 
   if (!comparison.length) {
-    return '<div class="empty-products product-empty-large">SEM DADOS PARA COMPARAR</div>';
+    return '<p class="vt-empty">Sem dados para comparar.</p>';
   }
 
   return `
-    <table>
-      <thead>
-        <tr>
-          <th>Produto</th>
-          <th>Categoria</th>
-          <th>Produzido</th>
-          <th>Valor produzido</th>
-          <th>Vendido</th>
-          <th>Valor vendido</th>
-          <th>Sobra</th>
-          <th>Diferenca</th>
-          <th>% vendido</th>
-          <th>Acoes</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${comparison.map((item) => `
+    <div class="vt-scroll">
+      <table class="ui-table vt-table">
+        <thead>
           <tr>
-            <td><strong>${escapeHtml(item.produtoNome)}</strong></td>
-            <td>${escapeHtml(item.categoriaNome)}</td>
-            <td>${item.quantidadeProduzida}</td>
-            <td>${formatCurrency(item.valorProduzido)}</td>
-            <td>${item.quantidadeVendida}</td>
-            <td>${formatCurrency(item.valorVendido)}</td>
-            <td>${item.sobraQuantidade}</td>
-            <td>${formatCurrency(item.diferencaValor)}</td>
-            <td>${item.percentualVendido}%</td>
-            <td>
-              ${canWriteOff ? `<button class="button button--danger button--small" type="button" data-action="delete-comparison-row" data-product-id="${item.produtoId}">
-                Apagar
-              </button>` : ''}
-            </td>
+            <th>Produto</th>
+            <th>Categoria</th>
+            <th class="r">Produzido</th>
+            <th class="r">Valor produzido</th>
+            <th class="r">Vendido</th>
+            <th class="r">Valor vendido</th>
+            <th class="r">Sobra</th>
+            <th class="r">Diferença</th>
+            <th class="r">% vendido</th>
+            <th>Ações</th>
           </tr>
-        `).join('')}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          ${comparison.map((item) => `
+            <tr>
+              <td><b>${escapeHtml(item.produtoNome)}</b></td>
+              <td>${escapeHtml(item.categoriaNome)}</td>
+              <td class="r">${item.quantidadeProduzida}</td>
+              <td class="r">${formatCurrency(item.valorProduzido)}</td>
+              <td class="r">${item.quantidadeVendida}</td>
+              <td class="r">${formatCurrency(item.valorVendido)}</td>
+              <td class="r">${item.sobraQuantidade}</td>
+              <td class="r">${formatCurrency(item.diferencaValor)}</td>
+              <td class="r">${item.percentualVendido}%</td>
+              <td>
+                ${canWriteOff ? `<button class="ui-btn ui-btn--loss ui-btn--sm" type="button" data-action="delete-comparison-row" data-product-id="${item.produtoId}">Apagar</button>` : ''}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
   `;
 }
 
@@ -455,10 +541,10 @@ function renderComparisonCounters(filters) {
   const sobras = comparison.reduce((total, item) => total + item.sobraQuantidade, 0);
 
   return `
-    <div class="comparison-counters" aria-label="Resumo do comparativo">
-      <span>Vitrine: <strong>${vitrine}</strong></span>
-      <span>Vendidos: <strong>${vendidos}</strong></span>
-      <span>Sobras: <strong>${sobras}</strong></span>
+    <div class="ui-head__actions vt-counters" aria-label="Resumo do comparativo">
+      <span>Vitrine: <b>${vitrine}</b></span>
+      <span>Vendidos: <b>${vendidos}</b></span>
+      <span>Sobras: <b>${sobras}</b></span>
     </div>
   `;
 }
@@ -469,44 +555,44 @@ function renderMovementHistory(movements) {
 
   if (!movements.length) {
     return `
-      <section class="manager-section">
-        <header class="manager-section__header">
-          <strong>Historico da vitrine ${getPeriodLabel()}</strong>
+      <section class="ui-panel">
+        <h2 class="ui-head">
+          Histórico da vitrine ${getPeriodLabel()}
           <span>0 movimentos</span>
-        </header>
-        <div class="empty-products product-empty-large">SEM MOVIMENTACAO NO PERIODO</div>
+        </h2>
+        <p class="vt-empty">Sem movimentação no período.</p>
       </section>
     `;
   }
 
   return `
-    <section class="manager-section">
-      <header class="manager-section__header">
-        <strong>Historico da vitrine ${getPeriodLabel()}</strong>
-        <span>${movements.length} movimento(s)</span>
-      </header>
-      <div class="comparison-table">
-        <table class="showcase-movement-table">
+    <section class="ui-panel">
+      <h2 class="ui-head">
+        Histórico da vitrine ${getPeriodLabel()}
+        <span>${movements.length === 1 ? '1 movimento' : `${movements.length} movimentos`}</span>
+      </h2>
+      <div class="vt-scroll">
+        <table class="ui-table vt-table showcase-movement-table">
           <thead>
             <tr>
               <th>Produto</th>
               <th>Tipo</th>
-              <th>Quantidade</th>
-              <th>Anterior</th>
-              <th>Novo</th>
+              <th class="r">Quantidade</th>
+              <th class="r">Anterior</th>
+              <th class="r">Novo</th>
               <th>Venda/comanda</th>
-              <th>Usuario</th>
-              <th>Horario</th>
+              <th>Usuário</th>
+              <th>Horário</th>
             </tr>
           </thead>
           <tbody>
             ${visibleMovements.map((movement) => `
               <tr>
-                <td><strong>${escapeHtml(movement.productName)}</strong></td>
+                <td><b>${escapeHtml(movement.productName)}</b></td>
                 <td>${escapeHtml(formatMovementType(movement.movementType))}</td>
-                <td>${movement.quantity}</td>
-                <td>${movement.previousQuantity}</td>
-                <td>${movement.newQuantity}</td>
+                <td class="r">${movement.quantity}</td>
+                <td class="r">${movement.previousQuantity}</td>
+                <td class="r">${movement.newQuantity}</td>
                 <td>${escapeHtml(resolveShowcaseMovementCommandReference(movement))}</td>
                 <td>${escapeHtml(resolveShowcaseMovementUserName(movement.userId))}</td>
                 <td>${formatDate(movement.createdAt)}</td>
@@ -516,8 +602,8 @@ function renderMovementHistory(movements) {
         </table>
       </div>
       ${movements.length > 8 ? `
-        <div class="table-footer-actions">
-          <button class="button button--ghost button--small" type="button" data-showcase-movements-more>
+        <div class="vt-more">
+          <button class="ui-btn ui-btn--ghost ui-btn--sm" type="button" data-showcase-movements-more>
             ${estoqueState.movementHistoryExpanded ? 'Ver menos' : `Ver mais ${Math.min(movements.length - 8, 22)} movimento(s)`}
           </button>
         </div>
@@ -526,24 +612,25 @@ function renderMovementHistory(movements) {
   `;
 }
 
-function renderSummaryCard(label, value, isCurrency = false) {
-  return `<article class="summary-card"><span>${label}</span><strong>${isCurrency ? formatCurrency(value) : value}</strong></article>`;
-}
-
 function getShowcaseLiveSummary(filters) {
   const productIds = new Set([
     ...getShowcaseProducts().map((product) => product.id),
     ...getShowcaseStock().map((item) => item.productId)
   ]);
+  const categories = getCategories();
   const stockRows = [...productIds]
     .map((productId) => {
       const product = getProductById(productId);
       const stock = getShowcaseStockByProductId(productId);
+      const category = product ? categories.find((item) => item.id === product.categoryId) : null;
 
       return {
         productId,
         productName: product?.name || 'Produto removido',
+        categoryId: product?.categoryId || '',
         categoryName: product ? getCategoryName(product.categoryId) : 'Sem categoria',
+        // Cor calculada com a lista completa, a mesma das outras telas.
+        colorVar: category ? getCategoryColorVar(category, categories) : 'var(--muted)',
         quantityAvailable: Math.max(Number(stock.quantityAvailable || 0), 0),
         estimatedValue: Math.max(Number(stock.quantityAvailable || 0), 0) * Number(product?.price || 0),
         updatedAt: stock.updatedAt
@@ -592,7 +679,7 @@ function getShowcaseLiveSummary(filters) {
 
 function formatMovementType(type) {
   const labels = {
-    entrada_producao: 'Entrada de producao',
+    entrada_producao: 'Entrada de produção',
     saida_venda: 'Baixa por venda',
     ajuste_manual: 'Ajuste manual',
     venda_sem_estoque: 'Venda sem estoque',
@@ -644,10 +731,10 @@ function renderPeriodOptions() {
   const options = [
     ['today', 'Hoje'],
     ['yesterday', 'Ontem'],
-    ['month', 'Este mes'],
+    ['month', 'Este mês'],
     ['year', 'Este ano'],
-    ['all', 'Todo periodo'],
-    ['custom', 'Periodo personalizado']
+    ['all', 'Todo período'],
+    ['custom', 'Período personalizado']
   ];
 
   return options.map(([value, label]) => `<option value="${value}" ${estoqueState.period === value ? 'selected' : ''}>${label}</option>`).join('');
@@ -663,7 +750,7 @@ function getPeriodLabel() {
   }
 
   if (estoqueState.period === 'month') {
-    return 'este mes';
+    return 'este mês';
   }
 
   if (estoqueState.period === 'year') {
@@ -671,28 +758,28 @@ function getPeriodLabel() {
   }
 
   if (estoqueState.period === 'custom') {
-    return 'no periodo selecionado';
+    return 'no período selecionado';
   }
 
-  return 'todo periodo';
+  return 'todo período';
 }
 
 function renderFilterDropdown(label, type, items, selectedIds) {
   const selectedText = getFilterLabel(label, items, selectedIds);
 
   return `
-    <details class="filter-dropdown">
-      <summary>${selectedText}</summary>
-      <div class="filter-menu">
-        <div class="filter-menu__header">
-          <strong>${label}</strong>
+    <details class="vt-filter">
+      <summary>${escapeHtml(selectedText)}</summary>
+      <div class="vt-filter__menu">
+        <div class="vt-filter__top">
+          <b>${label}</b>
           <button type="button" data-clear-filter="${type}">Limpar</button>
         </div>
         ${items.map((item) => `
-          <label class="filter-option">
+          <label class="vt-filter__option">
             <input
               type="checkbox"
-              value="${item.id}"
+              value="${escapeHtml(item.id)}"
               data-filter-check
               data-filter-type="${type}"
               ${selectedIds.includes(item.id) ? 'checked' : ''}
@@ -707,7 +794,7 @@ function renderFilterDropdown(label, type, items, selectedIds) {
 
 function getFilterLabel(label, items, selectedIds) {
   if (!selectedIds.length) {
-    return `Todos ${label.toLowerCase()}`;
+    return label === 'Categorias' ? 'Todas as categorias' : `Todos os ${label.toLowerCase()}`;
   }
 
   if (selectedIds.length === 1) {
