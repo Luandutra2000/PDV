@@ -67,6 +67,20 @@ assert(resumo.includes('1 produto(s)'), 'uma divergencia na vitrine');
 assert(resumo.includes('money-negative'), 'diferenca geral negativa em vermelho');
 assert(vitrine.includes('money-positive'), 'linha sem diferenca em verde');
 
+// Diferenca geral com a mesma regra do Caixa: so a falta (negativa) em vermelho.
+const generalDifferenceClass = (markup) => markup.match(/<span>Diferença geral<\/span>\s*<strong class="([^"]*)"/)?.[1];
+for (const [difference, expected] of [[-5, 'money-negative'], [0, 'money-positive'], [5, 'money-positive']]) {
+  for (const tab of ['resumo', 'pagamentos']) {
+    const markup = renderFechamentoRapidoModal({
+      summary,
+      closingSummary: { ...closingSummary, payments: { generalDifference: difference } },
+      showcase,
+      state: { ...baseState, quickClosingTab: tab }
+    });
+    assert(generalDifferenceClass(markup) === expected, `diferenca ${difference} na aba ${tab} deve usar ${expected}`);
+  }
+}
+
 // CSS do fechamento rapido saiu do legado e usa tokens
 const modalB = await readFile(new URL('../src/styles/modal-b.css', import.meta.url), 'utf8');
 const quickCss = modalB.slice(modalB.indexOf('.quick-closing-modal {'), modalB.indexOf('@media (max-width: 760px)', modalB.indexOf('.quick-closing-modal {')));

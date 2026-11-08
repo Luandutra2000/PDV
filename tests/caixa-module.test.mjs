@@ -25,6 +25,8 @@ const storage = await import('../src/services/storage.service.js?v=20260804-06')
 const schema = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin, setTestUserSession } = await import('./test-auth-fixture.mjs?v=20260804-06');
 const cashSession = await import('../src/services/cash-session.service.js?v=20260804-06');
+const eventBus = await import('../src/services/event-bus.service.js?v=20260804-06');
+const { UI_EVENTS } = schema;
 const { buildCrmClosingInput, buildDifferences, initCaixaModule } = await import('../src/modules/caixa/caixa.module.js?v=20260807-12');
 
 const differences = buildDifferences({
@@ -201,6 +203,16 @@ assert(/is-pos/.test(generalDifference.className), 'diferenca positiva usa is-po
 assert(/is-neg/.test(openScreen.querySelector('[data-crm-row-difference="cash"]').className) === false, 'linha do dinheiro acompanha a diferenca');
 typeCounted(openScreen, '');
 
+// Mesma regra no desenho completo da tela: -5 vermelho, 0 e +5 verde.
+for (const [counted, tone] of [['-5', 'is-neg'], ['0', 'is-pos'], ['5', 'is-pos']]) {
+  typeCounted(openScreen, counted);
+  clickOn(openScreen, { '[data-crm-period]': { dataset: { crmPeriod: 'today' } } });
+  const renderedTone = openScreen.innerHTML.match(/class="cx-diff (is-neg|is-pos) cx-diff--big" data-crm-closing-difference/)?.[1];
+  assert(renderedTone === tone, `diferenca ${counted} desenhada com ${tone} (veio ${renderedTone})`);
+}
+typeCounted(openScreen, '');
+clickOn(openScreen, { '[data-crm-period]': { dataset: { crmPeriod: 'today' } } });
+
 // Modais de entrada, saida e perda/consumo na propria tela
 clickOn(openScreen, { '[data-action]': { dataset: { action: 'open-entry' } } });
 assert(openScreen.innerHTML.includes('data-cash-form') && openScreen.innerHTML.includes('Registrar entrada'), '+ Entrada abre o modal de entrada');
@@ -212,6 +224,25 @@ clickOn(openScreen, { '[data-action]': { dataset: { action: 'close-modal' } } })
 clickOn(openScreen, { '[data-action]': { dataset: { action: 'open-write-off' } } });
 assert(openScreen.innerHTML.includes('Perda / Consumo') && openScreen.innerHTML.includes('modal-backdrop'), 'Perda / Consumo abre o modal');
 clickOn(openScreen, { '[data-action]': { dataset: { action: 'close-modal' } } });
+
+// Atualizacao em segundo plano nao apaga um modal meio preenchido:
+// so a etiqueta de sincronizacao muda; a tela inteira redesenha quando o modal fecha.
+for (const action of ['open-entry', 'open-output', 'open-write-off']) {
+  clickOn(openScreen, { '[data-action]': { dataset: { action } } });
+  // Marca no DOM o que o usuario ja digitou: um redesenho completo apagaria.
+  const withModal = `${openScreen.innerHTML}<!-- valor digitado -->`;
+  openScreen.innerHTML = withModal;
+  const syncPill = openScreen.querySelector('[data-caixa-sync]');
+  syncPill.outerHTML = '';
+  eventBus.emit(UI_EVENTS.financialSyncStatusChanged);
+  eventBus.emit(UI_EVENTS.cashSessionChanged);
+  assert(openScreen.innerHTML === withModal, `${action}: atualizacao em segundo plano nao redesenha a tela com o modal aberto`);
+  assert(syncPill.outerHTML.includes('data-sync-state'), `${action}: etiqueta de sincronizacao e atualizada mesmo com o modal aberto`);
+  clickOn(openScreen, { '[data-action]': { dataset: { action: 'close-modal' } } });
+}
+openScreen.innerHTML = 'tela antiga';
+eventBus.emit(UI_EVENTS.financialSyncStatusChanged);
+assert(openScreen.innerHTML.includes('data-caixa-screen'), 'sem modal, a atualizacao em segundo plano redesenha a tela');
 
 // Operador: so Entrada e Saida, sem Perda/Consumo
 const operadorScreen = renderAs(operador);

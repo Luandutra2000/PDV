@@ -38,6 +38,7 @@ import { hasPermission } from '../../services/permission.service.js?v=20260804-0
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
 import { icon } from '../../components/icons.js?v=20260807-06';
 import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-07';
+import { getDifferenceTone } from '../../utils/difference-tone.js?v=20260807-21';
 import { isAllowedLogoUrl } from '../../utils/logo-url.js?v=20260807-11';
 
 // Abas de baixo. "closing" (Fechar caixa) nao e aba: fica no menu do topo.
@@ -1062,12 +1063,7 @@ function renderClosingTab() {
   const preview = previewMobileClosing(closingForm);
 
   return `
-    ${renderStatGrid([
-      { label: 'Dinheiro esperado', value: closing.expectedCash },
-      { label: 'Pix esperado', value: closing.expectedPix },
-      { label: 'Cartão esperado', value: closing.expectedCard },
-      { label: 'Diferença', value: preview.differenceTotal, tone: preview.differenceTotal ? 'minus' : 'plus' }
-    ])}
+    ${renderClosingStats(closing, preview)}
     ${renderMobileClosingForm(closingForm)}
     ${renderMobileClosingPreview(preview)}
     ${renderPanel('Histórico de fechamentos', closing.history.length ? `
@@ -1076,6 +1072,16 @@ function renderClosingTab() {
       </div>
     ` : '<p class="own-empty">Nenhum fechamento registrado.</p>')}
   `;
+}
+
+// Cartoes do fechamento. A diferenca segue a regra do Caixa: so a falta em vermelho.
+export function renderClosingStats(closing, preview) {
+  return renderStatGrid([
+    { label: 'Dinheiro esperado', value: closing.expectedCash },
+    { label: 'Pix esperado', value: closing.expectedPix },
+    { label: 'Cartão esperado', value: closing.expectedCard },
+    { label: 'Diferença', value: preview.differenceTotal, tone: getDifferenceTone(preview.differenceTotal) }
+  ]);
 }
 
 function getClosingFormValues(defaults) {

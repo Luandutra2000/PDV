@@ -189,6 +189,14 @@ const stockList = mobileDashboard.renderMobileStockList([
 assert(stockList.includes('ui-stripe') && stockList.includes('--c: var(--cat-lanches)'), 'stock rows should show the category stripe');
 assert(stockList.includes('Esgotado') && stockList.includes('2 restantes') && stockList.includes('12 un.'), 'stock rows should show quantity or status pill');
 
+// Fechamento: diferenca com a mesma regra do Caixa (so a falta em vermelho).
+const closingCards = { expectedCash: 100, expectedPix: 50, expectedCard: 30 };
+for (const [differenceTotal, tone] of [[-5, 'is-minus'], [0, 'is-plus'], [5, 'is-plus']]) {
+  const stats = mobileDashboard.renderClosingStats(closingCards, { differenceTotal });
+  const differenceStat = stats.match(/<div class="ui-stat([^"]*)">\s*<small>Diferença<\/small>/)?.[1].trim();
+  assert(differenceStat === tone, `diferenca ${differenceTotal} no app do dono deve usar ${tone} (veio "${differenceStat}")`);
+}
+
 const oldWorkspace = createWorkspace();
 const currentWorkspace = createWorkspace();
 

@@ -1,5 +1,6 @@
 import { formatCurrency } from '../utils/currency.js?v=20260804-06';
 import { escapeHtml } from '../utils/dom.js?v=20260804-06';
+import { getDifferenceTone } from '../utils/difference-tone.js?v=20260807-21';
 
 export function renderFechamentoRapidoModal({ summary, closingSummary, showcase, state }) {
   const cards = [
@@ -18,7 +19,7 @@ export function renderFechamentoRapidoModal({ summary, closingSummary, showcase,
             <h2>Fechamento rápido</h2>
             <p class="modal-text">Resumo do dia, conferência de pagamentos e vitrine em uma tela.</p>
           </div>
-          <button class="icon-button" type="button" data-action="close-modal">X</button>
+          <button class="icon-button" type="button" data-action="close-modal" aria-label="Fechar">X</button>
         </header>
         <div class="quick-closing-body">
           <section class="ui-stats quick-closing-summary" style="--n: 4">
@@ -63,7 +64,7 @@ function renderSummary(summary, closingSummary, showcase, state, cardTotals) {
         ${renderLine('Dinheiro esperado', formatCurrency(expectedCash))}
         ${renderLine('Pix esperado', formatCurrency(summary.paymentTotals.pix))}
         ${renderLine('Cartões esperados', formatCurrency(cardTotals))}
-        ${renderLine('Diferença geral', formatCurrency(closingSummary.payments.generalDifference), closingSummary.payments.generalDifference ? 'money-negative' : 'money-positive')}
+        ${renderLine('Diferença geral', formatCurrency(closingSummary.payments.generalDifference), differenceClass(closingSummary.payments.generalDifference))}
         ${renderLine('Divergências na vitrine', `${showcaseDifferences.length} produto(s)`)}
       </div>
       <label class="stacked-label">
@@ -89,7 +90,7 @@ function renderPayments(summary, closingSummary, state, cardTotals) {
       </div>
       <div class="quick-closing-list">
         ${renderLine('Cartões esperados', formatCurrency(cardTotals))}
-        ${renderLine('Diferença geral', formatCurrency(closingSummary.payments.generalDifference), closingSummary.payments.generalDifference ? 'money-negative' : 'money-positive')}
+        ${renderLine('Diferença geral', formatCurrency(closingSummary.payments.generalDifference), differenceClass(closingSummary.payments.generalDifference))}
       </div>
     </section>
   `;
@@ -173,6 +174,11 @@ function renderOutOfStockSales(rows = []) {
       </div>
     </section>
   `;
+}
+
+// Falta (negativa) em vermelho; zero ou sobra em verde, como no Caixa.
+function differenceClass(value) {
+  return getDifferenceTone(value) === 'minus' ? 'money-negative' : 'money-positive';
 }
 
 function renderLine(label, value, className = '') {

@@ -23,6 +23,7 @@ import { getTransactionSyncStatus } from '../../services/transaction.service.js?
 import { UI_EVENTS } from '../../database/schema.js?v=20260804-06';
 import { on } from '../../services/event-bus.service.js?v=20260804-06';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
+import { getDifferenceTone } from '../../utils/difference-tone.js?v=20260807-21';
 
 const caixaState = {
   period: 'today',
@@ -44,9 +45,21 @@ export function initCaixaModule(container) {
   if (!boundContainers.has(container)) {
     bindCaixaEvents(container);
     const refresh = () => {
-      if (container.querySelector('[data-caixa-screen]')) {
-        renderCaixa(container);
+      if (!container.querySelector('[data-caixa-screen]')) {
+        return;
       }
+
+      // Com Entrada/Saida/Perda aberto, redesenhar apagaria o que ja foi digitado:
+      // so a etiqueta de sincronizacao muda. Fechar o modal redesenha a tela inteira.
+      if (caixaState.modal) {
+        const syncStatus = container.querySelector('[data-caixa-sync]');
+        if (syncStatus) {
+          syncStatus.outerHTML = renderFinancialSyncStatus();
+        }
+        return;
+      }
+
+      renderCaixa(container);
     };
     on(UI_EVENTS.financialSyncStatusChanged, refresh);
     on(UI_EVENTS.cashSessionChanged, refresh);
@@ -153,7 +166,7 @@ function renderFinancialSyncStatus() {
           : 'Financeiro sincronizado';
   const tone = status.state === 'error' ? ' ui-pill--danger' : ['pending', 'cache'].includes(status.state) ? ' ui-pill--warn' : status.state === 'synced' ? ' ui-pill--ok' : '';
 
-  return `<div class="cx-sync"><span class="ui-pill${tone}" data-sync-state="${status.state}">${label}</span></div>`;
+  return `<div class="cx-sync" data-caixa-sync><span class="ui-pill${tone}" data-sync-state="${status.state}">${label}</span></div>`;
 }
 
 function bindCaixaEvents(container) {
@@ -239,9 +252,9 @@ function bindCaixaEvents(container) {
   });
 }
 
-// Diferenca negativa em vermelho; zero ou positiva em verde.
+// Diferenca negativa em vermelho; zero ou positiva em verde (regra unica em difference-tone.js).
 function differenceTone(value) {
-  return Number(value) < 0 ? 'is-neg' : 'is-pos';
+  return getDifferenceTone(value) === 'minus' ? 'is-neg' : 'is-pos';
 }
 
 function formatDifference(value) {
