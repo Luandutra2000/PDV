@@ -1,200 +1,169 @@
-.empresa-config-screen {
-  gap: 20px;
-}
+/* Tela Empresa do visual B claro. Escopo: .em e classes em-*; a estrutura vem de
+   .ui-screen / .ui-panel / .ui-head / .ui-field / .ui-input / .ui-btn (components.css).
+   Valores: secao "Empresa" de docs/superpowers/specs/mockups/2026-11-07-telas-b-claro.html
+   (sem escolha de tema: o tema e por aparelho e fica no menu do usuario). */
 
-.empresa-config-header {
-  align-items: flex-start;
-}
+/* Cabecalho: titulo, frase e acoes */
+.em-form { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.em-head { flex-wrap: wrap; gap: 10px 16px; font-size: 14px; }
+.em-head__title { min-width: 0; margin-right: auto; }
+.em-title { font-size: 19px; font-weight: 600; line-height: 1.2; }
+.em-sub { margin-top: 3px; color: var(--muted); font-size: 12.5px; font-weight: 400; }
 
-.empresa-config-form {
+/* Aviso de erro do formulario */
+.em .em-error {
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
+  border-radius: 12px;
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 500;
+}
+.em .em-error[hidden] { display: none; }
+
+/* Tres colunas: logo e cores, dados, previa */
+.em-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
+.em .ui-panel { overflow: visible; }
+.em .ui-panel .ui-head { font-size: 15px; }
+.em-row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.em .ui-field { min-width: 0; }
+.em .ui-input { width: 100%; min-width: 0; }
+.em .ui-input::placeholder { color: var(--muted); opacity: .8; }
+
+/* Logo */
+.em-logo-row { display: flex; align-items: center; gap: 12px; }
+.em-logo-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.em-logo-info b { font-weight: 600; }
+.em-logo-info small { color: var(--muted); font-size: 12px; }
+.em-logo {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  overflow: hidden;
   display: grid;
-  gap: 16px;
-}
-
-.empresa-config-grid {
-  display: grid;
-  grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.1fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.empresa-config-card {
-  display: grid;
-  gap: 14px;
-  padding: 16px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 8px;
-  background: var(--surface-color, #ffffff);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-}
-
-.empresa-config-card header {
-  display: grid;
-  gap: 4px;
-}
-
-.empresa-config-card header span {
-  color: var(--muted-color, #64748b);
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.empresa-config-card header strong {
-  color: var(--text-color, #0f172a);
-  font-size: 1rem;
-}
-
-.empresa-config-logo-field input[type="file"] {
-  padding: 10px;
-}
-
-.empresa-config-logo-preview {
-  display: grid;
-  min-height: 96px;
   place-items: center;
-  border: 1px dashed var(--border-color, #cbd5e1);
-  border-radius: 8px;
-  background: #f8fafc;
 }
-
-.empresa-config-logo-image {
-  display: block;
-  width: min(160px, 100%);
-  max-height: 84px;
-  object-fit: contain;
-}
-
-.empresa-config-logo-empty {
+.em-logo--sm { width: 44px; height: 44px; border-radius: 12px; }
+.em-logo__image { display: block; width: 100%; height: 100%; object-fit: contain; }
+.em-logo__initial {
+  width: 100%;
+  height: 100%;
   display: grid;
-  width: 84px;
-  height: 84px;
   place-items: center;
-  border-radius: 8px;
-  background: #e2e8f0;
-  color: #475569;
-  font-size: 0.78rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 24px;
   font-weight: 700;
-  text-align: center;
 }
+.em-logo--sm .em-logo__initial { font-size: 17px; }
+.em-logo-actions { display: flex; gap: 8px; }
 
-.empresa-config-color-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+/* Enviar ou trocar logo: o botao e o rotulo do campo de arquivo, que fica so escondido
+   da vista (continua focavel pelo teclado). */
+.em-file { position: relative; }
+.em-file__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
+.em-file:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
 
-.empresa-config-color-field input[type="color"] {
-  min-height: 44px;
-  padding: 4px;
+/* Cores */
+.em-swatches { display: grid; gap: 12px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
+.em-swatch { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.em-swatch__input {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
   cursor: pointer;
 }
+.em-swatch__input::-webkit-color-swatch-wrapper { padding: 0; }
+.em-swatch__input::-webkit-color-swatch { border: 0; border-radius: 9px; }
+.em-swatch__input::-moz-color-swatch { border: 0; border-radius: 9px; }
+.em-swatch__input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.em-swatch__text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.em-swatch__text b { font-weight: 600; }
+.em-swatch__text small { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 
-.empresa-config-two-columns {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.empresa-config-preview-card {
-  align-self: stretch;
-}
-
-.empresa-config-preview {
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid var(--preview-accent);
-  border-radius: 8px;
-  background: #ffffff;
-}
-
-.empresa-config-preview__bar {
-  height: 10px;
-  background: linear-gradient(90deg, var(--preview-primary), var(--preview-secondary));
-}
-
-.empresa-config-preview__brand {
+/* Previa: as cores da empresa entram como variaveis so neste elemento */
+.em .em-preview-panel { background: var(--bg); }
+.em-preview { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.em-brand {
   display: flex;
-  gap: 12px;
   align-items: center;
+  gap: 12px;
   min-width: 0;
-  padding: 0 14px;
-}
-
-.empresa-config-preview__brand .empresa-config-logo-empty,
-.empresa-config-preview__brand .empresa-config-logo-image {
-  flex: 0 0 56px;
-  width: 56px;
-  height: 56px;
-  max-height: 56px;
-}
-
-.empresa-config-preview__brand > div {
-  min-width: 0;
-  overflow: hidden;
-}
-
-.empresa-config-preview__brand strong,
-.empresa-config-preview__brand span,
-.empresa-config-preview__body span,
-.empresa-config-preview__body small {
-  display: block;
-}
-
-.empresa-config-preview__brand strong {
-  color: var(--preview-secondary);
-  font-size: 1.1rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.empresa-config-preview__brand span {
-  color: #475569;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.empresa-config-preview__body {
-  display: grid;
-  gap: 4px;
-  margin: 0 14px 14px;
-  padding: 12px;
-  border-radius: 8px;
-  background: var(--preview-accent);
-  color: #334155;
-}
-
-.empresa-config-preview__body small {
-  color: #64748b;
-}
-
-.empresa-config-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: flex-end;
   padding: 14px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 8px;
-  background: var(--surface-color, #ffffff);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
 }
+.em-brand__text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.em-brand__text b, .em-brand__text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.em-brand__text b { font-weight: 600; }
+.em-brand__text small { color: var(--muted); font-size: 12px; }
+.em-pay {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 50px;
+  padding: 0 16px;
+  border: 1px solid var(--accent-strong);
+  border-radius: var(--radius-control);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+.em-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 96px;
+  padding: 13px;
+  border-left: 4px solid var(--c, var(--muted));
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: 0 1px 2px rgba(28, 35, 49, .06);
+}
+.em-item__name { font-weight: 600; font-size: 14.5px; }
+.em-item__meta { font-size: 12px; color: var(--muted); }
+.em-item__price {
+  align-self: flex-start;
+  margin-top: auto;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-soft-ink);
+  font-weight: 600;
+  font-size: 15px;
+}
+.em-note { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
 
-@media (max-width: 900px) {
-  .empresa-config-grid,
-  .empresa-config-two-columns,
-  .empresa-config-color-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .empresa-config-actions {
-    justify-content: stretch;
-  }
-
-  .empresa-config-actions .button {
-    width: 100%;
-  }
+@media (max-width: 1180px) {
+  .em-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .em-preview-panel { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .em-cols { grid-template-columns: minmax(0, 1fr); }
+  .em-row2 { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .ui-screen.em { padding: 14px 12px 24px; }
 }

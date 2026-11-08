@@ -1,13 +1,20 @@
 import {
   getDefaultCompanySettings,
   loadCompanySettingsLocal,
+  pickReadableInk,
+  resolveBrandColors,
   saveCompanySettings,
   uploadCompanyLogo,
   validateCompanySettings
 } from '../../services/empresa-config.service.js?v=20260807-05';
 
 const boundContainers = new WeakSet();
-const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+
+const COLOR_FIELDS = [
+  { name: 'corPrimaria', label: 'Cor primária', hint: 'Botões e destaques', brandKey: 'accent' },
+  { name: 'corSecundaria', label: 'Cor secundária', hint: 'Botão ao passar o mouse', brandKey: 'accentStrong' },
+  { name: 'corDestaque', label: 'Cor de destaque', hint: 'Fundos suaves e etiquetas', brandKey: 'accentSoft' }
+];
 
 export function initEmpresaConfigModule(workspace) {
   renderEmpresaConfigScreen(workspace);
@@ -19,85 +26,75 @@ export function initEmpresaConfigModule(workspace) {
 }
 
 function renderEmpresaConfigScreen(workspace) {
-  const settings = loadCompanySettingsLocal();
+  workspace.innerHTML = renderEmpresaConfigMarkup(loadCompanySettingsLocal());
+}
 
-  workspace.innerHTML = `
-    <section class="module-screen empresa-config-screen" data-empresa-config-screen>
-      <header class="module-header empresa-config-header">
-        <div>
-          <p class="module-subtitle">Identidade do sistema</p>
-          <h1 class="pdv-title">Configurações da Empresa</h1>
-          <p class="module-subtitle">Ajuste nome, logo, cores e dados basicos exibidos dentro do PDV.</p>
-        </div>
-      </header>
+export function renderEmpresaConfigMarkup(settings) {
+  const brand = resolveBrandColors(settings);
+  const hasLogo = isSafePreviewLogoUrl(settings.logoUrl);
 
-      <form class="empresa-config-form" data-company-settings-form novalidate>
-        <p class="form-error" data-company-settings-error hidden></p>
+  return `
+    <section class="ui-screen em" data-empresa-config-screen>
+      <form class="em-form" data-company-settings-form novalidate>
+        <header class="ui-head em-head">
+          <div class="em-head__title">
+            <h1 class="em-title">Empresa</h1>
+            <p class="em-sub">Nome, logo, cores e dados que aparecem no PDV e no cupom.</p>
+          </div>
+          <div class="ui-head__actions">
+            <button class="ui-btn ui-btn--ghost" type="button" data-action="restore-defaults">Restaurar padrão</button>
+            <button class="ui-btn ui-btn--primary" type="submit">Salvar</button>
+          </div>
+        </header>
 
-        <div class="empresa-config-grid">
-          <section class="empresa-config-card">
-            <header>
-              <span>Identidade visual</span>
-              <strong>Logo e cores</strong>
-            </header>
+        <p class="form-error em-error" data-company-settings-error hidden></p>
 
-            <label class="field-group empresa-config-logo-field">
-              <span>Logo da empresa</span>
-              <input class="field" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-field="logoFile" aria-label="Logo da empresa">
-            </label>
+        <div class="em-cols">
+          <section class="ui-panel">
+            <h2 class="ui-head">Logo e cores</h2>
 
-            <div class="empresa-config-logo-preview">
-              ${renderLogoPreview(settings)}
+            <div class="em-logo-row">
+              <div class="em-logo">${renderBrandMark(settings)}</div>
+              <div class="em-logo-info">
+                <b>Logo da empresa</b>
+                <small>PNG, JPG, WebP ou SVG, até 2 MB</small>
+              </div>
+              <label class="ui-btn ui-btn--sm em-file">
+                ${hasLogo ? 'Trocar logo' : 'Enviar logo'}
+                <input class="em-file__input" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-field="logoFile" aria-label="Logo da empresa">
+              </label>
+            </div>
+            <div class="em-logo-actions">
+              <button class="ui-btn ui-btn--sm" type="button" data-action="remove-logo"${hasLogo ? '' : ' disabled'}>Remover logo</button>
             </div>
 
-            <div class="empresa-config-color-grid">
-              ${renderColorField('corPrimaria', 'Cor primária', settings.corPrimaria)}
-              ${renderColorField('corSecundaria', 'Cor secundaria', settings.corSecundaria)}
-              ${renderColorField('corDestaque', 'Cor de destaque', settings.corDestaque)}
+            <div class="em-swatches">
+              ${COLOR_FIELDS.map((field) => renderColorField(field, brand[field.brandKey])).join('')}
             </div>
           </section>
 
-          <section class="empresa-config-card">
-            <header>
-              <span>Nome do programa</span>
-              <strong>Como o PDV aparece</strong>
-            </header>
+          <section class="ui-panel">
+            <h2 class="ui-head">Dados da empresa</h2>
 
             ${renderTextField('nomeSistema', 'Nome do programa', settings.nomeSistema, 'Ex.: Zelo PDV', true)}
             ${renderTextField('nomeFantasia', 'Nome fantasia', settings.nomeFantasia, 'Ex.: Lanchonete Central', true)}
-          </section>
-
-          <section class="empresa-config-card">
-            <header>
-              <span>Dados básicos</span>
-              <strong>Cadastro da empresa</strong>
-            </header>
-
-            <div class="empresa-config-two-columns">
-              ${renderTextField('razaoSocial', 'Razao social', settings.razaoSocial, 'Razao social completa')}
-              ${renderTextField('cnpj', 'CNPJ', settings.cnpj, 'Somente numeros')}
+            ${renderTextField('razaoSocial', 'Razão social', settings.razaoSocial, 'Razão social completa')}
+            <div class="em-row2">
+              ${renderTextField('cnpj', 'CNPJ', settings.cnpj, 'Somente números')}
               ${renderTextField('telefone', 'Telefone', settings.telefone, '(00) 0000-0000')}
-              ${renderTextField('whatsapp', 'WhatsApp', settings.whatsapp, '(00) 00000-0000')}
             </div>
-            ${renderTextField('email', 'E-mail', settings.email, 'contato@empresa.com', false, 'email')}
-            ${renderTextField('endereco', 'Endereco', settings.endereco, 'Rua, numero, bairro e cidade')}
+            <div class="em-row2">
+              ${renderTextField('whatsapp', 'WhatsApp', settings.whatsapp, '(00) 00000-0000')}
+              ${renderTextField('email', 'E-mail', settings.email, 'contato@empresa.com', false, 'email')}
+            </div>
+            ${renderTextField('endereco', 'Endereço', settings.endereco, 'Rua, número, bairro e cidade')}
           </section>
 
-          <section class="empresa-config-card empresa-config-preview-card">
-            <header>
-              <span>Pré-visualização</span>
-              <strong>Marca aplicada</strong>
-            </header>
-
+          <section class="ui-panel em-preview-panel">
+            <h2 class="ui-head">Prévia</h2>
             ${renderPreview(settings)}
           </section>
         </div>
-
-        <footer class="empresa-config-actions">
-          <button class="button button--ghost" type="button" data-action="restore-defaults">Restaurar padrao</button>
-          <button class="button button--ghost" type="button" data-action="remove-logo">Remover logo</button>
-          <button class="button" type="submit">Salvar configurações</button>
-        </footer>
       </form>
     </section>
   `;
@@ -143,6 +140,16 @@ function bindEmpresaConfigEvents(workspace) {
     }
   });
 
+  // Previa ao vivo: cores e nomes digitados valem so no elemento da previa
+  // (nunca na raiz) ate o usuario salvar.
+  workspace.addEventListener('input', (event) => {
+    const form = event.target.closest?.('[data-company-settings-form]');
+
+    if (form) {
+      updateLivePreview(workspace, form);
+    }
+  });
+
   workspace.addEventListener('change', async (event) => {
     if (!event.target.matches('[data-field="logoFile"]')) {
       return;
@@ -179,78 +186,135 @@ function getRestoreDefaultsPayload() {
 
 function renderTextField(name, label, value, placeholder = '', required = false, type = 'text') {
   const requiredAttribute = required ? ' required' : '';
+  const id = `em-field-${name}`;
 
   return `
-    <label class="field-group">
-      <span>${escapeHtml(label)}</span>
+    <div class="ui-field">
+      <label for="${id}">${escapeHtml(label)}</label>
       <input
-        class="field"
+        id="${id}"
+        class="ui-input"
         type="${escapeAttribute(type)}"
         name="${escapeAttribute(name)}"
         data-field="${escapeAttribute(name)}"
         value="${escapeAttribute(value)}"
         placeholder="${escapeAttribute(placeholder)}"${requiredAttribute}
       >
-    </label>
+    </div>
   `;
 }
 
-function renderColorField(name, label, value) {
-  const color = sanitizeColor(value);
-
+function renderColorField({ name, label, hint }, color) {
   return `
-    <label class="field-group empresa-config-color-field">
-      <span>${escapeHtml(label)}</span>
+    <label class="em-swatch">
       <input
-        class="field"
+        class="em-swatch__input"
         type="color"
         name="${escapeAttribute(name)}"
         data-field="${escapeAttribute(name)}"
         value="${escapeAttribute(color)}"
       >
+      <span class="em-swatch__text">
+        <b>${escapeHtml(label)}</b>
+        <small>${escapeHtml(hint)} · <span data-color-hex="${escapeAttribute(name)}">${escapeHtml(color)}</span></small>
+      </span>
     </label>
   `;
 }
 
+// As cores da empresa viram variaveis so no elemento da previa. O texto sobre a
+// cor principal e o texto sobre o fundo suave seguem a mesma regra de contraste do app.
+export function buildPreviewVars(colors = {}) {
+  const brand = resolveBrandColors(colors);
+
+  return {
+    '--accent': brand.accent,
+    '--accent-strong': brand.accentStrong,
+    '--accent-soft': brand.accentSoft,
+    '--accent-ink': brand.accentInk,
+    '--accent-soft-ink': pickReadableInk(brand.accentSoft)
+  };
+}
+
 function renderPreview(settings) {
-  const primary = sanitizeColor(settings.corPrimaria);
-  const secondary = sanitizeColor(settings.corSecundaria);
-  const accent = sanitizeColor(settings.corDestaque);
+  const vars = buildPreviewVars(settings);
+  const style = Object.entries(vars).map(([name, value]) => `${name}: ${value}`).join('; ');
 
   return `
-    <div
-      class="empresa-config-preview"
-      data-company-preview
-      style="--preview-primary: ${escapeAttribute(primary)}; --preview-secondary: ${escapeAttribute(secondary)}; --preview-accent: ${escapeAttribute(accent)};"
-    >
-      <div class="empresa-config-preview__bar"></div>
-      <div class="empresa-config-preview__brand">
-        ${renderLogoPreview(settings)}
-        <div>
-          <strong>${escapeHtml(settings.nomeSistema)}</strong>
-          <span>${escapeHtml(settings.nomeFantasia)}</span>
+    <div class="em-preview" data-company-preview style="${escapeAttribute(style)};">
+      <div class="em-brand">
+        <div class="em-logo em-logo--sm">${renderBrandMark(settings, true)}</div>
+        <div class="em-brand__text">
+          <b data-preview-name>${escapeHtml(settings.nomeSistema)}</b>
+          <small data-preview-sub>${escapeHtml(settings.nomeFantasia)}</small>
         </div>
       </div>
-      <div class="empresa-config-preview__body">
-        <span>${escapeHtml(settings.razaoSocial || 'Dados da empresa')}</span>
-        <small>${escapeHtml(settings.email || settings.telefone || 'Sem contato informado')}</small>
+      <div class="em-pay" aria-hidden="true"><span>Receber</span><span>R$ 74,00</span></div>
+      <div class="em-item" style="--c: var(--cat-lanches);">
+        <span class="em-item__name">X-Burger</span>
+        <span class="em-item__meta">14 em estoque</span>
+        <span class="em-item__price">R$ 16,00</span>
       </div>
+      <p class="em-note">A prévia mostra as cores escolhidas. Elas só valem no PDV depois de salvar.</p>
     </div>
   `;
 }
 
-function renderLogoPreview(settings) {
-  if (!isSafePreviewLogoUrl(settings.logoUrl)) {
-    return '<div class="empresa-config-logo-empty">Sem logo</div>';
+function renderBrandMark(settings, live = false) {
+  if (isSafePreviewLogoUrl(settings.logoUrl)) {
+    return `
+      <img
+        class="em-logo__image"
+        src="${escapeAttribute(settings.logoUrl)}"
+        alt="${escapeAttribute(settings.nomeFantasia || settings.nomeSistema || 'Logo da empresa')}"
+      >
+    `;
   }
 
-  return `
-    <img
-      class="empresa-config-logo-image"
-      src="${escapeAttribute(settings.logoUrl)}"
-      alt="${escapeAttribute(settings.nomeFantasia || settings.nomeSistema || 'Logo da empresa')}"
-    >
-  `;
+  const initial = Array.from(String(settings.nomeSistema || '').trim())[0]?.toLocaleUpperCase('pt-BR') || 'P';
+  const hook = live ? ' data-preview-initial' : '';
+
+  return `<span class="em-logo__initial"${hook}>${escapeHtml(initial)}</span>`;
+}
+
+function updateLivePreview(workspace, form) {
+  const read = (name) => form.querySelector?.(`[name="${name}"]`)?.value ?? '';
+  const colors = {
+    corPrimaria: read('corPrimaria'),
+    corSecundaria: read('corSecundaria'),
+    corDestaque: read('corDestaque')
+  };
+  const preview = workspace.querySelector?.('[data-company-preview]');
+
+  if (preview?.style) {
+    Object.entries(buildPreviewVars(colors)).forEach(([name, value]) => preview.style.setProperty(name, value));
+  }
+
+  const brand = resolveBrandColors(colors);
+  COLOR_FIELDS.forEach(({ name, brandKey }) => {
+    const hex = workspace.querySelector?.(`[data-color-hex="${name}"]`);
+
+    if (hex) {
+      hex.textContent = brand[brandKey];
+    }
+  });
+
+  const systemName = String(read('nomeSistema')).trim();
+  const nameTarget = workspace.querySelector?.('[data-preview-name]');
+  const subTarget = workspace.querySelector?.('[data-preview-sub]');
+  const initialTarget = workspace.querySelector?.('[data-preview-initial]');
+
+  if (nameTarget) {
+    nameTarget.textContent = systemName;
+  }
+
+  if (subTarget) {
+    subTarget.textContent = String(read('nomeFantasia')).trim();
+  }
+
+  if (initialTarget) {
+    initialTarget.textContent = Array.from(systemName)[0]?.toLocaleUpperCase('pt-BR') || 'P';
+  }
 }
 
 function collectSettings(form) {
@@ -301,11 +365,6 @@ function isSafePreviewLogoUrl(value) {
   }
 
   return /^blob:[^\s"'<>]+$/i.test(url);
-}
-
-function sanitizeColor(value) {
-  const color = String(value || '').trim();
-  return HEX_COLOR_PATTERN.test(color) ? color : '#ff6b1a';
 }
 
 function escapeHtml(value) {

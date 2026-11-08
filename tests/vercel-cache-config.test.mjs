@@ -17,7 +17,7 @@ const cacheControl = srcHeader?.headers.find((header) => header.key.toLowerCase(
 assert(srcHeader, 'vercel config should define cache headers for source modules');
 assert(!cacheControl.includes('immutable'), 'source modules should not be immutable because URLs are not content-hashed');
 assert(cacheControl.includes('max-age=0'), 'source modules should revalidate so fixes appear after deploy');
-assert(indexHtml.includes('./src/app.js?v=20260807-17'), 'app entrypoint should use the latest cache-busting version');
+assert(indexHtml.includes('./src/app.js?v=20260807-18'), 'app entrypoint should use the latest cache-busting version');
 assert(indexHtml.indexOf('./src/styles/pdv-b.css?v=20260807-09') > indexHtml.indexOf('./src/styles/components.css'), 'front-of-house styles should load after the shared components');
 assert(indexHtml.indexOf('./src/styles/modal-b.css?v=20260807-10') > indexHtml.indexOf('./src/styles/redesign.css'), 'modal frame styles should load after the legacy modal and redesign styles');
 assert(indexHtml.indexOf('./src/styles/historico-b.css?v=20260807-13') > indexHtml.indexOf('./src/styles/components.css'), 'history screen styles should load after the shared components');
@@ -30,10 +30,16 @@ assert(indexHtml.indexOf('./src/styles/pessoas-b.css?v=20260807-16') > indexHtml
 assert(appJs.includes('./modules/pessoas/pessoas.module.js?v=20260807-16'), 'people module import should use the latest cache-busting version');
 assert(indexHtml.indexOf('./src/styles/financeiro-b.css?v=20260807-17') > indexHtml.indexOf('./src/styles/components.css'), 'finance screen styles should load after the shared components');
 assert(appJs.includes('./modules/despesas/despesas.module.js?v=20260807-17'), 'finance module import should use the latest cache-busting version');
+assert(indexHtml.indexOf('./src/styles/relatorios-b.css?v=20260807-18') > indexHtml.indexOf('./src/styles/components.css'), 'reports screen styles should load after the shared components');assert(appJs.includes('./modules/relatorios/relatorios.module.js?v=20260807-18'), 'reports module import should use the latest cache-busting version');assert(indexHtml.indexOf('./src/styles/empresa-config.css?v=20260807-18') > indexHtml.indexOf('./src/styles/components.css'), 'company screen styles should load after the shared components');assert(appJs.includes('./modules/empresa-config/empresa-config.module.js?v=20260807-18'), 'company module import should use the latest cache-busting version');assert(indexHtml.indexOf('./src/styles/suporte-b.css?v=20260807-18') > indexHtml.indexOf('./src/styles/components.css'), 'support screen styles should load after the shared components');assert(appJs.includes('./modules/sync-app/sync-app.module.js?v=20260807-18'), 'support module import should use the latest cache-busting version');
+assert(appJs.includes('./modules/relatorios/relatorios.module.js?v=20260807-18'), 'reports module import should use the latest cache-busting version');
+assert(indexHtml.indexOf('./src/styles/empresa-config.css?v=20260807-18') > indexHtml.indexOf('./src/styles/components.css'), 'company screen styles should load after the shared components');
+assert(appJs.includes('./modules/empresa-config/empresa-config.module.js?v=20260807-18'), 'company module import should use the latest cache-busting version');
+assert(indexHtml.indexOf('./src/styles/suporte-b.css?v=20260807-18') > indexHtml.indexOf('./src/styles/components.css'), 'support screen styles should load after the shared components');
+assert(appJs.includes('./modules/sync-app/sync-app.module.js?v=20260807-18'), 'support module import should use the latest cache-busting version');
 assert(indexHtml.includes('Nao foi possivel iniciar o PDV.'), 'startup should show a visible fallback when module boot fails');
 assert(indexHtml.includes('Nao foi possivel limpar service workers antigos.'), 'startup should not block app boot when browser cache cleanup fails');
 assert(serviceWorkerJs.includes('pdv-v85'), 'service worker cache name should change when app modules change');
-assert(serviceWorkerJs.includes('./src/app.js?v=20260807-17'), 'service worker should precache the latest app entrypoint');
+assert(serviceWorkerJs.includes('./src/app.js?v=20260807-18'), 'service worker should precache the latest app entrypoint');
 assert(appJs.includes('./components/topbar.component.js?v=20260807-06'), 'shell component import should be versioned with the module graph');
 assert(appJs.includes('./modules/vendas/vendas.module.js?v=20260807-10'), 'critical UI modules should be versioned with the module graph');
 assert(!serviceWorkerJs.includes('./src/app.js?v=20260602-06'), 'service worker should not keep the stale app entrypoint');

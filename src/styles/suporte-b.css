@@ -1,0 +1,29 @@
+/* Tela Suporte do visual B claro. Escopo: .sp e classes sp-*; a estrutura vem de
+   .ui-screen / .ui-cols / .ui-panel / .ui-head / .ui-btn (components.css).
+   Nao ha mockup: segue o padrao de cabecalho e paineis das outras telas. */
+
+.sp-head { flex-wrap: wrap; gap: 10px 16px; font-size: 14px; }
+.sp-head__title { min-width: 0; margin-right: auto; }
+.sp-title { font-size: 19px; font-weight: 600; line-height: 1.2; }
+.sp-sub { margin-top: 3px; color: var(--muted); font-size: 12.5px; font-weight: 400; }
+
+.sp-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.sp .ui-panel { overflow: visible; }
+.sp-panel p { color: var(--muted); line-height: 1.5; }
+.sp-panel ol { margin: 0; padding-left: 20px; color: var(--muted); line-height: 1.5; display: grid; gap: 6px; }
+.sp-panel li::marker { color: var(--ink); font-weight: 600; }
+.sp-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sp-panel .sp-status { min-height: 1.4em; color: var(--ink); font-weight: 500; }
+.sp-status:empty { display: none; }
+.sp-panel .sp-alert {
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
+  border-radius: 12px;
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 13px;
+}
+
+@media (max-width: 560px) {
+  .ui-screen.sp { padding: 14px 12px 24px; }
+}

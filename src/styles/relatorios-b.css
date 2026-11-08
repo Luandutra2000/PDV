@@ -1,0 +1,91 @@
+/* Tela Relatorios do visual B claro. Escopo: .rp e classes rp-*; a estrutura vem de
+   .ui-screen / .ui-cols / .ui-panel / .ui-stats / .ui-table / .ui-pill / .ui-bars / .ui-seg (components.css).
+   Valores: secao "Relatorios" de docs/superpowers/specs/mockups/2026-11-07-telas-b-claro.html */
+
+/* Cabecalho: titulo, frase e seletor de periodo */
+.rp-head { flex-wrap: wrap; gap: 10px 16px; font-size: 14px; }
+.rp-head__title { min-width: 0; margin-right: auto; }
+.rp-title { font-size: 19px; font-weight: 600; line-height: 1.2; }
+.rp-sub { margin-top: 3px; color: var(--muted); font-size: 12.5px; font-weight: 400; }
+.rp-empty { margin: 0; padding: 6px 0; color: var(--muted); }
+.rp .ui-seg { flex-wrap: wrap; }
+.rp .ui-seg button { font-size: 13px; }
+.rp .ui-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Datas do periodo personalizado: o campo de data herdava o visual antigo do app-shell */
+.rp-range { display: flex; flex-wrap: wrap; gap: 8px; }
+.app-shell .rp input.ui-input {
+  appearance: auto;
+  width: auto;
+  min-width: 150px;
+  height: 36px;
+  font-size: 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: none;
+}
+.app-shell .rp input.ui-input:focus { border-color: var(--line); box-shadow: none; }
+
+/* Numeros: entradas em verde, saidas em vermelho */
+.rp-stats { --n: 6; }
+.rp .ui-stat b { overflow-wrap: anywhere; }
+.rp .ui-stat.is-plus b { color: var(--green); }
+.rp .ui-stat.is-minus b { color: var(--red); }
+
+/* Paineis: a tabela larga rola dentro do cartao em vez de cortar */
+.rp .ui-panel { overflow: visible; }
+.rp .ui-head span { overflow-wrap: anywhere; }
+.rp-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.rp-main { align-self: stretch; min-width: 0; }
+.rp-scroll { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+
+/* Vendas por hora: barras CSS; o maior valor usa --accent */
+.rp-chart {
+  flex: none;
+  height: 200px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding-top: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.rp-col {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.rp-val { min-height: 14px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.rp-bar {
+  display: block;
+  width: 100%;
+  max-width: 34px;
+  min-height: 2px;
+  background: color-mix(in srgb, var(--muted) 30%, var(--card));
+  border-radius: 6px 6px 0 0;
+}
+.rp-bar.is-peak { background: var(--accent); }
+.rp-hours { display: flex; gap: 8px; color: var(--muted); font-size: 11.5px; }
+.rp-hours span { flex: 1 1 0; min-width: 0; text-align: center; }
+
+/* Barras: o rotulo da categoria precisa de mais espaco que o padrao */
+.rp .ui-bar-row { grid-template-columns: minmax(70px, 120px) minmax(0, 1fr) 96px; }
+.rp .ui-bar-row span { overflow-wrap: anywhere; }
+.rp .ui-bar-row b { white-space: nowrap; }
+
+/* Tabelas */
+.rp .ui-table td:first-child { white-space: normal; overflow-wrap: anywhere; min-width: 140px; }
+.rp-amount { font-weight: 600; }
+.rp-amount.is-plus { color: var(--green); }
+
+@media (max-width: 560px) {
+  .ui-screen.rp { padding: 14px 12px 24px; }
+  .rp-chart { gap: 4px; }
+  .rp-hours { gap: 4px; }
+}

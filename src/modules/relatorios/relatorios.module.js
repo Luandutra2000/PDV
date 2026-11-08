@@ -5,10 +5,12 @@ import {
   getFinancialMovements,
   getProductRanking
 } from '../../services/crm-dashboard.service.js?v=20260804-06';
+import { getCategories } from '../../services/product.service.js?v=20260804-06';
 import { UI_EVENTS } from '../../database/schema.js?v=20260804-06';
 import { on } from '../../services/event-bus.service.js?v=20260804-06';
 import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
+import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-07';
 
 const reportState = {
   period: 'today',
@@ -17,6 +19,32 @@ const reportState = {
 };
 const boundContainers = new WeakSet();
 
+const PERIODS = [
+  ['today', 'Hoje'],
+  ['yesterday', 'Ontem'],
+  ['week', '7 dias'],
+  ['month', 'Mês'],
+  ['custom', 'Período']
+];
+
+const PAYMENT_LABELS = [
+  ['dinheiro', 'Dinheiro'],
+  ['pix', 'Pix'],
+  ['debito', 'Débito'],
+  ['credito', 'Crédito'],
+  ['outros', 'Outros']
+];
+
+const MOVEMENT_CATEGORY_LABELS = {
+  dinheiro: 'Dinheiro',
+  pix: 'Pix',
+  debito: 'Débito',
+  credito: 'Crédito',
+  'sem-categoria': 'Sem categoria'
+};
+
+const MOVEMENT_LIMIT = 20;
+
 export function initRelatoriosModule(container) {
   renderReports(container);
 
@@ -24,14 +52,24 @@ export function initRelatoriosModule(container) {
     return;
   }
 
-  container.addEventListener('change', (event) => {
-    if (!event.target.closest('[data-reports-screen]')) {
+  container.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-report-period]');
+
+    if (!button || !event.target.closest('[data-reports-screen]')) {
       return;
     }
 
-    if (event.target.matches('[data-report-period]')) {
-      reportState.period = event.target.value;
+    const period = button.dataset.reportPeriod;
+
+    if (PERIODS.some(([value]) => value === period)) {
+      reportState.period = period;
       renderReports(container);
+    }
+  });
+
+  container.addEventListener('change', (event) => {
+    if (!event.target.closest('[data-reports-screen]')) {
+      return;
     }
 
     if (event.target.matches('[data-report-start]')) {
@@ -58,135 +96,267 @@ function renderIfActive(container) {
 
 function renderReports(container) {
   const filter = createPeriodFilter(reportState.period, reportState.customStart, reportState.customEnd);
-  const summary = getCrmSummary(filter);
-  const products = getProductRanking(filter);
-  const categories = getCategoryRanking(filter);
-  const movements = getFinancialMovements(filter).slice(0, 20);
 
-  container.innerHTML = `
-    <section class="module-screen" data-reports-screen>
-      <header class="module-header">
-        <div>
-          <h1 class="pdv-title">Relatorios</h1>
-          <p class="module-subtitle">Vendas, pagamentos, produtos, categorias e movimentacoes reconciliados por periodo.</p>
+  container.innerHTML = renderReportsMarkup({
+    period: reportState.period,
+    customStart: reportState.customStart,
+    customEnd: reportState.customEnd,
+    summary: getCrmSummary(filter),
+    products: getProductRanking(filter),
+    categories: getCategoryRanking(filter),
+    allCategories: getCategories(),
+    movements: getFinancialMovements(filter)
+  });
+}
+
+export function renderReportsMarkup({
+  period = 'today',
+  customStart = '',
+  customEnd = '',
+  summary = {},
+  products = {},
+  categories = [],
+  allCategories = [],
+  movements = []
+}) {
+  const hourlySales = buildHourlySales(movements);
+
+  return `
+    <section class="ui-screen rp" data-reports-screen>
+      <header class="ui-head rp-head">
+        <div class="rp-head__title">
+          <h1 class="rp-title">Relatórios</h1>
+          <p class="rp-sub">Vendas, pagamentos, produtos e categorias do período.</p>
         </div>
-        <label class="stacked-label">
-          Periodo
-          <select class="field" data-report-period>
-            ${renderPeriodOptions()}
-          </select>
-        </label>
+        <div class="ui-head__actions">
+          ${renderPeriodSelector(period)}
+        </div>
       </header>
 
-      ${reportState.period === 'custom' ? `
-        <div class="products-filter-row">
-          <input class="field" type="date" aria-label="Data inicial do relatorio" data-report-start value="${escapeHtml(reportState.customStart)}">
-          <input class="field" type="date" aria-label="Data final do relatorio" data-report-end value="${escapeHtml(reportState.customEnd)}">
+      ${period === 'custom' ? `
+        <div class="rp-range">
+          <input class="ui-input" type="date" aria-label="Data inicial do relatório" data-report-start value="${escapeHtml(customStart)}">
+          <input class="ui-input" type="date" aria-label="Data final do relatório" data-report-end value="${escapeHtml(customEnd)}">
         </div>
       ` : ''}
 
-      <section class="summary-grid" aria-label="Resumo dos relatorios">
-        ${renderMetric('Total vendido', summary.salesTotal)}
-        ${renderMetric('Entradas', summary.entriesTotal)}
-        ${renderMetric('Saidas', summary.outputsTotal)}
-        ${renderMetric('Caixa liquido', summary.estimatedProfit)}
-        ${renderMetric('Ticket medio', summary.ticketAverage)}
-        ${renderMetric('Comandas fechadas', summary.closedComandas, false)}
-      </section>
-
-      <div class="crm-grid">
-        ${renderPaymentReport(summary.paymentTotals)}
-        ${renderRankingReport('Produtos mais vendidos', products.byQuantity)}
+      <div class="ui-stats rp-stats" aria-label="Resumo dos relatórios">
+        ${renderStat('Total vendido', formatCurrency(summary.salesTotal))}
+        ${renderStat('Entradas', formatCurrency(summary.entriesTotal), 'is-plus')}
+        ${renderStat('Saídas', formatCurrency(summary.outputsTotal), 'is-minus')}
+        ${renderStat('Caixa líquido', formatCurrency(summary.estimatedProfit), Number(summary.estimatedProfit) < 0 ? 'is-minus' : '')}
+        ${renderStat('Ticket médio', formatCurrency(summary.ticketAverage))}
+        ${renderStat('Comandas fechadas', Number(summary.closedComandas || 0))}
       </div>
 
-      <div class="crm-grid">
-        ${renderCategoryReport(categories)}
-        ${renderMovementReport(movements)}
+      <div class="ui-cols">
+        ${renderHourlyPanel(hourlySales, period)}
+        <div class="rp-side">
+          ${renderPaymentPanel(summary.paymentTotals)}
+          ${renderCategoryPanel(categories, allCategories)}
+        </div>
+      </div>
+
+      <div class="ui-cols ui-cols--even">
+        ${renderProductsPanel(products.byQuantity, allCategories)}
+        ${renderMovementsPanel(movements.slice(0, MOVEMENT_LIMIT))}
       </div>
     </section>
   `;
 }
 
-function renderMetric(label, value, currency = true) {
+// Soma das vendas por hora do dia, da primeira a ultima hora com venda. Horas sem
+// venda no meio da faixa entram com zero, para o grafico nao esconder os intervalos.
+export function buildHourlySales(movements = []) {
+  const totals = new Map();
+
+  movements.forEach((movement) => {
+    if (movement.type !== 'venda') {
+      return;
+    }
+
+    const date = new Date(movement.createdAt);
+
+    if (Number.isNaN(date.getTime())) {
+      return;
+    }
+
+    const hour = date.getHours();
+    totals.set(hour, (totals.get(hour) || 0) + Number(movement.amount || 0));
+  });
+
+  if (!totals.size) {
+    return [];
+  }
+
+  const hours = [...totals.keys()];
+  const first = Math.min(...hours);
+  const last = Math.max(...hours);
+  const series = [];
+
+  for (let hour = first; hour <= last; hour += 1) {
+    series.push({ hour, total: totals.get(hour) || 0 });
+  }
+
+  return series;
+}
+
+function renderPeriodSelector(activePeriod) {
   return `
-    <article class="summary-card">
-      <span>${label}</span>
-      <strong>${currency ? formatCurrency(value) : Number(value || 0)}</strong>
-    </article>
+    <div class="ui-seg" role="group" aria-label="Período do relatório">
+      ${PERIODS.map(([value, label]) => `<button type="button" class="${activePeriod === value ? 'is-on' : ''}" data-report-period="${value}" aria-pressed="${activePeriod === value}">${label}</button>`).join('')}
+    </div>
   `;
 }
 
-function renderPaymentReport(totals = {}) {
-  const rows = [
-    ['Dinheiro', totals.dinheiro],
-    ['Pix', totals.pix],
-    ['Debito', totals.debito],
-    ['Credito', totals.credito],
-    ['Outros', totals.outros]
-  ];
-
-  return renderReportTable('Formas de pagamento', ['Forma', 'Total'], rows.map(([label, value]) => [
-    label,
-    formatCurrency(value)
-  ]));
-}
-
-function renderRankingReport(title, ranking = []) {
-  const rows = ranking.slice(0, 10).map((item) => [
-    escapeHtml(item.name),
-    Number(item.quantity || 0),
-    formatCurrency(item.revenue)
-  ]);
-  return renderReportTable(title, ['Produto', 'Qtd', 'Faturamento'], rows);
-}
-
-function renderCategoryReport(ranking = []) {
-  const rows = ranking.slice(0, 10).map((item) => [
-    escapeHtml(item.name),
-    Number(item.quantity || 0),
-    formatCurrency(item.revenue)
-  ]);
-  return renderReportTable('Categorias', ['Categoria', 'Qtd', 'Faturamento'], rows);
-}
-
-function renderMovementReport(movements = []) {
-  const rows = movements.map((item) => [
-    escapeHtml(item.description),
-    escapeHtml(item.category),
-    formatCurrency(item.amount)
-  ]);
-  return renderReportTable('Movimentacoes recentes', ['Movimento', 'Categoria', 'Valor'], rows);
-}
-
-function renderReportTable(title, headers, rows) {
+function renderStat(label, value, tone = '') {
   return `
-    <section class="crm-panel">
-      <header class="crm-panel__header">
-        <h3>${title}</h3>
-        <span>${rows.length} registro(s)</span>
-      </header>
+    <div class="ui-stat ${tone}">
+      <small>${label}</small>
+      <b>${value}</b>
+    </div>
+  `;
+}
+
+function renderHourlyPanel(series, period) {
+  const caption = period === 'today' || period === 'yesterday'
+    ? 'o horário de pico em destaque'
+    : 'soma de todos os dias do período';
+  const max = Math.max(0, ...series.map((point) => point.total));
+  const peakHour = series.find((point) => point.total === max)?.hour;
+
+  return `
+    <section class="ui-panel rp-main">
+      <h2 class="ui-head">Vendas por hora <span>${caption}</span></h2>
+      ${series.length ? `
+        <div class="rp-chart">
+          ${series.map((point) => {
+            const height = max > 0 ? Math.round((point.total / max) * 100) : 0;
+            const peak = point.hour === peakHour && max > 0;
+
+            return `
+              <div class="rp-col" title="${formatHour(point.hour)}: ${formatCurrency(point.total)}">
+                <span class="rp-val">${point.total > 0 ? `R$ ${Math.round(point.total)}` : ''}</span>
+                <i class="rp-bar${peak ? ' is-peak' : ''}" style="height:${height}%"></i>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <div class="rp-hours">
+          ${series.map((point) => `<span>${formatHour(point.hour)}</span>`).join('')}
+        </div>
+      ` : '<p class="rp-empty">Nenhuma venda no período.</p>'}
+    </section>
+  `;
+}
+
+function formatHour(hour) {
+  return `${String(hour).padStart(2, '0')}h`;
+}
+
+function renderPaymentPanel(totals = {}) {
+  const rows = PAYMENT_LABELS
+    .map(([key, label]) => ({ label, value: Number(totals?.[key] || 0) }))
+    .filter((row) => row.value > 0)
+    .sort((a, b) => b.value - a.value);
+
+  return `
+    <section class="ui-panel">
+      <h2 class="ui-head">Formas de pagamento</h2>
+      ${renderBars(rows.map((row) => ({ label: row.label, value: row.value, color: 'var(--ink)' })), 'Nenhuma venda no período.')}
+    </section>
+  `;
+}
+
+function renderCategoryPanel(ranking = [], allCategories = []) {
+  const rows = ranking.slice(0, 10).map((item) => {
+    const label = escapeHtml(item.name);
+
+    return {
+      label,
+      value: Number(item.revenue || 0),
+      color: getCategoryColorVar({ id: item.categoryId, name: item.name }, allCategories)
+    };
+  });
+
+  return `
+    <section class="ui-panel">
+      <h2 class="ui-head">Por categoria</h2>
+      ${renderBars(rows, 'Nenhuma venda no período.')}
+    </section>
+  `;
+}
+
+function renderBars(rows, emptyText) {
+  if (!rows.length) {
+    return `<p class="rp-empty">${emptyText}</p>`;
+  }
+
+  const max = Math.max(...rows.map((row) => row.value));
+
+  return `
+    <div class="ui-bars">
+      ${rows.map((row) => `
+        <div class="ui-bar-row">
+          <span>${row.label}</span>
+          <div class="track"><i style="width:${max > 0 ? Math.round((row.value / max) * 100) : 0}%;--c:${row.color}"></i></div>
+          <b>${formatCurrency(row.value)}</b>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderProductsPanel(ranking = [], allCategories = []) {
+  const rows = (ranking || []).slice(0, 10).map((item) => {
+    const name = escapeHtml(item.name);
+    const category = allCategories.find((current) => current.id === item.categoryId) || { id: item.categoryId, name: '' };
+    const color = getCategoryColorVar(category, allCategories);
+
+    return `
+      <tr>
+        <td><i class="ui-stripe" style="--c:${color}"></i><b>${name}</b></td>
+        <td class="r">${Number(item.quantity || 0)}</td>
+        <td class="r">${formatCurrency(item.revenue)}</td>
+      </tr>
+    `;
+  });
+
+  return renderTablePanel('Produtos mais vendidos', [['Produto', ''], ['Qtd', 'r'], ['Faturamento', 'r']], rows);
+}
+
+function renderMovementsPanel(movements = []) {
+  const rows = movements.map((item) => {
+    const description = escapeHtml(item.description);
+    const category = escapeHtml(MOVEMENT_CATEGORY_LABELS[item.category] || item.category);
+    const entry = item.type === 'entrada';
+    const output = item.type === 'saida' || item.type === 'sangria';
+    const sign = entry ? '+ ' : output ? '− ' : '';
+
+    return `
+      <tr>
+        <td>${description}</td>
+        <td><span class="ui-pill">${category}</span></td>
+        <td class="r rp-amount${entry ? ' is-plus' : ''}${output ? ' is-minus' : ''}">${sign}${formatCurrency(item.amount)}</td>
+      </tr>
+    `;
+  });
+
+  return renderTablePanel('Movimentações recentes', [['Movimento', ''], ['Categoria', ''], ['Valor', 'r']], rows);
+}
+
+function renderTablePanel(title, headers, rows) {
+  return `
+    <section class="ui-panel">
+      <h2 class="ui-head">${title} <span>${rows.length} ${rows.length === 1 ? 'registro' : 'registros'}</span></h2>
       ${rows.length ? `
-        <div class="comparison-table">
-          <table>
-            <thead><tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr></thead>
-            <tbody>
-              ${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}
-            </tbody>
+        <div class="rp-scroll">
+          <table class="ui-table">
+            <thead><tr>${headers.map(([header, align]) => `<th${align ? ` class="${align}"` : ''}>${header}</th>`).join('')}</tr></thead>
+            <tbody>${rows.join('')}</tbody>
           </table>
         </div>
-      ` : '<div class="empty-products">Nenhum dado no periodo selecionado.</div>'}
+      ` : '<p class="rp-empty">Nenhum dado no período selecionado.</p>'}
     </section>
   `;
-}
-
-function renderPeriodOptions() {
-  return [
-    ['today', 'Hoje'],
-    ['yesterday', 'Ontem'],
-    ['week', 'Ultimos 7 dias'],
-    ['month', 'Mes'],
-    ['custom', 'Personalizado']
-  ].map(([value, label]) => (
-    `<option value="${value}" ${reportState.period === value ? 'selected' : ''}>${label}</option>`
-  )).join('');
 }

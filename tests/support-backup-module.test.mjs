@@ -4,7 +4,7 @@ globalThis.localStorage = { getItem: key => store.get(key) ?? null, setItem: (ke
 const storage = await import('../src/services/storage.service.js?v=20260804-06');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
 const { setTestUserSession } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const { initSyncAppModule } = await import('../src/modules/sync-app/sync-app.module.js?v=20260804-06');
+const { initSyncAppModule } = await import('../src/modules/sync-app/sync-app.module.js?v=20260807-18');
 let click;
 let downloaded = false;
 let blob;
@@ -16,6 +16,17 @@ const container = { innerHTML: '', querySelector: selector => selector.includes(
 setTestUserSession(storage, STORAGE_KEYS, { id: 'admin', name: 'Admin', role: 'admin', active: true });
 initSyncAppModule(container);
 assert.match(container.innerHTML, /Baixar backup/);
+// Visual B claro: cabecalho, paineis e botoes no padrao compartilhado
+assert.match(container.innerHTML, /<h1[^>]*>Suporte<\/h1>/, 'titulo Suporte');
+assert.match(container.innerHTML, /class="[^"]*\bui-screen\b/, 'tela usa ui-screen');
+assert.match(container.innerHTML, /class="[^"]*\bui-head\b/, 'cabecalho usa ui-head');
+assert((container.innerHTML.match(/class="[^"]*\bui-panel\b/g) || []).length >= 3, 'secoes em ui-panel');
+assert(!/module-screen|class="panel"|pdv-title|button--primary|button--ghost|module-header/.test(container.innerHTML), 'sem marcacao antiga');
+assert(!/Suporte e recuperação/.test(container.innerHTML), 'titulo antigo saiu');
+assert(!/text-transform:\s*uppercase/.test(container.innerHTML), 'sem uppercase inline');
+assert(/<button type="button" class="ui-btn ui-btn--primary" data-backup-download>Baixar backup deste aparelho<\/button>/.test(container.innerHTML), 'Baixar backup e o botao primario');
+assert(/role="status"[^>]*data-backup-status|data-backup-status[^>]*role="status"/.test(container.innerHTML), 'status do backup mantido');
+['Guardar uma cópia deste aparelho', 'Se a internet cair ou os valores divergirem', 'Recuperação assistida', 'Confirmação de pagamentos'].forEach((text) => assert(container.innerHTML.includes(text), text));
 click();
 assert(downloaded, 'authorized action must download operational JSON');
 const backup = JSON.parse(await blob.text());
@@ -27,4 +38,9 @@ assert(!downloaded, 'permission must be checked again on action');
 initSyncAppModule(container);
 assert(!container.innerHTML.includes('data-backup-download'), 'operator must not receive backup button');
 assert.match(container.innerHTML, /recupera/i, 'support must explain recovery');
+storage.setItem(STORAGE_KEYS.financialSyncQueue, [{ id: 'queued-1' }]);
+setTestUserSession(storage, STORAGE_KEYS, { id: 'admin', name: 'Admin', role: 'admin', active: true });
+initSyncAppModule(container);
+assert(/<button type="button" class="ui-btn" data-retry-financial>Sincronizar pendências agora<\/button>/.test(container.innerHTML), 'sincronizar pendencias continua, no botao padrao');
+assert.match(container.innerHTML, /financeiro 1/, 'contagem de pendencias');
 console.log('support backup module ok');
