@@ -22,6 +22,7 @@ import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
 import { hasPermission } from '../../services/permission.service.js?v=20260804-06';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
 import { recordAudit } from '../../services/audit.service.js?v=20260804-06';
+import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-07';
 
 const productState = {
   modal: null,
@@ -99,7 +100,7 @@ function getProductAlerts(metrics = getProductDashboardMetrics()) {
     {
       key: 'without-price',
       count: metrics.products.filter((product) => Number(product.price) <= 0).length,
-      label: 'Sem preco',
+      label: 'Sem preço',
       tone: 'danger'
     },
     {
@@ -154,52 +155,51 @@ function renderProdutosScreen(container) {
   const canManageProducts = canCurrentUser('products.manage');
   const canManageCategories = canCurrentUser('categories.manage');
 
+  const filteredCount = getFilteredProducts().length;
+
   container.innerHTML = `
-    <section class="module-screen products-module products-dashboard">
-      <header class="products-hero">
-        <div>
-          <span class="products-hero__eyebrow">Catalogo</span>
-          <h1 class="pdv-title">Produtos</h1>
-          <p class="module-subtitle">Gerencie categorias, produtos, precos e exibicao na vitrine.</p>
+    <section class="ui-screen pd" data-produtos-screen>
+      <header class="ui-head pd-head">
+        <div class="pd-head__title">
+          <h1 class="pd-title">Produtos</h1>
+          <p class="pd-sub">Categorias, produtos, preços e o que aparece na vitrine.</p>
         </div>
-        <div class="header-actions">
-          ${canManageCategories ? '<button class="button button--ghost" type="button" data-action="new-category">+ Nova categoria</button>' : ''}
-          ${canManageProducts ? '<button class="button" type="button" data-action="new-product">+ Novo produto</button>' : ''}
+        <div class="ui-head__actions">
+          ${canManageCategories ? '<button class="ui-btn" type="button" data-action="new-category">Nova categoria</button>' : ''}
+          ${canManageProducts ? '<button class="ui-btn ui-btn--primary" type="button" data-action="new-product">Novo produto</button>' : ''}
         </div>
       </header>
 
       ${renderSyncStatus()}
-      ${productState.loading ? '<div class="empty-products">Carregando produtos e categorias...</div>' : ''}
-      ${productState.error ? `<div class="form-error">${productState.error}</div>` : ''}
+      ${productState.loading ? '<p class="pd-empty">Carregando produtos e categorias...</p>' : ''}
+      ${productState.error ? `<div class="form-error pd-error">${escapeHtml(productState.error)}</div>` : ''}
       ${renderProductSummaryCards(metrics)}
       ${renderProductAlerts(metrics)}
 
-      <section class="manager-section products-section">
-        <header class="products-section__header">
-          <strong>Categorias / Abas</strong>
-          <span>${metrics.categories.length} categorias organizam as abas do caixa e da vitrine.</span>
-        </header>
-        <div class="category-card-grid">
+      <section class="ui-panel">
+        <h2 class="ui-head">
+          Categorias
+          <span>${metrics.categories.length} ${metrics.categories.length === 1 ? 'categoria organiza' : 'categorias organizam'} as abas do caixa e da vitrine</span>
+        </h2>
+        <div class="pd-cats">
           ${renderCategoryRows()}
         </div>
       </section>
 
-      <section class="manager-section products-section">
-        <header class="products-section__header">
-          <strong>Produtos cadastrados</strong>
-          <span>${getFilteredProducts().length} produtos encontrados pelos filtros atuais.</span>
-        </header>
-        ${renderProductFilters()}
-        <div class="product-card-grid">
-          ${renderProductRows()}
+      <section class="ui-panel">
+        <div class="ui-head pd-panel-head">
+          <h2 class="pd-panel-title">Produtos cadastrados</h2>
+          <span>${filteredCount} ${filteredCount === 1 ? 'produto' : 'produtos'}</span>
+          ${renderProductFilters()}
         </div>
+        ${renderProductRows()}
       </section>
 
-      <section class="manager-section products-section product-crm-section">
-        <header class="products-section__header">
-          <strong>Mais vendidos</strong>
+      <section class="ui-panel">
+        <h2 class="ui-head">
+          Mais vendidos
           <span>${renderBestSellerSummary()}</span>
-        </header>
+        </h2>
         ${renderBestSellerFilters()}
         ${renderBestSellers()}
       </section>
@@ -219,7 +219,7 @@ async function loadProductCatalog(container) {
     await Promise.all([loadCategories(), loadProducts()]);
     productState.syncStatus = getCatalogSyncStatus();
   } catch (error) {
-    productState.error = error.message || 'Nao foi possivel carregar produtos e categorias.';
+    productState.error = error.message || 'Não foi possível carregar produtos e categorias.';
   } finally {
     productState.loading = false;
     renderProdutosScreen(container);
@@ -230,24 +230,24 @@ function renderSyncStatus() {
   const status = productState.syncStatus || getCatalogSyncStatus();
   const syncError = getCatalogSyncError(status);
   const labels = {
-    idle: 'Preparando sincronizacao',
+    idle: 'Preparando sincronização',
     local: 'Modo local',
     synced: 'Sincronizado',
     syncing: 'Sincronizando...',
     cache: 'Usando cache',
-    pending: `${status.pending || 0} alteracao(oes) pendente(s)`,
+    pending: `${status.pending || 0} alteração(ões) pendente(s)`,
     error: 'Erro ao sincronizar'
   };
 
   return `
-    <div class="sync-status" data-sync-state="${status.state}">
-      <div class="sync-status__details">
-        <span>${labels[status.state] || 'Sincronizacao'}</span>
+    <div class="pd-sync" data-sync-state="${escapeHtml(status.state)}">
+      <div class="pd-sync__details">
+        <span class="pd-sync__label">${labels[status.state] || 'Sincronização'}</span>
         ${syncError ? `<small class="sync-status__error">${escapeHtml(syncError)}</small>` : ''}
       </div>
-      <div class="sync-status__actions">
-        ${status.pending ? '<button class="button button--ghost" type="button" data-action="sync-catalog">Sincronizar</button>' : ''}
-        ${status.pending ? '<button class="button button--ghost" type="button" data-action="clear-sync-queue">Limpar fila</button>' : ''}
+      <div class="pd-sync__actions">
+        ${status.pending ? '<button class="ui-btn ui-btn--sm" type="button" data-action="sync-catalog">Sincronizar</button>' : ''}
+        ${status.pending ? '<button class="ui-btn ui-btn--ghost ui-btn--sm" type="button" data-action="clear-sync-queue">Limpar fila</button>' : ''}
       </div>
     </div>
   `;
@@ -265,6 +265,7 @@ function bindProdutosEvents(container) {
     if (event.target.matches('[data-products-filter]')) {
       productState.query = event.target.value;
       renderProdutosScreen(container);
+      restoreSearchFocus(container);
     }
   });
 
@@ -328,6 +329,7 @@ function bindProdutosEvents(container) {
   });
 
   container.addEventListener('click', async (event) => {
+    closeRowMenus(container, event.target);
     const actionButton = event.target.closest('[data-action]');
 
     if (!actionButton) {
@@ -387,14 +389,14 @@ function bindProdutosEvents(container) {
 
       if (nextStatus.pending) {
         showNotification({
-          title: 'Sincronizacao pendente',
-          message: syncError || 'O Supabase recusou a sincronizacao. Tente novamente.',
+          title: 'Sincronização pendente',
+          message: syncError || 'O Supabase recusou a sincronização. Tente novamente.',
           type: 'danger'
         });
       } else {
         showNotification({
-          title: 'Catalogo sincronizado',
-          message: 'Todas as alteracoes foram enviadas ao Supabase.',
+          title: 'Catálogo sincronizado',
+          message: 'Todas as alterações foram enviadas ao Supabase.',
           type: 'success'
         });
       }
@@ -403,7 +405,7 @@ function bindProdutosEvents(container) {
     if (action === 'clear-sync-queue') {
       await clearCatalogSyncQueue();
       await loadProductCatalog(container);
-      showNotification('Pendencias locais descartadas.', 'success');
+      showNotification('Pendências locais descartadas.', 'success');
     }
 
     if (action === 'close-modal') {
@@ -411,6 +413,35 @@ function bindProdutosEvents(container) {
       renderProdutosScreen(container);
     }
 
+  });
+}
+
+// A tela inteira e redesenhada a cada tecla; devolve o foco (e o cursor) ao campo de busca.
+function restoreSearchFocus(container) {
+  const search = container.querySelector?.('[data-products-filter]');
+
+  if (!search) {
+    return;
+  }
+
+  search.focus();
+  const end = search.value.length;
+  search.setSelectionRange?.(end, end);
+}
+
+// Fecha o menu "..." de qualquer linha quando o clique cai fora dele.
+function closeRowMenus(container, target) {
+  const openMenus = container.querySelectorAll?.('.pd-menu[open]');
+
+  if (!openMenus) {
+    return;
+  }
+
+  const ownMenu = target?.closest?.('.pd-menu') || null;
+  openMenus.forEach((menu) => {
+    if (menu !== ownMenu) {
+      menu.removeAttribute('open');
+    }
   });
 }
 
@@ -444,7 +475,7 @@ function openDeleteConfirmation(container, type, id) {
     : getCategories().find((category) => category.id === id);
 
   if (!item) {
-    handleProductActionError(new Error('Registro nao encontrado. Atualize o catalogo e tente novamente.'));
+    handleProductActionError(new Error('Registro não encontrado. Atualize o catálogo e tente novamente.'));
     return;
   }
 
@@ -473,10 +504,10 @@ function renderDeleteConfirmation() {
           <h2 id="delete-catalog-title">Apagar ${typeLabel}</h2>
         </header>
         <div class="modal__body">
-          <p>Esta acao nao pode ser desfeita. Confirma apagar <strong>${escapeHtml(item.name)}</strong>?</p>
+          <p>Esta ação não pode ser desfeita. Confirma apagar <strong>${escapeHtml(item.name)}</strong>?</p>
           <div class="form-actions">
             <button class="button button--ghost" type="button" data-action="cancel-delete-catalog">Cancelar</button>
-            <button class="button button--danger" type="button" data-action="${confirmAction}">Confirmar exclusao</button>
+            <button class="button button--danger" type="button" data-action="${confirmAction}">Confirmar exclusão</button>
           </div>
         </div>
       </div>
@@ -494,8 +525,8 @@ async function saveProductFromForm(form) {
 
   if (selectedCategory === '__new__' && !newCategoryName) {
     showNotification({
-      title: 'Categoria obrigatoria',
-      message: 'Informe o nome da nova aba.',
+      title: 'Categoria obrigatória',
+      message: 'Informe o nome da nova categoria.',
       type: 'danger'
     });
     return;
@@ -571,7 +602,7 @@ async function saveCategoryFromForm(form) {
 
   if (!name) {
     showNotification({
-      title: 'Categoria obrigatoria',
+      title: 'Categoria obrigatória',
       message: 'Informe o nome da categoria.',
       type: 'danger'
     });
@@ -589,8 +620,8 @@ async function saveCategoryFromForm(form) {
 
 function handleProductActionError(error) {
   showNotification({
-    title: 'Acao nao permitida',
-    message: error.message || 'Nao foi possivel concluir a acao.',
+    title: 'Ação não permitida',
+    message: error.message || 'Não foi possível concluir a ação.',
     type: 'danger'
   });
 }
@@ -609,7 +640,7 @@ function renderProductSummaryCards(metrics = getProductDashboardMetrics()) {
     {
       label: 'Total de categorias',
       value: metrics.categories.length,
-      detail: 'Abas do catalogo'
+      detail: 'Abas do catálogo'
     },
     {
       label: 'Produtos ativos',
@@ -619,27 +650,35 @@ function renderProductSummaryCards(metrics = getProductDashboardMetrics()) {
     {
       label: 'Produtos que aparecem na vitrine',
       value: metrics.showcaseProducts.length,
-      detail: 'Visiveis ao cliente'
+      detail: 'Visíveis ao cliente'
     },
     {
       label: 'Produto mais vendido',
       value: metrics.topProduct?.name || 'Sem vendas',
-      detail: metrics.topProduct ? `${metrics.topProduct.quantity} vendidos` : 'Sem ranking no periodo'
+      detail: metrics.topProduct ? `${metrics.topProduct.quantity} vendidos` : 'Sem ranking no período'
     }
   ];
 
   return `
-    <section class="product-summary-grid" aria-label="Resumo de produtos">
+    <section class="ui-stats pd-stats" style="--n:${summaryCards.length}" aria-label="Resumo de produtos">
       ${summaryCards.map((card) => `
-        <article class="product-summary-card">
-          <span>${card.label}</span>
-          <strong>${card.value}</strong>
-          <small>${card.detail}</small>
-        </article>
+        <div class="ui-stat">
+          <small>${card.label}</small>
+          <b>${escapeHtml(card.value)}</b>
+          <em>${card.detail}</em>
+        </div>
       `).join('')}
     </section>
   `;
 }
+
+const ALERT_PILL_CLASS = {
+  danger: ' ui-pill--danger',
+  warning: ' ui-pill--warn',
+  success: ' ui-pill--ok',
+  info: '',
+  muted: ''
+};
 
 function renderProductAlerts(metrics = getProductDashboardMetrics()) {
   const alerts = getProductAlerts(metrics);
@@ -649,12 +688,11 @@ function renderProductAlerts(metrics = getProductDashboardMetrics()) {
   }
 
   return `
-    <section class="product-alert-grid" aria-label="Alertas de produtos">
+    <section class="pd-alerts" aria-label="Alertas de produtos">
       ${alerts.map((alert) => `
-        <article class="product-alert product-alert--${alert.tone}" data-alert-key="${alert.key}">
-          <strong>${alert.count}</strong>
-          <span>${alert.label}</span>
-        </article>
+        <span class="ui-pill${ALERT_PILL_CLASS[alert.tone] || ''}" data-alert-key="${alert.key}">
+          <b>${alert.count}</b>&nbsp;${alert.label}
+        </span>
       `).join('')}
     </section>
   `;
@@ -662,15 +700,15 @@ function renderProductAlerts(metrics = getProductDashboardMetrics()) {
 
 function renderProductFilters() {
   return `
-    <div class="products-filter-row">
-      <input class="field" type="search" placeholder="Filtrar produto..." value="${productState.query}" data-products-filter>
-      <select class="field" data-category-filter>
-        <option value="todos" ${productState.categoryFilter === 'todos' ? 'selected' : ''}>Todas as abas</option>
+    <div class="ui-head__actions pd-filters">
+      <input class="ui-input" type="search" placeholder="Buscar produto" aria-label="Buscar produto" value="${escapeHtml(productState.query)}" data-products-filter>
+      <select class="ui-input" aria-label="Categoria" data-category-filter>
+        <option value="todos" ${productState.categoryFilter === 'todos' ? 'selected' : ''}>Todas as categorias</option>
         ${getVisibleCategories().map((category) => `
           <option value="${escapeHtml(category.id)}" ${productState.categoryFilter === category.id ? 'selected' : ''}>${escapeHtml(category.name)}</option>
         `).join('')}
       </select>
-      <select class="field" data-status-filter>
+      <select class="ui-input" aria-label="Status" data-status-filter>
         <option value="todos" ${productState.statusFilter === 'todos' ? 'selected' : ''}>Todos os status</option>
         <option value="active" ${productState.statusFilter === 'active' ? 'selected' : ''}>Ativos</option>
         <option value="inactive" ${productState.statusFilter === 'inactive' ? 'selected' : ''}>Inativos</option>
@@ -683,49 +721,48 @@ function renderProductFilters() {
 
 function renderBestSellerFilters() {
   return `
-    <div class="products-filter-row">
-      <select class="field" data-best-seller-period-filter>
+    <div class="pd-filters pd-filters--bs">
+      <select class="ui-input" aria-label="Período" data-best-seller-period-filter>
         ${renderBestSellerPeriodOptions()}
       </select>
-      <select class="field" data-best-seller-category-filter>
-        <option value="todos" ${productState.bestSellerCategoryFilter === 'todos' ? 'selected' : ''}>Todas as abas</option>
+      <select class="ui-input" aria-label="Categoria" data-best-seller-category-filter>
+        <option value="todos" ${productState.bestSellerCategoryFilter === 'todos' ? 'selected' : ''}>Todas as categorias</option>
         ${getVisibleCategories().map((category) => `
           <option value="${escapeHtml(category.id)}" ${productState.bestSellerCategoryFilter === category.id ? 'selected' : ''}>${escapeHtml(category.name)}</option>
         `).join('')}
       </select>
+      ${productState.bestSellerPeriod === 'custom' ? `
+        <input class="ui-input" type="date" value="${escapeHtml(productState.bestSellerCustomStart)}" data-best-seller-custom-start aria-label="Data inicial">
+        <input class="ui-input" type="date" value="${escapeHtml(productState.bestSellerCustomEnd)}" data-best-seller-custom-end aria-label="Data final">
+      ` : ''}
     </div>
-    ${productState.bestSellerPeriod === 'custom' ? `
-      <div class="products-filter-row">
-        <input class="field" type="date" value="${productState.bestSellerCustomStart}" data-best-seller-custom-start aria-label="Data inicial">
-        <input class="field" type="date" value="${productState.bestSellerCustomEnd}" data-best-seller-custom-end aria-label="Data final">
-      </div>
-    ` : ''}
   `;
 }
 
 function renderCategoryRows() {
   const categories = getVisibleCategories();
+  const allCategories = getCategories();
   const canManageCategories = canCurrentUser('categories.manage');
 
   if (!categories.length) {
-    return '<div class="empty-products">Nenhuma categoria cadastrada no banco.</div>';
+    return '<p class="pd-empty">Nenhuma categoria cadastrada no banco.</p>';
   }
 
   return categories.map((category) => {
     const productCount = getProducts().filter((product) => product.categoryId === category.id).length;
     const activeClass = productState.categoryFilter === category.id ? ' is-active' : '';
-    const showcaseStatus = category.showInShowcase ? 'Aparece na vitrine' : 'Nao aparece na vitrine';
+    const showcaseStatus = category.showInShowcase ? 'Aparece na vitrine' : 'Oculta';
 
     return `
-      <article class="category-manager-card${activeClass}">
-        <div class="category-manager-card__content">
-          <strong>${escapeHtml(category.name)}</strong>
-          <span>${productCount} produtos</span>
+      <article class="pd-cat${activeClass}" style="--c: ${escapeHtml(getCategoryColorVar(category, allCategories))}">
+        <div class="pd-cat__body">
+          <b>${escapeHtml(category.name)}</b>
+          <span>${productCount} ${productCount === 1 ? 'produto' : 'produtos'}</span>
           <span>${showcaseStatus}</span>
         </div>
-        ${canManageCategories ? `<div class="row-actions">
-          <button class="button button--ghost button--small" type="button" data-action="edit-category" data-category-id="${category.id}">Editar</button>
-          <button class="button button--danger button--small" type="button" data-action="delete-category" data-category-id="${category.id}">Apagar</button>
+        ${canManageCategories ? `<div class="pd-cat__actions">
+          <button class="ui-btn ui-btn--sm" type="button" data-action="edit-category" data-category-id="${escapeHtml(category.id)}">Editar</button>
+          <button class="ui-btn ui-btn--loss ui-btn--sm" type="button" data-action="delete-category" data-category-id="${escapeHtml(category.id)}">Apagar</button>
         </div>` : ''}
       </article>
     `;
@@ -735,41 +772,67 @@ function renderCategoryRows() {
 function renderProductRows() {
   const products = getFilteredProducts();
   const categoriesById = getCategoriesById();
+  const allCategories = getCategories();
   const canManageProducts = canCurrentUser('products.manage');
 
   if (!products.length) {
-    return '<div class="empty-products">Nenhum produto encontrado com os filtros atuais.</div>';
+    return '<p class="pd-empty">Nenhum produto encontrado com os filtros atuais.</p>';
   }
 
-  return products.map((product) => {
-    const category = categoriesById.get(product.categoryId);
-    const isActive = product.active !== false;
-    const inShowcase = isProductInShowcase(product, categoriesById);
+  return `
+    <div class="pd-scroll">
+      <table class="ui-table pd-table">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Categoria</th>
+            <th class="r">Preço</th>
+            <th class="r">Estoque</th>
+            <th>Status</th>
+            <th>Vitrine</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${products.map((product) => {
+            const category = categoriesById.get(product.categoryId);
+            const isActive = product.active !== false;
+            const inShowcase = isProductInShowcase(product, categoriesById);
+            const stock = Number(getShowcaseStockByProductId(product.id).quantityAvailable) || 0;
+            const colorVar = category ? getCategoryColorVar(category, allCategories) : 'var(--muted)';
+            const productId = escapeHtml(product.id);
 
-    return `
-      <article class="product-manager-card">
-        <div class="product-manager-card__content">
-          <strong>${escapeHtml(product.name)}</strong>
-          <span>${escapeHtml(category ? category.name : 'Sem categoria')} - ${formatCurrency(product.price)} - Estoque: ${getShowcaseStockByProductId(product.id).quantityAvailable}</span>
-          <div class="product-manager-card__badges">
-            <span class="product-manager-card__badge ${isActive ? 'is-active' : 'is-inactive'}">${isActive ? 'Ativo' : 'Inativo'}</span>
-            <span class="product-manager-card__badge ${inShowcase ? 'is-showcase' : 'is-out-showcase'}">${inShowcase ? 'Na vitrine' : 'Fora da vitrine'}</span>
-          </div>
-        </div>
-        ${canManageProducts ? `<div class="row-actions">
-          <button class="button button--ghost button--small" type="button" data-action="edit-product" data-product-id="${product.id}">Editar</button>
-          <button class="button button--danger button--small" type="button" data-action="delete-product" data-product-id="${product.id}">Apagar</button>
-        </div>` : ''}
-      </article>
-    `;
-  }).join('');
+            return `
+              <tr>
+                <td><span class="ui-stripe" style="--c: ${escapeHtml(colorVar)}"></span><b>${escapeHtml(product.name)}</b></td>
+                <td class="pd-muted">${escapeHtml(category ? category.name : 'Sem categoria')}</td>
+                <td class="r"><b>${formatCurrency(product.price)}</b></td>
+                <td class="r pd-stock${stock <= 0 ? ' is-minus' : ''}" data-product-stock>${stock}</td>
+                <td>${isActive ? '<span class="ui-pill ui-pill--ok">Ativo</span>' : '<span class="ui-pill">Inativo</span>'}</td>
+                <td>${inShowcase ? '<span class="ui-pill ui-pill--ok">Aparece</span>' : '<span class="ui-pill">Oculto</span>'}</td>
+                <td class="r">${canManageProducts ? `<div class="pd-actions">
+                  <button class="ui-btn ui-btn--sm" type="button" data-action="edit-product" data-product-id="${productId}">Editar</button>
+                  <details class="pd-menu">
+                    <summary class="ui-btn ui-btn--ghost ui-btn--sm" aria-label="Mais ações de ${escapeHtml(product.name)}">&#8943;</summary>
+                    <div class="pd-menu__list">
+                      <button class="ui-btn ui-btn--loss ui-btn--sm" type="button" data-action="delete-product" data-product-id="${productId}">Apagar</button>
+                    </div>
+                  </details>
+                </div>` : ''}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 function renderProductModal() {
   const product = productState.editingProductId
     ? getProducts().find((item) => item.id === productState.editingProductId)
     : null;
-  const title = product ? 'Editar Produto' : 'Novo Produto';
+  const title = product ? 'Editar produto' : 'Novo produto';
   const selectedCategory = product ? product.categoryId : '__new__';
   const canManageCategories = canCurrentUser('categories.manage');
 
@@ -787,22 +850,22 @@ function renderProductModal() {
           </label>
 
           <label class="stacked-label">
-            Tipo / Aba
+            Categoria
             <select class="field" name="categoryId" data-product-category-select required>
-              ${canManageCategories ? `<option value="__new__" ${selectedCategory === '__new__' ? 'selected' : ''}>+ Criar nova aba</option>` : ''}
+              ${canManageCategories ? `<option value="__new__" ${selectedCategory === '__new__' ? 'selected' : ''}>+ Criar nova categoria</option>` : ''}
               ${getCategoryOptions(selectedCategory)}
             </select>
           </label>
 
           <div data-new-category ${canManageCategories && selectedCategory === '__new__' ? '' : 'hidden'}>
             <label class="stacked-label">
-              Nova aba
+              Nova categoria
               <input class="field" name="newCategoryName" placeholder="Ex.: Combos">
             </label>
           </div>
 
           <label class="stacked-label">
-            Preco de venda
+            Preço de venda
             <input class="field" name="price" type="number" min="0" step="0.01" required placeholder="0,00" value="${product ? product.price : ''}">
           </label>
 
@@ -826,8 +889,8 @@ function renderCategoryModal() {
   const category = productState.editingCategoryId
     ? getCategories().find((item) => item.id === productState.editingCategoryId)
     : null;
-  const title = category ? 'Editar Categoria' : 'Nova Categoria';
-  const submitLabel = category ? 'Atualizar Categoria' : 'Salvar Categoria';
+  const title = category ? 'Editar categoria' : 'Nova categoria';
+  const submitLabel = category ? 'Atualizar categoria' : 'Salvar categoria';
 
   return `
     <div class="modal-backdrop is-open">
@@ -844,7 +907,7 @@ function renderCategoryModal() {
           </label>
           <label class="checkbox-field category-visibility-toggle">
             <input type="checkbox" name="showInShowcase" ${category?.showInShowcase !== false ? 'checked' : ''}>
-            Aparecer para lancar na Vitrine
+            Aparecer para lançar na vitrine
           </label>
           <div class="form-actions">
             <button class="button" type="submit">${submitLabel}</button>
@@ -893,7 +956,7 @@ function renderBestSellers() {
   const bestSellers = getFilteredBestSellers();
 
   if (!bestSellers.length) {
-    return '<div class="empty-products product-empty-large">Nenhuma venda no periodo.</div>';
+    return '<p class="pd-empty">Nenhuma venda no período.</p>';
   }
 
   const mostSold = bestSellers.slice(0, 6);
@@ -908,7 +971,7 @@ function renderBestSellers() {
     .slice(0, 6);
 
   return `
-    <div class="product-crm-grid">
+    <div class="pd-rank-grid">
       ${renderBestSellerRanking('Mais vendidos', mostSold)}
       ${renderBestSellerRanking('Menos vendidos', leastSold)}
     </div>
@@ -919,26 +982,23 @@ function renderBestSellerRanking(title, rows) {
   const maxQuantity = Math.max(...rows.map((item) => item.quantity), 1);
 
   return `
-    <section class="product-ranking-panel">
-      <header>
-        <h3>${title}</h3>
-        <span>${rows.length} produtos</span>
-      </header>
-      <div class="product-ranking-list">
+    <section class="pd-rank">
+      <h3 class="pd-rank__title">${title} <span>${rows.length} ${rows.length === 1 ? 'produto' : 'produtos'}</span></h3>
+      <div class="pd-rank__list">
         ${rows.map((item, index) => {
-        const percent = Math.max((item.quantity / maxQuantity) * 100, 8);
-        return `
-          <article class="product-ranking-row">
-            <div class="product-ranking-row__info">
-              <strong>${index + 1}. ${escapeHtml(item.name)}</strong>
-              <span>${item.quantity} vendidos - ${formatCurrency(item.revenue)}</span>
-            </div>
-            <div class="best-seller-bar" aria-label="${escapeHtml(item.name)}: ${item.quantity}">
-              <span style="width: ${percent}%"></span>
-            </div>
-          </article>
-        `;
-      }).join('')}
+          const percent = Math.max((item.quantity / maxQuantity) * 100, 8);
+          return `
+            <article class="pd-rank__row">
+              <div class="pd-rank__info">
+                <b>${index + 1}. ${escapeHtml(item.name)}</b>
+                <span>${item.quantity} vendidos - ${formatCurrency(item.revenue)}</span>
+              </div>
+              <div class="pd-rank__track" aria-label="${escapeHtml(item.name)}: ${item.quantity}">
+                <i style="width: ${percent}%"></i>
+              </div>
+            </article>
+          `;
+        }).join('')}
       </div>
     </section>
   `;
@@ -972,9 +1032,9 @@ function renderBestSellerPeriodOptions() {
     ['yesterday', 'Ontem'],
     ['last7', '7 dias'],
     ['last30', '30 dias'],
-    ['month', 'Este mes'],
+    ['month', 'Este mês'],
     ['year', 'Este ano'],
-    ['all', 'Todo periodo'],
+    ['all', 'Todo o período'],
     ['custom', 'Personalizado']
   ];
 

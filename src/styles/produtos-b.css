@@ -1,0 +1,122 @@
+/* Tela Produtos do visual B claro. Escopo: .pd e classes pd-*; a estrutura vem de
+   .ui-screen / .ui-panel / .ui-stats / .ui-table / .ui-pill / .ui-stripe (components.css).
+   Valores: secao "Produtos" de docs/superpowers/specs/mockups/2026-11-07-telas-b-claro.html */
+
+/* Cabecalho: titulo, frase e acoes */
+.pd-head { flex-wrap: wrap; gap: 10px 16px; font-size: 14px; }
+.pd-head__title { min-width: 0; margin-right: auto; }
+.pd-title { font-size: 19px; font-weight: 600; line-height: 1.2; }
+.pd-sub { margin-top: 3px; color: var(--muted); font-size: 12.5px; font-weight: 400; }
+.pd-empty { margin: 0; padding: 6px 0; color: var(--muted); }
+.pd .pd-error { margin: 0; }
+
+/* Faixa de sincronizacao */
+.pd-sync {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  font-size: 12.5px;
+}
+.pd-sync__details { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin-right: auto; min-width: 0; }
+.pd-sync__label { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+.pd-sync__label::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.pd-sync[data-sync-state="synced"] .pd-sync__label::before { background: var(--green); }
+.pd-sync[data-sync-state="pending"] .pd-sync__label::before,
+.pd-sync[data-sync-state="cache"] .pd-sync__label::before,
+.pd-sync[data-sync-state="syncing"] .pd-sync__label::before { background: var(--accent); }
+.pd-sync[data-sync-state="error"] .pd-sync__label::before { background: var(--red); }
+.pd-sync .sync-status__error { color: var(--red); overflow-wrap: anywhere; }
+.pd-sync__actions { display: flex; gap: 6px; }
+
+/* Cartoes de numeros e alertas */
+.pd .ui-stat b { overflow-wrap: anywhere; }
+.pd-alerts { display: flex; flex-wrap: wrap; gap: 8px; }
+.pd-alerts .ui-pill { height: 28px; padding: 0 11px; font-size: 12px; }
+.pd-alerts .ui-pill b { font-weight: 700; }
+
+/* Paineis: o menu da linha nao fica cortado pelo cartao */
+.pd .ui-panel { overflow: visible; }
+.pd .ui-head span { overflow-wrap: anywhere; }
+.pd-panel-head { flex-wrap: wrap; row-gap: 8px; }
+.pd-panel-title { margin: 0; font-size: 15px; font-weight: 600; }
+
+/* Campos: o select herdava o visual antigo do app-shell; aqui segue o .ui-input */
+.app-shell .pd select.ui-input {
+  appearance: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: none;
+}
+.app-shell .pd select.ui-input:focus { border-color: var(--line); box-shadow: none; }
+.pd .ui-input { min-width: 0; height: 36px; font-size: 13px; }
+.pd-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pd-filters .ui-input { width: auto; min-width: 150px; }
+.pd-filters input[type="search"] { min-width: 190px; }
+.pd-filters--bs { margin-left: 0; }
+
+/* Cartoes de categoria: borda na cor da categoria */
+.pd-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.pd-cat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--c, var(--muted));
+  border-radius: 12px;
+  background: var(--card);
+}
+.pd-cat.is-active { background: var(--accent-soft); border-color: var(--accent); border-left-color: var(--c, var(--accent)); }
+.pd-cat__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pd-cat__body b { font-weight: 600; overflow-wrap: anywhere; }
+.pd-cat__body span { color: var(--muted); font-size: 12px; }
+.pd-cat.is-active .pd-cat__body span { color: var(--accent-ink-soft); }
+.pd-cat__actions { display: flex; gap: 6px; margin-top: auto; }
+
+/* Tabela de produtos */
+.pd-scroll { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+.pd .ui-table th, .pd .ui-table td { white-space: nowrap; }
+.pd-table td.pd-muted { color: var(--muted); }
+.pd-table td.pd-stock.is-minus { color: var(--red); font-weight: 600; }
+.pd-table td b { overflow-wrap: normal; }
+
+/* Editar + menu da linha ("...") com o Apagar */
+.pd-actions { display: inline-flex; align-items: center; gap: 4px; justify-content: flex-end; }
+.pd-menu { position: relative; }
+.pd-menu summary { list-style: none; padding: 0 9px; cursor: pointer; user-select: none; }
+.pd-menu summary::-webkit-details-marker { display: none; }
+.pd-menu[open] summary { background: var(--line-soft); color: var(--ink); }
+.pd-menu__list {
+  position: absolute;
+  right: calc(100% + 4px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: 0 8px 24px rgba(28, 35, 49, .12);
+}
+
+/* Mais / menos vendidos */
+.pd-rank-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 980px) { .pd-rank-grid { grid-template-columns: minmax(0, 1fr); } }
+.pd-rank { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 12px 14px; border: 1px solid var(--line-soft); border-radius: 12px; }
+.pd-rank__title { margin: 0; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; }
+.pd-rank__title span { color: var(--muted); font-size: 12px; font-weight: 400; }
+.pd-rank__list { display: grid; gap: 10px; }
+.pd-rank__row { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.pd-rank__info { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 13px; }
+.pd-rank__info b { font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+.pd-rank__info span { flex: none; color: var(--muted); font-size: 12px; }
+.pd-rank__track { height: 8px; background: var(--line-soft); border-radius: 99px; overflow: hidden; }
+.pd-rank__track i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }

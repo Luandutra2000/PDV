@@ -10,7 +10,7 @@ assert.match(moduleSource, /function getCatalogSyncError\(status/, 'products mod
 assert.match(moduleSource, /status\?\.products\?\.error/, 'product errors should have priority in catalog diagnostics');
 assert.match(moduleSource, /escapeHtml\(syncError\)/, 'remote sync errors should be escaped before rendering');
 assert.match(moduleSource, /sync-status__error/, 'sync errors should remain visible in the status banner');
-assert.match(moduleSource, /title: 'Sincronizacao pendente'/, 'manual sync should notify when operations remain pending');
-assert.match(moduleSource, /title: 'Catalogo sincronizado'/, 'manual sync should confirm when the queue is completed');
+assert.match(moduleSource, /title: 'Sincronização pendente'/, 'manual sync should notify when operations remain pending');
+assert.match(moduleSource, /title: 'Catálogo sincronizado'/, 'manual sync should confirm when the queue is completed');
 
 console.log('produtos sync error diagnostics ok');
