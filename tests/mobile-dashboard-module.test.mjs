@@ -20,9 +20,13 @@ globalThis.window = {
   }
 };
 
+const documentListeners = {};
 globalThis.document = {
   documentElement: {
     dataset: {}
+  },
+  addEventListener(type, listener) {
+    documentListeners[type] = listener;
   }
 };
 
@@ -161,6 +165,20 @@ assert(topProducts.includes('Mais vendidos'), 'top products should be titled Mai
 assert(topProducts.includes('--c:var(--cat-lanches)'), 'top products bars should use the category colour');
 assert(topProducts.includes('--c:var(--cat-extra-'), 'user categories should get a stable extra colour');
 assert(topProducts.includes('Brigadeiro &lt;b&gt;'), 'product names should be escaped');
+assert(topProducts.includes('own-bar-detail') && topProducts.includes('128,00'), 'top products should keep the revenue per product');
+
+const categoryChart = mobileDashboard.renderMobileCategoryChart([
+  { categoryId: 'lanches', name: 'Lanches', quantity: 12, revenue: 200 }
+], categories);
+assert(categoryChart.includes('Categorias') && categoryChart.includes('200,00'), 'category chart should show revenue per category');
+assert(categoryChart.includes('12 un.'), 'category chart should keep the units per category');
+assert(categoryChart.includes('--c:var(--cat-lanches)'), 'category bars should use the category colour');
+
+const productionChart = mobileDashboard.renderMobileProductionChart([
+  { produtoId: 'p1', produtoNome: 'X-Burger', quantidadeVendida: 18, quantidadeProduzida: 20, percentualVendido: 90 }
+]);
+assert(productionChart.includes('Produção x vendido') && productionChart.includes('90%'), 'production chart should show the sold percentage');
+assert(productionChart.includes('18/20 vendidos'), 'production chart should keep sold/produced units');
 
 // Vitrine: faixa da categoria e quantidade ou etiqueta.
 const stockList = mobileDashboard.renderMobileStockList([
@@ -177,6 +195,15 @@ const currentWorkspace = createWorkspace();
 mobileDashboard.initMobileDashboardModule(oldWorkspace);
 mobileDashboard.initMobileDashboardModule(currentWorkspace);
 assert(currentWorkspace.innerHTML.includes('mobile-shell'), 'owner app should keep the mobile-shell root used by the shell rules');
+
+// Menu do topo: o estado aberto sobrevive ao re-render e Esc no documento fecha.
+currentWorkspace.listeners.toggle({ target: { matches: () => true, open: true } });
+eventBus.emit(UI_EVENTS.mobileFeedChanged);
+assert(currentWorkspace.innerHTML.includes('data-mobile-menu open'), 'open top menu should stay open after a realtime re-render');
+assert(typeof documentListeners.keydown === 'function', 'Escape should be handled on the document');
+documentListeners.keydown({ key: 'Escape' });
+eventBus.emit(UI_EVENTS.mobileFeedChanged);
+assert(!currentWorkspace.innerHTML.includes('data-mobile-menu open'), 'Escape on the document should close the top menu');
 currentWorkspace.innerHTML = 'stale mobile dashboard';
 eventBus.emit(UI_EVENTS.mobileFeedChanged);
 
@@ -191,9 +218,13 @@ assert(currentWorkspace.innerHTML === 'frente de caixa', 'mobile dashboard shoul
 console.log('mobile dashboard module ok');
 
 function createWorkspace() {
+  const listeners = {};
   return {
     dataset: {},
     innerHTML: '',
-    addEventListener() {}
+    listeners,
+    addEventListener(type, listener) {
+      listeners[type] = listener;
+    }
   };
 }

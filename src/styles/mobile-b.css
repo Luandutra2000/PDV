@@ -23,6 +23,9 @@
   font-size: 14px;
 }
 .own *, .own *::before, .own *::after { box-sizing: border-box; }
+/* Controles nativos (datas, selects, rolagem) seguem o tema em qualquer largura. */
+.own { color-scheme: light; }
+:root[data-theme="dark"] .own { color-scheme: dark; }
 .own h1, .own h2, .own p, .own dl, .own dd { margin: 0; }
 
 .own-app {
@@ -153,7 +156,7 @@
 .own-period { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .own-seg { max-width: 100%; }
 .own-seg button { padding: 5px 10px; font-size: 12.5px; white-space: nowrap; }
-.own-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.own-seg button:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 .own-range { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
 
 /* Numero grande */
@@ -250,7 +253,7 @@
   cursor: pointer;
 }
 .own-chip.is-on { background: var(--ink); border-color: var(--ink); color: var(--card); }
-.own-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.own-chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 .own-event { border-bottom: 1px solid var(--line-soft); }
 .own-event .own-row { border-bottom: 0; }
@@ -291,6 +294,8 @@ button.own-event__main:focus-visible { outline: 2px solid var(--ink); outline-of
 .own-bars .ui-bar-row { grid-template-columns: minmax(0, 92px) minmax(0, 1fr) auto; }
 .own-bars .ui-bar-row span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .own-bars .ui-bar-row b { white-space: nowrap; }
+/* Segundo numero da barra (faturamento, unidades, vendidos/produzidos), em linha pequena embaixo. */
+.own-bars .own-bar-detail { grid-column: 1 / -1; margin-top: -7px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
 
 /* Vendas por dia: uma barra por dia, hoje (ou o pico) em ambar */
 .own-days { display: flex; align-items: stretch; gap: 4px; height: 132px; padding: 4px 0 2px; }

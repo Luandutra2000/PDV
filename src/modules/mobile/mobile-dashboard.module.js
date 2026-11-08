@@ -122,6 +122,7 @@ export function initMobileDashboardModule(workspace) {
 
   render(workspace);
   bindRealtimeRefresh(workspace);
+  bindDocumentEscape();
   bindAutoRefresh(workspace);
   refreshMobileData(workspace);
 }
@@ -252,13 +253,6 @@ function bindEvents(workspace) {
       state.menuOpen = Boolean(event.target.open);
     }
   }, true);
-
-  workspace.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && state.menuOpen) {
-      closeTopMenu(workspace);
-      workspace.querySelector?.('[data-mobile-menu] summary')?.focus();
-    }
-  });
 
   workspace.addEventListener('submit', async (event) => {
     if (event.target.matches('[data-mobile-showcase-form]')) {
@@ -455,6 +449,7 @@ function render(workspace) {
     customEnd: state.customEnd
   });
   const view = renderTabView(cash);
+  const menuFocus = getMenuFocusSelector(workspace);
 
   workspace.innerHTML = `
     <section class="mobile-shell own">
@@ -475,6 +470,65 @@ function render(workspace) {
   `;
 
   bindEvents(workspace);
+  restoreMenuFocus(workspace, menuFocus);
+}
+
+// O innerHTML recria o menu do topo; guarda qual item tinha foco para devolve-lo depois
+// (tema, atualizacao em tempo real...). Sem foco no menu, nao mexe no foco.
+const MENU_FOCUS_KEYS = ['data-mobile-period-toggle', 'data-mobile-theme', 'data-mobile-sync', 'data-mobile-tab', 'data-mobile-logout'];
+
+function getMenuFocusSelector(workspace) {
+  try {
+    const active = globalThis.document?.activeElement;
+
+    if (!active || typeof active.closest !== 'function' || !active.closest('[data-mobile-menu]')) {
+      return '';
+    }
+
+    if (typeof workspace.contains === 'function' && !workspace.contains(active)) {
+      return '';
+    }
+
+    const key = MENU_FOCUS_KEYS.find((name) => active.hasAttribute?.(name));
+    return key ? `[${key}]` : 'summary';
+  } catch (error) {
+    return '';
+  }
+}
+
+function restoreMenuFocus(workspace, selector) {
+  if (!selector) {
+    return;
+  }
+
+  try {
+    const menu = workspace.querySelector?.('[data-mobile-menu]');
+    const target = state.menuOpen ? menu?.querySelector(selector) : menu?.querySelector('summary');
+    target?.focus?.({ preventScroll: true });
+  } catch (error) {
+    // Sem DOM (testes) ou elemento sumiu: segue sem foco.
+  }
+}
+
+// Esc fecha o menu do topo de qualquer lugar da pagina, nao so de dentro do app.
+let documentEscapeBound = false;
+
+function bindDocumentEscape() {
+  if (documentEscapeBound || typeof globalThis.document?.addEventListener !== 'function') {
+    return;
+  }
+
+  documentEscapeBound = true;
+  globalThis.document.addEventListener('keydown', (event) => {
+    const workspace = subscribedWorkspace;
+
+    if (event.key !== 'Escape' || !state.menuOpen || !workspace || workspace.dataset.activeRoute !== 'mobile') {
+      return;
+    }
+
+    closeTopMenu(workspace);
+    workspace.querySelector?.('[data-mobile-menu] summary')?.focus?.();
+  });
 }
 
 export function renderMobileTopbar({
@@ -911,12 +965,7 @@ export function renderCrmTab() {
       color: 'var(--ink)'
     })), { empty: 'Sem vendas no período.' }))}
     ${renderMobileTopProducts(ranking.byQuantity.slice(0, 5), allCategories)}
-    ${renderPanel('Categorias', renderBars(categories.slice(0, 5).map((item) => ({
-      label: escapeHtml(item.name),
-      value: item.revenue,
-      display: formatCurrency(item.revenue),
-      color: getCategoryColor(item.categoryId, allCategories)
-    })), { empty: 'Sem vendas no período.' }))}
+    ${renderMobileCategoryChart(categories, allCategories)}
     ${renderMobileProductionChart(comparison)}
     ${renderPanel('Destaques', `
       <div class="own-list">
@@ -980,17 +1029,29 @@ export function renderMobileTopProducts(items, allCategories = getCategories()) 
     label: escapeHtml(item.name),
     value: Number(item.quantity || 0),
     display: `${item.quantity} un.`,
+    detail: formatCurrency(item.revenue),
     color: getCategoryColor(item.categoryId, allCategories)
   })), { empty: 'Sem vendas no período.' }));
 }
 
-function renderMobileProductionChart(comparison) {
+export function renderMobileCategoryChart(categories, allCategories = getCategories()) {
+  return renderPanel('Categorias', renderBars(categories.slice(0, 5).map((item) => ({
+    label: escapeHtml(item.name),
+    value: item.revenue,
+    display: formatCurrency(item.revenue),
+    detail: `${item.quantity} un.`,
+    color: getCategoryColor(item.categoryId, allCategories)
+  })), { empty: 'Sem vendas no período.' }));
+}
+
+export function renderMobileProductionChart(comparison) {
   const rows = comparison.slice(0, 5);
 
   return renderPanel('Produção x vendido', renderBars(rows.map((item) => ({
     label: escapeHtml(item.produtoNome),
     value: Math.min(Math.max(Number(item.percentualVendido) || 0, 0), 100),
     display: `${item.percentualVendido}%`,
+    detail: `${item.quantidadeVendida}/${item.quantidadeProduzida} vendidos`,
     color: 'var(--accent)'
   })), { empty: 'Sem vitrine no período.', max: 100 }));
 }
@@ -1725,7 +1786,7 @@ function renderPanel(title, bodyHtml, { aside = '' } = {}) {
   `;
 }
 
-// rows: { label (ja escapado), value, display, color }
+// rows: { label (ja escapado), value, display, color, detail? } — detail e uma linha pequena sob a barra.
 function renderBars(rows, { empty = 'Sem dados no período.', max = null } = {}) {
   if (!rows.length) {
     return `<p class="own-empty">${empty}</p>`;
@@ -1743,6 +1804,7 @@ function renderBars(rows, { empty = 'Sem dados no período.', max = null } = {})
             <span>${row.label}</span>
             <div class="track"><i style="width:${width}%;--c:${row.color}"></i></div>
             <b>${row.display}</b>
+            ${row.detail ? `<small class="own-bar-detail">${row.detail}</small>` : ''}
           </div>
         `;
       }).join('')}
