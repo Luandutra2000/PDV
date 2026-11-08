@@ -25,7 +25,7 @@ globalThis.document = {
 const storage = await import('../src/services/storage.service.js?v=20260804-06');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const { initDespesasModule, renderFinanceiroMarkup } = await import('../src/modules/despesas/despesas.module.js?v=20260804-06');
+const { initDespesasModule, renderFinanceiroMarkup } = await import('../src/modules/despesas/despesas.module.js?v=20260807-17');
 const { getLocalDateKey } = await import('../src/services/financial.service.js?v=20260804-06');
 
 seedTestAdmin(storage, STORAGE_KEYS);
@@ -74,18 +74,18 @@ const html = renderFinanceiroMarkup({
 
 assert(html.includes('Financeiro'));
 assert(html.includes('+ Entrada'));
-assert(html.includes('- Saida'));
+assert(html.includes('− Saída'));
 assert(html.includes('+ Boleto'));
-assert(html.includes('Descricao obrigatoria'));
+assert(html.includes('Descrição obrigatória'));
 assert(html.includes('Contas a pagar'));
 assert(html.includes('Mais info'));
 assert(html.includes('Mini CRM financeiro'));
-assert(html.includes('Vencimento: 09/06/2026'));
+assert(html.includes('Venceu em 09/06/2026'));
 assert(html.includes('data-finance-period="today"'));
 assert(html.includes('data-finance-period="yesterday"'));
 assert(html.includes('data-finance-period="month"'));
 assert(html.includes('data-finance-period="custom"'));
-assert(html.includes('data-finance-filter="type"'));
+assert(html.includes('data-finance-kind="income"'));
 assert(html.includes('data-finance-filter="categoryId"'));
 assert(html.includes('data-finance-filter="status"'));
 

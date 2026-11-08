@@ -1,0 +1,94 @@
+/* Tela Financeiro do visual B claro. Escopo: .fn e classes fn-*; a estrutura vem de
+   .ui-screen / .ui-cols / .ui-panel / .ui-stats / .ui-table / .ui-pill / .ui-bars / .ui-btn (components.css).
+   Valores: secao "Financeiro" de docs/superpowers/specs/mockups/2026-11-07-telas-b-claro.html */
+
+/* Cabecalho: titulo, frase e acoes */
+.fn-head { flex-wrap: wrap; gap: 10px 16px; font-size: 14px; }
+.fn-head__title { min-width: 0; margin-right: auto; }
+.fn-title { font-size: 19px; font-weight: 600; line-height: 1.2; }
+.fn-sub { margin-top: 3px; color: var(--muted); font-size: 12.5px; font-weight: 400; }
+.fn-empty { margin: 0; padding: 6px 0; color: var(--muted); }
+td.fn-empty { padding: 14px 10px; white-space: normal; }
+.fn-muted { color: var(--muted); }
+
+/* Numeros: entradas em verde, saidas e vencidas em vermelho */
+.fn-stats { --n: 6; }
+.fn .ui-stat b { overflow-wrap: anywhere; }
+.fn .ui-stat.is-plus b { color: var(--green); }
+.fn .ui-stat.is-minus b { color: var(--red); }
+
+/* Paineis: a tabela larga rola dentro do cartao em vez de cortar */
+.fn .ui-panel { overflow: visible; }
+.fn .ui-head span { overflow-wrap: anywhere; }
+.fn-main { align-self: stretch; min-width: 0; }
+.fn-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.fn-panel-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; justify-content: space-between; }
+.fn-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fn-scroll { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+
+/* Campos: o select herdava o visual antigo do app-shell; aqui segue o .ui-input */
+.app-shell .fn select.ui-input {
+  appearance: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: none;
+}
+.app-shell .fn select.ui-input:focus { border-color: var(--line); box-shadow: none; }
+.fn-filters .ui-input { width: auto; min-width: 0; height: 36px; font-size: 13px; }
+.fn-filters select.ui-input { min-width: 150px; }
+.fn .ui-seg button { font-size: 13px; }
+.fn .ui-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Tabela de movimentacoes */
+.fn-table td { vertical-align: top; }
+.fn-table td.fn-desc { white-space: normal; min-width: 180px; max-width: 280px; overflow-wrap: anywhere; }
+.fn-table td.fn-desc b { font-weight: 600; }
+.fn-details { display: none; flex-direction: column; gap: 2px; margin-top: 4px; }
+.fn-details small { color: var(--muted); font-size: 12px; }
+.fn-table tr.is-expanded .fn-details { display: flex; }
+.fn-amount { font-weight: 600; white-space: nowrap; }
+.fn-amount.is-plus { color: var(--green); }
+.fn-table .fn-amount.is-minus { color: var(--ink); }
+.fn-actions { display: flex; align-items: center; gap: 6px; }
+
+/* Contas a pagar: vencidas primeiro, com ponto vermelho; pendentes com ponto ambar */
+.fn-bills { display: grid; }
+.fn-bill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.fn-bill:first-child { padding-top: 0; }
+.fn-bill:last-child { padding-bottom: 0; border-bottom: 0; }
+.fn-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.fn-dot.is-overdue { background: var(--red); }
+.fn-bill__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fn-bill__main b { font-weight: 600; overflow-wrap: anywhere; }
+.fn-bill__main small { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.fn-bill.is-overdue .fn-bill__main small:first-of-type { color: var(--red); }
+.fn-bill__right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.fn-bill .fn-amount.is-minus { color: var(--red); }
+
+/* Barras: o rotulo da categoria precisa de mais espaco que o padrao */
+.fn .ui-bar-row { grid-template-columns: minmax(70px, 120px) minmax(0, 1fr) 96px; }
+.fn .ui-bar-row span { overflow-wrap: anywhere; }
+.fn .ui-bar-row b { white-space: nowrap; }
+
+/* Mini CRM financeiro */
+.fn-crm { display: flex; flex-direction: column; gap: 10px; }
+.fn-crm__title { font-size: 15px; }
+.fn-crm__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; align-items: start; }
+.fn-crm__grid .ui-head { font-size: 14px; }
+
+/* Janela de lancamento: a moldura vem de modal-b.css; so falta o marcador sem estilo */
+.fn .permission-check { display: flex; align-items: center; gap: 8px; margin: 4px 0 12px; color: var(--ink); font-size: 13px; }
+.fn .permission-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--green); }
+
+@media (max-width: 560px) {
+  .ui-screen.fn { padding: 14px 12px 24px; }
+  .fn-filters select.ui-input { flex: 1 1 140px; }
+}
