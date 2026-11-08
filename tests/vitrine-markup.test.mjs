@@ -99,8 +99,13 @@ assert(/<h1[^>]*>Vitrine<\/h1>/.test(html), 'titulo da tela e Vitrine');
 assert(!html.includes('Lancar Estoque'), 'titulo antigo saiu');
 assert(html.includes('ui-head') && html.includes('ui-screen') && html.includes('data-estoque-screen'), 'cabecalho em ui-head e marca data-estoque-screen mantida');
 assert(text.includes('Registre o que foi produzido e enviado para a vitrine. Isso não mexe no caixa.'), 'frase do cabecalho com acentos');
-assert(html.includes('data-stock-period') && html.includes('aria-label="Período"'), 'seletor de periodo continua com data-stock-period');
-assert(html.includes('>Este mês<') && html.includes('>Todo período<') && html.includes('>Período personalizado<'), 'periodos com acentos');
+assert(html.includes('ui-seg') && html.includes('aria-label="Período"'), 'periodo em ui-seg');
+['today:Hoje', 'yesterday:Ontem', 'month:Este mês', 'year:Este ano', 'all:Todo período', 'custom:Personalizado'].forEach((pair) => {
+  const [key, label] = pair.split(':');
+  assert(html.includes(`data-stock-period="${key}">${label}<`), `botao de periodo ${label}`);
+});
+assert(/class="is-on"[^>]*data-stock-period="today"/.test(html) && !html.includes('<select class="ui-input vt-period"'), 'Hoje ativo e sem select de periodo');
+assert(html.includes('>Este mês<') && html.includes('>Todo período<'), 'periodos com acentos');
 
 // Primeira linha de numeros e segunda linha com o resto
 assert((html.match(/class="ui-stats/g) || []).length === 2, 'duas linhas de ui-stats');
@@ -165,17 +170,31 @@ const afterLaunch = plain(screen.innerHTML);
 assert(afterLaunch.includes('data-action="edit-launch"') && afterLaunch.includes('data-action="cancel-launch"'), 'lançamento criado aparece com Editar e Cancelar');
 assert(rowIn(afterLaunch, 'X-Burger').includes('15 un.'), 'o saldo da vitrine subiu 3 unidades');
 
-// Trocar o periodo para Ontem mostra os vazios e mantem o seletor
-await screen.dispatch('change', {
+// Clicar em Ontem muda o periodo, marca o botao e mostra os vazios
+await screen.dispatch('click', {
   target: {
-    closest: (selector) => (selector === '[data-estoque-screen]' ? {} : null),
-    matches: (selector) => selector === '[data-stock-period]',
-    value: 'yesterday'
+    closest: (selector) => {
+      if (selector === '[data-estoque-screen]') return {};
+      if (selector === '[data-stock-period]') return { dataset: { stockPeriod: 'yesterday' } };
+      return null;
+    }
   }
 });
 const yesterday = plain(screen.innerHTML);
-assert(yesterday.includes('<option value="yesterday" selected>Ontem</option>'), 'periodo Ontem fica selecionado');
+assert(/class="is-on"[^>]*data-stock-period="yesterday"/.test(yesterday) && !/class="is-on"[^>]*data-stock-period="today"/.test(yesterday), 'botao Ontem fica ativo (is-on) e Hoje deixa de ser');
 assert(textOf(yesterday).includes('Nenhum lançamento no período.'), 'sem lançamentos ontem');
 assert(textOf(yesterday).includes('Sem movimentação no período.'), 'sem movimentação ontem em frase normal');
+
+// Personalizado mostra a linha de datas
+await screen.dispatch('click', {
+  target: {
+    closest: (selector) => {
+      if (selector === '[data-estoque-screen]') return {};
+      if (selector === '[data-stock-period]') return { dataset: { stockPeriod: 'custom' } };
+      return null;
+    }
+  }
+});
+assert(plain(screen.innerHTML).includes('data-custom-start') && /class="is-on"[^>]*data-stock-period="custom"/.test(plain(screen.innerHTML)), 'Personalizado ativo mostra as datas');
 
 console.log('Vitrine markup test passed.');

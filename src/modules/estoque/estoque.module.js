@@ -70,9 +70,7 @@ function renderEstoque(container) {
           <p class="vt-sub">Registre o que foi produzido e enviado para a vitrine. Isso não mexe no caixa.</p>
         </div>
         <div class="vt-filters">
-          <select class="ui-input vt-period" data-stock-period aria-label="Período">
-            ${renderPeriodOptions()}
-          </select>
+          ${renderPeriodButtons()}
           ${renderFilterDropdown('Produtos', 'product', getShowcaseProducts(), estoqueState.productIds)}
         </div>
       </header>
@@ -183,12 +181,6 @@ function bindEstoqueEvents(container) {
       return;
     }
 
-    if (event.target.matches('[data-stock-period]')) {
-      estoqueState.period = event.target.value;
-      renderEstoque(container);
-      return;
-    }
-
     if (event.target.matches('[data-custom-start]')) {
       estoqueState.customStart = event.target.value;
       renderEstoque(container);
@@ -214,6 +206,14 @@ function bindEstoqueEvents(container) {
 
   container.addEventListener('click', (event) => {
     if (!event.target.closest('[data-estoque-screen]')) {
+      return;
+    }
+
+    const periodButton = event.target.closest('[data-stock-period]');
+
+    if (periodButton) {
+      estoqueState.period = periodButton.dataset.stockPeriod;
+      renderEstoque(container);
       return;
     }
 
@@ -351,7 +351,7 @@ function renderStockForm() {
       ${launch ? `<input type="hidden" name="produtoId" value="${escapeHtml(launch.produtoId)}">` : ''}
     </div>
     <div class="ui-field">
-      <label id="vt-categoria-label">Categoria</label>
+      <span class="vt-label" id="vt-categoria-label">Categoria</span>
       <div class="ui-input vt-readonly" aria-labelledby="vt-categoria-label" data-product-category-name>${escapeHtml(categoryName)}</div>
     </div>
     <div class="vt-form__row">
@@ -727,17 +727,23 @@ export function resolveShowcaseMovementCommandReference(movement = {}) {
   return commandId || saleId || '-';
 }
 
-function renderPeriodOptions() {
+function renderPeriodButtons() {
   const options = [
     ['today', 'Hoje'],
     ['yesterday', 'Ontem'],
     ['month', 'Este mês'],
     ['year', 'Este ano'],
     ['all', 'Todo período'],
-    ['custom', 'Período personalizado']
+    ['custom', 'Personalizado']
   ];
 
-  return options.map(([value, label]) => `<option value="${value}" ${estoqueState.period === value ? 'selected' : ''}>${label}</option>`).join('');
+  return `
+    <div class="ui-seg vt-period" role="group" aria-label="Período">
+      ${options.map(([value, label]) => `
+        <button${estoqueState.period === value ? ' class="is-on" aria-pressed="true"' : ' aria-pressed="false"'} type="button" data-stock-period="${value}">${label}</button>
+      `).join('')}
+    </div>
+  `;
 }
 
 function getPeriodLabel() {
