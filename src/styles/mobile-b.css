@@ -1,0 +1,370 @@
+/* App do dono (rota mobile) no visual B claro. Escopo: .own e classes own-*; usa
+   .ui-seg / .ui-stat / .ui-pill / .ui-bars / .ui-stripe / .ui-btn / .ui-input / .ui-avatar /
+   .ui-user__menu (components.css). Valores: secao "App do dono no celular" de
+   docs/superpowers/specs/mockups/2026-11-07-telas-b-claro.html
+   A raiz continua com .mobile-shell porque as regras da moldura (components.css, layout.css)
+   escondem o menu lateral e o topo do computador a partir dela. */
+
+/* Moldura ----------------------------------------------------------------- */
+/* No computador: coluna centralizada dentro da area principal (o menu lateral e o topo
+   continuam). So o corpo rola; o topo e as abas do app ficam fixos. */
+.mobile-shell.own,
+.app-shell.is-mobile-owner .mobile-shell.own {
+  position: relative;
+  z-index: auto;
+  display: flex;
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
+  padding: 20px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 14px;
+}
+.own *, .own *::before, .own *::after { box-sizing: border-box; }
+.own h1, .own h2, .own p, .own dl, .own dd { margin: 0; }
+
+.own-app {
+  position: relative;
+  width: min(100%, 440px);
+  height: 100%;
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+}
+
+@media (min-width: 901px) and (pointer: fine) {
+  /* Mesma ideia de .ui-screen: a moldura ocupa a janela e a area do app tem altura definida. */
+  .app-shell.is-mobile-owner .pdv-layout:has(.own) { height: 100dvh; min-height: 0; }
+}
+
+/* No celular (e janela estreita): tela cheia, sem moldura. */
+@media (max-width: 900px), (pointer: coarse) {
+  body:has(.app-shell.is-mobile-owner) { background: var(--bg); color-scheme: light; }
+  :root[data-theme="dark"] body:has(.app-shell.is-mobile-owner) { color-scheme: dark; }
+  html body .app-shell.is-mobile-owner { background: var(--bg) !important; }
+
+  .mobile-shell.own,
+  .app-shell.is-mobile-owner .mobile-shell.own { height: 100dvh; padding: 0; }
+
+  .own-app {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+  }
+}
+
+/* Topo -------------------------------------------------------------------- */
+.own-top {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: max(14px, env(safe-area-inset-top)) 14px 12px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+.own-brand {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+.own-brand--logo { object-fit: contain; background: var(--card); border: 1px solid var(--line); }
+.own-top__text { flex: 1; min-width: 0; }
+.own-top h1,
+.own-top p { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.own-top h1 { font-size: 15px; font-weight: 600; line-height: 1.3; }
+.own-top p { margin-top: 1px; color: var(--muted); font-size: 11.5px; }
+
+/* Indicador "Ao vivo": o ponto e o texto em verde quando sincronizado; tocar atualiza. */
+.own-live {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.own-live i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.own-live--synced { color: var(--green); }
+.own-live--syncing { color: var(--accent-ink-soft); }
+.own-live--error { color: var(--red); }
+.own-live:hover { background: var(--line-soft); }
+.own-live:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+
+/* Menu do topo (tema, atualizar, fechar caixa, sair): mesmo visual do menu do usuario no computador. */
+.own-menu { position: relative; flex: none; }
+.own-menu__summary {
+  display: grid;
+  place-items: center;
+  list-style: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.own-menu__summary::-webkit-details-marker { display: none; }
+.own-menu__summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.own-menu[open] .ui-avatar { background: var(--line); }
+.own-menu__list { top: calc(100% + 8px); min-width: 196px; }
+.own-menu__list button { min-height: 40px; }
+
+/* Periodo aberto pelo menu */
+.own-popover {
+  flex: none;
+  padding: 10px 14px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Corpo ------------------------------------------------------------------- */
+.own-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.own-period { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.own-seg { max-width: 100%; }
+.own-seg button { padding: 5px 10px; font-size: 12.5px; white-space: nowrap; }
+.own-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.own-range { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
+
+/* Numero grande */
+.own-hero {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 14px;
+}
+.own-hero small { color: var(--muted); font-size: 12px; }
+.own-hero b { display: block; margin: 2px 0; font-size: 28px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+.own-hero b.is-minus { color: var(--red); }
+.own-hero em { display: block; font-style: normal; font-size: 12px; font-weight: 600; color: var(--green); }
+.own-hero em.is-muted { color: var(--muted); font-weight: 500; }
+
+/* Quatro numeros, 2 x 2 */
+.own-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.own-grid .ui-stat { padding: 10px 12px; min-width: 0; }
+.own-grid .ui-stat b { font-size: 14.5px; overflow-wrap: anywhere; }
+.own-grid .ui-stat.is-plus b { color: var(--green); }
+.own-grid .ui-stat.is-minus b { color: var(--red); }
+
+/* Cartao com titulo */
+.own-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 4px 14px 12px;
+  min-width: 0;
+}
+.own-card__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 10px 0 6px; }
+.own-card__head h2 { font-size: 13px; font-weight: 600; }
+.own-card__head span { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.own-empty { margin: 0; padding: 6px 0; color: var(--muted); font-size: 12.5px; }
+
+/* Aviso ambar da vitrine */
+.own-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: var(--radius-card);
+  background: var(--accent-soft);
+}
+.own-alert b { font-size: 13px; font-weight: 600; }
+.own-alert small { color: var(--accent-ink-soft); font-size: 12px; }
+
+/* Linhas de lista */
+.own-list { display: flex; flex-direction: column; }
+.own-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 12.5px;
+}
+.own-list > :last-child,
+.own-list > :last-child .own-row { border-bottom: 0; }
+.own-row__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.own-row__main b { font-weight: 500; overflow-wrap: anywhere; }
+.own-row__main small { color: var(--muted); font-size: 11.5px; overflow-wrap: anywhere; }
+.own-row__value { flex: none; font-weight: 600; white-space: nowrap; }
+.own-row__value.is-plus { color: var(--green); }
+.own-row__value.is-minus { color: var(--red); }
+.own-row__end { flex: none; display: flex; align-items: center; gap: 8px; }
+.own-row .ui-stripe { flex: none; margin-right: 0; }
+.own-row .ui-pill { flex: none; }
+.own-stock.is-out .own-row__main b { color: var(--muted); }
+.own-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--muted)); }
+
+/* Feed "Acontecendo agora" */
+.own-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin: 0 -14px 4px;
+  padding: 2px 14px 6px;
+  scrollbar-width: none;
+}
+.own-chips::-webkit-scrollbar { display: none; }
+.own-chip {
+  flex: none;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.own-chip.is-on { background: var(--ink); border-color: var(--ink); color: var(--card); }
+.own-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.own-event { border-bottom: 1px solid var(--line-soft); }
+.own-event .own-row { border-bottom: 0; }
+button.own-event__main {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+button.own-event__main:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: 8px; }
+.own-event__hint { color: var(--accent-ink-soft) !important; font-weight: 500; }
+.own-more { align-self: center; margin-top: 4px; }
+
+.own-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 10px 18px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 12.5px;
+}
+.own-detail__head,
+.own-detail__items div,
+.own-detail__meta div { display: flex; justify-content: space-between; gap: 10px; }
+.own-detail__items,
+.own-detail__meta { display: flex; flex-direction: column; gap: 4px; }
+.own-detail__meta { padding-top: 6px; border-top: 1px solid var(--line); }
+.own-detail__meta span { color: var(--muted); }
+.own-detail b { font-weight: 600; white-space: nowrap; }
+
+/* Barras horizontais: nome, trilho e valor */
+.own-bars { padding: 4px 0 2px; }
+.own-bars .ui-bar-row { grid-template-columns: minmax(0, 92px) minmax(0, 1fr) auto; }
+.own-bars .ui-bar-row span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.own-bars .ui-bar-row b { white-space: nowrap; }
+
+/* Vendas por dia: uma barra por dia, hoje (ou o pico) em ambar */
+.own-days { display: flex; align-items: stretch; gap: 4px; height: 132px; padding: 4px 0 2px; }
+.own-day { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 6px; }
+.own-day__bar { display: flex; align-items: flex-end; min-height: 0; }
+.own-day__bar i { display: block; width: 100%; min-height: 2px; border-radius: 5px 5px 2px 2px; background: var(--line); }
+.own-day__bar i.is-hi { background: var(--accent); }
+/* Com muitos dias so alguns tem rotulo; ele pode passar da largura da barra, centralizado. */
+.own-day__label { display: flex; justify-content: center; min-height: 14px; color: var(--muted); font-size: 10.5px; white-space: nowrap; }
+
+/* Producao x vendas (vitrine) e historico de fechamentos */
+.own-compare,
+.own-history { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+.own-compare__head { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.own-compare__head b { font-weight: 500; font-size: 13px; overflow-wrap: anywhere; }
+.own-compare__head small,
+.own-history > small { color: var(--muted); font-size: 11.5px; }
+.own-compare__nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.own-compare__nums div { min-width: 0; padding: 7px 8px; border-radius: 8px; background: var(--bg); }
+.own-compare__nums dt { color: var(--muted); font-size: 11px; }
+.own-compare__nums dd { font-size: 12.5px; font-weight: 600; overflow-wrap: anywhere; }
+.own-compare__details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.own-compare__toggle { align-self: flex-start; padding: 0 4px; }
+.own-history__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.own-history__head b { font-size: 13px; font-weight: 600; }
+
+/* Formularios (lancar vitrine, fechar caixa, financeiro) */
+.own-form { display: flex; flex-direction: column; gap: 10px; padding-top: 2px; }
+.own-form--boxed { margin-top: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.own-form__title { font-size: 13px; font-weight: 600; }
+.own-form__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.own-form__grid:has(> :nth-child(3)) { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.own-form__actions { display: flex; justify-content: flex-end; gap: 8px; }
+.own-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.own-field > span { color: var(--muted); font-size: 12px; font-weight: 500; }
+.own .ui-input { width: 100%; min-width: 0; font-size: 14px; }
+.own .ui-input[readonly] { background: var(--bg); color: var(--muted); }
+.own select.ui-input { appearance: auto; padding-right: 8px; }
+.own .own-textarea { height: auto; min-height: 76px; padding: 10px 12px; resize: vertical; }
+.own .ui-input:focus { border-color: var(--line); box-shadow: none; }
+.own-submit { justify-content: center; width: 100%; }
+.own-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.own-error,
+.own-note { margin: 0 0 8px; padding: 9px 12px; border-radius: 10px; font-size: 12.5px; }
+.own-error { background: var(--red-soft); color: var(--red); }
+.own-note { background: var(--accent-soft); color: var(--accent-ink-soft); }
+
+/* Abas de baixo ----------------------------------------------------------- */
+.own-tabs {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: 6px 4px max(10px, env(safe-area-inset-bottom));
+  background: var(--card);
+  border-top: 1px solid var(--line);
+}
+.own-tab {
+  min-width: 0;
+  min-height: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.own-tab svg { width: 20px; height: 20px; flex: none; }
+.own-tab span { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.own-tab.is-on { color: var(--accent-ink-soft); font-weight: 600; }
+.own-tab:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }

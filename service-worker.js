@@ -12,10 +12,10 @@ const STATIC_ASSETS = [
   './src/styles/forms.css',
   './src/styles/modal.css',
   './src/styles/pdv.css',
-  './src/styles/mobile.css',
+  './src/styles/mobile.css?v=20260807-19',
   './src/config/runtime-config.js',
   './src/modules/auth/login.module.js',
-  './src/app.js?v=20260807-18'
+  './src/app.js?v=20260807-19'
 ];
 
 self.addEventListener('install', (event) => {

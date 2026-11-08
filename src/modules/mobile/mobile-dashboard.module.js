@@ -24,48 +24,66 @@ import {
   createStockLaunch,
   getProductionSalesComparison
 } from '../../services/estoque.service.js?v=20260804-06';
-import { getShowcaseCategories, getShowcaseProducts, getProductById, syncCatalogNow } from '../../services/product.service.js?v=20260804-06';
+import { getCategories, getShowcaseCategories, getShowcaseProducts, getProductById, syncCatalogNow } from '../../services/product.service.js?v=20260804-06';
 import { getTransactionSyncStatus } from '../../services/transaction.service.js?v=20260804-06';
 import { getCatalogSyncStatus } from '../../services/product.service.js?v=20260804-06';
+import { getCashSession } from '../../services/cash-session.service.js?v=20260804-06';
 import { getCurrentUser, logout } from '../../services/auth.service.js?v=20260807-04';
 import { hydrateOnlineOperationalData, syncOnlineOperationalData } from '../../services/online-data.service.js?v=20260804-06';
 import { isSupabaseEnabled } from '../../services/app-config.service.js?v=20260804-06';
+import { loadCompanySettingsLocal } from '../../services/empresa-config.service.js?v=20260807-05';
 import { getThemeLabel, toggleTheme } from '../../services/theme.service.js?v=20260807-05';
 import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
 import { hasPermission } from '../../services/permission.service.js?v=20260804-06';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
+import { icon } from '../../components/icons.js?v=20260807-06';
+import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-07';
+import { isAllowedLogoUrl } from '../../utils/logo-url.js?v=20260807-11';
 
+// Abas de baixo. "closing" (Fechar caixa) nao e aba: fica no menu do topo.
 const tabs = [
-  { id: 'home', label: 'Inicio', icon: 'IN' },
-  { id: 'cash', label: 'Caixa', icon: '$' },
-  { id: 'showcase', label: 'Vitrine', icon: 'VT' },
-  { id: 'crm', label: 'CRM', icon: 'CR' },
-  { id: 'finance', label: 'Financ.', icon: 'FN' },
-  { id: 'closing', label: 'Fechar', icon: 'OK' }
+  { id: 'home', label: 'Início', icon: 'home', title: 'Painel do dono' },
+  { id: 'cash', label: 'Caixa', icon: 'cash', title: 'Caixa' },
+  { id: 'showcase', label: 'Vitrine', icon: 'store', title: 'Vitrine' },
+  { id: 'crm', label: 'CRM', icon: 'crm', title: 'CRM' },
+  { id: 'finance', label: 'Financeiro', icon: 'wallet', title: 'Financeiro' }
 ];
+
+const TAB_TITLES = {
+  ...Object.fromEntries(tabs.map((tab) => [tab.id, tab.title])),
+  closing: 'Fechar caixa'
+};
+
+const PERIOD_LABELS = {
+  today: 'Hoje',
+  yesterday: 'Ontem',
+  month: 'Mês',
+  custom: 'Período'
+};
+
+// Complemento do titulo do numero grande: "Total vendido hoje", "Saldo do mês"...
+const PERIOD_PHRASES = {
+  today: 'hoje',
+  yesterday: 'ontem',
+  month: 'no mês',
+  custom: 'no período'
+};
+
+const PAYMENT_LABELS = {
+  dinheiro: 'Dinheiro',
+  pix: 'Pix',
+  debito: 'Débito',
+  credito: 'Crédito',
+  cartao: 'Cartão',
+  boleto: 'Boleto'
+};
+
+// Ate esta quantidade a vitrine mostra "N restantes" (igual a frente de caixa e a tela Vitrine).
+const LOW_STOCK_LIMIT = 3;
 
 const MOBILE_AUTO_REFRESH_MS = 40000;
 
-let state = {
-  tab: 'home',
-  filter: 'all',
-  feedPeriod: 'today',
-  customStart: '',
-  customEnd: '',
-  feedLimit: 5,
-  selectedFeedEventId: '',
-  syncState: 'idle',
-  syncError: '',
-  showcaseCategoryId: '',
-  showcaseProductId: '',
-  expandedComparisonIds: [],
-  closingForm: { countedCash: '', checkedPix: '', checkedCard: '', note: '' },
-  closingError: '',
-  closingWarning: '',
-  financeModal: '',
-  financeError: '',
-  periodMenuOpen: false
-};
+let state = createInitialState();
 
 let subscribedWorkspace = null;
 let unsubscribeRealtimeRefresh = [];
@@ -74,9 +92,8 @@ let autoRefreshWorkspace = null;
 let focusedMobileField = false;
 let pendingDeferredRender = false;
 
-export function initMobileDashboardModule(workspace) {
-  workspace.dataset.activeRoute = 'mobile';
-  state = {
+function createInitialState() {
+  return {
     tab: 'home',
     filter: 'all',
     feedPeriod: 'today',
@@ -94,8 +111,14 @@ export function initMobileDashboardModule(workspace) {
     closingWarning: '',
     financeModal: '',
     financeError: '',
-    periodMenuOpen: false
+    periodMenuOpen: false,
+    menuOpen: false
   };
+}
+
+export function initMobileDashboardModule(workspace) {
+  workspace.dataset.activeRoute = 'mobile';
+  state = createInitialState();
 
   render(workspace);
   bindRealtimeRefresh(workspace);
@@ -124,13 +147,20 @@ function bindEvents(workspace) {
     const payableButton = event.target.closest('[data-mobile-payable-id]');
     const comparisonToggleButton = event.target.closest('[data-mobile-comparison-toggle]');
 
+    // Toque fora do menu do topo fecha o menu.
+    if (state.menuOpen && !event.target.closest('[data-mobile-menu]')) {
+      closeTopMenu(workspace);
+    }
+
     if (syncButton) {
+      state.menuOpen = false;
       refreshMobileData(workspace, { force: true });
       return;
     }
 
     if (periodToggleButton) {
       state.periodMenuOpen = !state.periodMenuOpen;
+      state.menuOpen = false;
       render(workspace);
       return;
     }
@@ -175,6 +205,7 @@ function bindEvents(workspace) {
     if (tabButton) {
       state.tab = tabButton.dataset.mobileTab;
       state.selectedFeedEventId = '';
+      state.menuOpen = false;
       render(workspace);
       return;
     }
@@ -212,6 +243,20 @@ function bindEvents(workspace) {
         ? ''
         : feedEventButton.dataset.feedEventId;
       render(workspace);
+    }
+  });
+
+  // O <details> do menu nao propaga "toggle"; a captura guarda o estado para o proximo render.
+  workspace.addEventListener('toggle', (event) => {
+    if (typeof event.target?.matches === 'function' && event.target.matches('[data-mobile-menu]')) {
+      state.menuOpen = Boolean(event.target.open);
+    }
+  }, true);
+
+  workspace.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && state.menuOpen) {
+      closeTopMenu(workspace);
+      workspace.querySelector?.('[data-mobile-menu] summary')?.focus();
     }
   });
 
@@ -296,6 +341,11 @@ function bindEvents(workspace) {
   });
 }
 
+function closeTopMenu(workspace) {
+  state.menuOpen = false;
+  workspace.querySelector?.('[data-mobile-menu]')?.removeAttribute('open');
+}
+
 function bindRealtimeRefresh(workspace) {
   if (subscribedWorkspace === workspace) {
     return;
@@ -345,7 +395,7 @@ async function refreshMobileData(workspace, { force = false, automatic = false }
     state.syncState = 'synced';
   } catch (error) {
     state.syncState = 'error';
-    state.syncError = error.message || 'Erro de sincronizacao';
+    state.syncError = error.message || 'Erro de sincronização';
   }
 
   renderIfActive(workspace, { deferWhileEditing: automatic });
@@ -404,17 +454,22 @@ function render(workspace) {
     customStart: state.customStart,
     customEnd: state.customEnd
   });
+  const view = renderTabView(cash);
 
   workspace.innerHTML = `
-    <section class="mobile-shell">
-      <div class="mobile-app">
+    <section class="mobile-shell own">
+      <div class="own-app">
         ${renderMobileTopbar({
+          tab: state.tab,
+          context: view.context,
           period: state.feedPeriod,
           sync: getMobileSyncStatus()
         })}
         ${state.periodMenuOpen ? renderMobilePeriodPopover(state) : ''}
-        ${renderTabContent(cash)}
-        ${renderBottomNav()}
+        <main class="own-body">
+          ${view.html}
+        </main>
+        ${renderMobileBottomNav(state.tab)}
       </div>
     </section>
   `;
@@ -423,39 +478,93 @@ function render(workspace) {
 }
 
 export function renderMobileTopbar({
-  period = 'today',
+  tab = state.tab,
+  context = '',
+  period = state.feedPeriod,
   sync = getMobileSyncStatus()
 } = {}) {
+  const title = TAB_TITLES[tab] || TAB_TITLES.home;
+
   return `
-    <header class="mobile-topbar">
-      <div>
-        <h1>PDV Lanchonete</h1>
-        <p>Painel do dono</p>
+    <header class="own-top">
+      ${renderBrandMark()}
+      <div class="own-top__text">
+        <h1>${escapeHtml(title)}</h1>
+        ${context ? `<p>${escapeHtml(context)}</p>` : ''}
       </div>
-      <div class="mobile-topbar__actions">
-        <button class="mobile-sync-button mobile-sync-button--${sync.state}" type="button" data-mobile-sync title="${sync.title}">
-          <span>${sync.icon}</span>
-          <strong>${sync.label}</strong>
-        </button>
-        <button class="mobile-theme-button" type="button" data-mobile-theme>${getThemeLabel()}</button>
-        <button class="mobile-period-pill" type="button" data-mobile-period-toggle aria-expanded="${state.periodMenuOpen ? 'true' : 'false'}">
-          ${getPeriodShortLabel(period)}
-        </button>
-        <button class="mobile-topbar__button" type="button" data-mobile-logout>Sair</button>
-      </div>
+      <button class="own-live own-live--${escapeHtml(sync.state)}" type="button" data-mobile-sync title="${escapeHtml(sync.title)}">
+        <i aria-hidden="true"></i>${escapeHtml(sync.label)}
+      </button>
+      ${renderTopMenu(period)}
     </header>
   `;
 }
 
+function renderTopMenu(period) {
+  const user = getCurrentUser();
+  const name = String(user?.name || '').trim();
+  const initial = Array.from(name)[0]?.toLocaleUpperCase('pt-BR') || '?';
+
+  return `
+    <details class="own-menu" data-mobile-menu${state.menuOpen ? ' open' : ''}>
+      <summary class="own-menu__summary" aria-label="${escapeHtml(name ? `Menu de ${name}` : 'Menu')}">
+        <span class="ui-avatar">${escapeHtml(initial)}</span>
+      </summary>
+      <div class="ui-user__menu own-menu__list">
+        <button type="button" data-mobile-period-toggle aria-expanded="${state.periodMenuOpen ? 'true' : 'false'}">Período: ${getPeriodShortLabel(period)}</button>
+        <button type="button" data-mobile-theme>${escapeHtml(getThemeLabel())}</button>
+        <button type="button" data-mobile-sync>Atualizar</button>
+        <button type="button" data-mobile-tab="closing">${icon('cash')}Fechar caixa</button>
+        <button type="button" class="is-danger" data-mobile-logout>${icon('logout')}Sair</button>
+      </div>
+    </details>
+  `;
+}
+
+// Marca da empresa: o logo, se houver, ou a inicial do sistema (igual ao menu lateral).
+function renderBrandMark() {
+  let settings = {};
+
+  try {
+    settings = loadCompanySettingsLocal() || {};
+  } catch (error) {
+    settings = {};
+  }
+
+  if (isAllowedLogoUrl(settings.logoUrl)) {
+    return `<img class="own-brand own-brand--logo" src="${escapeHtml(settings.logoUrl.trim())}" alt="">`;
+  }
+
+  const systemName = String(settings.nomeSistema || 'Zelo PDV');
+  const initial = Array.from(systemName.trim())[0]?.toLocaleUpperCase('pt-BR') || 'P';
+  return `<span class="own-brand" aria-hidden="true">${escapeHtml(initial)}</span>`;
+}
+
 function renderMobilePeriodPopover(periodState) {
   return `
-    <section class="mobile-period-popover" aria-label="Filtro de periodo">
+    <section class="own-popover" aria-label="Filtro de período">
       ${renderMobilePeriodControls(periodState)}
     </section>
   `;
 }
 
-function renderTabContent(cash) {
+export function renderMobileBottomNav(activeTab = state.tab) {
+  return `
+    <nav class="own-tabs" aria-label="Abas do app do dono">
+      ${tabs.map((tab) => {
+        const isActive = tab.id === activeTab;
+        return `
+          <button class="own-tab${isActive ? ' is-on' : ''}" type="button" data-mobile-tab="${tab.id}"${isActive ? ' aria-current="page"' : ''}>
+            ${icon(tab.icon)}
+            <span>${tab.label}</span>
+          </button>
+        `;
+      }).join('')}
+    </nav>
+  `;
+}
+
+function renderTabView(cash) {
   if (state.tab === 'cash') {
     return renderCashTab(cash);
   }
@@ -465,30 +574,32 @@ function renderTabContent(cash) {
   }
 
   if (state.tab === 'crm') {
-    return renderCrmTab();
+    return { context: 'Vendas e produtos', html: renderCrmTab() };
   }
 
   if (state.tab === 'finance') {
-    return renderFinanceTab();
+    return { context: getPeriodContext(), html: renderFinanceTab() };
   }
 
   if (state.tab === 'closing') {
-    return renderClosingTab();
+    return { context: 'Conferência do caixa de hoje', html: renderClosingTab() };
   }
 
-  return renderHomeTab(cash);
+  return { context: formatLongDate(new Date()), html: renderHomeTab(cash) };
 }
 
 function renderHomeTab(cash) {
+  // Sem comparacao com a semana anterior: o resumo do caixa nao traz esse dado.
   return `
-    <div class="mobile-content">
-      ${renderMobilePeriodControls(state)}
-      ${renderHeroCard(cash.cards[0])}
-      <div class="mobile-metrics">
-        ${cash.cards.slice(1).map(renderMetricCard).join('')}
-      </div>
-      ${renderLiveFeed()}
-    </div>
+    ${renderMobilePeriodControls(state)}
+    ${renderHero(`Total vendido ${getPeriodPhrase()}`, cash.salesTotal)}
+    ${renderStatGrid([
+      { label: 'Caixa atual', value: cash.currentCash },
+      { label: 'Vitrine', value: cash.estimatedShowcase },
+      { label: 'Entradas', value: cash.entriesTotal, tone: 'plus' },
+      { label: 'Saídas', value: cash.outputsTotal, tone: 'minus' }
+    ])}
+    ${renderLiveFeed()}
   `;
 }
 
@@ -496,18 +607,23 @@ export function renderMobilePeriodControls({ feedPeriod, customStart, customEnd 
   const periodFilters = getMobileFeedPeriodFilters();
 
   return `
-    <section class="mobile-global-period" aria-label="Periodo do painel">
-      <div class="mobile-feed-filters">
-        ${periodFilters.map((filter) => `
-          <button class="${filter.id === feedPeriod ? 'is-active' : ''}" type="button" data-feed-period="${filter.id}">
-            ${filter.label}
-          </button>
-        `).join('')}
+    <section class="own-period" aria-label="Período do painel">
+      <div class="ui-seg own-seg" role="group" aria-label="Período">
+        ${periodFilters.map((filter) => {
+          const isActive = filter.id === feedPeriod;
+          return `<button class="${isActive ? 'is-on' : ''}" type="button" data-feed-period="${filter.id}" aria-pressed="${isActive ? 'true' : 'false'}">${escapeHtml(PERIOD_LABELS[filter.id] || filter.label)}</button>`;
+        }).join('')}
       </div>
       ${feedPeriod === 'custom' ? `
-        <div class="mobile-period-range">
-          <input class="field" type="date" data-feed-custom-start value="${customStart}">
-          <input class="field" type="date" data-feed-custom-end value="${customEnd}">
+        <div class="own-range">
+          <label class="own-field">
+            <span>De</span>
+            <input class="ui-input" type="date" data-feed-custom-start value="${escapeHtml(customStart)}">
+          </label>
+          <label class="own-field">
+            <span>Até</span>
+            <input class="ui-input" type="date" data-feed-custom-end value="${escapeHtml(customEnd)}">
+          </label>
         </div>
       ` : ''}
     </section>
@@ -515,81 +631,210 @@ export function renderMobilePeriodControls({ feedPeriod, customStart, customEnd 
 }
 
 function renderCashTab(cash) {
-  const paymentCards = [
-    { label: 'Dinheiro', value: cash.paymentTotals.dinheiro, tone: 'primary' },
-    { label: 'Pix', value: cash.paymentTotals.pix, tone: 'success' },
-    { label: 'Debito', value: cash.paymentTotals.debito, tone: 'info' },
-    { label: 'Credito', value: cash.paymentTotals.credito, tone: 'warning' }
-  ];
+  const session = getLocalCashSession();
+  const paymentRows = [
+    { label: 'Dinheiro', value: cash.paymentTotals.dinheiro },
+    { label: 'Pix', value: cash.paymentTotals.pix },
+    { label: 'Débito', value: cash.paymentTotals.debito },
+    { label: 'Crédito', value: cash.paymentTotals.credito }
+  ].map((row) => ({ ...row, value: Number(row.value || 0) }))
+    .sort((left, right) => right.value - left.value);
+  const movements = getMobileFeedEvents({
+    filter: 'all',
+    period: state.feedPeriod,
+    customStart: state.customStart,
+    customEnd: state.customEnd,
+    limit: Number.MAX_SAFE_INTEGER
+  }).filter((event) => event.kind === 'inflow' || event.kind === 'outflow');
+  // O troco inicial so existe quando o caixa foi aberto neste aparelho.
+  const openingNote = session ? `Troco inicial ${formatCurrency(session.openingAmount || 0)}` : '';
 
+  return {
+    context: getCashContext(session),
+    html: `
+      ${renderMobilePeriodControls(state)}
+      ${renderHero('Caixa atual', cash.currentCash, openingNote, 'is-muted')}
+      ${renderStatGrid([
+        { label: 'Total vendido', value: cash.salesTotal },
+        { label: 'Vitrine estimada', value: cash.estimatedShowcase },
+        { label: 'Entradas', value: cash.entriesTotal, tone: 'plus' },
+        { label: 'Saídas', value: cash.outputsTotal, tone: 'minus' }
+      ])}
+      ${renderPanel('Formas de pagamento', renderBars(paymentRows.map((row) => ({
+        label: row.label,
+        value: row.value,
+        display: formatCurrency(row.value),
+        color: 'var(--ink)'
+      })), { empty: 'Sem vendas no período.' }))}
+      ${renderPanel('Movimentos', movements.length ? `
+        <div class="own-list">
+          ${movements.slice(0, 12).map(renderMovementRow).join('')}
+        </div>
+      ` : '<p class="own-empty">Nenhuma entrada ou saída no período.</p>', {
+        aside: movements.length ? `${movements.length}` : ''
+      })}
+    `
+  };
+}
+
+function renderMovementRow(event) {
   return `
-    <div class="mobile-content">
-      <div class="mobile-metrics">
-        ${cash.cards.map(renderMetricCard).join('')}
-      </div>
-      <section class="mobile-list-panel">
-        <h2>Formas de pagamento</h2>
-        ${paymentCards.map(renderCompactRow).join('')}
-      </section>
+    <div class="own-row">
+      <span class="own-row__main">
+        <b>${escapeHtml(event.description || event.title)}</b>
+        <small>${escapeHtml(event.title)} · ${formatEventTime(event.createdAt)}</small>
+      </span>
+      ${renderSignedAmount(event)}
     </div>
   `;
 }
 
+function getLocalCashSession() {
+  try {
+    return getCashSession();
+  } catch (error) {
+    return null;
+  }
+}
+
+function getCashContext(session) {
+  if (session?.status === 'aberto') {
+    const time = formatTime(session.openedAt);
+    return time === '--:--' ? 'Caixa aberto' : `Aberto às ${time}`;
+  }
+
+  if (session?.status === 'fechado') {
+    return 'Caixa fechado';
+  }
+
+  return getPeriodContext();
+}
+
 function renderShowcaseTab() {
   const summary = getMobileShowcaseSummary(getMobilePeriodFilters());
+  const categories = getCategories();
+  const units = summary.rows.reduce((total, row) => total + Math.max(Number(row.sobraQuantidade) || 0, 0), 0);
+  const outCount = summary.rows.filter((row) => Number(row.sobraQuantidade) <= 0).length;
+  const lowCount = summary.rows.filter((row) => Number(row.sobraQuantidade) > 0 && Number(row.sobraQuantidade) <= LOW_STOCK_LIMIT).length;
+
+  return {
+    context: `${units} ${units === 1 ? 'unidade' : 'unidades'} na vitrine`,
+    html: `
+      ${renderMobilePeriodControls(state)}
+      ${renderShowcaseAttention(outCount, lowCount)}
+      ${renderPanel('Estoque da vitrine', renderMobileStockList(summary.rows, categories), {
+        aside: summary.rows.length === 1 ? '1 produto' : `${summary.rows.length} produtos`
+      })}
+      ${renderStatGrid(summary.cards.map((card) => ({
+        label: card.label,
+        value: card.value,
+        isCurrency: card.isCurrency !== false,
+        tone: card.id === 'soldWithoutStock' && card.value ? 'minus' : ''
+      })))}
+      ${renderMobileShowcaseForm(summary)}
+      ${renderPanel('Produção x vendas', summary.comparisonRows.length ? `
+        <div class="own-list">
+          ${summary.comparisonRows.map(renderMobileComparisonRow).join('')}
+        </div>
+      ` : '<p class="own-empty">Sem dados para comparar.</p>')}
+      ${renderPanel('Cancelados', summary.canceledLaunches.length ? `
+        <div class="own-list">
+          ${summary.canceledLaunches.map(renderCanceledShowcaseLaunch).join('')}
+        </div>
+      ` : '<p class="own-empty">Nenhum cancelamento no período.</p>')}
+    `
+  };
+}
+
+function renderShowcaseAttention(outCount, lowCount) {
+  const total = outCount + lowCount;
+
+  if (!total) {
+    return '';
+  }
+
+  const parts = [
+    outCount ? `${outCount} ${outCount === 1 ? 'esgotado' : 'esgotados'}` : '',
+    lowCount ? `${lowCount} acabando` : ''
+  ].filter(Boolean);
 
   return `
-    <div class="mobile-content">
-      ${renderMobilePeriodControls(state)}
-      <div class="mobile-metrics">
-        ${summary.cards.map(renderMetricCard).join('')}
-      </div>
-      ${renderMobileShowcaseForm(summary)}
-      <section class="mobile-list-panel">
-        <h2>Comparativo producao x vendas</h2>
-        ${summary.comparisonRows.map(renderMobileComparisonRow).join('') || '<p class="mobile-empty">Sem dados para comparar.</p>'}
-      </section>
-      <section class="mobile-list-panel">
-        <h2>Cancelados</h2>
-        ${summary.canceledLaunches.map(renderCanceledShowcaseLaunch).join('') || '<p class="mobile-empty">Nenhum cancelamento no periodo.</p>'}
-      </section>
+    <section class="own-alert" role="status">
+      <b>${total} ${total === 1 ? 'produto precisa' : 'produtos precisam'} de atenção</b>
+      <small>${parts.join(' e ')}</small>
+    </section>
+  `;
+}
+
+export function renderMobileStockList(rows, categories = getCategories()) {
+  if (!rows.length) {
+    return '<p class="own-empty">Nada lançado na vitrine no período.</p>';
+  }
+
+  const rank = (row) => {
+    const quantity = Number(row.sobraQuantidade) || 0;
+    return quantity <= 0 ? 0 : quantity <= LOW_STOCK_LIMIT ? 1 : 2;
+  };
+  const sorted = rows
+    .map((row, index) => ({ row, index }))
+    .sort((left, right) => rank(left.row) - rank(right.row) || left.index - right.index)
+    .map(({ row }) => row);
+
+  return `
+    <div class="own-list">
+      ${sorted.map((row) => {
+        const quantity = Math.max(Number(row.sobraQuantidade) || 0, 0);
+        return `
+          <div class="own-row own-stock${quantity <= 0 ? ' is-out' : ''}">
+            <span class="ui-stripe" style="--c: ${getCategoryColor(row.categoriaId, categories)}"></span>
+            <span class="own-row__main">
+              <b>${escapeHtml(row.produtoNome)}</b>
+              <small>${escapeHtml(row.categoriaNome)}</small>
+            </span>
+            ${renderStockStatus(quantity)}
+          </div>
+        `;
+      }).join('')}
     </div>
   `;
+}
+
+function renderStockStatus(quantity) {
+  if (quantity <= 0) {
+    return '<span class="ui-pill ui-pill--danger">Esgotado</span>';
+  }
+
+  if (quantity <= LOW_STOCK_LIMIT) {
+    return `<span class="ui-pill ui-pill--warn">${quantity} ${quantity === 1 ? 'restante' : 'restantes'}</span>`;
+  }
+
+  return `<b class="own-row__value">${quantity} un.</b>`;
 }
 
 function renderMobileComparisonRow(item) {
   const isExpanded = state.expandedComparisonIds.includes(item.produtoId);
 
   return `
-    <article class="mobile-comparison-row ${isExpanded ? 'is-expanded' : ''}">
-      <header>
-        <strong>${escapeHtml(item.produtoNome)}</strong>
-        <span>${escapeHtml(item.categoriaNome)}</span>
-      </header>
-      <div class="mobile-comparison-summary">
-        <div>
-          <span>Vendido</span>
-          <strong>${item.quantidadeVendida}/${item.quantidadeProduzida}</strong>
-        </div>
-        <div>
-          <span>Sobra</span>
-          <strong>${item.sobraQuantidade}</strong>
-        </div>
-        <div>
-          <span>% vendido</span>
-          <strong>${item.percentualVendido}%</strong>
-        </div>
+    <article class="own-compare${isExpanded ? ' is-expanded' : ''}">
+      <div class="own-compare__head">
+        <b>${escapeHtml(item.produtoNome)}</b>
+        <small>${escapeHtml(item.categoriaNome)}</small>
       </div>
+      <dl class="own-compare__nums">
+        ${renderComparisonMetric('Vendido', `${item.quantidadeVendida}/${item.quantidadeProduzida}`)}
+        ${renderComparisonMetric('Sobra', item.sobraQuantidade)}
+        ${renderComparisonMetric('% vendido', `${item.percentualVendido}%`)}
+      </dl>
       ${isExpanded ? `
-        <div class="mobile-comparison-details">
+        <dl class="own-compare__nums own-compare__details">
           ${renderComparisonMetric('Produzido', item.quantidadeProduzida)}
           ${renderComparisonMetric('Valor produzido', formatCurrency(item.valorProduzido))}
           ${renderComparisonMetric('Vendido', item.quantidadeVendida)}
           ${renderComparisonMetric('Valor vendido', formatCurrency(item.valorVendido))}
-          ${renderComparisonMetric('Diferenca', formatCurrency(item.diferencaValor))}
-        </div>
+          ${renderComparisonMetric('Diferença', formatCurrency(item.diferencaValor))}
+        </dl>
       ` : ''}
-      <button class="mobile-comparison-toggle" type="button" data-mobile-comparison-toggle="${item.produtoId}" aria-expanded="${isExpanded ? 'true' : 'false'}">
+      <button class="ui-btn ui-btn--ghost ui-btn--sm own-compare__toggle" type="button" data-mobile-comparison-toggle="${escapeHtml(item.produtoId)}" aria-expanded="${isExpanded ? 'true' : 'false'}">
         ${isExpanded ? 'Exibir menos' : 'Exibir mais'}
       </button>
     </article>
@@ -599,8 +844,8 @@ function renderMobileComparisonRow(item) {
 function renderComparisonMetric(label, value) {
   return `
     <div>
-      <span>${label}</span>
-      <strong>${value}</strong>
+      <dt>${label}</dt>
+      <dd>${value}</dd>
     </div>
   `;
 }
@@ -617,193 +862,158 @@ function toggleMobileComparison(productId) {
 
 function renderCanceledShowcaseLaunch(launch) {
   return `
-    <article class="mobile-canceled-card">
-      <header>
-        <strong>${escapeHtml(launch.produtoNome)}</strong>
-        <span>Cancelado</span>
-      </header>
-      <p>${escapeHtml(launch.categoriaNome)} - ${launch.quantidade} un. - ${formatDateTime(launch.canceledAt || launch.dataHora)}</p>
-      <strong>${formatCurrency(launch.valorTotal)}</strong>
-    </article>
+    <div class="own-row">
+      <span class="own-row__main">
+        <b>${escapeHtml(launch.produtoNome)}</b>
+        <small>${escapeHtml(launch.categoriaNome)} · ${launch.quantidade} un. · ${formatDateTime(launch.canceledAt || launch.dataHora)}</small>
+      </span>
+      <span class="own-row__end">
+        <b class="own-row__value">${formatCurrency(launch.valorTotal)}</b>
+        <span class="ui-pill">Cancelado</span>
+      </span>
+    </div>
   `;
 }
 
-function renderCrmTab() {
+export function renderCrmTab() {
   const filter = getMobileCrmFilter();
   const crm = getCrmSummary(filter);
   const ranking = getProductRanking(filter);
   const categories = getCategoryRanking(filter);
   const series = getSalesSeries(filter);
   const comparison = getProductionSalesComparison(getMobilePeriodFilters());
+  const allCategories = getCategories();
   const best = ranking.byQuantity[0];
   const slow = ranking.byQuantity[ranking.byQuantity.length - 1];
-  const cards = [
-    { label: 'Total vendido', value: crm.salesTotal, tone: 'primary' },
-    { label: 'Entradas', value: crm.entriesTotal, tone: 'success' },
-    { label: 'Saídas', value: crm.outputsTotal, tone: 'danger' },
-    { label: 'Caixa atual', value: crm.estimatedProfit, tone: 'info' },
-    { label: 'Ticket medio', value: crm.ticketAverage, tone: 'warning' },
-    { label: 'Comandas fechadas', value: crm.closedComandas, tone: 'success', isCurrency: false }
-  ];
   const paymentRows = [
-    { label: 'Dinheiro', value: crm.paymentTotals.dinheiro, tone: 'primary' },
-    { label: 'Pix', value: crm.paymentTotals.pix, tone: 'success' },
-    { label: 'Debito', value: crm.paymentTotals.debito, tone: 'info' },
-    { label: 'Credito', value: crm.paymentTotals.credito, tone: 'warning' }
-  ];
+    { label: 'Dinheiro', value: crm.paymentTotals.dinheiro },
+    { label: 'Pix', value: crm.paymentTotals.pix },
+    { label: 'Débito', value: crm.paymentTotals.debito },
+    { label: 'Crédito', value: crm.paymentTotals.credito }
+  ].map((row) => ({ ...row, value: Number(row.value || 0) }))
+    .sort((left, right) => right.value - left.value);
 
+  // Sem comparacao com a semana anterior: o resumo do CRM nao traz esse dado.
   return `
-    <div class="mobile-content">
-      ${renderMobilePeriodControls(state)}
-      <div class="mobile-metrics">
-        ${cards.map(renderMetricCard).join('')}
+    ${renderMobilePeriodControls(state)}
+    ${renderHero(`Total vendido ${getPeriodPhrase()}`, crm.salesTotal, `Caixa atual ${formatCurrency(crm.estimatedProfit)}`, 'is-muted')}
+    ${renderStatGrid([
+      { label: 'Ticket médio', value: crm.ticketAverage },
+      { label: 'Comandas', value: crm.closedComandas, isCurrency: false },
+      { label: 'Entradas', value: crm.entriesTotal, tone: 'plus' },
+      { label: 'Saídas', value: crm.outputsTotal, tone: 'minus' }
+    ])}
+    ${renderMobileSalesChart(series)}
+    ${renderPanel('Formas de pagamento', renderBars(paymentRows.map((row) => ({
+      label: row.label,
+      value: row.value,
+      display: formatCurrency(row.value),
+      color: 'var(--ink)'
+    })), { empty: 'Sem vendas no período.' }))}
+    ${renderMobileTopProducts(ranking.byQuantity.slice(0, 5), allCategories)}
+    ${renderPanel('Categorias', renderBars(categories.slice(0, 5).map((item) => ({
+      label: escapeHtml(item.name),
+      value: item.revenue,
+      display: formatCurrency(item.revenue),
+      color: getCategoryColor(item.categoryId, allCategories)
+    })), { empty: 'Sem vendas no período.' }))}
+    ${renderMobileProductionChart(comparison)}
+    ${renderPanel('Destaques', `
+      <div class="own-list">
+        ${renderHighlightRow('Mais vendido', best ? escapeHtml(best.name) : 'Sem vendas', best ? `${best.quantity} un.` : '')}
+        ${renderHighlightRow('Menos vendido', slow ? escapeHtml(slow.name) : 'Sem vendas', slow ? `${slow.quantity} un.` : '')}
+        ${renderHighlightRow('Maior categoria', categories[0] ? escapeHtml(categories[0].name) : 'Sem vendas', categories[0] ? formatCurrency(categories[0].revenue) : '')}
       </div>
-      ${renderMobileSalesChart(series)}
-      ${renderMobileHorizontalChart('Formas de pagamento', paymentRows)}
-      ${renderMobileHorizontalChart('Produtos mais vendidos', ranking.byQuantity.slice(0, 5).map((item) => ({
-        label: item.name,
-        value: item.quantity,
-        detail: formatCurrency(item.revenue),
-        isCurrency: false,
-        tone: 'primary'
-      })))}
-      ${renderMobileHorizontalChart('Categorias', categories.slice(0, 5).map((item) => ({
-        label: item.name,
-        value: item.revenue,
-        detail: `${item.quantity} un.`,
-        tone: 'success'
-      })))}
-      ${renderMobileProductionChart(comparison)}
-      <section class="mobile-list-panel">
-        <h2>Rankings</h2>
-        ${renderTextRow('Produto mais vendido', best ? `${best.name} (${best.quantity})` : 'Sem vendas')}
-        ${renderTextRow('Produto menos vendido', slow ? `${slow.name} (${slow.quantity})` : 'Sem vendas')}
-        ${renderTextRow('Maior categoria', categories[0] ? `${categories[0].name} (${formatCurrency(categories[0].revenue)})` : 'Sem vendas')}
-      </section>
-      <section class="mobile-list-panel">
-        <h2>Formas de pagamento</h2>
-        ${renderCompactRow({ label: 'Dinheiro', value: crm.paymentTotals.dinheiro })}
-        ${renderCompactRow({ label: 'Pix', value: crm.paymentTotals.pix })}
-        ${renderCompactRow({ label: 'Debito', value: crm.paymentTotals.debito })}
-        ${renderCompactRow({ label: 'Credito', value: crm.paymentTotals.credito })}
-      </section>
-      <section class="mobile-list-panel">
-        <h2>Producao x vendido</h2>
-        ${comparison.slice(0, 5).map((item) => `
-          <div class="mobile-row">
-            <span>${escapeHtml(item.produtoNome)}</span>
-            <strong>${item.quantidadeVendida}/${item.quantidadeProduzida} - ${item.percentualVendido}%</strong>
-          </div>
-        `).join('') || '<p class="mobile-empty">Sem vitrine no periodo.</p>'}
-      </section>
+    `)}
+  `;
+}
+
+function renderHighlightRow(label, detailHtml, valueText) {
+  return `
+    <div class="own-row">
+      <span class="own-row__main">
+        <span>${label}</span>
+        <small>${detailHtml}</small>
+      </span>
+      ${valueText ? `<b class="own-row__value">${valueText}</b>` : ''}
     </div>
   `;
 }
 
-function renderMobileSalesChart(series) {
-  const maxSales = Math.max(...series.map((item) => item.sales), 1);
+// Uma barra por dia do periodo; hoje (ou, sem hoje, o pico) em ambar.
+export function renderMobileSalesChart(series) {
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const values = series.map((item) => Number(item.sales || 0));
+  const maxSales = Math.max(...values, 0);
+  const total = values.reduce((sum, value) => sum + value, 0);
+  let highlightIndex = series.findIndex((item) => item.label === todayKey);
 
-  return `
-    <section class="mobile-list-panel mobile-crm-chart">
-      <header class="mobile-crm-chart__header">
-        <h2>Vendas por periodo</h2>
-        <span>${series.length} ponto(s)</span>
-      </header>
-      <div class="mobile-crm-bars">
-        ${series.map((item) => `
-          <div class="mobile-crm-bar" style="height:${Math.max((item.sales / maxSales) * 100, 8)}%">
-            <strong>${formatCurrency(item.sales)}</strong>
-            <span>${formatShortDate(item.label)}</span>
+  if (highlightIndex < 0 && maxSales > 0) {
+    highlightIndex = values.indexOf(maxSales);
+  }
+
+  const labelStep = series.length > 10 ? Math.ceil(series.length / 7) : 1;
+  const body = series.length ? `
+    <div class="own-days">
+      ${series.map((item, index) => {
+        const isToday = item.label === todayKey;
+        const value = values[index];
+        const height = maxSales > 0 ? Math.max(Math.round((value / maxSales) * 100), value > 0 ? 4 : 0) : 0;
+        const showLabel = isToday || index === highlightIndex || index % labelStep === 0;
+        const title = `${isToday ? 'Hoje' : formatDate(item.label)}: ${formatCurrency(value)}`;
+
+        return `
+          <div class="own-day">
+            <span class="own-day__bar"><i${index === highlightIndex ? ' class="is-hi"' : ''} style="height:${height}%" title="${title}"></i></span>
+            <span class="own-day__label">${showLabel ? formatDayLabel(item.label, isToday, series.length <= 7) : ''}</span>
           </div>
-        `).join('') || '<p class="mobile-empty">Sem vendas no periodo.</p>'}
-      </div>
-    </section>
-  `;
+        `;
+      }).join('')}
+    </div>
+  ` : '<p class="own-empty">Sem vendas no período.</p>';
+
+  return renderPanel('Vendas por dia', body, { aside: total > 0 ? formatCurrency(total) : '' });
 }
 
-function renderMobileHorizontalChart(title, rows) {
-  const maxValue = Math.max(...rows.map((row) => Number(row.value || 0)), 1);
-
-  return `
-    <section class="mobile-list-panel mobile-crm-chart">
-      <header class="mobile-crm-chart__header">
-        <h2>${title}</h2>
-        <span>${rows.length || 0}</span>
-      </header>
-      <div class="mobile-crm-hbars">
-        ${rows.map((row) => {
-          const numericValue = Number(row.value || 0);
-          const percent = Math.max((numericValue / maxValue) * 100, numericValue ? 8 : 0);
-          const value = row.isCurrency === false ? row.value : formatCurrency(row.value);
-
-          return `
-            <div class="mobile-crm-hbar mobile-crm-hbar--${row.tone || 'primary'}">
-              <div class="mobile-crm-hbar__label">
-                <span>${row.label}</span>
-                <strong>${value}</strong>
-              </div>
-              <div class="mobile-crm-hbar__track">
-                <i style="width:${percent}%"></i>
-              </div>
-              ${row.detail ? `<small>${row.detail}</small>` : ''}
-            </div>
-          `;
-        }).join('') || '<p class="mobile-empty">Sem dados no periodo.</p>'}
-      </div>
-    </section>
-  `;
+export function renderMobileTopProducts(items, allCategories = getCategories()) {
+  return renderPanel('Mais vendidos', renderBars(items.map((item) => ({
+    label: escapeHtml(item.name),
+    value: Number(item.quantity || 0),
+    display: `${item.quantity} un.`,
+    color: getCategoryColor(item.categoryId, allCategories)
+  })), { empty: 'Sem vendas no período.' }));
 }
 
 function renderMobileProductionChart(comparison) {
   const rows = comparison.slice(0, 5);
 
-  return `
-    <section class="mobile-list-panel mobile-crm-chart">
-      <header class="mobile-crm-chart__header">
-        <h2>Producao x vendido</h2>
-        <span>${rows.length}</span>
-      </header>
-      <div class="mobile-crm-hbars">
-        ${rows.map((item) => `
-          <div class="mobile-crm-hbar mobile-crm-hbar--warning">
-            <div class="mobile-crm-hbar__label">
-              <span>${escapeHtml(item.produtoNome)}</span>
-              <strong>${item.percentualVendido}%</strong>
-            </div>
-            <div class="mobile-crm-hbar__track">
-              <i style="width:${Math.min(Math.max(item.percentualVendido, 0), 100)}%"></i>
-            </div>
-            <small>${item.quantidadeVendida}/${item.quantidadeProduzida} vendidos</small>
-          </div>
-        `).join('') || '<p class="mobile-empty">Sem vitrine no periodo.</p>'}
-      </div>
-    </section>
-  `;
+  return renderPanel('Produção x vendido', renderBars(rows.map((item) => ({
+    label: escapeHtml(item.produtoNome),
+    value: Math.min(Math.max(Number(item.percentualVendido) || 0, 0), 100),
+    display: `${item.percentualVendido}%`,
+    color: 'var(--accent)'
+  })), { empty: 'Sem vitrine no período.', max: 100 }));
 }
 
 function renderClosingTab() {
   const closing = getMobileClosingSummary();
   const closingForm = getClosingFormValues(closing.formDefaults);
   const preview = previewMobileClosing(closingForm);
-  const cards = [
-    { label: 'Dinheiro esperado', value: closing.expectedCash, tone: 'primary' },
-    { label: 'Pix esperado', value: closing.expectedPix, tone: 'success' },
-    { label: 'Cartao esperado', value: closing.expectedCard, tone: 'info' },
-    { label: 'Diferenca', value: preview.differenceTotal, tone: preview.differenceTotal ? 'danger' : 'success' }
-  ];
 
   return `
-    <div class="mobile-content">
-      <div class="mobile-metrics">
-        ${cards.map(renderMetricCard).join('')}
+    ${renderStatGrid([
+      { label: 'Dinheiro esperado', value: closing.expectedCash },
+      { label: 'Pix esperado', value: closing.expectedPix },
+      { label: 'Cartão esperado', value: closing.expectedCard },
+      { label: 'Diferença', value: preview.differenceTotal, tone: preview.differenceTotal ? 'minus' : 'plus' }
+    ])}
+    ${renderMobileClosingForm(closingForm)}
+    ${renderMobileClosingPreview(preview)}
+    ${renderPanel('Histórico de fechamentos', closing.history.length ? `
+      <div class="own-list">
+        ${closing.history.map(renderMobileClosingHistoryRow).join('')}
       </div>
-      ${renderMobileClosingForm(closingForm)}
-      ${renderMobileClosingPreview(preview)}
-      <section class="mobile-list-panel">
-        <h2>Historico de fechamentos</h2>
-        ${closing.history.map(renderMobileClosingHistoryRow).join('') || '<p class="mobile-empty">Nenhum fechamento registrado.</p>'}
-      </section>
-    </div>
+    ` : '<p class="own-empty">Nenhum fechamento registrado.</p>')}
   `;
 }
 
@@ -817,32 +1027,29 @@ function getClosingFormValues(defaults) {
 }
 
 function renderMobileClosingForm(values) {
-  return `
-    <section class="mobile-list-panel">
-      <h2>Fechar caixa</h2>
-      ${state.closingError ? `<p class="mobile-error">${state.closingError}</p>` : ''}
-      ${state.closingWarning ? `<p role="status">${escapeHtml(state.closingWarning)}</p>` : ''}
-      <form class="mobile-closing-form" data-mobile-closing-form>
-        <div class="mobile-form-grid">
-          ${renderMoneyInput('Dinheiro contado', 'countedCash', values.countedCash)}
-          ${renderMoneyInput('Pix contado', 'checkedPix', values.checkedPix)}
-          ${renderMoneyInput('Cartao contado', 'checkedCard', values.checkedCard)}
-        </div>
-        <label>
-          Observacao
-          <textarea class="field" name="note" rows="3" data-mobile-closing-field>${escapeHtml(values.note)}</textarea>
-        </label>
-        ${canCurrentUser('cash.close') ? '<button class="mobile-showcase-submit" type="submit">Fechar Caixa</button>' : ''}
-      </form>
-    </section>
-  `;
+  return renderPanel('Fechar caixa', `
+    ${state.closingError ? `<p class="own-error" role="alert">${escapeHtml(state.closingError)}</p>` : ''}
+    ${state.closingWarning ? `<p class="own-note" role="status">${escapeHtml(state.closingWarning)}</p>` : ''}
+    <form class="own-form" data-mobile-closing-form>
+      <div class="own-form__grid">
+        ${renderMoneyInput('Dinheiro contado', 'countedCash', values.countedCash)}
+        ${renderMoneyInput('Pix contado', 'checkedPix', values.checkedPix)}
+        ${renderMoneyInput('Cartão contado', 'checkedCard', values.checkedCard)}
+      </div>
+      <label class="own-field">
+        <span>Observação</span>
+        <textarea class="ui-input own-textarea" name="note" rows="3" data-mobile-closing-field>${escapeHtml(values.note)}</textarea>
+      </label>
+      ${canCurrentUser('cash.close') ? '<button class="ui-btn ui-btn--primary own-submit" type="submit">Fechar caixa</button>' : ''}
+    </form>
+  `);
 }
 
 function renderMoneyInput(label, name, value) {
   return `
-    <label>
-      ${label}
-      <input class="field" name="${name}" type="number" min="0" step="0.01" value="${formatNumberInput(value)}" data-mobile-closing-field>
+    <label class="own-field">
+      <span>${label}</span>
+      <input class="ui-input" name="${name}" type="number" inputmode="decimal" min="0" step="0.01" value="${formatNumberInput(value)}" data-mobile-closing-field>
     </label>
   `;
 }
@@ -851,85 +1058,103 @@ function renderMobileClosingPreview(preview) {
   const rows = [
     ['Dinheiro esperado', preview.payments.expectedCash],
     ['Pix esperado', preview.payments.expectedPix],
-    ['Cartao esperado', preview.expectedCard],
+    ['Cartão esperado', preview.expectedCard],
     ['Total esperado', preview.expectedTotal],
     ['Total contado', preview.countedTotal],
-    ['Dif. dinheiro', preview.cashDifference],
-    ['Dif. pix', preview.pixDifference || 0],
-    ['Dif. cartao', preview.cardDifference],
-    ['Dif. total', preview.differenceTotal]
+    ['Diferença em dinheiro', preview.cashDifference],
+    ['Diferença em Pix', preview.pixDifference || 0],
+    ['Diferença em cartão', preview.cardDifference],
+    ['Diferença total', preview.differenceTotal]
   ];
 
-  return `
-    <section class="mobile-list-panel">
-      <h2>Resumo do fechamento</h2>
-      ${rows.map(([label, value]) => renderCompactRow({ label, value })).join('')}
-    </section>
-  `;
+  return renderPanel('Resumo do fechamento', `
+    <div class="own-list">
+      ${rows.map(([label, value]) => renderValueRow(label, formatCurrency(value))).join('')}
+    </div>
+  `);
 }
 
 function renderMobileClosingHistoryRow(item) {
   return `
-    <article class="mobile-closing-history">
-      <header>
-        <strong>${formatDate(item.closedAt || item.generatedAt)}</strong>
-        <span class="mobile-status-badge mobile-status-badge--${getClosingStatusTone(item.statusLabel)}">${item.statusLabel}</span>
+    <article class="own-history">
+      <header class="own-history__head">
+        <b>${formatDate(item.closedAt || item.generatedAt)} · ${formatTime(item.closedAt || item.generatedAt)}</b>
+        <span class="ui-pill ui-pill--${getClosingStatusTone(item.statusLabel)}">${escapeHtml(formatClosingStatus(item.statusLabel))}</span>
       </header>
-      ${renderTextRow('Hora', formatTime(item.closedAt || item.generatedAt))}
-      ${renderTextRow('Usuario', item.userName || 'Sistema')}
-      ${renderCompactRow({ label: 'Valor esperado', value: item.expectedTotal })}
-      ${renderCompactRow({ label: 'Valor contado', value: item.countedTotal })}
-      ${renderCompactRow({ label: 'Diferenca', value: item.difference })}
+      <small>Por ${escapeHtml(item.userName || 'Sistema')}</small>
+      <dl class="own-compare__nums">
+        ${renderComparisonMetric('Esperado', formatCurrency(item.expectedTotal))}
+        ${renderComparisonMetric('Contado', formatCurrency(item.countedTotal))}
+        ${renderComparisonMetric('Diferença', formatCurrency(item.difference))}
+      </dl>
     </article>
   `;
 }
 
 function getClosingStatusTone(statusLabel) {
   if (statusLabel === 'Conferido') {
-    return 'success';
+    return 'ok';
   }
 
   if (statusLabel === 'Pequena diferenca') {
-    return 'warning';
+    return 'warn';
   }
 
   return 'danger';
 }
 
+function formatClosingStatus(statusLabel) {
+  return statusLabel === 'Pequena diferenca' ? 'Pequena diferença' : statusLabel;
+}
+
 function renderFinanceTab() {
   const finance = getMobileFinancialSummary(getMobilePeriodFilters());
   const payables = getUniquePayables(finance.payables);
+  const cards = Object.fromEntries(finance.cards.map((card) => [card.id, card]));
   const canCreateIncome = canCurrentUser('financial.income.create');
   const canCreateExpense = canCurrentUser('financial.expense.create');
+  const balance = Number(cards.balance?.value || 0);
 
   return `
-    <div class="mobile-content">
-      ${renderMobilePeriodControls(state)}
-      <div class="mobile-metrics">
-        ${finance.cards.map(renderMetricCard).join('')}
+    ${renderMobilePeriodControls(state)}
+    ${renderHero(`Saldo ${getPeriodPhrase()}`, balance, `Entradas ${formatCurrency(cards.entries?.value || 0)}`, 'is-plus', balance < 0 ? 'is-minus' : '')}
+    ${renderStatGrid([
+      { label: 'Saídas', value: cards.outputs?.value || 0, tone: 'minus' },
+      { label: 'Contas a pagar', value: cards.payables?.value || 0, isCurrency: false },
+      { label: 'Vencidas', value: cards.overdue?.value || 0, isCurrency: false, tone: cards.overdue?.value ? 'minus' : '' },
+      { label: 'Contas pagas', value: cards.paidBills?.value || 0, isCurrency: false }
+    ])}
+    ${canCreateIncome || canCreateExpense || state.financeError || state.financeModal ? renderPanel('Lançar no financeiro', `
+      ${state.financeError ? `<p class="own-error" role="alert">${escapeHtml(state.financeError)}</p>` : ''}
+      <div class="own-actions">
+        ${canCreateIncome ? '<button class="ui-btn ui-btn--sm" type="button" data-mobile-finance-action="income">+ Entrada</button>' : ''}
+        ${canCreateExpense ? '<button class="ui-btn ui-btn--sm ui-btn--loss" type="button" data-mobile-finance-action="expense">− Saída</button>' : ''}
+        ${canCreateExpense ? '<button class="ui-btn ui-btn--sm" type="button" data-mobile-finance-action="bill">+ Boleto</button>' : ''}
       </div>
-      <section class="mobile-list-panel">
-        <h2>Financeiro</h2>
-        ${state.financeError ? `<p class="mobile-error">${state.financeError}</p>` : ''}
-        <div class="mobile-finance-actions">
-          ${canCreateIncome ? '<button type="button" data-mobile-finance-action="income">+ Entrada</button>' : ''}
-          ${canCreateExpense ? '<button type="button" data-mobile-finance-action="expense">- Saida</button>' : ''}
-          ${canCreateExpense ? '<button type="button" data-mobile-finance-action="bill">+ Boleto</button>' : ''}
-        </div>
-        ${state.financeModal ? renderMobileFinanceForm(state.financeModal, finance.categories) : ''}
-      </section>
-      <section class="mobile-list-panel">
-        <h2>Movimentacoes financeiras</h2>
-        ${finance.transactions.filter((transaction) => transaction.status !== 'canceled').slice(0, 12).map((transaction) => renderMobileFinanceTransaction(transaction, finance.categories)).join('') || '<p class="mobile-empty">Nenhuma movimentacao financeira.</p>'}
-      </section>
-      <section class="mobile-list-panel">
-        <h2>Contas a pagar</h2>
-        ${payables.map(renderMobilePayable).join('') || '<p class="mobile-empty">Nenhuma conta a pagar.</p>'}
-      </section>
-      <section class="mobile-list-panel">
-        <h2>Mini CRM financeiro</h2>
-        ${renderMobileFinanceCrm(finance.crm, finance.categories)}
-      </section>
+      ${state.financeModal ? renderMobileFinanceForm(state.financeModal, finance.categories) : ''}
+    `) : ''}
+    ${renderPanel('Contas a pagar', payables.length ? `
+      <div class="own-list">
+        ${payables.map(renderMobilePayable).join('')}
+      </div>
+    ` : '<p class="own-empty">Nenhuma conta a pagar.</p>', { aside: payables.length ? `${payables.length}` : '' })}
+    ${renderMobileFinanceCrm(finance.crm, finance.categories)}
+    ${renderPanel('Movimentações financeiras', renderMobileFinanceTransactions(finance))}
+  `;
+}
+
+function renderMobileFinanceTransactions(finance) {
+  const transactions = finance.transactions
+    .filter((transaction) => transaction.status !== 'canceled')
+    .slice(0, 12);
+
+  if (!transactions.length) {
+    return '<p class="own-empty">Nenhuma movimentação financeira.</p>';
+  }
+
+  return `
+    <div class="own-list">
+      ${transactions.map((transaction) => renderMobileFinanceTransaction(transaction, finance.categories)).join('')}
     </div>
   `;
 }
@@ -942,48 +1167,50 @@ function renderMobileFinanceForm(type, categories) {
       ? category.type === 'expense' || category.type === 'both'
       : category.type === (isIncome ? 'income' : 'expense') || category.type === 'both'
   ));
+  const formTitle = isBill ? 'Novo boleto' : isIncome ? 'Nova entrada' : 'Nova saída';
 
   return `
-    <form class="mobile-finance-form" data-mobile-finance-form>
-      <input type="hidden" name="formType" value="${type}">
-      <label>
-        Descricao
-        <input class="field" name="description" required placeholder="${isIncome ? 'Ex: Aporte do dono' : 'Ex: Boleto fornecedor'}">
+    <form class="own-form own-form--boxed" data-mobile-finance-form aria-label="${formTitle}">
+      <input type="hidden" name="formType" value="${escapeHtml(type)}">
+      <b class="own-form__title">${formTitle}</b>
+      <label class="own-field">
+        <span>Descrição</span>
+        <input class="ui-input" name="description" required placeholder="${isIncome ? 'Ex.: Aporte do dono' : 'Ex.: Boleto do fornecedor'}">
       </label>
-      <div class="mobile-form-grid">
-        <label>
-          Valor
-          <input class="field" name="amount" type="number" min="0.01" step="0.01" required>
+      <div class="own-form__grid">
+        <label class="own-field">
+          <span>Valor</span>
+          <input class="ui-input" name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required>
         </label>
-        <label>
-          Categoria
-          <select class="field" name="categoryId" required>
+        <label class="own-field">
+          <span>Categoria</span>
+          <select class="ui-input" name="categoryId" required>
             ${filteredCategories.map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`).join('')}
           </select>
         </label>
       </div>
       ${isBill ? `
-        <div class="mobile-form-grid">
-          <label>
-            Vencimento
-            <input class="field" name="dueDate" type="date" required>
+        <div class="own-form__grid">
+          <label class="own-field">
+            <span>Vencimento</span>
+            <input class="ui-input" name="dueDate" type="date" required>
           </label>
-          <label>
-            Status
-            <select class="field" name="status">
+          <label class="own-field">
+            <span>Situação</span>
+            <select class="ui-input" name="status">
               <option value="pending">Pendente</option>
               <option value="paid">Pago</option>
             </select>
           </label>
         </div>
       ` : ''}
-      <label>
-        Observacao
-        <textarea class="field" name="notes" rows="3"></textarea>
+      <label class="own-field">
+        <span>Observação</span>
+        <textarea class="ui-input own-textarea" name="notes" rows="3"></textarea>
       </label>
-      <div class="mobile-finance-form__actions">
-        <button type="button" data-mobile-finance-close>Cancelar</button>
-        <button type="submit">Salvar</button>
+      <div class="own-form__actions">
+        <button class="ui-btn ui-btn--ghost" type="button" data-mobile-finance-close>Cancelar</button>
+        <button class="ui-btn ui-btn--primary" type="submit">Salvar</button>
       </div>
     </form>
   `;
@@ -994,52 +1221,52 @@ function renderMobileFinanceTransaction(transaction, categories) {
   const isIncome = transaction.type === 'income';
 
   return `
-    <article class="mobile-finance-row">
-      <div>
-        <strong>${escapeHtml(transaction.description)}</strong>
-        <span>${formatDate(transaction.transactionDate || transaction.createdAt)} - ${escapeHtml(category?.name || 'Sem categoria')} - ${formatFinanceStatus(transaction.status)}</span>
-      </div>
-      <strong class="${isIncome ? 'money-positive' : 'money-negative'}">${isIncome ? '+' : '-'} ${formatCurrency(transaction.amount)}</strong>
-    </article>
+    <div class="own-row">
+      <span class="own-row__main">
+        <b>${escapeHtml(transaction.description)}</b>
+        <small>${formatDate(transaction.transactionDate || transaction.createdAt)} · ${escapeHtml(category?.name || 'Sem categoria')} · ${formatFinanceStatus(transaction.status)}</small>
+      </span>
+      <b class="own-row__value ${isIncome ? 'is-plus' : 'is-minus'}">${isIncome ? '+' : '−'} ${formatCurrency(transaction.amount)}</b>
+    </div>
   `;
 }
 
 function renderMobilePayable(transaction) {
+  const isOverdue = transaction.status === 'overdue';
+
   return `
-    <article class="mobile-finance-row">
-      <div>
-        <strong>${escapeHtml(transaction.description)}</strong>
-        <span>${formatFinanceStatus(transaction.status)} - Venc. ${formatDate(transaction.dueDate)}</span>
-      </div>
-      <div class="mobile-finance-row__actions">
-        <strong class="money-negative">${formatCurrency(transaction.amount)}</strong>
-        ${canCurrentUser('financial.bill.pay') ? `<button type="button" data-mobile-payable-id="${transaction.id}">Pagar</button>` : ''}
-      </div>
-    </article>
+    <div class="own-row">
+      <span class="own-dot" style="--c: ${isOverdue ? 'var(--red)' : 'var(--accent)'}"></span>
+      <span class="own-row__main">
+        <b>${escapeHtml(transaction.description)}</b>
+        <small>${isOverdue ? 'Venceu em' : 'Vence em'} ${formatDate(transaction.dueDate)} · ${formatFinanceStatus(transaction.status)}</small>
+      </span>
+      <span class="own-row__end">
+        <b class="own-row__value${isOverdue ? ' is-minus' : ''}">${formatCurrency(transaction.amount)}</b>
+        ${canCurrentUser('financial.bill.pay') ? `<button class="ui-btn ui-btn--sm" type="button" data-mobile-payable-id="${escapeHtml(transaction.id)}">Pagar</button>` : ''}
+      </span>
+    </div>
   `;
 }
 
 function renderMobileFinanceCrm(crm, categories) {
   return [
-    renderMobileCrmGroup('Saidas por categoria', crm.outputsByCategory, categories),
-    renderMobileCrmGroup('Entradas por categoria', crm.entriesByCategory, categories),
-    renderMobileCrmGroup('Pendentes por categoria', crm.pendingByCategory, categories),
-    renderMobileCrmGroup('Gastos por pagamento', crm.spendingByPaymentMethod, [])
+    renderMobileCrmGroup('Saídas por categoria', crm.outputsByCategory, categories, 'var(--red)'),
+    renderMobileCrmGroup('Entradas por categoria', crm.entriesByCategory, categories, 'var(--green)'),
+    renderMobileCrmGroup('Pendentes por categoria', crm.pendingByCategory, categories, 'var(--accent)'),
+    renderMobileCrmGroup('Gastos por forma de pagamento', crm.spendingByPaymentMethod, [], 'var(--ink)')
   ].join('');
 }
 
-function renderMobileCrmGroup(title, totals, categories) {
+function renderMobileCrmGroup(title, totals, categories, color) {
   const rows = Object.entries(totals || {}).sort((left, right) => right[1] - left[1]).slice(0, 5);
 
-  return `
-    <div class="mobile-finance-crm-group">
-      <strong>${title}</strong>
-      ${rows.map(([id, value]) => renderCompactRow({
-        label: categories.find((category) => category.id === id)?.name || id,
-        value
-      })).join('') || '<p class="mobile-empty">Sem dados.</p>'}
-    </div>
-  `;
+  return renderPanel(title, renderBars(rows.map(([id, value]) => ({
+    label: escapeHtml(categories.find((category) => category.id === id)?.name || PAYMENT_LABELS[id] || id),
+    value: Number(value || 0),
+    display: formatCurrency(value),
+    color
+  })), { empty: 'Sem dados no período.' }));
 }
 
 function getUniquePayables(payables) {
@@ -1055,7 +1282,7 @@ function formatFinanceStatus(status) {
     canceled: 'Cancelada'
   };
 
-  return labels[status] || status || 'Pendente';
+  return labels[status] || escapeHtml(status || 'Pendente');
 }
 
 function renderMobileShowcaseForm(summary) {
@@ -1066,56 +1293,53 @@ function renderMobileShowcaseForm(summary) {
     ? summary.rows.find((row) => row.produtoId === selectedProduct.id)
     : null;
 
-  return `
-    <section class="mobile-list-panel mobile-showcase-form-panel">
-      <h2>Lancar vitrine</h2>
-      <form class="mobile-showcase-form" data-mobile-showcase-form>
-        <label>
-          Categoria
-          <select class="field" data-mobile-showcase-category name="categoryId">
-            <option value="">Todas</option>
-            ${categories.map((category) => `
-              <option value="${escapeHtml(category.id)}" ${state.showcaseCategoryId === category.id ? 'selected' : ''}>${escapeHtml(category.name)}</option>
-            `).join('')}
-          </select>
+  return renderPanel('Lançar vitrine', `
+    <form class="own-form" data-mobile-showcase-form>
+      <label class="own-field">
+        <span>Categoria</span>
+        <select class="ui-input" data-mobile-showcase-category name="categoryId">
+          <option value="">Todas</option>
+          ${categories.map((category) => `
+            <option value="${escapeHtml(category.id)}" ${state.showcaseCategoryId === category.id ? 'selected' : ''}>${escapeHtml(category.name)}</option>
+          `).join('')}
+        </select>
+      </label>
+      <label class="own-field">
+        <span>Produto</span>
+        <select class="ui-input" data-mobile-showcase-product name="produtoId" required>
+          <option value="">Escolha o produto</option>
+          ${products.map((product) => `
+            <option value="${escapeHtml(product.id)}" ${state.showcaseProductId === product.id ? 'selected' : ''}>${escapeHtml(product.name)}</option>
+          `).join('')}
+        </select>
+      </label>
+      <div class="own-form__grid">
+        <label class="own-field">
+          <span>Qtd. adicionada</span>
+          <input class="ui-input" name="quantidade" type="number" inputmode="numeric" min="1" step="1" required placeholder="0">
         </label>
-        <label>
-          Produto
-          <select class="field" data-mobile-showcase-product name="produtoId" required>
-            <option value="">Escolha o produto</option>
-            ${products.map((product) => `
-              <option value="${escapeHtml(product.id)}" ${state.showcaseProductId === product.id ? 'selected' : ''}>${escapeHtml(product.name)}</option>
-            `).join('')}
-          </select>
+        <label class="own-field">
+          <span>Atual na vitrine</span>
+          <input class="ui-input" type="text" readonly value="${currentRow ? currentRow.sobraQuantidade : 0}">
         </label>
-        <div class="mobile-showcase-form__grid">
-          <label>
-            Qtd. adicionada
-            <input class="field" name="quantidade" type="number" min="1" step="1" required placeholder="0">
-          </label>
-          <label>
-            Atual vitrine
-            <input class="field" type="text" readonly value="${currentRow ? currentRow.sobraQuantidade : 0}">
-          </label>
-        </div>
-        <div class="mobile-showcase-form__grid">
-          <label>
-            Valor unitario
-            <input class="field" type="text" readonly value="${selectedProduct ? formatCurrency(selectedProduct.price) : formatCurrency(0)}">
-          </label>
-          <label>
-            Estimado atual
-            <input class="field" type="text" readonly value="${currentRow ? formatCurrency(currentRow.valorProduzido) : formatCurrency(0)}">
-          </label>
-        </div>
-        <label>
-          Observacao
-          <input class="field" name="note" placeholder="Opcional">
+      </div>
+      <div class="own-form__grid">
+        <label class="own-field">
+          <span>Valor unitário</span>
+          <input class="ui-input" type="text" readonly value="${selectedProduct ? formatCurrency(selectedProduct.price) : formatCurrency(0)}">
         </label>
-        ${canCurrentUser('showcase.launch') ? '<button class="mobile-showcase-submit" type="submit">Lancar / atualizar vitrine</button>' : ''}
-      </form>
-    </section>
-  `;
+        <label class="own-field">
+          <span>Estimado atual</span>
+          <input class="ui-input" type="text" readonly value="${currentRow ? formatCurrency(currentRow.valorProduzido) : formatCurrency(0)}">
+        </label>
+      </div>
+      <label class="own-field">
+        <span>Observação</span>
+        <input class="ui-input" name="note" placeholder="Opcional">
+      </label>
+      ${canCurrentUser('showcase.launch') ? '<button class="ui-btn ui-btn--primary own-submit" type="submit">Lançar / atualizar vitrine</button>' : ''}
+    </form>
+  `);
 }
 
 export function renderLiveFeed({
@@ -1138,22 +1362,20 @@ export function renderLiveFeed({
   const hasMore = allEvents.length > visibleEvents.length;
 
   return `
-    <section class="mobile-feed-panel">
-      <div class="mobile-section-title">
-        <strong>Ao vivo</strong>
-        <span class="mobile-live-dot">recebendo</span>
+    <section class="own-card own-feed">
+      <header class="own-card__head">
+        <h2>Acontecendo agora</h2>
+      </header>
+      <div class="own-chips" role="group" aria-label="Filtrar eventos">
+        ${filters.map((item) => {
+          const isActive = item.id === filter;
+          return `<button class="own-chip${isActive ? ' is-on' : ''}" type="button" data-feed-filter="${item.id}" aria-pressed="${isActive ? 'true' : 'false'}">${escapeHtml(item.label)}</button>`;
+        }).join('')}
       </div>
-      <div class="mobile-feed-filters">
-        ${filters.map((item) => `
-          <button class="${item.id === filter ? 'is-active' : ''}" type="button" data-feed-filter="${item.id}">
-            ${item.label}
-          </button>
-        `).join('')}
+      <div class="own-list">
+        ${visibleEvents.map((event) => renderFeedEvent(event)).join('') || '<p class="own-empty">Nenhum evento neste filtro.</p>'}
       </div>
-      <div class="mobile-live-feed">
-        ${visibleEvents.map((event) => renderFeedEvent(event)).join('') || '<p class="mobile-empty">Nenhum evento neste filtro.</p>'}
-      </div>
-      ${hasMore ? '<button class="mobile-load-more" type="button" data-feed-load-more>Carregar mais</button>' : ''}
+      ${hasMore ? '<button class="ui-btn ui-btn--ghost own-more" type="button" data-feed-load-more>Carregar mais</button>' : ''}
     </section>
   `;
 }
@@ -1180,7 +1402,7 @@ async function saveMobileShowcaseLaunch(form, workspace) {
     state.showcaseProductId = produtoId;
   } catch (error) {
     state.syncState = 'error';
-    state.syncError = error.message || 'Nao foi possivel lancar vitrine.';
+    state.syncError = error.message || 'Não foi possível lançar a vitrine.';
   }
 
   renderIfActive(workspace);
@@ -1209,11 +1431,11 @@ async function saveMobileClosing(form, workspace) {
       await hydrateOnlineOperationalData({ catalog: false, financial: true, showcase: false });
     } catch (refreshError) {
       state.syncState = 'pending';
-      state.closingWarning = [state.closingWarning, 'Fechamento confirmado. Nao foi possivel atualizar o historico; nao confirme novamente.'].filter(Boolean).join(' ');
+      state.closingWarning = [state.closingWarning, 'Fechamento confirmado. Não foi possível atualizar o histórico; não confirme novamente.'].filter(Boolean).join(' ');
     }
   } catch (error) {
     state.syncState = 'error';
-    state.closingError = error.message || 'Nao foi possivel fechar o caixa.';
+    state.closingError = error.message || 'Não foi possível fechar o caixa.';
     state.syncError = state.closingError;
   }
 
@@ -1248,7 +1470,7 @@ async function saveMobileFinance(form, workspace) {
     state.syncState = 'synced';
   } catch (error) {
     state.syncState = 'error';
-    state.financeError = error.message || 'Nao foi possivel registrar o lancamento financeiro.';
+    state.financeError = error.message || 'Não foi possível registrar o lançamento financeiro.';
     state.syncError = state.financeError;
   }
 
@@ -1266,7 +1488,7 @@ async function payMobileBill(transactionId, workspace) {
     state.syncState = 'synced';
   } catch (error) {
     state.syncState = 'error';
-    state.financeError = error.message || 'Nao foi possivel marcar a conta como paga.';
+    state.financeError = error.message || 'Não foi possível marcar a conta como paga.';
     state.syncError = state.financeError;
   }
 
@@ -1295,30 +1517,28 @@ function getMobileCrmFilter() {
   return createPeriodFilter(state.feedPeriod, state.customStart, state.customEnd);
 }
 
+// Estado da sincronizacao, mostrado como o indicador "Ao vivo" do topo (toque = atualizar).
 function getMobileSyncStatus() {
   if (!isSupabaseEnabled()) {
     return {
       state: 'offline',
-      icon: 'LOC',
-      label: 'local',
-      title: 'Modo local'
+      label: 'Modo local',
+      title: 'Modo local: dados deste aparelho'
     };
   }
 
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
     return {
       state: 'offline',
-      icon: 'OFF',
-      label: 'offline',
-      title: 'Sem conexao'
+      label: 'Sem conexão',
+      title: 'Sem conexão com a internet'
     };
   }
 
   if (state.syncState === 'syncing') {
     return {
       state: 'syncing',
-      icon: '...',
-      label: 'sync',
+      label: 'Atualizando',
       title: 'Sincronizando com o banco'
     };
   }
@@ -1326,9 +1546,8 @@ function getMobileSyncStatus() {
   if (state.syncState === 'error') {
     return {
       state: 'error',
-      icon: '!',
-      label: 'erro',
-      title: state.syncError || 'Erro de sincronizacao'
+      label: 'Erro',
+      title: state.syncError || 'Erro de sincronização'
     };
   }
 
@@ -1338,75 +1557,121 @@ function getMobileSyncStatus() {
   if (financial.state === 'pending' || catalog.state === 'pending') {
     return {
       state: 'syncing',
-      icon: '...',
-      label: 'sync',
-      title: 'Existem dados pendentes de sincronizacao'
+      label: 'Atualizando',
+      title: 'Existem dados pendentes de sincronização'
     };
   }
 
   if (financial.state === 'error' || catalog.state === 'error') {
     return {
       state: 'error',
-      icon: '!',
-      label: 'erro',
-      title: financial.error || catalog.error || 'Erro de sincronizacao'
+      label: 'Erro',
+      title: financial.error || catalog.error || 'Erro de sincronização'
     };
   }
 
   return {
     state: 'synced',
-    icon: 'OK',
-    label: 'online',
-    title: 'Sincronizado com o banco'
+    label: 'Ao vivo',
+    title: 'Sincronizado com o banco. Toque para atualizar.'
   };
 }
 
 function getPeriodShortLabel(period) {
-  const labels = {
-    today: 'Hoje',
-    yesterday: 'Ontem',
-    month: 'Mes',
-    custom: 'Periodo'
-  };
+  return PERIOD_LABELS[period] || PERIOD_LABELS.today;
+}
 
-  return labels[period] || 'Hoje';
+function getPeriodPhrase(period = state.feedPeriod) {
+  return PERIOD_PHRASES[period] || PERIOD_PHRASES.today;
+}
+
+// Linha de contexto do topo para as abas que dependem do periodo.
+function getPeriodContext(period = state.feedPeriod) {
+  if (period === 'month') {
+    return capitalize(new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(new Date()));
+  }
+
+  if (period === 'custom') {
+    const start = state.customStart ? formatShortDate(state.customStart) : '';
+    const end = state.customEnd ? formatShortDate(state.customEnd) : '';
+    return start && end ? `${start} a ${end}` : 'Período escolhido';
+  }
+
+  return getPeriodShortLabel(period);
 }
 
 export function renderFeedEvent(event, selectedEventId = state.selectedFeedEventId) {
   const isClickable = Boolean(event.details);
   const isOpen = isClickable && selectedEventId === event.id;
+  const content = `
+    <span class="own-dot" style="--c: ${getFeedTone(event)}"></span>
+    <span class="own-row__main">
+      <b>${escapeHtml(event.title)}</b>
+      <small>${formatEventTime(event.createdAt)} · ${escapeHtml(event.description)}</small>
+      ${isClickable ? `<small class="own-event__hint">${isOpen ? 'Ocultar detalhes' : 'Ver detalhes da comanda'}</small>` : ''}
+    </span>
+    ${event.amount ? renderSignedAmount(event) : ''}
+  `;
 
   return `
-    <article class="mobile-feed-event mobile-feed-event--${event.level} ${isClickable ? 'is-clickable' : ''} ${isOpen ? 'is-open' : ''}" ${isClickable ? `data-feed-event-id="${event.id}" role="button" tabindex="0"` : ''}>
-      <div class="mobile-feed-icon">${event.icon}</div>
-      <div>
-        <strong>${escapeHtml(event.title)}</strong>
-        <p>${escapeHtml(event.description)}${event.amount ? ` - ${formatCurrency(event.amount)}` : ''}</p>
-        <time>${formatRelativeTime(event.createdAt)}</time>
-        ${isClickable ? `<span class="mobile-feed-hint">${isOpen ? 'Ocultar detalhes' : 'Ver detalhes da comanda'}</span>` : ''}
-      </div>
+    <article class="own-event${isOpen ? ' is-open' : ''}">
+      ${isClickable
+        ? `<button class="own-row own-event__main" type="button" data-feed-event-id="${escapeHtml(event.id)}" aria-expanded="${isOpen ? 'true' : 'false'}">${content}</button>`
+        : `<div class="own-row own-event__main">${content}</div>`}
       ${isOpen ? renderFeedEventDetails(event.details) : ''}
     </article>
   `;
 }
 
+function getFeedTone(event) {
+  if (event.kind === 'sale' || event.kind === 'inflow') {
+    return 'var(--green)';
+  }
+
+  if (event.kind === 'outflow') {
+    return 'var(--red)';
+  }
+
+  if (event.level === 'danger') {
+    return 'var(--red)';
+  }
+
+  if (event.level === 'warning') {
+    return 'var(--accent)';
+  }
+
+  return event.level === 'success' ? 'var(--green)' : 'var(--muted)';
+}
+
+function renderSignedAmount(event) {
+  if (event.kind === 'outflow') {
+    return `<b class="own-row__value is-minus">− ${formatCurrency(event.amount)}</b>`;
+  }
+
+  if (event.kind === 'inflow') {
+    return `<b class="own-row__value is-plus">+ ${formatCurrency(event.amount)}</b>`;
+  }
+
+  return `<b class="own-row__value">${formatCurrency(event.amount)}</b>`;
+}
+
 function renderFeedEventDetails(details) {
   return `
-    <div class="mobile-feed-detail">
-      <div class="mobile-feed-detail__head">
-        <strong>Comanda ${formatComandaNumber(details.comandaNumber)}</strong>
-        <span>${formatCurrency(details.total)}</span>
+    <div class="own-detail">
+      <div class="own-detail__head">
+        <b>Comanda ${formatComandaNumber(details.comandaNumber)}</b>
+        <b>${formatCurrency(details.total)}</b>
       </div>
-      <div class="mobile-feed-detail__items">
+      <div class="own-detail__items">
         ${details.items.map((item) => `
           <div>
             <span>${item.quantity}x ${escapeHtml(item.name)}</span>
-            <strong>${formatCurrency(item.total)}</strong>
+            <b>${formatCurrency(item.total)}</b>
           </div>
         `).join('')}
       </div>
-      <div class="mobile-feed-detail__meta">
-        ${renderDetailLine('Pagamento', details.paymentLabel)}
+      <div class="own-detail__meta">
+        ${renderDetailLine('Pagamento', escapeHtml(details.paymentLabel))}
         ${details.paymentMethod === 'dinheiro' ? renderDetailLine('Recebido', formatCurrency(details.receivedAmount)) : ''}
         ${renderDetailLine('Troco', formatCurrency(details.change))}
       </div>
@@ -1418,75 +1683,136 @@ function renderDetailLine(label, value) {
   return `
     <div>
       <span>${label}</span>
-      <strong>${value}</strong>
+      <b>${value}</b>
     </div>
   `;
 }
 
-function renderHeroCard(card) {
+// Pecas de layout ------------------------------------------------------------
+
+function renderHero(label, value, note = '', noteTone = '', valueTone = '') {
   return `
-    <section class="mobile-hero-card">
-      <span>${card.label}</span>
-      <strong>${formatCurrency(card.value)}</strong>
+    <section class="own-hero">
+      <small>${label}</small>
+      <b${valueTone ? ` class="${valueTone}"` : ''}>${formatCurrency(value)}</b>
+      ${note ? `<em${noteTone ? ` class="${noteTone}"` : ''}>${note}</em>` : ''}
     </section>
   `;
 }
 
-function renderMetricCard(card) {
-  const value = card.isCurrency === false ? card.value : formatCurrency(card.value);
-
+function renderStatGrid(items) {
   return `
-    <article class="mobile-metric mobile-metric--${card.tone}">
-      <span>${card.label}</span>
-      <strong>${value}</strong>
-    </article>
-  `;
-}
-
-function renderCompactRow(card) {
-  return `
-    <div class="mobile-row">
-      <span>${card.label}</span>
-      <strong>${formatCurrency(card.value)}</strong>
-    </div>
-  `;
-}
-
-function renderTextRow(label, value) {
-  return `
-    <div class="mobile-row">
-      <span>${label}</span>
-      <strong>${value}</strong>
-    </div>
-  `;
-}
-
-function renderBottomNav() {
-  return `
-    <nav class="mobile-bottom-nav" aria-label="Menu mobile">
-      ${tabs.map((tab) => `
-        <button class="${tab.id === state.tab ? 'is-active' : ''}" type="button" data-mobile-tab="${tab.id}">
-          <span>${tab.icon}</span>
-          <strong>${tab.label}</strong>
-        </button>
+    <div class="own-grid">
+      ${items.map((item) => `
+        <div class="ui-stat${item.tone ? ` is-${item.tone}` : ''}">
+          <small>${item.label}</small>
+          <b>${item.isCurrency === false ? item.value : formatCurrency(item.value)}</b>
+        </div>
       `).join('')}
-    </nav>
+    </div>
   `;
 }
 
-function formatRelativeTime(value) {
-  const diffMs = Date.now() - new Date(value).getTime();
-  const diffMinutes = Math.max(0, Math.round(diffMs / 60000));
+function renderPanel(title, bodyHtml, { aside = '' } = {}) {
+  return `
+    <section class="own-card">
+      <header class="own-card__head">
+        <h2>${title}</h2>
+        ${aside ? `<span>${aside}</span>` : ''}
+      </header>
+      ${bodyHtml}
+    </section>
+  `;
+}
+
+// rows: { label (ja escapado), value, display, color }
+function renderBars(rows, { empty = 'Sem dados no período.', max = null } = {}) {
+  if (!rows.length) {
+    return `<p class="own-empty">${empty}</p>`;
+  }
+
+  const largest = max ?? Math.max(...rows.map((row) => Number(row.value || 0)), 0);
+
+  return `
+    <div class="ui-bars own-bars">
+      ${rows.map((row) => {
+        const value = Math.max(Number(row.value || 0), 0);
+        const width = largest > 0 ? Math.min(Math.round((value / largest) * 100), 100) : 0;
+        return `
+          <div class="ui-bar-row">
+            <span>${row.label}</span>
+            <div class="track"><i style="width:${width}%;--c:${row.color}"></i></div>
+            <b>${row.display}</b>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderValueRow(label, valueText) {
+  return `
+    <div class="own-row">
+      <span class="own-row__main"><span>${label}</span></span>
+      <b class="own-row__value">${valueText}</b>
+    </div>
+  `;
+}
+
+function getCategoryColor(categoryId, allCategories) {
+  const category = allCategories.find((item) => item.id === categoryId);
+  return category ? getCategoryColorVar(category, allCategories) : 'var(--muted)';
+}
+
+// Formatos -------------------------------------------------------------------
+
+function capitalize(text) {
+  return text ? text.charAt(0).toLocaleUpperCase('pt-BR') + text.slice(1) : text;
+}
+
+function formatLongDate(date) {
+  const weekday = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(date).replace(/-feira$/, '');
+  const dayMonth = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long' }).format(date);
+  return `${capitalize(weekday)}, ${dayMonth}`;
+}
+
+function formatDayLabel(dateKey, isToday, useWeekday) {
+  if (isToday) {
+    return 'Hoje';
+  }
+
+  const date = new Date(`${dateKey}T12:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return escapeHtml(dateKey);
+  }
+
+  if (useWeekday) {
+    return capitalize(new Intl.DateTimeFormat('pt-BR', { weekday: 'short' }).format(date).replace('.', ''));
+  }
+
+  return String(date.getDate());
+}
+
+// Ha poucos minutos: "agora" / "há 5 min"; hoje: a hora; antes: data e hora.
+function formatEventTime(value) {
+  const date = new Date(value);
+
+  if (!value || Number.isNaN(date.getTime())) {
+    return 'Sem data';
+  }
+
+  const diffMinutes = Math.max(0, Math.round((Date.now() - date.getTime()) / 60000));
 
   if (diffMinutes <= 0) {
     return 'agora';
   }
 
-  if (diffMinutes === 1) {
-    return '1 min';
+  if (diffMinutes < 60) {
+    return `há ${diffMinutes} min`;
   }
 
-  return `${diffMinutes} min`;
+  return date.toDateString() === new Date().toDateString() ? formatTime(value) : formatDateTime(value);
 }
 
 function formatDateTime(value) {
@@ -1535,7 +1861,7 @@ function formatShortDate(value) {
   }
 
   const text = String(value);
-  return text.includes('-') ? text.slice(5) : text;
+  return text.length === 10 && text.includes('-') ? `${text.slice(8, 10)}/${text.slice(5, 7)}` : escapeHtml(text);
 }
 
 function formatComandaNumber(number) {

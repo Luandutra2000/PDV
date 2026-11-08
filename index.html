@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="./src/styles/modal.css">
   <link rel="stylesheet" href="./src/styles/forms.css">
   <link rel="stylesheet" href="./src/styles/pdv.css">
-  <link rel="stylesheet" href="./src/styles/mobile.css">
+  <link rel="stylesheet" href="./src/styles/mobile.css?v=20260807-19">
   <link rel="stylesheet" href="./src/styles/redesign.css?v=20260807-48">
   <link rel="stylesheet" href="./src/styles/tokens.css?v=20260807-07">
   <link rel="stylesheet" href="./src/styles/components.css?v=20260807-13">
@@ -34,6 +34,7 @@
   <link rel="stylesheet" href="./src/styles/relatorios-b.css?v=20260807-18">
   <link rel="stylesheet" href="./src/styles/empresa-config.css?v=20260807-18">
   <link rel="stylesheet" href="./src/styles/suporte-b.css?v=20260807-18">
+  <link rel="stylesheet" href="./src/styles/mobile-b.css?v=20260807-19">
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -103,7 +104,7 @@
 
     try {
       await clearStaleClientCaches();
-      await import('./src/app.js?v=20260807-18');
+      await import('./src/app.js?v=20260807-19');
     } catch (error) {
       console.error('Nao foi possivel iniciar o PDV.', error);
       const app = document.getElementById('app');
