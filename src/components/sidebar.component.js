@@ -1,5 +1,6 @@
 import { hasPermission } from '../services/permission.service.js?v=20260804-06';
 import { icon } from './icons.js?v=20260807-06';
+import { isAllowedLogoUrl } from '../utils/logo-url.js?v=20260807-11';
 
 const menuItems = [
   { id: 'frente-caixa', label: 'Vender', icon: 'sell', permission: 'sales.access' },
@@ -63,26 +64,6 @@ function renderBrand(logoUrl, systemName) {
   }
 
   return `<img class="rail__logo" src="${escapeHtml(logoUrl.trim())}" alt="">`;
-}
-
-function isAllowedLogoUrl(logoUrl) {
-  if (!logoUrl || typeof logoUrl !== 'string') {
-    return false;
-  }
-
-  const value = logoUrl.trim();
-  const allowedDataImagePattern = /^data:image\/(?:png|jpe?g|webp|svg\+xml);base64,[A-Za-z0-9+/]+={0,2}$/i;
-
-  if (allowedDataImagePattern.test(value)) {
-    return true;
-  }
-
-  try {
-    const parsedUrl = new URL(value);
-    return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
-  } catch (error) {
-    return false;
-  }
 }
 
 function escapeHtml(value) {

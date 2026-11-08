@@ -1,0 +1,180 @@
+/* Tela de entrar do visual B claro. Escopo: .lg e classes lg-*, sem reaproveitar
+   .login-screen/.login-card (o CSS antigo do login em redesign.css e forms.css
+   ainda existe e nao deve vazar aqui). Valores: secao "Entrar" de
+   docs/superpowers/specs/mockups/2026-11-07-telas-b-claro.html */
+
+.lg {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 14px;
+}
+
+.lg *,
+.lg *::before,
+.lg *::after { box-sizing: border-box; }
+
+.lg p,
+.lg h1 { margin: 0; }
+
+/* Coluna da marca */
+.lg-side {
+  padding: 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+  background: var(--card);
+  border-right: 1px solid var(--line);
+}
+
+.lg-brand {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-size: 22px;
+  font-weight: 700;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.lg-brand__logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--card);
+}
+
+.lg-side__name {
+  max-width: 14ch;
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.lg-side__tagline {
+  margin-top: 10px;
+  color: var(--muted);
+}
+
+.lg-side__cats { display: flex; gap: 6px; }
+.lg-side__cats i { width: 40px; height: 6px; border-radius: 3px; }
+.lg-side__cats i:nth-child(1) { background: var(--cat-lanches); }
+.lg-side__cats i:nth-child(2) { background: var(--cat-porcoes); }
+.lg-side__cats i:nth-child(3) { background: var(--cat-bebidas); }
+.lg-side__cats i:nth-child(4) { background: var(--cat-combos); }
+
+/* Coluna do formulario */
+.lg-main {
+  display: grid;
+  place-items: center;
+  padding: 32px 24px;
+}
+
+.lg-card {
+  width: min(100%, 380px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lg-card__title {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.lg-card__hint { margin-bottom: 6px; color: var(--muted); }
+
+.lg-card__help {
+  font-size: 12px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.lg .lg-input {
+  width: 100%;
+  height: 46px;
+  font-size: 14px;
+}
+
+.lg .lg-input:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.lg input.lg-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Campo de senha: a borda fica no envoltorio e o botao Mostrar dentro dele */
+.lg-pass { gap: 8px; }
+
+.lg-pass__field {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.lg-pass__toggle {
+  flex: none;
+  height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.lg-pass__toggle:hover { color: var(--ink); }
+.lg-pass__toggle:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+
+.lg .lg-submit {
+  width: 100%;
+  height: 48px;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.lg-error {
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.lg-error[hidden] { display: none; }
+
+/* Telas estreitas: a coluna da marca vira uma faixa curta no topo */
+@media (max-width: 760px) {
+  .lg { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+
+  .lg-side {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .lg-brand { width: 40px; height: 40px; border-radius: 12px; font-size: 17px; flex: none; }
+  .lg-side__text { flex: 1; min-width: 0; }
+  .lg-side__name { max-width: none; font-size: 18px; }
+  .lg-side__tagline,
+  .lg-side__cats { display: none; }
+
+  .lg-main { align-items: start; padding: 32px 16px; }
+}

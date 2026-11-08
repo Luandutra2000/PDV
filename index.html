@@ -25,48 +25,36 @@
   <link rel="stylesheet" href="./src/styles/components.css?v=20260807-06">
   <link rel="stylesheet" href="./src/styles/pdv-b.css?v=20260807-09">
   <link rel="stylesheet" href="./src/styles/modal-b.css?v=20260807-10">
+  <link rel="stylesheet" href="./src/styles/login-b.css?v=20260807-11">
 </head>
 <body>
   <div id="app" class="app-shell">
-    <div class="bubble-background bubble-background--interactive" data-bubble-background aria-hidden="true">
-      <div class="bubble-background__glow bubble-background__glow--first"></div>
-      <div class="bubble-background__glow bubble-background__glow--second"></div>
-      <div class="bubble-background__glow bubble-background__glow--third"></div>
-      <div class="bubble-background__glow bubble-background__glow--fourth"></div>
-      <div class="bubble-background__glow bubble-background__glow--fifth"></div>
-      <div class="bubble-background__glow bubble-background__glow--sixth"></div>
-    </div>
-    <section class="login-screen">
-      <form class="login-card" data-login-form aria-label="Login do PDV" onsubmit="return false">
-        <div class="login-card__brand">
-          <span class="login-card__logo" aria-hidden="true">S</span>
-          <h1 aria-label="Entrar no PDV">Welcome Back</h1>
-          <p>Sign in to continue to PDV Lanchonete</p>
+    <section class="lg" aria-label="Entrar no PDV">
+      <aside class="lg-side">
+        <span class="lg-brand" aria-hidden="true">P</span>
+        <div class="lg-side__text">
+          <p class="lg-side__name">PDV Lanchonete</p>
+          <p class="lg-side__tagline">Frente de caixa, vitrine e financeiro num lugar só.</p>
         </div>
-        <label class="field-group">
-          <span class="login-field-label">Usuario</span>
-          <span class="login-input-wrap">
-            <span class="login-input-icon" aria-hidden="true">✉</span>
-            <input class="field" type="text" name="username" placeholder="Email address" required autocomplete="username">
-          </span>
-        </label>
-        <label class="field-group">
-          <span class="login-field-label">Senha</span>
-          <span class="login-input-wrap">
-            <span class="login-input-icon" aria-hidden="true">♙</span>
-            <input class="field" type="password" name="password" placeholder="Password" required autocomplete="current-password">
-          </span>
-        </label>
-        <div class="login-card__options">
-          <label class="login-remember"><input type="checkbox" name="remember"> <span>Remember me</span></label>
-          <span class="login-link login-link--muted">Forgot password?</span>
-        </div>
-        <button class="button login-submit" type="submit">Entrar</button>
-        <div class="login-divider"><span></span><small>or</small><span></span></div>
-        <button class="login-google" type="button"><strong>G</strong><span>Sign in with Google</span></button>
-        <p class="login-signup">Don&apos;t have an account? <span class="login-link">Sign up</span></p>
-        <p class="form-error" data-login-error hidden></p>
-      </form>
+        <div class="lg-side__cats" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      </aside>
+      <div class="lg-main">
+        <form class="lg-card" data-login-form aria-label="Login do PDV" onsubmit="return false">
+          <h1 class="lg-card__title">Entrar no PDV</h1>
+          <p class="lg-card__hint">Use o e-mail e a senha que o administrador cadastrou.</p>
+          <div class="ui-field">
+            <label for="lg-username">E-mail</label>
+            <input class="ui-input lg-input" id="lg-username" type="text" name="username" required autocomplete="username" autocapitalize="none" spellcheck="false">
+          </div>
+          <div class="ui-field">
+            <label for="lg-password">Senha</label>
+            <input class="ui-input lg-input" id="lg-password" type="password" name="password" required autocomplete="current-password">
+          </div>
+          <button class="ui-btn ui-btn--primary lg-submit" type="submit">Entrar</button>
+          <p class="lg-error" data-login-error role="alert" hidden></p>
+          <p class="lg-card__help">Esqueceu a senha? Fale com o administrador.</p>
+        </form>
+      </div>
     </section>
   </div>
   <div class="toast-root" aria-live="polite"></div>
@@ -107,18 +95,20 @@
 
     try {
       await clearStaleClientCaches();
-      await import('./src/app.js?v=20260807-10');
+      await import('./src/app.js?v=20260807-11');
     } catch (error) {
       console.error('Nao foi possivel iniciar o PDV.', error);
       const app = document.getElementById('app');
       if (app) {
         app.innerHTML = `
-          <section class="login-screen">
-            <div class="login-card">
-              <p class="module-subtitle">PDV</p>
-              <h1 class="pdv-title">Erro ao iniciar</h1>
-              <p class="form-error">Atualize a pagina. Se continuar, limpe o cache do navegador.</p>
-              <button class="button" type="button" onclick="window.location.reload()">Atualizar</button>
+          <section class="lg">
+            <aside class="lg-side"><span class="lg-brand" aria-hidden="true">P</span></aside>
+            <div class="lg-main">
+              <div class="lg-card">
+                <h1 class="lg-card__title">Erro ao iniciar</h1>
+                <p class="lg-error">Atualize a pagina. Se continuar, limpe o cache do navegador.</p>
+                <button class="ui-btn ui-btn--primary lg-submit" type="button" onclick="window.location.reload()">Atualizar</button>
+              </div>
             </div>
           </section>
         `;

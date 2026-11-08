@@ -1,5 +1,5 @@
 import './config/runtime-config.js?v=20260807-02';
-import { renderSidebar } from './components/sidebar.component.js?v=20260807-06';
+import { renderSidebar } from './components/sidebar.component.js?v=20260807-11';
 import { renderCashKpis, renderCashSessionStatus, renderUserMenu } from './components/topbar.component.js?v=20260807-06';
 import { ensureSeedData } from './services/storage.service.js?v=20260804-06';
 import { hydrateDataProvider } from './services/data-provider.service.js?v=20260804-06';
@@ -27,7 +27,7 @@ import { getDailyMoneySummary } from './services/transaction.service.js?v=202608
 import { getCurrentUser, login, logout, restoreSupabaseSession } from './services/auth.service.js?v=20260807-04';
 import { hasPermission } from './services/permission.service.js?v=20260804-06';
 import { applyCompanyIdentity, loadCompanySettings, loadCompanySettingsLocal } from './services/empresa-config.service.js?v=20260807-05';
-import { renderLoginModule } from './modules/auth/login.module.js?v=20260807-04';
+import { renderLoginModule } from './modules/auth/login.module.js?v=20260807-11';
 import { on } from './services/event-bus.service.js?v=20260804-06';
 import { UI_EVENTS } from './database/schema.js?v=20260804-06';
 import { getCashSessionStatus, openCashSession } from './services/cash-session.service.js?v=20260804-06';
