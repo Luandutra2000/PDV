@@ -90,16 +90,17 @@
 .ps-groups, .ps-checklist { display: flex; flex-direction: column; }
 .ps-group {
   display: grid;
-  grid-template-columns: 130px minmax(0, 1fr);
+  grid-template-columns: 160px minmax(0, 1fr);
   gap: 10px;
   padding: 10px 0;
   border-bottom: 1px solid var(--line-soft);
 }
 .ps-group:last-child { border-bottom: 0; }
-.ps-group > b { font-weight: 600; font-size: 13px; overflow-wrap: anywhere; }
+.ps-group > b { font-weight: 600; font-size: 13px; overflow-wrap: normal; }
 .ps-perms-list { display: flex; flex-wrap: wrap; gap: 6px; }
 @media (max-width: 560px) {
   .ps-group { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .ps-group > b { overflow-wrap: anywhere; }
 }
 
 /* Marcador liga/desliga: o mesmo desenho no painel (.ps-perm) e no formulario (.ps-toggle) */
@@ -200,6 +201,7 @@
 .ps-check { display: flex; align-items: center; gap: 8px; align-self: end; height: 36px; font-size: 13px; color: var(--ink); }
 .ps-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--green); }
 .ps-actions { display: flex; justify-content: flex-end; gap: 8px; padding-bottom: 20px; }
-.ps-btn-danger { background: var(--red); border-color: var(--red); color: #fff; }
-.ps-btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--red) 85%, var(--ink)); border-color: color-mix(in srgb, var(--red) 85%, var(--ink)); }
+/* O texto usa --bg: escuro sobre o vermelho claro do tema escuro e claro sobre o vermelho do tema claro. */
+.ps-btn-danger { background: var(--red); border-color: var(--red); color: var(--bg); }
+.ps-btn-danger:hover:not(:disabled) { background: var(--red); border-color: var(--red); filter: brightness(.88); }
 .ps .people-form .form-error { margin: 0 0 8px; color: var(--red); }

@@ -49,7 +49,7 @@ assert(container.innerHTML.includes('data-user-modal'), 'people screen should re
 assert(container.innerHTML.includes('data-permission-checkbox'), 'people modal should render permission checklist');
 assert(container.innerHTML.includes('Gerente'), 'role select should include Gerente');
 assert(container.innerHTML.includes('Operador/Caixa'), 'role select should include Operador/Caixa');
-assert(container.innerHTML.includes('Financeiro/Despesas'), 'permissions should include financial group');
+assert(container.innerHTML.replaceAll('<wbr>', '').includes('Financeiro/Despesas'), 'permissions should include financial group');
 assert(container.innerHTML.includes('Histórico de ações'), 'people screen should render audit history section');
 assert(container.innerHTML.includes('data-audit-user-filter'), 'history should expose user filter');
 assert(container.innerHTML.includes('data-action="delete-user"'), 'people screen should expose user deletion');

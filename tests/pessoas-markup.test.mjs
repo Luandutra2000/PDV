@@ -79,8 +79,9 @@ assert.doesNotMatch(permState(html, 'sales.access'), /ps-perm--off/, 'allowed pe
 assert.match(permState(html, 'cash.close'), /data-state="off"/, 'denied permission renders as off');
 assert.match(permState(html, 'cash.close'), /ps-perm--off/, 'denied permission uses the off style');
 ['Vendas', 'Caixa', 'Vitrine/Estoque', 'Gestão', 'Financeiro/Despesas', 'Sistema'].forEach((group) => {
-  assert.ok(html.includes(`>${group}</b>`), `group ${group}`);
+  assert.ok(html.replaceAll('<wbr>', '').includes(`>${group}</b>`), `group ${group}`);
 });
+assert.ok(html.includes('Financeiro/<wbr>Despesas'), 'group label can break after the slash');
 assert.ok(html.includes('Fechar caixa'), 'denied permissions are listed too');
 assert.doesNotMatch(html, /\+\d+ permiss/, 'no collapsed "+N permissoes"');
 assert.doesNotMatch(html, /Historico de acoes|Usuario ativo<|Permissoes do usuario/, 'visible copy is accented');
@@ -94,6 +95,8 @@ assert.doesNotMatch(checkboxOf('cash.close'), /\schecked/, 'cash.close starts of
 assert.match(checkboxOf('sales.access'), /\schecked/, 'sales.access starts on for operador');
 assert.match(html, /class="ps-toggle/, 'permission toggles use the new chip style');
 
+const focused = [];
+container.querySelector = (selector) => ({ focus: () => focused.push(selector) });
 handlers.change({
   target: {
     closest: (selector) => {
@@ -105,6 +108,8 @@ handlers.change({
 });
 html = container.innerHTML;
 assert.match(checkboxOf('cash.close'), /\schecked/, 'toggle updates the checklist');
+assert.ok(focused.some((selector) => selector.includes('data-permission-id="cash.close"')), 'focus returns to the toggled permission');
+container.querySelector = () => null;
 
 // Salvar: o gerenciamento de usuarios exige a funcao central, entao ligamos o provedor
 // remoto so aqui, com a chamada de rede trocada por um registro.

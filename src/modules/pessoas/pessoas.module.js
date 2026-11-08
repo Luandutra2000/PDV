@@ -369,6 +369,7 @@ function bindPeopleEvents(container) {
         [permissionCheckbox.dataset.permissionId]: permissionCheckbox.checked
       };
       renderPeople(container);
+      restorePermissionFocus(container, permissionCheckbox.dataset.permissionId);
       return;
     }
 
@@ -383,6 +384,11 @@ function bindPeopleEvents(container) {
       renderPeople(container);
     }
   });
+}
+
+// A tela inteira e redesenhada a cada clique; devolve o foco ao marcador alterado.
+function restorePermissionFocus(container, permissionId) {
+  container.querySelector?.(`[data-permission-checkbox][data-permission-id="${permissionId}"]`)?.focus?.();
 }
 
 function scrollToAudit(container) {
@@ -437,7 +443,7 @@ function renderSelectedPermissionPreview(user, permissions) {
     <div class="ps-groups">
       ${grouped.map(([group, groupItems]) => `
         <div class="ps-group">
-          <b>${escapeHtml(displayText(group))}</b>
+          <b>${renderGroupLabel(group)}</b>
           <div class="ps-perms-list">
             ${groupItems.map((permission) => renderPermissionChip(user, permission)).join('')}
           </div>
@@ -445,6 +451,11 @@ function renderSelectedPermissionPreview(user, permissions) {
       `).join('')}
     </div>
   `;
+}
+
+// Permite quebrar a linha depois da barra ("Financeiro/Despesas") sem partir a palavra.
+function renderGroupLabel(group) {
+  return escapeHtml(displayText(group)).replaceAll('/', '/<wbr>');
 }
 
 function renderPermissionChip(user, permission) {
@@ -671,7 +682,7 @@ function renderPermissionChecklist(role) {
       <h3 class="ps-checklist__title">Permissões</h3>
       ${groups.map(([group, permissions]) => `
         <section class="ps-group">
-          <b>${escapeHtml(displayText(group))}</b>
+          <b>${renderGroupLabel(group)}</b>
           <div class="ps-perms-list">
             ${permissions.map((permission) => renderPermissionCheckbox(role, permission)).join('')}
           </div>
