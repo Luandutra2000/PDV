@@ -8,6 +8,7 @@ import { loadCategories, loadProducts, startCatalogRealtime, syncCatalogNow } fr
 import { flushFinancialQueue, hydrateFinancialData, startFinancialRealtime } from './services/financial-sync.service.js?v=20260804-06';
 import { isSupabaseEnabled } from './services/app-config.service.js?v=20260804-06';
 import { hydrateOnlineOperationalData } from './services/online-data.service.js?v=20260804-06';
+import { flushShowcaseQueue } from './services/showcase-sync.service.js?v=20260804-06';
 import { getDashboardResumo } from './services/dashboard-resumo.service.js?v=20260804-06';
 import { initVendasModule } from './modules/vendas/vendas.module.js?v=20260807-21';
 import { initProdutosModule } from './modules/produtos/produtos.module.js?v=20260807-21';
@@ -103,11 +104,19 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   }
 
   if (!auditRetryStarted) {
-    const retryAudit = () => {
-      if (getCurrentUser()) flushDataProvider().catch((error) => console.warn('Falha ao reenviar auditoria.', error));
+    // Nova tentativa para tudo que ficou pendente (auditoria, financeiro e
+    // vitrine): sem isso a vitrine so sincronizava na venda seguinte.
+    const retryPendingSync = () => {
+      if (!getCurrentUser()) return;
+      flushDataProvider().catch((error) => console.warn('Falha ao reenviar auditoria.', error));
+      if (isSupabaseEnabled()) {
+        flushFinancialQueue()
+          .then(() => flushShowcaseQueue())
+          .catch((error) => console.warn('Falha ao reenviar pendencias.', error));
+      }
     };
-    window.addEventListener('online', retryAudit);
-    window.setInterval(retryAudit, 30000);
+    window.addEventListener('online', retryPendingSync);
+    window.setInterval(retryPendingSync, 30000);
     auditRetryStarted = true;
   }
   initRealtimeService();
@@ -331,6 +340,7 @@ function bindNavigation(app, workspace) {
     if (event.target.closest('[data-action="refresh"]')) {
       await flushDataProvider();
       await flushFinancialQueue();
+      if (isSupabaseEnabled()) await flushShowcaseQueue();
       const activeRoute = workspace.dataset.activeRoute;
       const activeRouteInitializer = routes[activeRoute];
 
