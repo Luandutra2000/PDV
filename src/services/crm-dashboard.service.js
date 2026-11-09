@@ -141,7 +141,11 @@ export function getFinancialMovements(filter = createPeriodFilter()) {
     id: transaction.id,
     type: transaction.type,
     category: transaction.category || transaction.paymentMethod || 'sem-categoria',
-    description: transaction.description || transaction.paymentMethod || `Comanda ${transaction.comandaNumber || ''}`.trim(),
+    // Venda nao tem descricao: mostra a comanda (a forma de pagamento ja vai na categoria).
+    description: transaction.description
+      || (transaction.type === 'venda' && transaction.comandaNumber ? `Comanda ${String(transaction.comandaNumber).padStart(4, '0')}` : '')
+      || transaction.paymentMethod
+      || 'Movimento',
     amount: Number(transaction.total || transaction.amount || 0),
     createdAt: transaction.createdAt,
     userName: transaction.userName || 'Local'

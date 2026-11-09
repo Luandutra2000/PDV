@@ -6,6 +6,7 @@ import {
   getProductRanking
 } from '../../services/crm-dashboard.service.js?v=20260804-06';
 import { getCategories } from '../../services/product.service.js?v=20260804-06';
+import { getFinancialCategories } from '../../services/financial.service.js?v=20260804-06';
 import { UI_EVENTS } from '../../database/schema.js?v=20260804-06';
 import { on } from '../../services/event-bus.service.js?v=20260804-06';
 import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
@@ -331,9 +332,11 @@ function renderProductsPanel(ranking = [], allCategories = []) {
 }
 
 function renderMovementsPanel(movements = []) {
+  // Entradas/saidas guardam o id da categoria financeira (ex.: outros-financeiro).
+  const financialNames = new Map(getFinancialCategories({ activeOnly: false }).map((category) => [category.id, category.name]));
   const rows = movements.map((item) => {
     const description = escapeHtml(item.description);
-    const category = escapeHtml(MOVEMENT_CATEGORY_LABELS[item.category] || item.category);
+    const category = escapeHtml(MOVEMENT_CATEGORY_LABELS[item.category] || financialNames.get(item.category) || item.category);
     const entry = item.type === 'entrada';
     const output = item.type === 'saida' || item.type === 'sangria';
     const sign = entry ? '+ ' : output ? '− ' : '';
