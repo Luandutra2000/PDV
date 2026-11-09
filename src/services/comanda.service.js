@@ -2,10 +2,19 @@ import { STORAGE_KEYS, SYNC_EVENTS } from '../database/schema.js?v=20260804-06';
 import { emit } from './event-bus.service.js?v=20260804-06';
 import { getItem, setItem } from './storage.service.js?v=20260804-06';
 
+// O numero da comanda e gerado no aparelho. Para nao repetir numeros de
+// outros aparelhos (ja sincronizados) a proxima comanda segue o maior
+// numero conhecido no historico.
+export function getNextComandaNumber(current = 0) {
+  const known = getItem(STORAGE_KEYS.closedComandas, []);
+  const highest = (Array.isArray(known) ? known : []).reduce((max, comanda) => Math.max(max, Number(comanda?.number) || 0), 0);
+  return Math.max(Number(current) || 0, highest) + 1;
+}
+
 export function getActiveComanda() {
   return getItem(STORAGE_KEYS.activeComanda, {
     id: 'comanda-local',
-    number: 1,
+    number: getNextComandaNumber(0),
     status: 'aberta',
     items: [],
     createdAt: new Date().toISOString(),
