@@ -115,7 +115,9 @@ export function registerCashMovement({
   category = 'sem-categoria',
   description = '',
   userName = 'Local',
-  createFinancialTransaction = true
+  // Sangria transfere dinheiro da gaveta para o cofre: reduz o caixa, mas nao
+  // e despesa e nao gera lancamento no Financeiro.
+  createFinancialTransaction = type !== 'sangria'
 }) {
   const user = getCurrentUser();
   enforceCashSession();

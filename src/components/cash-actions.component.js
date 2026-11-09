@@ -110,7 +110,14 @@ export function renderCashMovementModal(type) {
           <button class="icon-button" type="button" data-action="close-modal" aria-label="Fechar">X</button>
         </header>
         <form class="product-form" data-cash-form>
-          <input type="hidden" name="type" value="${type}">
+          ${type === 'entrada' ? `<input type="hidden" name="type" value="${type}">` : `
+          <label class="stacked-label">
+            Tipo de saída
+            <select class="field" name="type" required>
+              <option value="saida">Despesa paga com dinheiro do caixa</option>
+              <option value="sangria">Sangria (retirada para o cofre, não é despesa)</option>
+            </select>
+          </label>`}
           <label class="stacked-label">
             Valor
             <input class="field" name="amount" type="number" min="0.01" step="0.01" required>
@@ -158,7 +165,7 @@ export async function submitCashMovementForm(formData) {
       userName: 'Operador local'
     });
     showNotification({
-      title: formData.get('type') === 'entrada' ? 'Entrada registrada' : 'Saída registrada',
+      title: { entrada: 'Entrada registrada', sangria: 'Sangria registrada' }[formData.get('type')] || 'Saída registrada',
       message: `${formatCurrency(formData.get('amount'))} lançado no histórico.`,
       type: formData.get('type') === 'entrada' ? 'success' : 'danger'
     });

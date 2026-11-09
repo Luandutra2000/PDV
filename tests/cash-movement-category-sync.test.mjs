@@ -57,7 +57,9 @@ const queue = () => JSON.parse(disk.get(keys.financialSyncQueue) || '[]');
 
 // 1. O modal so oferece categorias que existem no cadastro financeiro.
 for (const type of ['entrada', 'saida']) {
-  const markup = cashActions.renderCashMovementModal(type);
+  const full = cashActions.renderCashMovementModal(type);
+  const start = full.indexOf('name="category"');
+  const markup = full.slice(start, full.indexOf('</select>', start));
   const values = [...markup.matchAll(/<option value="([^"]*)"/g)].map((match) => match[1]);
   assert.ok(values.length > 0, `modal de ${type} tem categorias`);
   assert.deepEqual(values.filter((value) => !serverCategories.has(value)), [], `modal de ${type} nao oferece categoria inexistente`);
