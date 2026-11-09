@@ -8,9 +8,9 @@ globalThis.localStorage = {
   removeItem: (key) => store.delete(key)
 };
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
-const sync = await import('../src/services/showcase-sync.service.js?v=20260804-06');
-const stock = await import('../src/services/showcase-stock.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
+const sync = await import('../src/services/showcase-sync.service.js?v=20261109-01');
+const stock = await import('../src/services/showcase-stock.service.js?v=20261109-01');
 const queue = () => JSON.parse(store.get(STORAGE_KEYS.showcaseSyncQueue) || '[]');
 const deferred = () => {
   let resolve;

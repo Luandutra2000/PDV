@@ -6,9 +6,9 @@ import assert from 'node:assert/strict';
 
 const store = new Map();
 globalThis.localStorage = { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k), clear: () => store.clear() };
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const schema = await import('../src/database/schema.js?v=20260804-06');
-const cash = await import('../src/services/cash-session.service.js?v=20260804-06');
+const cash = await import('../src/services/cash-session.service.js?v=20261109-01');
 
 storage.ensureSeedData();
 storage.setItem(schema.STORAGE_KEYS.users, [{ id: 'u1', name: 'Caixa', username: 'caixa', role: 'admin', active: true }]);

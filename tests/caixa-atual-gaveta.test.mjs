@@ -6,13 +6,13 @@ import fs from 'node:fs';
 process.env.NODE_ENV = 'test';
 const disk = new Map();
 globalThis.localStorage = { getItem: (k) => disk.get(k) ?? null, setItem: (k, v) => disk.set(k, String(v)), removeItem: (k) => disk.delete(k), clear: () => disk.clear() };
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const { STORAGE_KEYS: keys } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const cashSession = await import('../src/services/cash-session.service.js?v=20260804-06');
-const comanda = await import('../src/services/comanda.service.js?v=20260804-06');
-const transactions = await import('../src/services/transaction.service.js?v=20260804-06');
-const { getDashboardResumo } = await import('../src/services/dashboard-resumo.service.js?v=20260804-06');
+const cashSession = await import('../src/services/cash-session.service.js?v=20261109-01');
+const comanda = await import('../src/services/comanda.service.js?v=20261109-01');
+const transactions = await import('../src/services/transaction.service.js?v=20261109-01');
+const { getDashboardResumo } = await import('../src/services/dashboard-resumo.service.js?v=20261109-01');
 
 storage.resetAppData();
 seedTestAdmin(storage, keys);

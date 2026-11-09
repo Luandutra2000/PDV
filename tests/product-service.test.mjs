@@ -23,9 +23,9 @@ const assert = (condition, message) => {
 
 const isPromise = (value) => Boolean(value && typeof value.then === 'function');
 
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
-const products = await import('../src/services/product.service.js?v=20260804-06');
+const products = await import('../src/services/product.service.js?v=20261109-01');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
 
 storage.ensureSeedData();

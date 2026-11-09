@@ -8,14 +8,14 @@ globalThis.localStorage = {
   setItem(key, value) { if (key === failKey) { failKey = ''; throw new Error('QuotaExceededError'); } disk.set(key, String(value)); },
   removeItem: key => disk.delete(key), clear: () => disk.clear()
 };
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const { STORAGE_KEYS: keys } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin, setTestUserSession } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const transactions = await import('../src/services/transaction.service.js?v=20260804-06');
-const comanda = await import('../src/services/comanda.service.js?v=20260804-06');
-const financial = await import('../src/services/financial-sync.service.js?v=20260804-06');
-const { getFinancialSummary } = await import('../src/services/financial.service.js?v=20260804-06');
-const showcase = await import('../src/services/showcase-sync.service.js?v=20260804-06');
+const transactions = await import('../src/services/transaction.service.js?v=20261109-01');
+const comanda = await import('../src/services/comanda.service.js?v=20261109-01');
+const financial = await import('../src/services/financial-sync.service.js?v=20261109-01');
+const { getFinancialSummary } = await import('../src/services/financial.service.js?v=20261109-01');
+const showcase = await import('../src/services/showcase-sync.service.js?v=20261109-01');
 const { configureSupabaseClientForTests } = await import('../src/services/supabase-client.service.js?v=20260804-06');
 const client = {
   auth: { getSession: async () => ({ data: { session: null } }) },

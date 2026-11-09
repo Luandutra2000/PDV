@@ -6,12 +6,12 @@ import assert from 'node:assert/strict';
 process.env.NODE_ENV = 'test';
 const disk = new Map();
 globalThis.localStorage = { getItem: (k) => disk.get(k) ?? null, setItem: (k, v) => disk.set(k, String(v)), removeItem: (k) => disk.delete(k), clear: () => disk.clear() };
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const { STORAGE_KEYS: keys } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const transactions = await import('../src/services/transaction.service.js?v=20260804-06');
-const financial = await import('../src/services/financial.service.js?v=20260804-06');
-const cashActions = await import('../src/components/cash-actions.component.js?v=20260807-21');
+const transactions = await import('../src/services/transaction.service.js?v=20261109-01');
+const financial = await import('../src/services/financial.service.js?v=20261109-01');
+const cashActions = await import('../src/components/cash-actions.component.js?v=20261109-01');
 
 storage.resetAppData();
 seedTestAdmin(storage, keys);
@@ -30,7 +30,7 @@ console.log('cash sangria not expense ok');
 
 // O banco de producao recusa type 'sangria' (cash_movements_type_check): envia
 // como saida com categoria 'sangria' e reconhece de volta na leitura.
-const { cashMovementAdapter } = await import('../src/services/repositories/cash-movement.adapter.js?v=20260804-06');
+const { cashMovementAdapter } = await import('../src/services/repositories/cash-movement.adapter.js?v=20261109-01');
 const sangria = transactions.getTransactions().find((t) => t.type === 'sangria');
 const row = cashMovementAdapter.toRow(sangria);
 assert.equal(row.type, 'saida', 'servidor recebe saida');

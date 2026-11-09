@@ -9,7 +9,7 @@ globalThis.localStorage = {
 };
 
 const plain = (markup) => String(markup).replace(/\u00a0/g, ' ');
-const { renderReportsMarkup, buildHourlySales, initRelatoriosModule } = await import('../src/modules/relatorios/relatorios.module.js?v=20260807-21');
+const { renderReportsMarkup, buildHourlySales, initRelatoriosModule } = await import('../src/modules/relatorios/relatorios.module.js?v=20261109-01');
 
 const at = (hour, minute = 0) => new Date(2026, 10, 7, hour, minute).toISOString();
 const base = {

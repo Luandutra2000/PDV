@@ -1,9 +1,9 @@
-import { createBackup } from '../../services/backup.service.js?v=20260804-06';
-import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
-import { hasPermission, requirePermission } from '../../services/permission.service.js?v=20260804-06';
-import { getItem } from '../../services/storage.service.js?v=20260804-06';
+import { createBackup } from '../../services/backup.service.js?v=20261109-01';
+import { getCurrentUser } from '../../services/auth.service.js?v=20261109-01';
+import { hasPermission, requirePermission } from '../../services/permission.service.js?v=20261109-01';
+import { getItem } from '../../services/storage.service.js?v=20261109-01';
 import { STORAGE_KEYS } from '../../database/schema.js?v=20260804-06';
-import { flushFinancialQueue, getFinancialSyncStatus } from '../../services/financial-sync.service.js?v=20260804-06';
+import { flushFinancialQueue, getFinancialSyncStatus } from '../../services/financial-sync.service.js?v=20261109-01';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
 
 export function initSyncAppModule(container) {

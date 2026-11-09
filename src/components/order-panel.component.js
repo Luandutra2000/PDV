@@ -1,5 +1,5 @@
-import { formatCurrency } from '../utils/currency.js?v=20260804-06';
-import { getSubtotal } from '../services/comanda.service.js?v=20260804-06';
+import { formatCurrency } from '../utils/currency.js?v=20261109-01';
+import { getSubtotal } from '../services/comanda.service.js?v=20261109-01';
 import { escapeHtml } from '../utils/dom.js?v=20260804-06';
 
 // Comanda da frente de caixa (visual B claro). + Entrada e - Saida ficam no

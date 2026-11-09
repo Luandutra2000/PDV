@@ -6,11 +6,11 @@ const store = new Map();
 globalThis.localStorage = { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k), clear: () => store.clear() };
 globalThis.window = { location: { href: '', pathname: '/' }, confirm: () => false, prompt: () => '' };
 globalThis.document = { documentElement: { dataset: {} } };
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const schema = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const estoque = await import('../src/services/estoque.service.js?v=20260804-06');
-const { initEstoqueModule } = await import('../src/modules/estoque/estoque.module.js?v=20260807-21');
+const estoque = await import('../src/services/estoque.service.js?v=20261109-01');
+const { initEstoqueModule } = await import('../src/modules/estoque/estoque.module.js?v=20261109-01');
 
 seedTestAdmin(storage, schema.STORAGE_KEYS);
 storage.setItem(schema.STORAGE_KEYS.categories, [{ id: 'qa', name: 'QA', showInShowcase: true }]);

@@ -1,7 +1,7 @@
 import { mockActiveComanda, mockCaixa, mockCategories, mockProducts } from '../database/mock-data.js?v=20260804-06';
 import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
 import { setLocalCache } from './providers/local.provider.js?v=20260804-06';
-import { getDataProvider } from './data-provider.service.js?v=20260804-06';
+import { getDataProvider } from './data-provider.service.js?v=20261109-01';
 
 export function getItem(key, fallback = null) {
   return getDataProvider().read(key, fallback);

@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 const store = new Map();
 globalThis.localStorage = { getItem: key => store.get(key) ?? null, setItem: (key, value) => store.set(key, String(value)), removeItem: key => store.delete(key) };
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
 const { setTestUserSession } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const { initSyncAppModule } = await import('../src/modules/sync-app/sync-app.module.js?v=20260807-18');
+const { initSyncAppModule } = await import('../src/modules/sync-app/sync-app.module.js?v=20261109-01');
 let click;
 let downloaded = false;
 let blob;

@@ -1,17 +1,17 @@
 import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
-import { getProductionSalesComparison } from './estoque.service.js?v=20260804-06';
-import { getCategories, getProductById } from './product.service.js?v=20260804-06';
-import { getCurrentUser } from './auth.service.js?v=20260804-06';
-import { assertPermission } from './permission.service.js?v=20260804-06';
-import { recordAudit } from './audit.service.js?v=20260804-06';
-import { getItem, setItem } from './storage.service.js?v=20260804-06';
-import { getCashRefundsOfEarlierSales, getCashSessionTransactions, getClosedComandas, getTransactions } from './transaction.service.js?v=20260804-06';
+import { getProductionSalesComparison } from './estoque.service.js?v=20261109-01';
+import { getCategories, getProductById } from './product.service.js?v=20261109-01';
+import { getCurrentUser } from './auth.service.js?v=20261109-01';
+import { assertPermission } from './permission.service.js?v=20261109-01';
+import { recordAudit } from './audit.service.js?v=20261109-01';
+import { getItem, setItem } from './storage.service.js?v=20261109-01';
+import { getCashRefundsOfEarlierSales, getCashSessionTransactions, getClosedComandas, getTransactions } from './transaction.service.js?v=20261109-01';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { flushFinancialQueue, prepareFinancialOperation } from './financial-sync.service.js?v=20260804-06';
+import { flushFinancialQueue, prepareFinancialOperation } from './financial-sync.service.js?v=20261109-01';
 import { runLocalTransaction } from './providers/local.provider.js?v=20260804-06';
-import { getActiveOutOfStockSales, getShowcaseStock, getShowcaseStockByProductId } from './showcase-stock.service.js?v=20260804-06';
-import { createPeriodFilter } from './crm-dashboard.service.js?v=20260804-06';
-import { assertCashSessionOpen, closeCashSession, getCashSession } from './cash-session.service.js?v=20260804-06';
+import { getActiveOutOfStockSales, getShowcaseStock, getShowcaseStockByProductId } from './showcase-stock.service.js?v=20261109-01';
+import { createPeriodFilter } from './crm-dashboard.service.js?v=20261109-01';
+import { assertCashSessionOpen, closeCashSession, getCashSession } from './cash-session.service.js?v=20261109-01';
 
 export function buildClosingSummary(input = {}) {
   // Repeat closings are cumulative snapshots of the same local calendar day.

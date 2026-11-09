@@ -1,7 +1,7 @@
-import { getShowcaseStockValue } from './estoque.service.js?v=20260804-06';
-import { getCashRefundsOfEarlierSales, getMoneySummary } from './transaction.service.js?v=20260804-06';
-import { getCashSession } from './cash-session.service.js?v=20260804-06';
-import { createPeriodFilter } from './crm-dashboard.service.js?v=20260804-06';
+import { getShowcaseStockValue } from './estoque.service.js?v=20261109-01';
+import { getCashRefundsOfEarlierSales, getMoneySummary } from './transaction.service.js?v=20261109-01';
+import { getCashSession } from './cash-session.service.js?v=20261109-01';
+import { createPeriodFilter } from './crm-dashboard.service.js?v=20261109-01';
 
 export function getDashboardResumo({ period = 'today', customStart = '', customEnd = '' } = {}) {
   const filters = { period, customStart, customEnd };

@@ -13,18 +13,18 @@ globalThis.localStorage = {
   clear: () => disk.clear()
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const { STORAGE_KEYS: keys } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const cashSession = await import('../src/services/cash-session.service.js?v=20260804-06');
-const comanda = await import('../src/services/comanda.service.js?v=20260804-06');
-const transactions = await import('../src/services/transaction.service.js?v=20260804-06');
-const { buildClosingSummary } = await import('../src/services/cash-closing.service.js?v=20260804-06');
-const { getMobileClosingSummary } = await import('../src/services/mobile-closing.service.js?v=20260804-06');
-const { createPeriodFilter, getCrmSummary } = await import('../src/services/crm-dashboard.service.js?v=20260804-06');
-const { buildCrmClosingInput } = await import('../src/modules/caixa/caixa.module.js?v=20260807-21');
-const { buildQuickClosingInput } = await import('../src/modules/vendas/vendas.module.js?v=20260807-21');
-const { renderFechamentoRapidoModal } = await import('../src/components/fechamento-rapido-modal.component.js?v=20260807-21');
+const cashSession = await import('../src/services/cash-session.service.js?v=20261109-01');
+const comanda = await import('../src/services/comanda.service.js?v=20261109-01');
+const transactions = await import('../src/services/transaction.service.js?v=20261109-01');
+const { buildClosingSummary } = await import('../src/services/cash-closing.service.js?v=20261109-01');
+const { getMobileClosingSummary } = await import('../src/services/mobile-closing.service.js?v=20261109-01');
+const { createPeriodFilter, getCrmSummary } = await import('../src/services/crm-dashboard.service.js?v=20261109-01');
+const { buildCrmClosingInput } = await import('../src/modules/caixa/caixa.module.js?v=20261109-01');
+const { buildQuickClosingInput } = await import('../src/modules/vendas/vendas.module.js?v=20261109-01');
+const { renderFechamentoRapidoModal } = await import('../src/components/fechamento-rapido-modal.component.js?v=20261109-01');
 
 storage.resetAppData();
 seedTestAdmin(storage, keys);

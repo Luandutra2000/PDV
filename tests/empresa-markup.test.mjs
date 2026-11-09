@@ -8,8 +8,8 @@ globalThis.localStorage = {
   clear: () => store.clear()
 };
 
-const company = await import('../src/services/empresa-config.service.js?v=20260807-21');
-const { renderEmpresaConfigMarkup, initEmpresaConfigModule } = await import('../src/modules/empresa-config/empresa-config.module.js?v=20260807-21');
+const company = await import('../src/services/empresa-config.service.js?v=20261109-01');
+const { renderEmpresaConfigMarkup, initEmpresaConfigModule } = await import('../src/modules/empresa-config/empresa-config.module.js?v=20261109-01');
 
 const tagsWith = (source, pattern) => [...source.matchAll(/<[a-z0-9]+\s[^>]*>/gi)].map((m) => m[0]).filter((tag) => pattern.test(tag));
 const defaults = company.getDefaultCompanySettings();

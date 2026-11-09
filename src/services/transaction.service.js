@@ -1,23 +1,23 @@
 import { STORAGE_KEYS, SYNC_EVENTS, UI_EVENTS } from '../database/schema.js?v=20260804-06';
 import { emit } from './event-bus.service.js?v=20260804-06';
-import { getActiveComanda, getNextComandaNumber, getSubtotal, startNewComanda } from './comanda.service.js?v=20260804-06';
-import { getProductById } from './product.service.js?v=20260804-06';
-import { getItem, setItem } from './storage.service.js?v=20260804-06';
-import { getCurrentUser } from './auth.service.js?v=20260804-06';
-import { assertPermission, hasPermission } from './permission.service.js?v=20260804-06';
-import { recordAudit } from './audit.service.js?v=20260804-06';
+import { getActiveComanda, getNextComandaNumber, getSubtotal, startNewComanda } from './comanda.service.js?v=20261109-01';
+import { getProductById } from './product.service.js?v=20261109-01';
+import { getItem, setItem } from './storage.service.js?v=20261109-01';
+import { getCurrentUser } from './auth.service.js?v=20261109-01';
+import { assertPermission, hasPermission } from './permission.service.js?v=20261109-01';
+import { recordAudit } from './audit.service.js?v=20261109-01';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { createFinancialTransaction as createFinanceTransaction, getFinancialCategories } from './financial.service.js?v=20260804-06';
+import { createFinancialTransaction as createFinanceTransaction, getFinancialCategories } from './financial.service.js?v=20261109-01';
 import {
   clearFinancialHistoryInSupabase,
   getFinancialSyncStatus,
   prepareFinancialOperation,
   flushFinancialQueue
-} from './financial-sync.service.js?v=20260804-06';
-import { prepareShowcaseSale, prepareShowcaseReversal, flushShowcaseQueue } from './showcase-sync.service.js?v=20260804-06';
+} from './financial-sync.service.js?v=20261109-01';
+import { prepareShowcaseSale, prepareShowcaseReversal, flushShowcaseQueue } from './showcase-sync.service.js?v=20261109-01';
 import { runLocalTransaction } from './providers/local.provider.js?v=20260804-06';
-import { roundMoney } from '../utils/currency.js?v=20260804-06';
-import { assertCashSessionOpen } from './cash-session.service.js?v=20260804-06';
+import { roundMoney } from '../utils/currency.js?v=20261109-01';
+import { assertCashSessionOpen } from './cash-session.service.js?v=20261109-01';
 
 function enforceCashSession() {
   if (typeof process === 'undefined' || process.env?.NODE_ENV !== 'test') {

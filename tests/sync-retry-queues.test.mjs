@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const appSource = fs.readFileSync(new URL('../src/app.js?v=20260807-21', import.meta.url), 'utf8');
+const appSource = fs.readFileSync(new URL('../src/app.js?v=20261109-01', import.meta.url), 'utf8');
 
 assert.match(appSource, /import \{[^}]*flushShowcaseQueue[^}]*\} from '\.\/services\/showcase-sync\.service\.js/, 'app importa o envio da fila da vitrine');
 const refreshBlock = appSource.match(/data-action="refresh"[\s\S]*?activeRouteInitializer/)?.[0] || '';

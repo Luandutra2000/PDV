@@ -1,4 +1,4 @@
-import { hasPermission } from '../services/permission.service.js?v=20260804-06';
+import { hasPermission } from '../services/permission.service.js?v=20261109-01';
 import { icon } from './icons.js?v=20260807-06';
 import { isAllowedLogoUrl } from '../utils/logo-url.js?v=20260807-11';
 

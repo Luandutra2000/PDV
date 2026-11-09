@@ -1,4 +1,4 @@
-import { formatCurrency } from '../utils/currency.js?v=20260804-06';
+import { formatCurrency } from '../utils/currency.js?v=20261109-01';
 
 // Vendas por periodo: barras verticais, a maior em ambar.
 export function renderVendasPorPeriodo(series) {

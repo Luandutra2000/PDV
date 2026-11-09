@@ -1,11 +1,11 @@
 import { STORAGE_KEYS, SYNC_EVENTS, UI_EVENTS } from '../database/schema.js?v=20260804-06';
 import { emit } from './event-bus.service.js?v=20260804-06';
-import { getCurrentUser } from './auth.service.js?v=20260804-06';
-import { assertPermission } from './permission.service.js?v=20260804-06';
-import { getItem, setItem } from './storage.service.js?v=20260804-06';
-import { recordAudit } from './audit.service.js?v=20260804-06';
+import { getCurrentUser } from './auth.service.js?v=20261109-01';
+import { assertPermission } from './permission.service.js?v=20261109-01';
+import { getItem, setItem } from './storage.service.js?v=20261109-01';
+import { recordAudit } from './audit.service.js?v=20261109-01';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { cancelFinancialTransactionInSupabase, saveFinancialTransactionToSupabase } from './financial-sync.service.js?v=20260804-06';
+import { cancelFinancialTransactionInSupabase, saveFinancialTransactionToSupabase } from './financial-sync.service.js?v=20261109-01';
 import { deferLocalEffect } from './providers/local.provider.js?v=20260804-06';
 
 export const PAYMENT_METHODS = ['dinheiro', 'pix', 'cartao', 'boleto', 'transferencia', 'outro'];

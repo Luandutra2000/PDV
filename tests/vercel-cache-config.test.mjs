@@ -10,7 +10,7 @@ const assert = (condition, message) => {
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (path) => readFile(resolve(projectRoot, path), 'utf8');
-const RELEASE = '20260807-21';
+const RELEASE = '20261109-01';
 
 const config = JSON.parse(await read('vercel.json'));
 const indexHtml = await read('index.html');
@@ -39,7 +39,7 @@ assert(styleFiles.length === stylesheets.length && styleFiles.every((file) => po
 
 // Service worker: cache novo e pre-cache igual ao que o index carrega
 const precached = [...serviceWorkerJs.matchAll(/'(\.\/[^']*)'/g)].map((match) => match[1]);
-assert(serviceWorkerJs.includes("const CACHE_NAME = 'pdv-v87';"), 'service worker cache name should change when app modules change');
+assert(serviceWorkerJs.includes("const CACHE_NAME = 'pdv-v88';"), 'service worker cache name should change when app modules change');
 assert(stylesheets.every((href) => precached.includes(href)), 'service worker should precache every linked stylesheet with its version');
 assert(precached.filter((href) => href.includes('/src/styles/')).length === stylesheets.length, 'service worker should not precache stylesheets the index does not load');
 assert(precached.includes(`./src/app.js?v=${RELEASE}`), 'service worker should precache the latest app entrypoint');
@@ -52,8 +52,8 @@ assert(indexHtml.includes(`./src/app.js?v=${RELEASE}`), 'app entrypoint should u
 assert(appJs.includes(`./modules/vendas/vendas.module.js?v=${RELEASE}`), 'front-of-house module import should use the latest cache-busting version');
 assert(appJs.includes(`./modules/mobile/mobile-dashboard.module.js?v=${RELEASE}`), 'mobile dashboard import should use the latest cache-busting version');
 assert(appJs.includes(`./modules/empresa-config/empresa-config.module.js?v=${RELEASE}`), 'company module import should use the latest cache-busting version');
-assert(appJs.includes('./components/topbar.component.js?v=20260807-06'), 'shell component import should be versioned with the module graph');
-assert(mobileDashboardJs.includes('../../services/mobile-notifications.service.js?v=20260804-06'), 'mobile feed service import should keep its cache-busting version');
+assert(appJs.includes(`./components/topbar.component.js?v=${RELEASE}`), 'shell component import should be versioned with the module graph');
+assert(mobileDashboardJs.includes(`../../services/mobile-notifications.service.js?v=${RELEASE}`), 'mobile feed service import should keep its cache-busting version');
 
 // Um modulo, uma versao: imports do mesmo arquivo com ?v= diferentes viram instancias separadas no navegador
 async function listModules(directory) {

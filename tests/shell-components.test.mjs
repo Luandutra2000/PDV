@@ -24,12 +24,12 @@ const assert = (condition, message) => {
 // Intl usa espaco inseparavel entre "R$" e o valor; normaliza para comparar.
 const plain = (html) => html.replaceAll('\u00a0', ' ');
 
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const { renderSidebar } = await import('../src/components/sidebar.component.js?v=20260807-06');
+const { renderSidebar } = await import('../src/components/sidebar.component.js?v=20261109-01');
 const { icon } = await import('../src/components/icons.js?v=20260807-06');
-const { renderCashKpis, renderCashSessionStatus, renderUserMenu } = await import('../src/components/topbar.component.js?v=20260807-06');
+const { renderCashKpis, renderCashSessionStatus, renderUserMenu } = await import('../src/components/topbar.component.js?v=20261109-01');
 
 seedTestAdmin(storage, STORAGE_KEYS);
 storage.ensureSeedData();

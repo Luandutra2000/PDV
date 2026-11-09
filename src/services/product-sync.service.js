@@ -1,12 +1,12 @@
 import { UI_EVENTS } from '../database/schema.js?v=20260804-06';
 import { getSupabaseAuthSession, getSupabaseClient } from './supabase-client.service.js?v=20260804-06';
 import { emit } from './event-bus.service.js?v=20260804-06';
-import { createEntitySyncRepository } from './repositories/entity-sync.repository.js?v=20260804-06';
+import { createEntitySyncRepository } from './repositories/entity-sync.repository.js?v=20261109-01';
 import { categoryAdapter } from './repositories/category.adapter.js?v=20260804-06';
 import { productAdapter } from './repositories/product.adapter.js?v=20260804-06';
 import { setLocalCache } from './providers/local.provider.js?v=20260804-06';
-import { getCurrentUser } from './auth.service.js?v=20260804-06';
-import { hasPermission } from './permission.service.js?v=20260804-06';
+import { getCurrentUser } from './auth.service.js?v=20261109-01';
+import { hasPermission } from './permission.service.js?v=20261109-01';
 
 export const CATALOG_READ_DENIED_MESSAGE = 'O servidor não liberou o catálogo para o seu perfil. Avise o administrador para liberar a leitura de produtos.';
 

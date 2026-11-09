@@ -1,19 +1,19 @@
-const CACHE_NAME = 'pdv-v87';
+const CACHE_NAME = 'pdv-v88';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './src/assets/pwa-icon.svg',
   './src/styles/base.css?v=20260807-20',
-  './src/styles/layout.css?v=20260807-20',
-  './src/styles/buttons.css?v=20260807-20',
+  './src/styles/layout.css?v=20261109-01',
+  './src/styles/buttons.css?v=20261109-01',
   './src/styles/modal.css?v=20260807-21',
   './src/styles/forms.css?v=20260807-21',
-  './src/styles/tokens.css?v=20260807-21',
-  './src/styles/components.css?v=20260807-21',
-  './src/styles/pdv-b.css?v=20260807-21',
-  './src/styles/modal-b.css?v=20260807-21',
-  './src/styles/login-b.css?v=20260807-21',
+  './src/styles/tokens.css?v=20261109-01',
+  './src/styles/components.css?v=20261109-01',
+  './src/styles/pdv-b.css?v=20261109-01',
+  './src/styles/modal-b.css?v=20261109-01',
+  './src/styles/login-b.css?v=20261109-01',
   './src/styles/caixa-b.css?v=20260807-12',
   './src/styles/historico-b.css?v=20260807-13',
   './src/styles/vitrine-b.css?v=20260807-21',
@@ -25,8 +25,8 @@ const STATIC_ASSETS = [
   './src/styles/suporte-b.css?v=20260807-18',
   './src/styles/mobile-b.css?v=20260807-21',
   './src/config/runtime-config.js?v=20260807-02',
-  './src/modules/auth/login.module.js?v=20260807-21',
-  './src/app.js?v=20260807-21'
+  './src/modules/auth/login.module.js?v=20261109-01',
+  './src/app.js?v=20261109-01'
 ];
 
 self.addEventListener('install', (event) => {

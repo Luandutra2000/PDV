@@ -5,7 +5,7 @@ globalThis.localStorage = {
   setItem: (key, value) => disk.set(key, String(value)),
   removeItem: (key) => disk.delete(key)
 };
-const financial = await import('../src/services/financial-sync.service.js?v=20260804-06');
+const financial = await import('../src/services/financial-sync.service.js?v=20261109-01');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
 const rows = new Map(['sales', 'sale_items', 'commands', 'command_items'].map((table) => [table, new Map()]));
 let loseResponse = true;

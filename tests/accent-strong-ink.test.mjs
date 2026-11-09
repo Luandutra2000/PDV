@@ -10,7 +10,7 @@ const store = new Map();
 globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
 const props = new Map();
 globalThis.document = { documentElement: { style: { setProperty: (n, v) => props.set(n, v), removeProperty: (n) => props.delete(n) } } };
-const company = await import('../src/services/empresa-config.service.js?v=20260807-21');
+const company = await import('../src/services/empresa-config.service.js?v=20261109-01');
 
 company.applyCompanyIdentity({ corPrimaria: '#eb4224', corSecundaria: '#0f172a', corDestaque: '#f97316' });
 const strongInk = props.get('--accent-strong-ink');

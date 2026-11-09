@@ -60,12 +60,12 @@ assert(parseReceivedAmount(undefined) === 0, 'undefined vira zero');
 assert(parseReceivedAmount('R$ 1,50') === 1.5, 'ignora o simbolo de moeda');
 
 // ---------- Modal de recebimento (R$ 74) ----------
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const schema = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const comandas = await import('../src/services/comanda.service.js?v=20260804-06');
-const cashSession = await import('../src/services/cash-session.service.js?v=20260804-06');
-const { initVendasModule } = await import('../src/modules/vendas/vendas.module.js?v=20260807-21');
+const comandas = await import('../src/services/comanda.service.js?v=20261109-01');
+const cashSession = await import('../src/services/cash-session.service.js?v=20261109-01');
+const { initVendasModule } = await import('../src/modules/vendas/vendas.module.js?v=20261109-01');
 
 seedTestAdmin(storage, schema.STORAGE_KEYS);
 storage.ensureSeedData();

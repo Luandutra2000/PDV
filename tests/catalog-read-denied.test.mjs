@@ -9,11 +9,11 @@ const disk = new Map();
 globalThis.localStorage = { getItem: (k) => disk.get(k) ?? null, setItem: (k, v) => disk.set(k, String(v)), removeItem: (k) => disk.delete(k), clear: () => disk.clear() };
 globalThis.__PDV_RUNTIME_CONFIG__ = { dataProvider: 'supabase', supabaseUrl: 'https://example.test', supabaseAnonKey: 'public' };
 
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const { STORAGE_KEYS: keys } = await import('../src/database/schema.js?v=20260804-06');
 const { setTestUserSession } = await import('./test-auth-fixture.mjs?v=20260804-06');
 const { configureSupabaseClientForTests } = await import('../src/services/supabase-client.service.js?v=20260804-06');
-const sync = await import('../src/services/product-sync.service.js?v=20260804-06');
+const sync = await import('../src/services/product-sync.service.js?v=20261109-01');
 
 let remoteProducts = [];
 const client = {

@@ -12,15 +12,15 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.ico">
   <link rel="manifest" href="./manifest.json">
   <link rel="stylesheet" href="./src/styles/base.css?v=20260807-20">
-  <link rel="stylesheet" href="./src/styles/layout.css?v=20260807-20">
-  <link rel="stylesheet" href="./src/styles/buttons.css?v=20260807-20">
+  <link rel="stylesheet" href="./src/styles/layout.css?v=20261109-01">
+  <link rel="stylesheet" href="./src/styles/buttons.css?v=20261109-01">
   <link rel="stylesheet" href="./src/styles/modal.css?v=20260807-21">
   <link rel="stylesheet" href="./src/styles/forms.css?v=20260807-21">
-  <link rel="stylesheet" href="./src/styles/tokens.css?v=20260807-21">
-  <link rel="stylesheet" href="./src/styles/components.css?v=20260807-21">
-  <link rel="stylesheet" href="./src/styles/pdv-b.css?v=20260807-21">
-  <link rel="stylesheet" href="./src/styles/modal-b.css?v=20260807-21">
-  <link rel="stylesheet" href="./src/styles/login-b.css?v=20260807-21">
+  <link rel="stylesheet" href="./src/styles/tokens.css?v=20261109-01">
+  <link rel="stylesheet" href="./src/styles/components.css?v=20261109-01">
+  <link rel="stylesheet" href="./src/styles/pdv-b.css?v=20261109-01">
+  <link rel="stylesheet" href="./src/styles/modal-b.css?v=20261109-01">
+  <link rel="stylesheet" href="./src/styles/login-b.css?v=20261109-01">
   <link rel="stylesheet" href="./src/styles/caixa-b.css?v=20260807-12">
   <link rel="stylesheet" href="./src/styles/historico-b.css?v=20260807-13">
   <link rel="stylesheet" href="./src/styles/vitrine-b.css?v=20260807-21">
@@ -78,7 +78,7 @@
   </div>
   <div class="toast-root" aria-live="polite"></div>
   <script type="module">
-    const LOCAL_CACHE_VERSION = '20260807-03-current-login';
+    const LOCAL_CACHE_VERSION = '20261109-01-qa-correcoes';
 
     async function clearStaleClientCaches() {
       try {
@@ -114,7 +114,7 @@
 
     try {
       await clearStaleClientCaches();
-      await import('./src/app.js?v=20260807-21');
+      await import('./src/app.js?v=20261109-01');
     } catch (error) {
       console.error('Nao foi possivel iniciar o PDV.', error);
       const app = document.getElementById('app');

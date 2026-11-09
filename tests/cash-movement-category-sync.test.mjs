@@ -14,14 +14,14 @@ globalThis.localStorage = {
 };
 globalThis.__PDV_RUNTIME_CONFIG__ = { dataProvider: 'supabase', supabaseUrl: 'https://example.test', supabaseAnonKey: 'public' };
 
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const { STORAGE_KEYS: keys } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const transactions = await import('../src/services/transaction.service.js?v=20260804-06');
-const financialService = await import('../src/services/financial.service.js?v=20260804-06');
-const financial = await import('../src/services/financial-sync.service.js?v=20260804-06');
-const showcase = await import('../src/services/showcase-sync.service.js?v=20260804-06');
-const cashActions = await import('../src/components/cash-actions.component.js?v=20260807-21');
+const transactions = await import('../src/services/transaction.service.js?v=20261109-01');
+const financialService = await import('../src/services/financial.service.js?v=20261109-01');
+const financial = await import('../src/services/financial-sync.service.js?v=20261109-01');
+const showcase = await import('../src/services/showcase-sync.service.js?v=20261109-01');
+const cashActions = await import('../src/components/cash-actions.component.js?v=20261109-01');
 const { configureSupabaseClientForTests } = await import('../src/services/supabase-client.service.js?v=20260804-06');
 
 const serverCategories = new Set(financialService.FINANCIAL_CATEGORY_SEED.map((category) => category.id));

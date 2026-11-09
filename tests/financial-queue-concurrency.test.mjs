@@ -6,7 +6,7 @@ globalThis.localStorage = {
   removeItem:key=>disk.delete(key),
   clear:()=>disk.clear()
 };
-const financial = await import('../src/services/financial-sync.service.js?v=20260804-06');
+const financial = await import('../src/services/financial-sync.service.js?v=20261109-01');
 let mode='offline';
 let release, started;
 const awaiting = new Promise(resolve=>{started=resolve;});

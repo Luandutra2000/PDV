@@ -1,7 +1,7 @@
 import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260804-06';
-import { getCurrentUser } from './auth.service.js?v=20260804-06';
+import { getCurrentUser } from './auth.service.js?v=20261109-01';
 import { emit } from './event-bus.service.js?v=20260804-06';
-import { getItem, setItem } from './storage.service.js?v=20260804-06';
+import { getItem, setItem } from './storage.service.js?v=20261109-01';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
 import { getSupabaseClient } from './supabase-client.service.js?v=20260804-06';
 

@@ -1,4 +1,4 @@
-import { formatCurrency } from '../utils/currency.js?v=20260804-06';
+import { formatCurrency } from '../utils/currency.js?v=20261109-01';
 
 // Cartoes de resumo da tela Caixa. O "Caixa atual" ja aparece na barra do topo.
 export function renderDashboardResumo(summary) {

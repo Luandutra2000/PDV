@@ -14,11 +14,11 @@ globalThis.localStorage = {
 globalThis.window = { location: { href: '', pathname: '/' }, confirm: () => false, prompt: () => '' };
 globalThis.document = { documentElement: { dataset: {} } };
 
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const schema = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
 const { emit } = await import('../src/services/event-bus.service.js?v=20260804-06');
-const { initEstoqueModule } = await import('../src/modules/estoque/estoque.module.js?v=20260807-21');
+const { initEstoqueModule } = await import('../src/modules/estoque/estoque.module.js?v=20261109-01');
 
 seedTestAdmin(storage, schema.STORAGE_KEYS);
 storage.setItem(schema.STORAGE_KEYS.categories, [{ id: 'qa', name: 'QA', showInShowcase: true }]);

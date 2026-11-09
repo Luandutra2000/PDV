@@ -2,11 +2,11 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
 const repositorySource = fs.readFileSync(
-  new URL('../src/services/repositories/entity-sync.repository.js?v=20260804-06', import.meta.url),
+  new URL('../src/services/repositories/entity-sync.repository.js?v=20261109-01', import.meta.url),
   'utf8'
 );
 const syncSource = fs.readFileSync(
-  new URL('../src/services/product-sync.service.js?v=20260804-06', import.meta.url),
+  new URL('../src/services/product-sync.service.js?v=20261109-01', import.meta.url),
   'utf8'
 );
 

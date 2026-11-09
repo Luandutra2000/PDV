@@ -6,11 +6,11 @@ globalThis.localStorage = {
   setItem(key, value) { if (key === failKey) { failKey = ''; throw new Error('QuotaExceededError'); } disk.set(key, String(value)); },
   removeItem: key => disk.delete(key), clear: () => disk.clear()
 };
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const { STORAGE_KEYS: keys } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const comanda = await import('../src/services/comanda.service.js?v=20260804-06');
-const { finalizeComandaPayment } = await import('../src/services/transaction.service.js?v=20260804-06');
+const comanda = await import('../src/services/comanda.service.js?v=20261109-01');
+const { finalizeComandaPayment } = await import('../src/services/transaction.service.js?v=20261109-01');
 const { on, emit } = await import('../src/services/event-bus.service.js?v=20260804-06');
 const { SYNC_EVENTS, UI_EVENTS } = await import('../src/database/schema.js?v=20260804-06');
 const { runLocalTransaction, deferLocalEffect, setLocalCache } = await import('../src/services/providers/local.provider.js?v=20260804-06');

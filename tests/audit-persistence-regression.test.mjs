@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { STORAGE_KEYS } from '../src/database/schema.js?v=20260804-06';
-import { createSupabaseProvider } from '../src/services/providers/supabase.provider.js?v=20260804-06';
+import { createSupabaseProvider } from '../src/services/providers/supabase.provider.js?v=20261109-01';
 
 const store = new Map();
 const localProvider = { read: (key, fallback) => store.get(key) ?? fallback, write: (key, value) => (store.set(key, value), value) };

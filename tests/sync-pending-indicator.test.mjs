@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 globalThis.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
-const { renderCashSessionStatus } = await import('../src/components/topbar.component.js?v=20260807-06');
+const { renderCashSessionStatus } = await import('../src/components/topbar.component.js?v=20261109-01');
 assert.doesNotMatch(renderCashSessionStatus({ open: true }), /pendente/, 'sem pendencia nao mostra aviso');
 assert.match(renderCashSessionStatus({ open: true }, { pendingSync: 1 }), /ui-status--pending[^>]*role="status"[^>]*>1 envio pendente</);
 assert.match(renderCashSessionStatus({ open: false }, { pendingSync: 3 }), />3 envios pendentes</);

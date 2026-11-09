@@ -6,7 +6,7 @@ import {
   saveCompanySettings,
   uploadCompanyLogo,
   validateCompanySettings
-} from '../../services/empresa-config.service.js?v=20260807-21';
+} from '../../services/empresa-config.service.js?v=20261109-01';
 
 const boundContainers = new WeakSet();
 

@@ -8,11 +8,11 @@ globalThis.localStorage = {
   clear: () => store.clear()
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin, setTestUserSession } = await import('./test-auth-fixture.mjs');
-const { initDespesasModule, renderFinanceiroMarkup } = await import('../src/modules/despesas/despesas.module.js?v=20260807-17');
-const { getLocalDateKey } = await import('../src/services/financial.service.js?v=20260804-06');
+const { initDespesasModule, renderFinanceiroMarkup } = await import('../src/modules/despesas/despesas.module.js?v=20261109-01');
+const { getLocalDateKey } = await import('../src/services/financial.service.js?v=20261109-01');
 
 seedTestAdmin(storage, STORAGE_KEYS);
 

@@ -11,12 +11,12 @@ globalThis.FormData = class extends NativeFormData {
   constructor(form) { super(); Object.entries(form?.fields || {}).forEach(([k, v]) => this.set(k, v)); }
 };
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs');
-const sync = await import('../src/services/showcase-sync.service.js?v=20260804-06');
-const products = await import('../src/services/product.service.js?v=20260804-06');
-const showcase = await import('../src/services/showcase-stock.service.js?v=20260804-06');
-const { initProdutosModule } = await import('../src/modules/produtos/produtos.module.js?v=20260807-21');
+const sync = await import('../src/services/showcase-sync.service.js?v=20261109-01');
+const products = await import('../src/services/product.service.js?v=20261109-01');
+const showcase = await import('../src/services/showcase-stock.service.js?v=20261109-01');
+const { initProdutosModule } = await import('../src/modules/produtos/produtos.module.js?v=20261109-01');
 
 seedTestAdmin(storage, STORAGE_KEYS);
 storage.setItem(STORAGE_KEYS.categories, [{ id: 'qa', name: 'QA', showInShowcase: true }]);

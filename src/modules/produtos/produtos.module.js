@@ -10,18 +10,18 @@ import {
   saveCategory,
   saveProduct,
   syncCatalogNow
-} from '../../services/product.service.js?v=20260804-06';
+} from '../../services/product.service.js?v=20261109-01';
 import { UI_EVENTS } from '../../database/schema.js?v=20260804-06';
 import { on } from '../../services/event-bus.service.js?v=20260804-06';
-import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
+import { formatCurrency } from '../../utils/currency.js?v=20261109-01';
 import { showNotification } from '../../services/notification.service.js?v=20260804-06';
-import { getBestSellingProducts } from '../../services/transaction.service.js?v=20260804-06';
-import { getActiveOutOfStockSales, getShowcaseStockByProductId } from '../../services/showcase-stock.service.js?v=20260804-06';
-import { adjustShowcaseStockOnline } from '../../services/showcase-sync.service.js?v=20260804-06';
-import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
-import { hasPermission } from '../../services/permission.service.js?v=20260804-06';
+import { getBestSellingProducts } from '../../services/transaction.service.js?v=20261109-01';
+import { getActiveOutOfStockSales, getShowcaseStockByProductId } from '../../services/showcase-stock.service.js?v=20261109-01';
+import { adjustShowcaseStockOnline } from '../../services/showcase-sync.service.js?v=20261109-01';
+import { getCurrentUser } from '../../services/auth.service.js?v=20261109-01';
+import { hasPermission } from '../../services/permission.service.js?v=20261109-01';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
-import { recordAudit } from '../../services/audit.service.js?v=20260804-06';
+import { recordAudit } from '../../services/audit.service.js?v=20261109-01';
 import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-21';
 
 const productState = {

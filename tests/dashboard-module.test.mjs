@@ -52,12 +52,12 @@ globalThis.FormData = class FakeFormData extends NativeFormData {
   }
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const schema = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const cashSession = await import('../src/services/cash-session.service.js?v=20260804-06');
-const transactions = await import('../src/services/transaction.service.js?v=20260804-06');
-const { formatHistoryItemQuantity, initDashboardModule } = await import('../src/modules/dashboard/dashboard.module.js?v=20260807-21');
+const cashSession = await import('../src/services/cash-session.service.js?v=20261109-01');
+const transactions = await import('../src/services/transaction.service.js?v=20261109-01');
+const { formatHistoryItemQuantity, initDashboardModule } = await import('../src/modules/dashboard/dashboard.module.js?v=20261109-01');
 
 assert(formatHistoryItemQuantity({ quantity: 2 }) === '2x', 'history should show the purchased quantity when item quantity is greater than one');
 assert(formatHistoryItemQuantity({ quantity: 1 }) === '1x', 'history should show one unit for single items');

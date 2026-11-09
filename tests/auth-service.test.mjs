@@ -21,11 +21,11 @@ const assert = (condition, message) => {
   }
 };
 
-const authSource = await (await import('node:fs/promises')).readFile(new URL('../src/services/auth.service.js?v=20260804-06', import.meta.url), 'utf8');
+const authSource = await (await import('node:fs/promises')).readFile(new URL('../src/services/auth.service.js?v=20261109-01', import.meta.url), 'utf8');
 assert(authSource.includes("select('id,name,role_id,is_active,empresa_id')"), 'profile query should hydrate the company id used by Supabase settings');
 
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
-const auth = await import('../src/services/auth.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
+const auth = await import('../src/services/auth.service.js?v=20261109-01');
 const supabaseClient = await import('../src/services/supabase-client.service.js?v=20260804-06');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
 

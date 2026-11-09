@@ -1,4 +1,4 @@
-import { formatCurrency } from '../utils/currency.js?v=20260804-06';
+import { formatCurrency } from '../utils/currency.js?v=20261109-01';
 import { escapeHtml } from '../utils/dom.js?v=20260804-06';
 import { getDifferenceTone } from '../utils/difference-tone.js?v=20260807-21';
 

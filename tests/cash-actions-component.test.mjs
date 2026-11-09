@@ -23,10 +23,10 @@ const assert = (condition, message) => {
   }
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const cashActions = await import('../src/components/cash-actions.component.js?v=20260807-21');
+const cashActions = await import('../src/components/cash-actions.component.js?v=20261109-01');
 const { initNotificationService } = await import('../src/services/notification.service.js?v=20260804-06');
 
 seedTestAdmin(storage, STORAGE_KEYS);

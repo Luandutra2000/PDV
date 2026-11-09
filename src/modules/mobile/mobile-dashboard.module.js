@@ -6,35 +6,35 @@ import {
   getCrmSummary,
   getProductRanking,
   getSalesSeries
-} from '../../services/crm-dashboard.service.js?v=20260804-06';
-import { getMobileCashFlowSummary } from '../../services/mobile-cash-flow.service.js?v=20260804-06';
-import { getMobileClosingSummary, previewMobileClosing, submitMobileClosing } from '../../services/mobile-closing.service.js?v=20260804-06';
+} from '../../services/crm-dashboard.service.js?v=20261109-01';
+import { getMobileCashFlowSummary } from '../../services/mobile-cash-flow.service.js?v=20261109-01';
+import { getMobileClosingSummary, previewMobileClosing, submitMobileClosing } from '../../services/mobile-closing.service.js?v=20261109-01';
 import {
   createMobileFinancialTransaction,
   getMobileFinancialSummary,
   markMobileFinancialTransactionPaid
-} from '../../services/mobile-financial.service.js?v=20260804-06';
+} from '../../services/mobile-financial.service.js?v=20261109-01';
 import {
   getMobileFeedEvents,
   getMobileFeedFilters,
   getMobileFeedPeriodFilters
-} from '../../services/mobile-notifications.service.js?v=20260804-06';
-import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js?v=20260804-06';
+} from '../../services/mobile-notifications.service.js?v=20261109-01';
+import { getMobileShowcaseSummary } from '../../services/mobile-showcase.service.js?v=20261109-01';
 import {
   createStockLaunch,
   getProductionSalesComparison
-} from '../../services/estoque.service.js?v=20260804-06';
-import { getCategories, getShowcaseCategories, getShowcaseProducts, getProductById, syncCatalogNow } from '../../services/product.service.js?v=20260804-06';
-import { getTransactionSyncStatus } from '../../services/transaction.service.js?v=20260804-06';
-import { getCatalogSyncStatus } from '../../services/product.service.js?v=20260804-06';
-import { getCashSession } from '../../services/cash-session.service.js?v=20260804-06';
-import { getCurrentUser, logout } from '../../services/auth.service.js?v=20260804-06';
-import { hydrateOnlineOperationalData, syncOnlineOperationalData } from '../../services/online-data.service.js?v=20260804-06';
+} from '../../services/estoque.service.js?v=20261109-01';
+import { getCategories, getShowcaseCategories, getShowcaseProducts, getProductById, syncCatalogNow } from '../../services/product.service.js?v=20261109-01';
+import { getTransactionSyncStatus } from '../../services/transaction.service.js?v=20261109-01';
+import { getCatalogSyncStatus } from '../../services/product.service.js?v=20261109-01';
+import { getCashSession } from '../../services/cash-session.service.js?v=20261109-01';
+import { getCurrentUser, logout } from '../../services/auth.service.js?v=20261109-01';
+import { hydrateOnlineOperationalData, syncOnlineOperationalData } from '../../services/online-data.service.js?v=20261109-01';
 import { isSupabaseEnabled } from '../../services/app-config.service.js?v=20260804-06';
-import { loadCompanySettingsLocal } from '../../services/empresa-config.service.js?v=20260807-21';
+import { loadCompanySettingsLocal } from '../../services/empresa-config.service.js?v=20261109-01';
 import { getThemeLabel, toggleTheme } from '../../services/theme.service.js?v=20260807-05';
-import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
-import { hasPermission } from '../../services/permission.service.js?v=20260804-06';
+import { formatCurrency } from '../../utils/currency.js?v=20261109-01';
+import { hasPermission } from '../../services/permission.service.js?v=20261109-01';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
 import { icon } from '../../components/icons.js?v=20260807-06';
 import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-21';

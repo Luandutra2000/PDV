@@ -5,12 +5,12 @@ import {
   getClosedComandas,
   getMoneySummary,
   getTransactions
-} from '../../services/transaction.service.js?v=20260804-06';
-import { renderCashActionButtons, renderCashMovementModal, submitCashMovementForm } from '../../components/cash-actions.component.js?v=20260807-21';
-import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
-import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
+} from '../../services/transaction.service.js?v=20261109-01';
+import { renderCashActionButtons, renderCashMovementModal, submitCashMovementForm } from '../../components/cash-actions.component.js?v=20261109-01';
+import { getCurrentUser } from '../../services/auth.service.js?v=20261109-01';
+import { formatCurrency } from '../../utils/currency.js?v=20261109-01';
 import { showNotification } from '../../services/notification.service.js?v=20260804-06';
-import { hydrateOnlineOperationalData } from '../../services/online-data.service.js?v=20260804-06';
+import { hydrateOnlineOperationalData } from '../../services/online-data.service.js?v=20261109-01';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
 
 const dashboardState = {

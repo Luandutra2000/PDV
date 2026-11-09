@@ -22,7 +22,7 @@ const assert = (condition, message) => {
 };
 
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
-const financial = await import('../src/services/financial-sync.service.js?v=20260804-06');
+const financial = await import('../src/services/financial-sync.service.js?v=20261109-01');
 
 let online = false;
 let remoteMovement = null;

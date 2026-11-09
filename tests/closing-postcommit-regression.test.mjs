@@ -7,11 +7,11 @@ globalThis.localStorage = {
   removeItem(key) { if (key === failKey) throw new Error(`quota:${key}`); store.delete(key); },
   clear: () => store.clear()
 };
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
-const closing = await import('../src/services/cash-closing.service.js?v=20260804-06');
-const mobile = await import('../src/services/mobile-closing.service.js?v=20260804-06');
-const financial = await import('../src/services/financial-sync.service.js?v=20260804-06');
+const closing = await import('../src/services/cash-closing.service.js?v=20261109-01');
+const mobile = await import('../src/services/mobile-closing.service.js?v=20261109-01');
+const financial = await import('../src/services/financial-sync.service.js?v=20261109-01');
 const { configureSupabaseClientForTests } = await import('../src/services/supabase-client.service.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
 function reset() {

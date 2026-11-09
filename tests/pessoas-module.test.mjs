@@ -21,9 +21,9 @@ const assert = (condition, message) => {
   }
 };
 
-const storage = await import('../src/services/storage.service.js?v=20260804-06');
-const auth = await import('../src/services/auth.service.js?v=20260804-06');
-const { initPessoasModule } = await import('../src/modules/pessoas/pessoas.module.js?v=20260807-16');
+const storage = await import('../src/services/storage.service.js?v=20261109-01');
+const auth = await import('../src/services/auth.service.js?v=20261109-01');
+const { initPessoasModule } = await import('../src/modules/pessoas/pessoas.module.js?v=20261109-01');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
 

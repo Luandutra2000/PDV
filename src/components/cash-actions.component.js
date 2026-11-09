@@ -1,10 +1,10 @@
-import { registerCashMovement } from '../services/transaction.service.js?v=20260804-06';
-import { formatCurrency } from '../utils/currency.js?v=20260804-06';
+import { registerCashMovement } from '../services/transaction.service.js?v=20261109-01';
+import { formatCurrency } from '../utils/currency.js?v=20261109-01';
 import { escapeHtml } from '../utils/dom.js?v=20260804-06';
 import { showNotification } from '../services/notification.service.js?v=20260804-06';
-import { createShowcaseWriteOff, getProductsWithShowcaseStock } from '../services/estoque.service.js?v=20260804-06';
-import { getFinancialCategories } from '../services/financial.service.js?v=20260804-06';
-import { hasPermission } from '../services/permission.service.js?v=20260804-06';
+import { createShowcaseWriteOff, getProductsWithShowcaseStock } from '../services/estoque.service.js?v=20261109-01';
+import { getFinancialCategories } from '../services/financial.service.js?v=20261109-01';
+import { hasPermission } from '../services/permission.service.js?v=20261109-01';
 
 const ENTRY_CATEGORIES = ['Reforco de caixa', 'Pagamento de cliente', 'Dinheiro extra', 'Ajuste manual', 'Outros'];
 const OUTPUT_CATEGORIES = ['Compra de material', 'Compra de ingredientes', 'Pagamento de fornecedor', 'Despesa operacional', 'Retirada do dono', 'Troco', 'Manutencao', 'Outros'];
