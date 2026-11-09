@@ -56,11 +56,13 @@ export function initProdutosModule(container) {
 
   if (!boundContainers.has(container)) {
     bindProdutosEvents(container);
-    on(UI_EVENTS.productCatalogChanged, () => renderProdutosScreen(container));
-    on(UI_EVENTS.showcaseStockChanged, () => renderProdutosScreen(container));
+    // O container de trabalho e compartilhado por todas as telas: so redesenha
+    // se Produtos ainda for a tela aberta (senao cobriria a Frente de caixa).
+    on(UI_EVENTS.productCatalogChanged, () => renderIfProdutosActive(container));
+    on(UI_EVENTS.showcaseStockChanged, () => renderIfProdutosActive(container));
     on(UI_EVENTS.productSyncStatusChanged, (status) => {
       productState.syncStatus = status;
-      renderProdutosScreen(container);
+      renderIfProdutosActive(container);
     });
     boundContainers.add(container);
   }
@@ -222,6 +224,19 @@ async function loadProductCatalog(container) {
     productState.error = error.message || 'Não foi possível carregar produtos e categorias.';
   } finally {
     productState.loading = false;
+    renderIfProdutosActive(container);
+  }
+}
+
+function isProdutosScreenActive(container) {
+  if (typeof container?.querySelector === 'function') {
+    return Boolean(container.querySelector('[data-produtos-screen]'));
+  }
+  return String(container?.innerHTML || '').includes('data-produtos-screen');
+}
+
+function renderIfProdutosActive(container) {
+  if (isProdutosScreenActive(container)) {
     renderProdutosScreen(container);
   }
 }
