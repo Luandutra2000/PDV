@@ -176,7 +176,9 @@
   background: var(--rail);
   border-right: 1px solid var(--line);
   min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-width: thin;
 }
 .rail__brand { margin-bottom: 10px; }
 .rail__badge,

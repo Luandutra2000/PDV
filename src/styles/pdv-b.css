@@ -18,7 +18,10 @@
 
 /* A tela ocupa a altura da janela: a grade rola por dentro e a comanda fica fixa. */
 @media (min-width: 761px) {
-  .pdv-layout:has(.pdv-screen.fc) { height: 100dvh; min-height: 0; }
+  /* A linha da grade precisa ter altura limitada; sem isso a area de trabalho
+     cresce com a lista de produtos e o "Receber" sai da tela em janelas baixas. */
+  .pdv-layout:has(.pdv-screen.fc) { height: 100dvh; min-height: 0; grid-template-rows: minmax(0, 1fr); }
+  .pdv-layout:has(.pdv-screen.fc) .workspace { min-height: 0; }
   .pdv-screen.fc { height: 100%; grid-template-rows: minmax(0, 1fr); }
   .pdv-screen.fc .fc-main { overflow-y: auto; }
 }
