@@ -103,7 +103,7 @@ assert(unnamedCloseButtons.length === 0, `botoes X sem aria-label: ${unnamedClos
 // Textos visiveis com acento; valores gravados e categorias ficam iguais
 assert(saidaModal.includes('Descrição obrigatória') && saidaModal.includes('Ex: Sangria, reforço de caixa'), 'descricao com acento');
 assert(!saidaModal.includes('Descricao obrigatoria') && !saidaModal.includes('reforco de caixa"'), 'descricao sem acento saiu');
-assert(writeOffModal.includes('Nenhum produto foi lançado na vitrine hoje.'), 'vitrine vazia com acento');
+assert(writeOffModal.includes('Nenhum produto com estoque na vitrine.'), 'vitrine vazia com acento');
 const cashActionsSource = readFileSync(new URL('../src/components/cash-actions.component.js', import.meta.url), 'utf8');
 assert(cashActionsSource.includes('<option value="erro-lancamento">Erro de lançamento</option>'), 'motivo com acento e valor igual');
 assert(/\n\s*Observação\n/.test(cashActionsSource), 'rotulo Observação com acento');

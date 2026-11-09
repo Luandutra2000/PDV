@@ -52,7 +52,8 @@ assert(summary.estimatedProfit === burger.price + 100 - 25, 'cash flow should ca
 assert(summary.paymentTotals.dinheiro === burger.price, 'cash flow should include payment totals');
 assert(summary.currentCash === summary.expectedCash, 'mobile Caixa atual should use total vendido + entradas - saídas');
 assert(summary.cards.find((card) => card.id === 'cash').value === summary.expectedCash, 'Caixa atual card should show standardized current cash');
-assert(summary.estimatedShowcase === burger.price * 2, 'mobile vitrine estimada should come from current showcase value');
+// A venda ocorreu antes do lancamento (sem estoque): as 3 unidades lancadas continuam na vitrine.
+assert(summary.estimatedShowcase === burger.price * 3, 'mobile vitrine estimada should come from current showcase value');
 assert(summary.cards.find((card) => card.id === 'showcase').label === 'Vitrine estimada', 'showcase card should use standard label');
 assert(summary.cards.find((card) => card.id === 'cash').label === 'Caixa atual', 'cash card should use standard label');
 assert(summary.cards.length === 5, 'cash flow should expose five dashboard cards');

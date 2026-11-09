@@ -73,6 +73,9 @@ storage.setItem(STORAGE_KEYS.stockLaunches, [
   }
 ]);
 
+// Vitrine estimada = saldo atual da vitrine x preco (5 X-Burger a R$ 16), inclusive o herdado.
+storage.setItem(STORAGE_KEYS.productStock, [{ id: 'stock-x-burger', productId: 'x-burger', quantityAvailable: 5 }]);
+
 const resumo = getDashboardResumo({ period: 'today' });
 
 assert(resumo.totalVendido === 145, 'Total vendido should include only finished sales');

@@ -9,7 +9,7 @@ import { getCashSessionTransactions, getClosedComandas, getTransactions } from '
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
 import { flushFinancialQueue, prepareFinancialOperation } from './financial-sync.service.js?v=20260804-06';
 import { runLocalTransaction } from './providers/local.provider.js?v=20260804-06';
-import { getActiveOutOfStockSales } from './showcase-stock.service.js?v=20260804-06';
+import { getActiveOutOfStockSales, getShowcaseStock, getShowcaseStockByProductId } from './showcase-stock.service.js?v=20260804-06';
 import { createPeriodFilter } from './crm-dashboard.service.js?v=20260804-06';
 import { assertCashSessionOpen, closeCashSession, getCashSession } from './cash-session.service.js?v=20260804-06';
 
@@ -76,10 +76,35 @@ export function buildPaymentConference(input = {}, period = createPeriodFilter('
   };
 }
 
+// Sobra esperada = saldo real da vitrine agora. O saldo passa de um dia para o
+// outro, entao produtos herdados (sem lancamento hoje) tambem entram na conferencia.
 export function buildShowcaseConference(leftovers = {}) {
-  return getProductionSalesComparison({ period: 'today' }).map((item) => {
+  const rows = getProductionSalesComparison({ period: 'today' });
+  const launched = new Set(rows.map((row) => row.produtoId));
+  const categories = getCategories();
+  const soldToday = getSoldQuantityToday();
+  getShowcaseStock()
+    .filter((stock) => Number(stock.quantityAvailable) > 0 && !launched.has(stock.productId))
+    .forEach((stock) => {
+      const product = getProductById(stock.productId);
+      if (!product || product.active === false) return;
+      rows.push({
+        produtoId: product.id,
+        produtoNome: product.name,
+        categoriaId: product.categoryId,
+        categoriaNome: categories.find((category) => category.id === product.categoryId)?.name || 'Sem categoria',
+        quantidadeProduzida: 0,
+        valorProduzido: 0,
+        quantidadeVendida: soldToday.get(product.id) || 0,
+        quantidadeBaixada: 0,
+        valorBaixado: 0,
+        sobraQuantidade: Number(stock.quantityAvailable) || 0
+      });
+    });
+
+  return rows.map((item) => {
     const countedLeftoverQuantity = normalizeOptionalNumber(leftovers[item.produtoId]);
-    const expectedLeftoverQuantity = item.sobraQuantidade;
+    const expectedLeftoverQuantity = Number(getShowcaseStockByProductId(item.produtoId).quantityAvailable) || 0;
     const differenceQuantity = countedLeftoverQuantity === null
       ? null
       : expectedLeftoverQuantity - countedLeftoverQuantity;
@@ -357,9 +382,18 @@ function normalizeMoney(value, fallback = 0) {
   return Math.round((normalized + Number.EPSILON) * 100) / 100;
 }
 
+function getSoldQuantityToday() {
+  const period = createPeriodFilter('today');
+  const sold = new Map();
+  getTransactions()
+    .filter((transaction) => transaction.type === 'venda' && transaction.status !== 'cancelada' && isInClosingPeriod(transaction.createdAt, period))
+    .forEach((sale) => (sale.items || []).forEach((item) => sold.set(item.productId, (sold.get(item.productId) || 0) + Number(item.quantity || 0))));
+  return sold;
+}
+
 function getUnitValue(item) {
   if (item.quantidadeProduzida <= 0) {
-    return 0;
+    return Number(getProductById(item.produtoId)?.price) || 0;
   }
 
   return item.valorProduzido / item.quantidadeProduzida;

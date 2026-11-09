@@ -5,7 +5,7 @@ import { getCurrentUser } from './auth.service.js?v=20260804-06';
 import { assertPermission } from './permission.service.js?v=20260804-06';
 import { recordAudit } from './audit.service.js?v=20260804-06';
 import { getItem, setItem } from './storage.service.js?v=20260804-06';
-import { getShowcaseStockByProductId } from './showcase-stock.service.js?v=20260804-06';
+import { getShowcaseStock, getShowcaseStockByProductId } from './showcase-stock.service.js?v=20260804-06';
 import { adjustShowcaseStockOnline, processShowcaseProduction } from './showcase-sync.service.js?v=20260804-06';
 
 export function createStockLaunch({ produtoId, quantidade, note = '' }) {
@@ -183,6 +183,21 @@ export function cancelStockLaunch(launchId) {
   }
 }
 
+// O saldo da vitrine passa de um dia para o outro (as vendas baixam o saldo
+// real). Perdas e alertas usam esse saldo, nao so a producao do dia.
+export function getProductsWithShowcaseStock() {
+  const inStock = new Set(getShowcaseStock().filter((row) => Number(row.quantityAvailable) > 0).map((row) => row.productId));
+  return getProducts().filter((product) => product.active !== false && inStock.has(product.id));
+}
+
+export function getShowcaseStockValue() {
+  return getShowcaseStock().reduce((total, row) => {
+    const product = getProductById(row.productId);
+    const quantity = Number(row.quantityAvailable) || 0;
+    return product && product.active !== false && quantity > 0 ? total + quantity * (Number(product.price) || 0) : total;
+  }, 0);
+}
+
 export function getTodayShowcaseProducts() {
   const productIds = new Set(getActiveLaunches({ period: 'today' }).map((launch) => launch.produtoId));
   return getProducts().filter((product) => productIds.has(product.id));
@@ -208,14 +223,14 @@ export function createShowcaseWriteOff({ productId, quantity, reason, note = '' 
     throw new Error('Motivo obrigatorio.');
   }
 
-  const comparison = getProductionSalesComparison({ period: 'today' }).find((item) => item.produtoId === product.id);
+  const available = Number(getShowcaseStockByProductId(product.id).quantityAvailable) || 0;
 
-  if (!comparison) {
-    throw new Error('Produto sem lancamento de vitrine no periodo.');
+  if (available <= 0) {
+    throw new Error('Produto sem estoque na vitrine.');
   }
 
-  if (normalizedQuantity > comparison.sobraQuantidade) {
-    throw new Error('Quantidade maior que a sobra disponivel na vitrine.');
+  if (normalizedQuantity > available) {
+    throw new Error('Quantidade maior que o estoque disponivel na vitrine.');
   }
 
   const category = getCategories().find((item) => item.id === product.categoryId);

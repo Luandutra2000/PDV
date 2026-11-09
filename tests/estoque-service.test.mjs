@@ -177,7 +177,7 @@ try {
     reason: 'quebra'
   });
 } catch (error) {
-  rejectedMissingLaunch = error.message === 'Produto sem lancamento de vitrine no periodo.';
+  rejectedMissingLaunch = error.message === 'Produto sem estoque na vitrine.';
 }
 assert(rejectedMissingLaunch, 'write-off should reject product without showcase launch today');
 
@@ -189,7 +189,7 @@ try {
     reason: 'quebra'
   });
 } catch (error) {
-  rejectedTooLarge = error.message === 'Quantidade maior que a sobra disponivel na vitrine.';
+  rejectedTooLarge = error.message === 'Quantidade maior que o estoque disponivel na vitrine.';
 }
 assert(rejectedTooLarge, 'write-off should reject quantity greater than available showcase leftover');
 

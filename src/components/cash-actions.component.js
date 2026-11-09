@@ -2,7 +2,7 @@ import { registerCashMovement } from '../services/transaction.service.js?v=20260
 import { formatCurrency } from '../utils/currency.js?v=20260804-06';
 import { escapeHtml } from '../utils/dom.js?v=20260804-06';
 import { showNotification } from '../services/notification.service.js?v=20260804-06';
-import { createShowcaseWriteOff, getTodayShowcaseProducts } from '../services/estoque.service.js?v=20260804-06';
+import { createShowcaseWriteOff, getProductsWithShowcaseStock } from '../services/estoque.service.js?v=20260804-06';
 import { getFinancialCategories } from '../services/financial.service.js?v=20260804-06';
 import { hasPermission } from '../services/permission.service.js?v=20260804-06';
 
@@ -32,7 +32,7 @@ export function renderCashActionButtons(currentUser, { includeQuickClosing = fal
 }
 
 export function renderWriteOffModal() {
-  const showcaseProducts = getTodayShowcaseProducts();
+  const showcaseProducts = getProductsWithShowcaseStock();
 
   return `
     <div class="modal-backdrop is-open">
@@ -77,7 +77,7 @@ export function renderWriteOffModal() {
           </form>
         ` : `
           <div class="product-form">
-            <p class="modal-text">Nenhum produto foi lançado na vitrine hoje. Lance estoque antes de registrar perda ou consumo.</p>
+            <p class="modal-text">Nenhum produto com estoque na vitrine. Lance estoque antes de registrar perda ou consumo.</p>
             <div class="form-actions">
               <button class="button" type="button" data-action="close-modal">Entendi</button>
             </div>

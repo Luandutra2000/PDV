@@ -1,4 +1,5 @@
-import { getProductionSalesComparison } from './estoque.service.js?v=20260804-06';
+import { getProductsWithShowcaseStock } from './estoque.service.js?v=20260804-06';
+import { getShowcaseStockByProductId } from './showcase-stock.service.js?v=20260804-06';
 import { getFinancialTransactions } from './financial.service.js?v=20260804-06';
 import { getTransactions } from './transaction.service.js?v=20260804-06';
 
@@ -181,15 +182,17 @@ function buildFinancialBillEvents(now) {
     });
 }
 
+// Usa o saldo real da vitrine (que passa de um dia para o outro).
 function buildShowcaseAlertEvents(now) {
-  return getProductionSalesComparison({ period: 'today' })
-    .filter((item) => item.sobraQuantidade > 0 && item.sobraQuantidade <= LOW_SHOWCASE_QUANTITY)
-    .map((item) => ({
-      id: `showcase-low-${item.produtoId}`,
+  return getProductsWithShowcaseStock()
+    .map((product) => ({ product, quantity: Number(getShowcaseStockByProductId(product.id).quantityAvailable) || 0 }))
+    .filter(({ quantity }) => quantity > 0 && quantity <= LOW_SHOWCASE_QUANTITY)
+    .map(({ product, quantity }) => ({
+      id: `showcase-low-${product.id}`,
       kind: 'alert',
       level: 'danger',
       title: 'Produto acabando',
-      description: `${item.produtoNome}: restam ${item.sobraQuantidade} unidade(s)`,
+      description: `${product.name}: restam ${quantity} unidade(s)`,
       amount: null,
       createdAt: now.toISOString(),
       icon: '!'
