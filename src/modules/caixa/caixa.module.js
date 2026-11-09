@@ -19,7 +19,7 @@ import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
 import { getCashSessionStatus } from '../../services/cash-session.service.js?v=20260804-06';
 import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
 import { showNotification } from '../../services/notification.service.js?v=20260804-06';
-import { getTransactionSyncStatus } from '../../services/transaction.service.js?v=20260804-06';
+import { getCashRefundsOfEarlierSales, getTransactionSyncStatus } from '../../services/transaction.service.js?v=20260804-06';
 import { UI_EVENTS } from '../../database/schema.js?v=20260804-06';
 import { on } from '../../services/event-bus.service.js?v=20260804-06';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
@@ -107,7 +107,7 @@ function renderCaixa(container) {
         <section class="ui-panel cx-side">
           <h2 class="ui-head">Formas de pagamento</h2>
           ${renderFormasPagamento(summary)}
-          <p class="cx-note">O dinheiro esperado soma o troco inicial, as vendas em dinheiro e as entradas, menos as saídas.</p>
+          <p class="cx-note">O dinheiro esperado soma o troco inicial, as vendas em dinheiro e as entradas, menos as saídas e as devoluções em dinheiro de vendas de outros dias canceladas hoje.</p>
           ${renderMaisVendidos({ productRanking, categoryRanking, getColorVar })}
         </section>
       </div>
@@ -420,12 +420,15 @@ function getClosingDifferences() {
 // O troco inicial e da sessao de hoje: outros periodos nao o recebem.
 export function buildCrmClosingInput(summary, input = {}, { period = caixaState.period } = {}) {
   const openingAmount = period === 'today' ? Number(getCashSessionStatus().session?.openingAmount || 0) : 0;
+  // Devolucao em dinheiro de venda de outro dia cancelada hoje sai da gaveta hoje.
+  const refunds = period === 'today' ? getCashRefundsOfEarlierSales(createPeriodFilter('today')) : 0;
   return {
     ...input,
     expectedCash: normalizeReportMoney(openingAmount
       + Number(summary?.paymentTotals?.dinheiro || 0)
       + Number(summary?.entriesTotal || 0)
-      - Number(summary?.outputsTotal || 0)),
+      - Number(summary?.outputsTotal || 0)
+      - refunds),
     expectedPix: normalizeReportMoney(summary?.paymentTotals?.pix),
     expectedDebit: normalizeReportMoney(summary?.paymentTotals?.debito),
     expectedCredit: normalizeReportMoney(summary?.paymentTotals?.credito)

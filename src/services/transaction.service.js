@@ -346,6 +346,20 @@ export function cancelTransaction(transactionId, { reason = '' } = {}) {
   emit(UI_EVENTS.cashSummaryChanged, { type: 'movimentacao-cancelada', transactionId });
 }
 
+// Venda em dinheiro de um dia anterior cancelada dentro do periodo: o dinheiro
+// e devolvido da gaveta no dia do cancelamento (o dia original ja foi fechado).
+export function getCashRefundsOfEarlierSales({ start, end } = {}) {
+  if (!start || !end) return 0;
+  const total = getStoredTransactions()
+    .filter((transaction) => transaction.type === 'venda' && transaction.status === 'cancelada' && transaction.paymentMethod === 'dinheiro')
+    .filter((transaction) => {
+      const canceledAt = new Date(transaction.canceledAt || 0);
+      return canceledAt >= start && canceledAt <= end && new Date(transaction.createdAt) < start;
+    })
+    .reduce((sum, transaction) => sum + Number(transaction.total || 0), 0);
+  return Math.round(total * 100) / 100;
+}
+
 export function getActiveTransactions() {
   return getCashSessionTransactions().filter((transaction) => transaction.status !== 'cancelada');
 }

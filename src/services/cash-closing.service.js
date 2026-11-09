@@ -5,7 +5,7 @@ import { getCurrentUser } from './auth.service.js?v=20260804-06';
 import { assertPermission } from './permission.service.js?v=20260804-06';
 import { recordAudit } from './audit.service.js?v=20260804-06';
 import { getItem, setItem } from './storage.service.js?v=20260804-06';
-import { getCashSessionTransactions, getClosedComandas, getTransactions } from './transaction.service.js?v=20260804-06';
+import { getCashRefundsOfEarlierSales, getCashSessionTransactions, getClosedComandas, getTransactions } from './transaction.service.js?v=20260804-06';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
 import { flushFinancialQueue, prepareFinancialOperation } from './financial-sync.service.js?v=20260804-06';
 import { runLocalTransaction } from './providers/local.provider.js?v=20260804-06';
@@ -43,7 +43,8 @@ export function buildPaymentConference(input = {}, period = createPeriodFilter('
   const entriesTotal = sumTransactions(transactions.filter((transaction) => transaction.type === 'entrada'));
   const outputsTotal = sumTransactions(transactions.filter(isCashOutput));
   const openingAmount = Number(getCashSession()?.openingAmount || 0);
-  const expectedCash = normalizeMoney(input.expectedCash, openingAmount + sumPayment(sales, 'dinheiro') + entriesTotal - outputsTotal);
+  const refunds = getCashRefundsOfEarlierSales(period);
+  const expectedCash = normalizeMoney(input.expectedCash, openingAmount + sumPayment(sales, 'dinheiro') + entriesTotal - outputsTotal - refunds);
   const expectedPix = normalizeMoney(input.expectedPix, sumPayment(sales, 'pix'));
   const expectedDebit = normalizeMoney(input.expectedDebit, sumPayment(sales, 'debito'));
   const expectedCredit = normalizeMoney(input.expectedCredit, sumPayment(sales, 'credito'));

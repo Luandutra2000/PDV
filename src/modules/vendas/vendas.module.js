@@ -8,7 +8,7 @@ import { buildClosingSummary, buildShowcaseConference, confirmClosing, saveClosi
 import { getActiveComanda, addItem, addItemQuantity, clearComanda, removeItem, updateQuantity } from '../../services/comanda.service.js?v=20260804-06';
 import { createPeriodFilter, getCrmSummary } from '../../services/crm-dashboard.service.js?v=20260804-06';
 import { getCatalogSyncStatus, getCategories, getFavoriteProducts, getProductById, getProducts, searchProducts } from '../../services/product.service.js?v=20260804-06';
-import { finalizeComandaPayment, getBestSellingProducts } from '../../services/transaction.service.js?v=20260804-06';
+import { finalizeComandaPayment, getBestSellingProducts, getCashRefundsOfEarlierSales } from '../../services/transaction.service.js?v=20260804-06';
 import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
 import { escapeHtml, qs } from '../../utils/dom.js?v=20260804-06';
 import { showNotification } from '../../services/notification.service.js?v=20260804-06';
@@ -802,6 +802,7 @@ export function buildQuickClosingInput(summary, input = {}) {
   return {
     ...input,
     expectedCash: normalizeClosingMoney(Number(getCashSession()?.openingAmount || 0)
+      - getCashRefundsOfEarlierSales(createPeriodFilter('today'))
       + Number(summary?.paymentTotals?.dinheiro || 0)
       + Number(summary?.entriesTotal || 0)
       - Number(summary?.outputsTotal || 0)),
