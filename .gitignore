@@ -15,3 +15,6 @@ supabase/.temp/
 # Backups e artefatos de QA com dados de producao
 backups/
 reports/
+
+# Copia de visualizacao local do redesenho
+.design-preview/

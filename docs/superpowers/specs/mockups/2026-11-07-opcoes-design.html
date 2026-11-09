@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opções de design do PDV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Sora:wght@400;500;600;700&family=Rubik:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --page-bg: #ECEDEF; --page-ink: #1E2126; --page-muted: #5D636C; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page-bg); color: var(--page-ink); font-family: "IBM Plex Sans", system-ui, sans-serif; }
+  .page { max-width: 1260px; margin: 0 auto; padding: 40px 16px 80px; }
+  .intro h1 { font-size: 30px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .intro p { margin: 0; color: var(--page-muted); max-width: 70ch; line-height: 1.55; }
+  .jump { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .jump a { color: var(--page-ink); text-decoration: none; background: #fff; border: 1px solid #D6D9DE; padding: 7px 12px; border-radius: 999px; font-size: 14px; }
+  .jump a:hover { border-color: #9AA1AB; }
+
+  .option { margin-top: 56px; scroll-margin-top: 20px; }
+  .option-head { display: grid; grid-template-columns: 1fr auto; gap: 8px 24px; align-items: end; margin-bottom: 16px; }
+  .option-head h2 { margin: 0; font-size: 22px; font-weight: 600; }
+  .option-head h2 span { color: var(--page-muted); font-weight: 500; margin-right: 6px; }
+  .option-head p { margin: 0; color: var(--page-muted); line-height: 1.5; max-width: 78ch; grid-column: 1; }
+  .option-head .pick { grid-column: 2; grid-row: 1 / span 2; font: inherit; font-weight: 600; font-size: 14px; padding: 10px 16px; border-radius: 10px; border: 1.5px solid var(--page-ink); background: transparent; color: var(--page-ink); cursor: pointer; }
+  .option-head .pick[aria-pressed="true"] { background: var(--page-ink); color: #fff; }
+  .notes { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 12px; font-size: 14px; color: var(--page-muted); }
+  .notes b { color: var(--page-ink); font-weight: 600; }
+  .frame { overflow-x: auto; border-radius: 16px; box-shadow: 0 1px 2px rgba(20,24,30,.08), 0 12px 32px rgba(20,24,30,.10); }
+  :focus-visible { outline: 2px solid #2F6FEB; outline-offset: 2px; }
+
+  /* ---------- Esqueleto comum do PDV ---------- */
+  .pos { display: grid; grid-template-columns: 78px minmax(0,1fr) 352px; height: 640px; min-width: 1100px; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; }
+  .pos button { font: inherit; color: inherit; cursor: pointer; }
+  .rail { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 0; background: var(--rail-bg); border-right: 1px solid var(--line); }
+  .brand { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-weight: 700; font-size: 17px; background: var(--brand-bg); color: var(--brand-ink); margin-bottom: 14px; }
+  .nav { width: 64px; padding: 9px 0 7px; border: 0; border-radius: 10px; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 5px; color: var(--muted) !important; font-size: 11px !important; }
+  .nav svg { width: 21px; height: 21px; }
+  .nav.on { background: var(--nav-on-bg); color: var(--nav-on-ink) !important; font-weight: 600; }
+  .nav.more { margin-top: auto; }
+
+  .catalog { display: flex; flex-direction: column; gap: 14px; padding: 20px 22px; min-width: 0; overflow: hidden; }
+  .bar { display: flex; align-items: center; gap: 14px; }
+  .bar h3 { margin: 0; font-size: 19px; font-weight: 600; white-space: nowrap; }
+  .search { flex: 1; height: 42px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-radius: 10px; background: var(--field-bg); border: 1px solid var(--line); color: var(--muted); }
+  .search svg { width: 17px; height: 17px; flex: none; }
+  .search kbd { margin-left: auto; font-family: inherit; font-size: 12px; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--line); }
+  .status { display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 34px; border-radius: 999px; background: var(--ok-bg); color: var(--ok-ink); font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .status i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .cats { display: flex; gap: 8px; }
+  .chip { border: 1px solid var(--line); background: var(--chip-bg); padding: 8px 15px; border-radius: 999px; font-weight: 500; }
+  .chip.on { background: var(--chip-on-bg); color: var(--chip-on-ink) !important; border-color: transparent; }
+
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; align-content: start; overflow: hidden; }
+  .item { position: relative; text-align: left; display: flex; flex-direction: column; gap: 4px; min-height: 100px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card-bg); }
+  .item .name { font-weight: 600; font-size: 15px; line-height: 1.25; }
+  .item .meta { font-size: 12.5px; color: var(--muted); }
+  .item .meta.low { color: var(--warn); font-weight: 500; }
+  .item .price { margin-top: auto; font-weight: 700; font-size: 16px; }
+  .item .badge { position: absolute; top: 10px; right: 10px; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; display: grid; place-items: center; font-size: 12.5px; font-weight: 700; background: var(--accent); color: var(--accent-ink); }
+  .item.in { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .item.in .name { padding-right: 26px; }
+  .item.out { opacity: .5; }
+  .item .key { display: none; }
+
+  .ticket { display: flex; flex-direction: column; background: var(--ticket-bg); border-left: 1px solid var(--line); min-height: 0; }
+  .sheet { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 20px 20px 0; }
+  .t-head { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .t-head h4 { margin: 0; font-size: 17px; font-weight: 600; }
+  .t-head button { border: 0; background: none; color: var(--muted) !important; font-size: 13px; padding: 0; }
+  .lines { flex: 1; overflow: hidden; padding: 6px 0; }
+  .line { display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 2px 12px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
+  .line .l-name { font-weight: 600; }
+  .line .l-unit { font-size: 12.5px; color: var(--muted); }
+  .line .l-total { font-weight: 600; text-align: right; }
+  .step { display: inline-flex; align-items: center; gap: 2px; justify-self: end; }
+  .step button { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: var(--field-bg); line-height: 1; font-size: 16px; }
+  .step span { min-width: 26px; text-align: center; font-weight: 600; }
+  .totals { padding: 14px 0; border-top: 1px solid var(--line); display: grid; gap: 6px; }
+  .totals div { display: flex; justify-content: space-between; color: var(--muted); }
+  .totals .grand { color: var(--ink); font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .actions { padding: 0 20px 20px; display: grid; gap: 8px; }
+  .minor { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .minor button { height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--field-bg); font-weight: 500; }
+  .pay { height: 58px; border: 0; border-radius: 12px; background: var(--pay-bg); color: var(--pay-ink) !important; font-size: 17px !important; font-weight: 700; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+
+  /* ---------- A. Balcão claro ---------- */
+  .opt-a { --font: "Figtree", sans-serif; --bg: #F4F5F7; --ink: #1B1F24; --muted: #69707A; --line: #E2E5E9; --line-soft: #EEF0F2;
+    --rail-bg: #FFFFFF; --brand-bg: #FF6B1A; --brand-ink: #fff; --nav-on-bg: #FFF0E7; --nav-on-ink: #C24A0B;
+    --field-bg: #FFFFFF; --ok-bg: #E6F4EC; --ok-ink: #1C7A45; --chip-bg: #FFFFFF; --chip-on-bg: #1B1F24; --chip-on-ink: #fff;
+    --card-bg: #FFFFFF; --warn: #B4630A; --accent: #FF6B1A; --accent-ink: #fff; --ticket-bg: #FFFFFF; --pay-bg: #FF6B1A; --pay-ink: #fff; }
+
+  /* ---------- B. Turno da noite ---------- */
+  .opt-b { --font: "Sora", sans-serif; --bg: #1C2331; --ink: #EDF0F5; --muted: #8E99AE; --line: #2F3A4E; --line-soft: #283246;
+    --rail-bg: #161C28; --brand-bg: #FFB547; --brand-ink: #1C2331; --nav-on-bg: #2A3449; --nav-on-ink: #FFB547;
+    --field-bg: #242D3E; --ok-bg: rgba(76,201,140,.14); --ok-ink: #6FDCA6; --chip-bg: transparent; --chip-on-bg: #EDF0F5; --chip-on-ink: #1C2331;
+    --card-bg: #242D3E; --warn: #FFB547; --accent: #FFB547; --accent-ink: #1C2331; --ticket-bg: #161C28; --pay-bg: #FFB547; --pay-ink: #1C2331; }
+  .opt-b .item, .opt-b2 .item { border: 0; border-left: 4px solid var(--cat); border-radius: 10px; }
+  .opt-b .item.in, .opt-b2 .item.in { box-shadow: inset 0 0 0 1.5px var(--accent); }
+  .opt-b .cat-lanches { --cat: #FFB547; } .opt-b .cat-porcoes { --cat: #FF7A59; }
+  .opt-b .cat-bebidas { --cat: #4FC3F7; } .opt-b .cat-combos { --cat: #B58CFF; }
+  .opt-b .item .price, .opt-b2 .item .price { font-weight: 600; }
+
+  /* ---------- B claro ---------- */
+  .opt-b2 { --font: "Sora", sans-serif; --bg: #F1F3F7; --ink: #1C2331; --muted: #6B7488; --line: #E0E4EB; --line-soft: #EBEEF3;
+    --rail-bg: #FFFFFF; --brand-bg: #FFB547; --brand-ink: #1C2331; --nav-on-bg: #FFF1D6; --nav-on-ink: #8A5500;
+    --field-bg: #FFFFFF; --ok-bg: #E3F5EC; --ok-ink: #17784A; --chip-bg: #FFFFFF; --chip-on-bg: #1C2331; --chip-on-ink: #fff;
+    --card-bg: #FFFFFF; --warn: #B06500; --accent: #FFB547; --accent-ink: #1C2331; --ticket-bg: #FFFFFF; --pay-bg: #FFB547; --pay-ink: #1C2331; }
+  .opt-b2 .item { box-shadow: 0 1px 2px rgba(28,35,49,.06); }
+  .opt-b2 .item.in { box-shadow: inset 0 0 0 2px var(--accent); }
+  .opt-b2 .cat-lanches { --cat: #F5A524; } .opt-b2 .cat-porcoes { --cat: #F0663F; }
+  .opt-b2 .cat-bebidas { --cat: #22A3DB; } .opt-b2 .cat-combos { --cat: #9A68EE; }
+  .opt-b2 { height: 710px; grid-template-rows: auto minmax(0,1fr); }
+  .opt-b2 .rail { grid-row: 1 / span 2; }
+  .top { grid-column: 2 / span 2; display: flex; align-items: center; gap: 12px; padding: 12px 22px; background: var(--card-bg); border-bottom: 1px solid var(--line); }
+  .top .kpis { background: var(--bg); border-color: transparent; }
+  .kpis { flex: 1; display: flex; min-width: 0; background: var(--card-bg); border: 1px solid var(--line); border-radius: 12px; }
+  .kpi { flex: 1; min-width: 0; padding: 8px 14px; border-left: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 1px; }
+  .kpi:first-child { border-left: 0; }
+  .kpi small { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .kpi b { font-size: 15px; font-weight: 600; white-space: nowrap; }
+  .kpi.plus b { color: #17784A; } .kpi.minus b { color: #B8392F; }
+  .btn-sec { height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--field-bg); font-weight: 600; white-space: nowrap; }
+  .btn-sec.loss { color: #B8392F !important; border-color: #EFCFCB; }
+  .caixa-toggle { min-width: 118px; }
+  .pos.closed .status { background: #FFF1D6; color: #8A5500; }
+  .pos.closed .caixa-toggle { background: #17784A; border-color: #17784A; color: #fff !important; }
+  .pos.closed .grid, .pos.closed .ticket .sheet, .pos.closed .actions { opacity: .45; pointer-events: none; }
+
+  /* ---------- C. Blocos por categoria ---------- */
+  .opt-c { --font: "Rubik", sans-serif; --bg: #FFFFFF; --ink: #1E1E24; --muted: #6E6E78; --line: #E7E7EC; --line-soft: #F0F0F3;
+    --rail-bg: #F7F7F9; --brand-bg: #1E1E24; --brand-ink: #fff; --nav-on-bg: #FFFFFF; --nav-on-ink: #1E1E24;
+    --field-bg: #F4F4F6; --ok-bg: #E7F5EC; --ok-ink: #1F7A47; --chip-bg: #FFFFFF; --chip-on-bg: #1E1E24; --chip-on-ink: #fff;
+    --card-bg: #fff; --warn: inherit; --accent: #1E1E24; --accent-ink: #fff; --ticket-bg: #F7F7F9; --pay-bg: #1E1E24; --pay-ink: #fff; }
+  .opt-c .nav.on { box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .opt-c .grid { gap: 8px; }
+  .opt-c .item { border: 0; border-radius: 14px; min-height: 108px; background: var(--tile); color: var(--tile-ink); }
+  .opt-c .item .meta { color: inherit; opacity: .78; }
+  .opt-c .item .meta.low { font-weight: 600; opacity: 1; }
+  .opt-c .item .badge { background: #fff; color: #1E1E24; }
+  .opt-c .item.in { box-shadow: inset 0 0 0 3px rgba(255,255,255,.85); }
+  .opt-c .item.out { opacity: 1; background: #E9E9EE; color: #8A8A94; }
+  .opt-c .cat-lanches { --tile: #F2B33D; --tile-ink: #2E2000; } .opt-c .cat-porcoes { --tile: #E4572E; --tile-ink: #fff; }
+  .opt-c .cat-bebidas { --tile: #2A9D8F; --tile-ink: #fff; } .opt-c .cat-combos { --tile: #6D4AA0; --tile-ink: #fff; }
+  .opt-c .chip[data-cat] { padding-left: 12px; } .opt-c .chip[data-cat]::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 7px; background: var(--tile); }
+
+  /* ---------- D. Comanda de papel ---------- */
+  .opt-d { --font: "IBM Plex Sans", sans-serif; --bg: #E7ECE6; --ink: #22302A; --muted: #66756C; --line: #D3DBD3; --line-soft: transparent;
+    --rail-bg: #DDE4DC; --brand-bg: #F26A1B; --brand-ink: #fff; --nav-on-bg: #F7F9F6; --nav-on-ink: #22302A;
+    --field-bg: #FFFFFF; --ok-bg: #D3E8D9; --ok-ink: #22673E; --chip-bg: transparent; --chip-on-bg: #22302A; --chip-on-ink: #fff;
+    --card-bg: #FFFFFF; --warn: #A45A07; --accent: #F26A1B; --accent-ink: #fff; --ticket-bg: #DDE4DC; --pay-bg: #F26A1B; --pay-ink: #fff; }
+  .opt-d .item { border-color: transparent; border-radius: 10px; }
+  .opt-d .item .meta:first-of-type { order: -1; }
+  .opt-d .ticket { border-left: 0; padding: 18px 18px 0; }
+  .opt-d .sheet { position: relative; background: #FFFDF7; padding: 20px 18px 6px; margin-bottom: 26px; box-shadow: 0 2px 6px rgba(34,48,42,.10); }
+  .opt-d .sheet::after { content: ""; position: absolute; left: 0; right: 0; bottom: -10px; height: 10px;
+    background: linear-gradient(135deg, #FFFDF7 5px, transparent 0) 0 0 / 10px 10px repeat-x, linear-gradient(225deg, #FFFDF7 5px, transparent 0) 0 0 / 10px 10px repeat-x; }
+  .opt-d .t-head { border-bottom: 1px dashed #B9C2BA; flex-direction: column; align-items: center; gap: 2px; }
+  .opt-d .t-head h4 { font-family: "IBM Plex Mono", monospace; font-size: 15px; letter-spacing: .02em; }
+  .opt-d .t-head button { font-size: 12px; }
+  .opt-d .lines, .opt-d .totals { font-family: "IBM Plex Mono", monospace; font-size: 13px; }
+  .opt-d .line { padding: 10px 0; }
+  .opt-d .line .l-name { font-weight: 500; }
+  .opt-d .step button { width: 24px; height: 24px; border-radius: 6px; font-size: 14px; background: transparent; }
+  .opt-d .totals { border-top: 1px dashed #B9C2BA; }
+  .opt-d .totals .grand { font-size: 20px; font-weight: 600; }
+  .opt-d .actions { padding: 0 18px 18px; }
+  .opt-d .minor button { background: #F7F9F6; border-color: transparent; }
+
+  /* ---------- E. Lista rápida ---------- */
+  .opt-e { --font: "Public Sans", sans-serif; --bg: #F6F7F9; --ink: #16213A; --muted: #626C80; --line: #DFE3EA; --line-soft: #ECEFF3;
+    --rail-bg: #16213A; --brand-bg: #0E7C5A; --brand-ink: #fff; --nav-on-bg: rgba(255,255,255,.10); --nav-on-ink: #FFFFFF;
+    --field-bg: #FFFFFF; --ok-bg: #DDF2EA; --ok-ink: #0B6449; --chip-bg: #FFFFFF; --chip-on-bg: #16213A; --chip-on-ink: #fff;
+    --card-bg: #FFFFFF; --warn: #A3570A; --accent: #0E7C5A; --accent-ink: #fff; --ticket-bg: #FFFFFF; --pay-bg: #0E7C5A; --pay-ink: #fff; }
+  .opt-e .rail { border-right: 0; }
+  .opt-e .nav { color: #9AA6BE !important; }
+  .opt-e .search { height: 48px; border-width: 1.5px; border-color: #16213A; color: var(--ink); font-size: 15px; }
+  .opt-e .grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px 12px; }
+  .opt-e .item .meta { font-size: 12px; }
+  .opt-e .item { flex-direction: row; align-items: center; gap: 12px; min-height: 0; height: 50px; padding: 0 14px 0 10px; border-radius: 8px; }
+  .opt-e .item .key { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--line); font-size: 12px; font-weight: 600; color: var(--muted); flex: none; }
+  .opt-e .item .name { font-size: 14.5px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .opt-e .item .meta { white-space: nowrap; }
+  .opt-e .item .price { margin: 0; min-width: 76px; text-align: right; font-size: 15px; }
+  .opt-e .item .name { order: 1; padding-right: 0 !important; }
+  .opt-e .item .badge { position: static; order: 2; }
+  .opt-e .item .meta { order: 3; }
+  .opt-e .item .price { order: 4; }
+  .opt-e .item .key:empty { visibility: hidden; }
+  .opt-e .line { padding: 9px 0; }
+  .opt-e .totals .grand { font-size: 24px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="intro">
+    <h1>Cinco caminhos para a frente de caixa</h1>
+    <p>Todas as opções mantêm os produtos à esquerda e a comanda à direita, com a mesma venda de exemplo (Combo Casal, Batata Frita e 2 refrigerantes). Mudam as cores, a fonte, o formato dos produtos e o jeito da comanda. Em todas, Entrada e Saída de caixa saem da comanda e vão para a tela Caixa, e os botões +2, +5 e Qtd viram toque simples (toque longo abre a quantidade).</p>
+    <nav class="jump" aria-label="Ir para opção">
+      <a href="#a">A. Balcão claro</a><a href="#b">B. Turno da noite</a><a href="#b2">B. versão clara</a><a href="#c">C. Blocos por categoria</a><a href="#d">D. Comanda de papel</a><a href="#e">E. Lista rápida</a>
+    </nav>
+  </header>
+
+  <section class="option" id="a">
+    <div class="option-head">
+      <h2><span>A.</span>Balcão claro</h2>
+      <p>Fundo cinza bem claro e cartões brancos. O laranja da marca aparece só no que importa: o botão Receber, os produtos que já estão na comanda e a tela atual no menu. É a opção mais próxima do que vocês têm hoje, só que mais calma.</p>
+      <button class="pick" type="button" aria-pressed="false">Escolher A</button>
+    </div>
+    <div class="frame"><div class="pos opt-a" data-variant="a"></div></div>
+    <div class="notes"><span><b>Inspiração:</b> Square e Shopify POS</span><span><b>Bom para:</b> uso de dia, balcão iluminado</span><span><b>Fonte:</b> Figtree</span></div>
+  </section>
+
+  <section class="option" id="b">
+    <div class="option-head">
+      <h2><span>B.</span>Turno da noite</h2>
+      <p>Tela escura em azul-grafite, que cansa menos a vista no movimento da noite. Cada produto tem uma faixa fina com a cor da categoria. O âmbar destaca a ação principal e os itens já lançados.</p>
+      <button class="pick" type="button" aria-pressed="false">Escolher B</button>
+    </div>
+    <div class="frame"><div class="pos opt-b" data-variant="b"></div></div>
+    <div class="notes"><span><b>Inspiração:</b> Toast</span><span><b>Bom para:</b> lanchonete que funciona à noite</span><span><b>Fonte:</b> Sora</span></div>
+  </section>
+
+  <section class="option" id="b2">
+    <div class="option-head">
+      <h2><span>B.</span>Turno da noite, versão clara</h2>
+      <p>A mesma opção B com fundo claro: cartões brancos, a faixa fina com a cor da categoria e o âmbar no Receber e nos itens já lançados. Dá para ter as duas no sistema e trocar pelo botão de tema, que já existe. No topo ficam os cinco números do caixa numa faixa só, e os botões de caixa. Clique em "Fechar caixa" para ver como fica com o caixa fechado.</p>
+      <button class="pick" type="button" aria-pressed="false">Escolher B claro</button>
+    </div>
+    <div class="frame"><div class="pos opt-b2" data-variant="b2"></div></div>
+    <div class="notes"><span><b>Inspiração:</b> Toast</span><span><b>Bom para:</b> uso de dia, com tema escuro opcional</span><span><b>Fonte:</b> Sora</span></div>
+  </section>
+
+  <section class="option" id="c">
+    <div class="option-head">
+      <h2><span>C.</span>Blocos por categoria</h2>
+      <p>Cada categoria tem uma cor fixa e o produto inteiro vira um bloco dessa cor: lanches em mostarda, porções em tomate, bebidas em verde-água, combos em roxo. O caixa acha o produto pela cor antes de ler o nome. O resto da tela fica neutro para não brigar com os blocos.</p>
+      <button class="pick" type="button" aria-pressed="false">Escolher C</button>
+    </div>
+    <div class="frame"><div class="pos opt-c" data-variant="c"></div></div>
+    <div class="notes"><span><b>Inspiração:</b> Loyverse</span><span><b>Bom para:</b> funcionários novos, cardápio curto</span><span><b>Fonte:</b> Rubik</span></div>
+  </section>
+
+  <section class="option" id="d">
+    <div class="option-head">
+      <h2><span>D.</span>Comanda de papel</h2>
+      <p>A comanda vira um cupom de papel térmico, com borda picotada e números em fonte de impressora, igual ao que sai na impressora da cozinha. O fundo verde-sálvia é suave, e o laranja fica só no Receber.</p>
+      <button class="pick" type="button" aria-pressed="false">Escolher D</button>
+    </div>
+    <div class="frame"><div class="pos opt-d" data-variant="d"></div></div>
+    <div class="notes"><span><b>Inspiração:</b> cupom térmico e comanda de balcão</span><span><b>Bom para:</b> dar personalidade à marca</span><span><b>Fonte:</b> IBM Plex Sans e Plex Mono</span></div>
+  </section>
+
+  <section class="option" id="e">
+    <div class="option-head">
+      <h2><span>E.</span>Lista rápida</h2>
+      <p>Produtos em linhas em vez de cartões, cada um com uma tecla de atalho (0 a 9). A busca fica em destaque e o caixa pode vender só pelo teclado. Cabe o dobro de produtos na tela. O verde marca dinheiro e o Receber.</p>
+      <button class="pick" type="button" aria-pressed="false">Escolher E</button>
+    </div>
+    <div class="frame"><div class="pos opt-e" data-variant="e"></div></div>
+    <div class="notes"><span><b>Inspiração:</b> PDVs de varejo e Microsoft Store Commerce</span><span><b>Bom para:</b> muito movimento, teclado e leitor de código</span><span><b>Fonte:</b> Public Sans</span></div>
+  </section>
+</div>
+
+<script>
+  const icons = {
+    sell: '<path d="M3 4h2l2.4 11h11l2-8H6.2"/><circle cx="9" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>',
+    hist: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+    box: '<path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/>',
+    cash: '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+    chart: '<path d="M5 20V11M11 20V5M17 20v-6"/><path d="M3 20h18"/>',
+    more: '<circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>'
+  };
+  const svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[k]}</svg>`;
+  const brl = v => 'R$ ' + v.toFixed(2).replace('.', ',');
+
+  const products = [
+    ['X-Burger', 'lanches', 16, 14], ['X-Salada', 'lanches', 18, 9], ['X-Bacon', 'lanches', 22, 6], ['Misto Quente', 'lanches', 10, 20],
+    ['Batata Frita', 'porcoes', 14, 11], ['Frango a Passarinho', 'porcoes', 28, 0], ['Refrigerante Lata', 'bebidas', 6, 36], ['Suco Natural', 'bebidas', 8, 3],
+    ['Água Mineral', 'bebidas', 4, 24], ['Combo Casal', 'combos', 48, 5], ['Combo Família', 'combos', 72, 2]
+  ];
+  const order = { 'Combo Casal': 1, 'Batata Frita': 1, 'Refrigerante Lata': 2 };
+  const cats = [['Todos', ''], ['Lanches', 'lanches'], ['Porções', 'porcoes'], ['Bebidas', 'bebidas'], ['Combos', 'combos']];
+
+  function stockText(n) {
+    if (n === 0) return '<span class="meta">Esgotado</span>';
+    if (n <= 3) return `<span class="meta low">${n} restantes</span>`;
+    return `<span class="meta">${n} em estoque</span>`;
+  }
+
+  function render(v) {
+    const nav = [['sell', 'Vender'], ['hist', 'Vendas'], ['box', 'Estoque'], ['cash', 'Caixa'], ['chart', 'Relatórios']]
+      .map(([k, l], i) => `<button class="nav${i === 0 ? ' on' : ''}" type="button">${svg(k)}${l}</button>`).join('');
+    const chips = cats.map(([l, c], i) => `<button class="chip${i === 0 ? ' on' : ''}" type="button"${c ? ` data-cat="${c}"` : ''}${c && v === 'c' ? ` style="--tile:${{lanches:'#F2B33D',porcoes:'#E4572E',bebidas:'#2A9D8F',combos:'#6D4AA0'}[c]}"` : ''}>${l}</button>`).join('');
+    const items = products.map(([name, cat, price, stock], i) => {
+      const q = order[name];
+      const cls = ['item', 'cat-' + cat, q ? 'in' : '', stock === 0 ? 'out' : ''].join(' ');
+      const key = i < 9 ? i + 1 : i === 9 ? 0 : '';
+      return `<button class="${cls}" type="button"${stock === 0 ? ' disabled' : ''}>` +
+        `<span class="key">${key}</span>${q ? `<span class="badge">${q}</span>` : ''}` +
+        `<span class="name">${name}</span>${stockText(stock)}<span class="price">${brl(price)}</span></button>`;
+    }).join('');
+    let total = 0;
+    const lines = Object.entries(order).map(([name, q]) => {
+      const price = products.find(p => p[0] === name)[2];
+      total += price * q;
+      return `<div class="line"><span class="l-name">${name}</span><span class="l-total">${brl(price * q)}</span>` +
+        `<span class="l-unit">${brl(price)} cada</span><span class="step"><button type="button" aria-label="Tirar um">−</button><span>${q}</span><button type="button" aria-label="Pôr mais um">+</button></span></div>`;
+    }).join('');
+    const placeholder = v === 'e' ? 'Digite o nome, o código ou a tecla do produto' : 'Buscar produto';
+    const status = '<div class="status"><i></i><span class="status-text">Caixa aberto</span></div>';
+    const search = `<div class="search">${svg('search')}<span>${placeholder}</span>${v === 'e' ? '<kbd>/</kbd>' : ''}</div>`;
+    const kpis = [['Caixa atual', 332, ''], ['Vitrine estimada', 1486, ''], ['Total vendido', 212, ''], ['Entradas', 50, 'plus'], ['Saídas', 30, 'minus']]
+      .map(([l, n, c]) => `<div class="kpi ${c}"><small>${l}</small><b>${brl(n).replace(/\B(?=(\d{3})+,)/, '.')}</b></div>`).join('');
+    const top = v === 'b2' ? `<header class="top"><div class="kpis">${kpis}</div>${status}<button class="btn-sec caixa-toggle" type="button">Fechar caixa</button></header>` : '';
+    const head = v === 'b2'
+      ? `<div class="bar"><h3>Frente de caixa</h3>${search}<button class="btn-sec" type="button">Fechamento rápido</button><button class="btn-sec loss" type="button">Perda / Consumo</button></div>`
+      : `<div class="bar"><h3>Frente de caixa</h3>${search}${status}</div>`;
+    return `
+      <nav class="rail"><div class="brand">Q'</div>${nav}<button class="nav more" type="button">${svg('more')}Mais</button></nav>
+      ${top}
+      <main class="catalog">
+        ${head}
+        <div class="cats">${chips}</div>
+        <div class="grid">${items}</div>
+      </main>
+      <aside class="ticket">
+        <div class="sheet">
+          <div class="t-head"><h4>Comanda 18</h4><button type="button">${v === 'd' ? 'Balcão, 7 nov, 19:42' : 'Limpar'}</button></div>
+          <div class="lines">${lines}</div>
+          <div class="totals"><div><span>Subtotal</span><span>${brl(total)}</span></div><div><span>Desconto</span><span>${brl(0)}</span></div><div class="grand"><span>Total</span><span>${brl(total)}</span></div></div>
+        </div>
+        <div class="actions">
+          <div class="minor"><button type="button">Desconto</button><button type="button">Observação</button></div>
+          <button class="pay" type="button"><span>Receber</span><span>${brl(total)}</span></button>
+        </div>
+      </aside>`;
+  }
+
+  document.querySelectorAll('.pos').forEach(el => { el.innerHTML = render(el.dataset.variant); });
+  document.querySelectorAll('.caixa-toggle').forEach(btn => btn.addEventListener('click', () => {
+    const pos = btn.closest('.pos');
+    const closed = pos.classList.toggle('closed');
+    btn.textContent = closed ? 'Abrir caixa' : 'Fechar caixa';
+    pos.querySelector('.status-text').textContent = closed ? 'Caixa fechado' : 'Caixa aberto';
+  }));
+  document.querySelectorAll('.pick').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.pick').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+  }));
+</script>
+</body>
+</html>
