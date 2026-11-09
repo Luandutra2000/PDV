@@ -92,9 +92,14 @@ export function renderCashMovementModal(type) {
   const title = type === 'entrada' ? 'Registrar entrada' : 'Registrar saída';
   const financeType = type === 'entrada' ? 'income' : 'expense';
   const fallbackCategories = type === 'entrada' ? ENTRY_CATEGORIES : OUTPUT_CATEGORIES;
-  const categories = getFinancialCategories({ type: financeType })
-    .map((category) => ({ id: category.id, name: category.name }))
-    .concat(fallbackCategories.map((category) => ({ id: category, name: category })))
+  // So categorias do cadastro financeiro: um nome solto vira category_id
+  // inexistente no servidor e trava a sincronizacao (FK). A lista antiga so
+  // aparece se o aparelho ainda nao tiver nenhuma categoria financeira.
+  const financialCategories = getFinancialCategories({ type: financeType })
+    .map((category) => ({ id: category.id, name: category.name }));
+  const categories = (financialCategories.length
+    ? financialCategories
+    : fallbackCategories.map((category) => ({ id: category, name: category })))
     .filter((category, index, list) => list.findIndex((item) => item.id === category.id) === index);
 
   return `

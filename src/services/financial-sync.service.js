@@ -24,6 +24,7 @@ const FINANCIAL_TABLES = [
 ];
 const REALTIME_HYDRATE_DELAY_MS = 600;
 const SELECT_PAGE_SIZE = 1000;
+const FALLBACK_FINANCIAL_CATEGORY_ID = 'outros-financeiro';
 
 let getClientOverride = null;
 let realtimeChannel = null;
@@ -495,7 +496,17 @@ async function writeQueuedOperation(client, operation) {
   }
 
   if (operation.action === 'saveFinancialTransaction') {
-    await upsertRows(client, financialTransactionAdapter.table, [financialTransactionAdapter.toRow(operation.transaction)]);
+    try {
+      await upsertRows(client, financialTransactionAdapter.table, [financialTransactionAdapter.toRow(operation.transaction)]);
+    } catch (error) {
+      // Versoes anteriores gravavam nomes soltos como categoria. Sem este
+      // ajuste a operacao falharia para sempre e travaria a fila inteira.
+      if (!/financial_transactions_category_id_fkey/.test(String(error?.message || ''))) throw error;
+      await upsertRows(client, financialTransactionAdapter.table, [financialTransactionAdapter.toRow({
+        ...operation.transaction,
+        categoryId: FALLBACK_FINANCIAL_CATEGORY_ID
+      })]);
+    }
     return;
   }
 

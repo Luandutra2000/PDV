@@ -7,7 +7,7 @@ import { getCurrentUser } from './auth.service.js?v=20260804-06';
 import { assertPermission, hasPermission } from './permission.service.js?v=20260804-06';
 import { recordAudit } from './audit.service.js?v=20260804-06';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { createFinancialTransaction as createFinanceTransaction } from './financial.service.js?v=20260804-06';
+import { createFinancialTransaction as createFinanceTransaction, getFinancialCategories } from './financial.service.js?v=20260804-06';
 import {
   clearFinancialHistoryInSupabase,
   getFinancialSyncStatus,
@@ -158,7 +158,7 @@ export function registerCashMovement({
       const finance = createFinanceTransaction({
         type: type === 'entrada' ? 'income' : 'expense',
         amount: normalizedAmount,
-        categoryId: movement.category,
+        categoryId: resolveFinancialCategoryId(movement.category),
         description: movement.description,
         paymentMethod: 'dinheiro',
         status: 'paid',
@@ -447,6 +447,12 @@ export function getBestSellingProducts({
 
     return b.revenue - a.revenue;
   });
+}
+
+// financial_transactions.category_id referencia financial_categories(id).
+function resolveFinancialCategoryId(category) {
+  const known = getFinancialCategories({ activeOnly: false });
+  return known.some((candidate) => candidate.id === category) ? category : 'outros-financeiro';
 }
 
 function appendTransaction(transaction) {
