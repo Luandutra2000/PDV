@@ -234,6 +234,7 @@ function renderOpenCashSessionModal(app) {
         <form class="product-form" data-open-cash-form>
           <label class="stacked-label">Dinheiro inicial<input class="field" name="openingAmount" type="number" min="0" step="0.01" value="0" required></label>
           <p class="modal-text">Esse valor entra no dinheiro esperado do fechamento, mas não é registrado como venda. Ao reabrir no mesmo dia, informe só o troco adicional: o da abertura anterior continua contando.</p>
+          <p class="form-error" data-open-cash-error role="alert" hidden></p>
           <footer class="form-actions"><button class="button button--ghost" type="button" data-action="close-cash-session-modal">Cancelar</button><button class="button button--success" type="submit">Abrir caixa</button></footer>
         </form>
       </section>
@@ -414,7 +415,12 @@ function bindNavigation(app, workspace) {
       openCashSession({ openingAmount: new FormData(event.target).get('openingAmount') });
       app.querySelector('[data-global-modal]').innerHTML = '';
     } catch (error) {
-      window.alert(error.message || 'Não foi possível abrir o caixa.');
+      // Erro dentro do modal, no lugar do alert nativo que travava a tela.
+      const message = event.target.querySelector('[data-open-cash-error]');
+      if (message) {
+        message.textContent = error.message || 'Não foi possível abrir o caixa.';
+        message.hidden = false;
+      }
     }
   });
 }

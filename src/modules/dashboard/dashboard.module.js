@@ -16,6 +16,7 @@ import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
 const dashboardState = {
   modal: null,
   pendingCancelComandaId: null,
+  pendingCancelTransactionId: null,
   period: 'today'
 };
 const boundContainers = new WeakSet();
@@ -82,6 +83,10 @@ function renderDashboardModal() {
     return renderCancelComandaModal();
   }
 
+  if (dashboardState.modal === 'cancel-transaction') {
+    return renderCancelTransactionModal();
+  }
+
   return '';
 }
 
@@ -118,6 +123,7 @@ function bindDashboardEvents(container) {
     if (button.dataset.action === 'close-modal') {
       dashboardState.modal = null;
       dashboardState.pendingCancelComandaId = null;
+      dashboardState.pendingCancelTransactionId = null;
       renderDashboard(container);
     }
 
@@ -175,7 +181,16 @@ function bindDashboardEvents(container) {
     }
 
     if (button.dataset.action === 'cancel-transaction') {
-      const reason = window.prompt('Informe o motivo do cancelamento:') || '';
+      // Motivo pedido no modal do sistema (antes era um prompt nativo do navegador).
+      dashboardState.modal = 'cancel-transaction';
+      dashboardState.pendingCancelTransactionId = button.dataset.transactionId;
+      renderDashboard(container);
+      container.querySelector?.('[data-cancel-transaction-reason]')?.focus?.();
+      return;
+    }
+
+    if (button.dataset.action === 'confirm-cancel-transaction') {
+      const reason = container.querySelector('[data-cancel-transaction-reason]')?.value || '';
 
       if (!reason.trim()) {
         showNotification({
@@ -187,12 +202,14 @@ function bindDashboardEvents(container) {
       }
 
       try {
-        cancelTransaction(button.dataset.transactionId, { reason });
+        cancelTransaction(dashboardState.pendingCancelTransactionId, { reason });
         showNotification({
           title: 'Movimentação cancelada',
           message: 'O lançamento foi mantido no histórico em vermelho.',
           type: 'danger'
         });
+        dashboardState.modal = null;
+        dashboardState.pendingCancelTransactionId = null;
         renderDashboard(container);
       } catch (error) {
         showNotification({
@@ -427,6 +444,38 @@ function isInSelectedPeriod(value) {
   }
 
   return date.toDateString() === now.toDateString();
+}
+
+function renderCancelTransactionModal() {
+  const transaction = getTransactions().find((item) => item.id === dashboardState.pendingCancelTransactionId);
+
+  if (!transaction) {
+    return '';
+  }
+
+  return `
+    <div class="modal-backdrop is-open">
+      <div class="modal modal--small" role="dialog" aria-modal="true">
+        <header class="modal__header">
+          <h2>Cancelar ${escapeHtml(getMoneyTitle(transaction).toLowerCase())}</h2>
+          <button class="icon-button" type="button" data-action="close-modal" aria-label="Fechar">X</button>
+        </header>
+        <div class="product-form">
+          <p class="modal-text">
+            ${formatCurrency(transaction.total || transaction.amount)} — ${escapeHtml(transaction.description || '')}. O lançamento fica no histórico em vermelho.
+          </p>
+          <label class="stacked-label">
+            Motivo do cancelamento
+            <input class="field" data-cancel-transaction-reason placeholder="Ex: Lançado em duplicidade" required>
+          </label>
+          <div class="form-actions">
+            <button class="button button--ghost" type="button" data-action="close-modal">Voltar</button>
+            <button class="button button--danger" type="button" data-action="confirm-cancel-transaction">Cancelar movimentação</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function renderCancelComandaModal() {
