@@ -16,6 +16,7 @@
 
 .button:hover {
   background: var(--accent-strong);
+  color: var(--accent-strong-ink, var(--accent-ink));
 }
 
 .button:disabled {

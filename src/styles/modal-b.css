@@ -145,6 +145,7 @@
 .app-shell .modal-backdrop .modal:not(.sale-success-modal) .button:not(.button--ghost):not(.button--danger):not(.button--success):hover:not(:disabled) {
   border-color: var(--accent-strong);
   background: var(--accent-strong);
+  color: var(--accent-strong-ink, var(--accent-ink));
   box-shadow: none;
   filter: none;
   transform: none;

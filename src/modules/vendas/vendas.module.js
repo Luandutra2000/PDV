@@ -25,6 +25,9 @@ const CATEGORY_FAVORITES = '__favoritos';
 const CATEGORY_BEST_SELLERS = '__mais-vendidos';
 const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_TOLERANCE = 10;
+// O OK da confirmacao fica onde estava "Finalizar venda": o segundo clique de
+// um duplo clique fecharia a confirmacao (com o troco) antes de ser lida.
+const SALE_SUCCESS_CLICK_GUARD_MS = 600;
 const CASH_CLOSED_MESSAGE = 'Abra o caixa do dia antes de registrar vendas.';
 
 const state = {
@@ -292,6 +295,7 @@ function bindEvents(container) {
           receivedAmount: parseReceivedAmount(data.get('receivedAmount'))
         });
         state.saleSuccess = sale;
+        state.saleSuccessShownAt = performance.now();
         state.modal = 'sale-success';
         renderComanda(container);
         renderModal(container);
@@ -548,6 +552,9 @@ function handleOrderAction(actionButton, container) {
   }
 
   if (action === 'close-sale-success') {
+    if (performance.now() - (state.saleSuccessShownAt || 0) < SALE_SUCCESS_CLICK_GUARD_MS) {
+      return;
+    }
     state.modal = null;
     state.quantityProductId = null;
     state.saleSuccess = null;

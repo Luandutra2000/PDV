@@ -164,8 +164,11 @@ export function applyCompanyIdentity(input = loadCompanySettingsLocal()) {
   const accentIsCustom = isCustomBrandColor(settings.corPrimaria, DEFAULT_COMPANY_SETTINGS.corPrimaria);
   setOrClearProperty(root.style, '--accent', brand.accent, accentIsCustom);
   setOrClearProperty(root.style, '--accent-ink', brand.accentInk, accentIsCustom);
-  setOrClearProperty(root.style, '--accent-strong', brand.accentStrong,
-    isCustomBrandColor(settings.corSecundaria, DEFAULT_COMPANY_SETTINGS.corSecundaria));
+  // A secundaria e o fundo do hover dos botoes principais: o texto sobre ela
+  // precisa ser escolhido pelo contraste com ela, nao com a primaria.
+  const accentStrongIsCustom = isCustomBrandColor(settings.corSecundaria, DEFAULT_COMPANY_SETTINGS.corSecundaria);
+  setOrClearProperty(root.style, '--accent-strong', brand.accentStrong, accentStrongIsCustom);
+  setOrClearProperty(root.style, '--accent-strong-ink', pickReadableInk(brand.accentStrong), accentStrongIsCustom);
   // O fundo suave personalizado vale nos dois temas, entao o texto sobre ele
   // (--accent-soft-ink) tambem vem inline, escolhido pelo contraste.
   const accentSoftIsCustom = isCustomBrandColor(settings.corDestaque, DEFAULT_COMPANY_SETTINGS.corDestaque);

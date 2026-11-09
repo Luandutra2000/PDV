@@ -21,7 +21,7 @@
 .ui-btn:hover:not(:disabled) { background: var(--line-soft); }
 .ui-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .ui-btn--primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.ui-btn--primary:hover:not(:disabled) { background: var(--accent-strong); border-color: var(--accent-strong); }
+.ui-btn--primary:hover:not(:disabled) { background: var(--accent-strong); border-color: var(--accent-strong); color: var(--accent-strong-ink, var(--accent-ink)); }
 .ui-btn--ok { background: var(--green); border-color: var(--green); color: var(--green-ink); }
 .ui-btn--ok:hover:not(:disabled) { background: color-mix(in srgb, var(--green) 85%, var(--ink)); border-color: color-mix(in srgb, var(--green) 85%, var(--ink)); }
 .ui-btn--loss { color: var(--red); border-color: color-mix(in srgb, var(--red) 30%, transparent); }
