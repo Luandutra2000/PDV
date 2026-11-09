@@ -14,7 +14,7 @@ import { escapeHtml, qs } from '../../utils/dom.js?v=20260804-06';
 import { showNotification } from '../../services/notification.service.js?v=20260804-06';
 import { getShowcaseStockByProductId } from '../../services/showcase-stock.service.js?v=20260804-06';
 import { on } from '../../services/event-bus.service.js?v=20260804-06';
-import { UI_EVENTS } from '../../database/schema.js?v=20260804-06';
+import { STORAGE_KEYS, UI_EVENTS } from '../../database/schema.js?v=20260804-06';
 import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
 import { hasPermission } from '../../services/permission.service.js?v=20260804-06';
 import { getCashSession, isCashSessionOpen } from '../../services/cash-session.service.js?v=20260804-06';
@@ -54,8 +54,33 @@ export function initVendasModule(container) {
         renderProducts(container);
       }
     });
+    bindOtherTabComandaChanges(container);
     boundContainers.add(container);
   }
+}
+
+// Duas abas do PDV no mesmo aparelho compartilham a comanda ativa. Sem isto a
+// aba mostrava itens antigos enquanto o pagamento cobrava os itens atuais.
+function bindOtherTabComandaChanges(container) {
+  if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') {
+    return;
+  }
+
+  window.addEventListener('storage', (event) => {
+    if (event.key !== STORAGE_KEYS.activeComanda || !container.querySelector('.pdv-screen')) {
+      return;
+    }
+
+    renderComanda(container);
+    if (state.modal === 'payment') {
+      renderModal(container);
+    }
+    showNotification({
+      title: 'Comanda alterada em outra aba',
+      message: 'O PDV está aberto em mais de uma aba neste aparelho. Confira os itens antes de receber.',
+      type: 'warning'
+    });
+  });
 }
 
 function renderScreen(container) {
