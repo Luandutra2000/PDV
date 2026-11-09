@@ -43,5 +43,5 @@ Concluídas: reconhecimento, backup, inventário, semana R1 (antes), correções
 
 - Base: Supabase de produção `inquppkbkmhnbtwpriuw`; backup inicial em `qa-pdv/backup-inicial/` (fora do Git).
 - O painel do navegador ficou logado como a operadora (Patricia). Para novos testes de administrador, sair e entrar como admin.
-- Relógio de teste ativo no navegador (25/10/2026). Para voltar ao relógio real: `window.__QA_CLOCK__.reset()` e recarregar.
+- Relógio de teste já restaurado para o horário real no navegador (`window.__QA_CLOCK__.reset()`).
 - Próximos passos: aplicar a migração `202611090001`, repetir login da operadora e uma venda; decidir BUG-004/012/019/021; publicar com atualização de `?v=` e do cache do service worker; limpar dados de teste se desejado.
