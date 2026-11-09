@@ -557,7 +557,8 @@ async function saveProductFromForm(form) {
     price: formData.get('price'),
     cost: currentProduct?.cost || 0,
     stock: Math.max(0, Number(formData.get('stock')) || 0),
-    active: currentProduct?.active !== false
+    // Checkbox desmarcado nao vai no envio: o campo oculto indica que o controle existe.
+    active: formData.has('activeField') ? formData.get('active') === 'on' : currentProduct?.active !== false
   };
 
   if (productState.editingProductId) {
@@ -567,6 +568,12 @@ async function saveProductFromForm(form) {
   const previousShowcaseStock = productState.editingProductId
     ? Number(getShowcaseStockByProductId(productState.editingProductId).quantityAvailable || 0)
     : 0;
+  // Na edicao vale a diferenca digitada sobre o saldo de quando o formulario
+  // abriu: uma venda feita em outro aparelho nesse meio-tempo nao e desfeita.
+  if (productState.editingProductId && formData.has('stockBase')) {
+    const typedDelta = productData.stock - (Number(formData.get('stockBase')) || 0);
+    productData.stock = Math.max(0, previousShowcaseStock + typedDelta);
+  }
   const savedProduct = await saveProduct(productData);
   const nextStock = Number(savedProduct.stock || 0);
 
@@ -888,6 +895,13 @@ function renderProductModal() {
             Estoque atual
             <input class="field" name="stock" type="number" min="0" step="1" required placeholder="0" value="${product ? getShowcaseStockByProductId(product.id).quantityAvailable : 0}">
             <small>Informe 0 para zerar ou uma quantidade menor para retirar unidades.</small>
+          </label>
+          ${product ? `<input type="hidden" name="stockBase" value="${Number(getShowcaseStockByProductId(product.id).quantityAvailable) || 0}">` : ''}
+
+          <label class="stacked-label product-active-toggle">
+            <input type="hidden" name="activeField" value="1">
+            <span><input type="checkbox" name="active" ${product?.active === false ? '' : 'checked'}> Ativo (aparece na frente de caixa)</span>
+            <small>Desmarque para tirar o produto de venda sem apagar o histórico.</small>
           </label>
 
           <div class="form-actions">
