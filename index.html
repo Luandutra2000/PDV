@@ -59,6 +59,20 @@
           <p class="lg-error" data-login-error role="alert" hidden></p>
           <p class="lg-card__help">Esqueceu a senha? Fale com o administrador.</p>
         </form>
+        <!-- Com sessao salva neste aparelho, o app abre direto no PDV: mostra
+             "Carregando" em vez de um login que o usuario nao precisa preencher. -->
+        <div class="lg-card" role="status" aria-live="polite" data-boot-loading hidden>
+          <h1 class="lg-card__title">Carregando o PDV…</h1>
+          <p class="lg-card__hint">Conferindo sua sessão e os dados do caixa.</p>
+        </div>
+        <script>
+          try {
+            if (JSON.parse(localStorage.getItem('pdv.currentSession') || 'null')?.userId) {
+              document.querySelector('[data-login-form]').hidden = true;
+              document.querySelector('[data-boot-loading]').hidden = false;
+            }
+          } catch (error) { /* sem acesso ao armazenamento: mantem o login */ }
+        </script>
       </div>
     </section>
   </div>

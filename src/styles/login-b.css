@@ -154,6 +154,7 @@
 }
 
 .lg-error[hidden] { display: none; }
+.lg-card[hidden] { display: none; }
 
 /* Telas estreitas: a coluna da marca vira uma faixa curta no topo */
 @media (max-width: 760px) {
