@@ -11,3 +11,7 @@ assert.match(pdv, /\.pdv-layout:has\(\.pdv-screen\.fc\) \.workspace\s*\{\s*min-h
 const components = read('components.css');
 assert.match(components, /\.rail \{[^}]*overflow-x:\s*hidden;[^}]*overflow-y:\s*auto;/, 'menu lateral rola na vertical sem barra horizontal');
 console.log('frente de caixa layout height ok');
+
+// BUG-025: em 375 px a faixa de indicadores empurrava a area de trabalho para 540 px.
+assert.match(read('layout.css'), /\.workspace \{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/, 'area de trabalho encolhe em telas estreitas');
+console.log('frente de caixa narrow width ok');

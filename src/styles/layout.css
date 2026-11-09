@@ -21,6 +21,9 @@
 
 .workspace {
   display: grid;
+  /* A coluna pode encolher abaixo do conteudo: sem isso, em telas estreitas a
+     faixa de indicadores e a grade empurravam a area de trabalho para fora. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
 }
