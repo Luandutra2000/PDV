@@ -27,3 +27,14 @@ assert.equal(summary.outputsTotal, 223.4, 'sangria reduz o dinheiro do caixa');
 const expenses = financial.getFinancialTransactions({ period: 'today' }).filter((t) => t.type === 'expense' && t.status !== 'canceled');
 assert.deepEqual(expenses.map((t) => t.amount), [23.4], 'so a despesa vai para o Financeiro');
 console.log('cash sangria not expense ok');
+
+// O banco de producao recusa type 'sangria' (cash_movements_type_check): envia
+// como saida com categoria 'sangria' e reconhece de volta na leitura.
+const { cashMovementAdapter } = await import('../src/services/repositories/cash-movement.adapter.js?v=20260804-06');
+const sangria = transactions.getTransactions().find((t) => t.type === 'sangria');
+const row = cashMovementAdapter.toRow(sangria);
+assert.equal(row.type, 'saida', 'servidor recebe saida');
+assert.equal(row.category, 'sangria');
+assert.equal(cashMovementAdapter.fromRow(row).type, 'sangria', 'leitura volta a ser sangria');
+assert.equal(cashMovementAdapter.toRow({ id: 'x', type: 'saida', amount: 1, category: 'outros-financeiro' }).type, 'saida');
+console.log('sangria server mapping ok');
