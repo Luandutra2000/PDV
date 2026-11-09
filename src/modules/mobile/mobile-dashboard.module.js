@@ -951,7 +951,7 @@ export function renderCrmTab() {
   // Sem comparacao com a semana anterior: o resumo do CRM nao traz esse dado.
   return `
     ${renderMobilePeriodControls(state)}
-    ${renderHero(`Total vendido ${getPeriodPhrase()}`, crm.salesTotal, `Caixa atual ${formatCurrency(crm.estimatedProfit)}`, 'is-muted')}
+    ${renderHero(`Total vendido ${getPeriodPhrase()}`, crm.salesTotal, `Caixa líquido ${formatCurrency(crm.estimatedProfit)}`, 'is-muted')}
     ${renderStatGrid([
       { label: 'Ticket médio', value: crm.ticketAverage },
       { label: 'Comandas', value: crm.closedComandas, isCurrency: false },

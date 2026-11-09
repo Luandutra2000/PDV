@@ -81,7 +81,8 @@ const resumo = getDashboardResumo({ period: 'today' });
 assert(resumo.totalVendido === 145, 'Total vendido should include only finished sales');
 assert(resumo.entradas === 50, 'Entradas should include only manual cash entries');
 assert(resumo.saidas === 10, 'Saídas should include manual cash outputs');
-assert(resumo.caixaAtual === 185, 'Caixa atual should be total vendido + entradas - saidas');
+// Caixa atual = dinheiro da gaveta: a venda de R$ 145 foi em Pix e nao entra (0 + 50 - 10).
+assert(resumo.caixaAtual === 40, 'Caixa atual should be cash in drawer (dinheiro + entradas - saidas)');
 assert(resumo.vitrineEstimada === 80, 'Vitrine estimada should be current showcase value');
 
 console.log('dashboard resumo service ok');
