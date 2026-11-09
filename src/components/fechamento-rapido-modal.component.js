@@ -55,7 +55,8 @@ function renderTab(id, label, activeTab) {
 }
 
 function renderSummary(summary, closingSummary, showcase, state, cardTotals) {
-  const expectedCash = summary.paymentTotals.dinheiro + summary.entriesTotal - summary.outputsTotal;
+  // Mesmo valor usado na conferencia (inclui o troco inicial).
+  const expectedCash = closingSummary.payments.expectedCash;
   const showcaseDifferences = showcase.filter((item) => Number(item.differenceQuantity || 0));
 
   return `
@@ -78,7 +79,7 @@ function renderSummary(summary, closingSummary, showcase, state, cardTotals) {
 }
 
 function renderPayments(summary, closingSummary, state, cardTotals) {
-  const expectedCash = summary.paymentTotals.dinheiro + summary.entriesTotal - summary.outputsTotal;
+  const expectedCash = closingSummary.payments.expectedCash;
 
   return `
     <section class="quick-closing-section">

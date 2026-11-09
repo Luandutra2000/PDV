@@ -15,8 +15,10 @@ const summary = {
   estimatedProfit: 260,
   paymentTotals: { dinheiro: 100, pix: 80, debito: 40, credito: 30 }
 };
+// O dinheiro esperado exibido e o da conferencia (troco inicial + dinheiro + entradas - saidas);
+// aqui sem troco inicial: 0 + 100 + 20 - 10 = 110.
 const closingSummary = {
-  payments: { generalDifference: -5 },
+  payments: { generalDifference: -5, expectedCash: 110 },
   outOfStockSales: [{
     productName: 'Pastel', categoryName: 'Lanches', quantity: 1, unitPrice: 8, totalPrice: 8,
     commandReference: 'C-7', userName: 'Operador'
@@ -59,7 +61,7 @@ assert(resumo.includes('data-action="confirm-quick-closing"'), 'confirmar fecham
 ['countedCash', 'checkedPix', 'checkedDebit', 'checkedCredit'].forEach((name) => assert(pagamentos.includes(`data-quick-payment="${name}"`), `campo ${name}`));
 assert(vitrine.includes('data-quick-leftover="p1"') && vitrine.includes('value="2"') && vitrine.includes('data-quick-leftover="p2"'), 'sobras da vitrine');
 
-// Calculos inalterados: dinheiro esperado = dinheiro + entradas - saidas; cartoes = debito + credito
+// Dinheiro esperado = o mesmo valor da conferencia (sem troco inicial nesta fixture); cartoes = debito + credito
 const brl = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 assert(resumo.includes(brl(110)), 'dinheiro esperado 100 + 20 - 10');
 assert(resumo.includes(brl(70)), 'cartoes esperados 40 + 30');

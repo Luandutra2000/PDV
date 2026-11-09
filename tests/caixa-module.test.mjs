@@ -193,18 +193,20 @@ function typeCounted(container, value) {
     }
   });
 }
-typeCounted(openScreen, '-5');
+// A sessao abriu com R$ 100,00 de troco inicial: esperado em dinheiro = 100.
+typeCounted(openScreen, '95');
 const generalDifference = openScreen.querySelector('[data-crm-closing-difference]');
 assert(/is-neg/.test(generalDifference.className), 'diferenca negativa usa is-neg');
-typeCounted(openScreen, '0');
+typeCounted(openScreen, '100');
 assert(/is-pos/.test(generalDifference.className) && !/is-neg/.test(generalDifference.className), 'diferenca zero usa is-pos');
-typeCounted(openScreen, '5');
+assert(generalDifference.textContent.includes('0,00'), 'contar exatamente o troco inicial nao gera diferenca');
+typeCounted(openScreen, '105');
 assert(/is-pos/.test(generalDifference.className), 'diferenca positiva usa is-pos');
 assert(/is-neg/.test(openScreen.querySelector('[data-crm-row-difference="cash"]').className) === false, 'linha do dinheiro acompanha a diferenca');
 typeCounted(openScreen, '');
 
-// Mesma regra no desenho completo da tela: -5 vermelho, 0 e +5 verde.
-for (const [counted, tone] of [['-5', 'is-neg'], ['0', 'is-pos'], ['5', 'is-pos']]) {
+// Mesma regra no desenho completo da tela: -5 vermelho, 0 e +5 verde (contagem = troco inicial 100 + diferenca).
+for (const [counted, tone] of [['95', 'is-neg'], ['100', 'is-pos'], ['105', 'is-pos']]) {
   typeCounted(openScreen, counted);
   clickOn(openScreen, { '[data-crm-period]': { dataset: { crmPeriod: 'today' } } });
   const renderedTone = openScreen.innerHTML.match(/class="cx-diff (is-neg|is-pos) cx-diff--big" data-crm-closing-difference/)?.[1];

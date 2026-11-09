@@ -17,7 +17,7 @@ import { on } from '../../services/event-bus.service.js?v=20260804-06';
 import { UI_EVENTS } from '../../database/schema.js?v=20260804-06';
 import { getCurrentUser } from '../../services/auth.service.js?v=20260804-06';
 import { hasPermission } from '../../services/permission.service.js?v=20260804-06';
-import { isCashSessionOpen } from '../../services/cash-session.service.js?v=20260804-06';
+import { getCashSession, isCashSessionOpen } from '../../services/cash-session.service.js?v=20260804-06';
 import { renderCashActionButtons, renderCashMovementModal, renderWriteOffModal, submitCashMovementForm, submitWriteOffForm } from '../../components/cash-actions.component.js?v=20260807-21';
 
 const CATEGORY_ALL = 'todos';
@@ -754,10 +754,12 @@ function buildQuickClosingDifferences() {
   return differences;
 }
 
+// O Fechamento rapido e sempre do dia: inclui o troco inicial da sessao aberta.
 export function buildQuickClosingInput(summary, input = {}) {
   return {
     ...input,
-    expectedCash: normalizeClosingMoney(Number(summary?.paymentTotals?.dinheiro || 0)
+    expectedCash: normalizeClosingMoney(Number(getCashSession()?.openingAmount || 0)
+      + Number(summary?.paymentTotals?.dinheiro || 0)
       + Number(summary?.entriesTotal || 0)
       - Number(summary?.outputsTotal || 0)),
     expectedPix: normalizeClosingMoney(summary?.paymentTotals?.pix),

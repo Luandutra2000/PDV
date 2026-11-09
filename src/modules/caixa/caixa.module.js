@@ -107,7 +107,7 @@ function renderCaixa(container) {
         <section class="ui-panel cx-side">
           <h2 class="ui-head">Formas de pagamento</h2>
           ${renderFormasPagamento(summary)}
-          <p class="cx-note">O dinheiro esperado soma as vendas em dinheiro e as entradas, menos as saídas.</p>
+          <p class="cx-note">O dinheiro esperado soma o troco inicial, as vendas em dinheiro e as entradas, menos as saídas.</p>
           ${renderMaisVendidos({ productRanking, categoryRanking, getColorVar })}
         </section>
       </div>
@@ -416,10 +416,14 @@ function getClosingDifferences() {
   return buildDifferences(summary, caixaState.note);
 }
 
-export function buildCrmClosingInput(summary, input = {}) {
+// Dinheiro esperado na gaveta = troco inicial + vendas em dinheiro + entradas - saidas.
+// O troco inicial e da sessao de hoje: outros periodos nao o recebem.
+export function buildCrmClosingInput(summary, input = {}, { period = caixaState.period } = {}) {
+  const openingAmount = period === 'today' ? Number(getCashSessionStatus().session?.openingAmount || 0) : 0;
   return {
     ...input,
-    expectedCash: normalizeReportMoney(Number(summary?.paymentTotals?.dinheiro || 0)
+    expectedCash: normalizeReportMoney(openingAmount
+      + Number(summary?.paymentTotals?.dinheiro || 0)
       + Number(summary?.entriesTotal || 0)
       - Number(summary?.outputsTotal || 0)),
     expectedPix: normalizeReportMoney(summary?.paymentTotals?.pix),
