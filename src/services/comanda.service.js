@@ -1,6 +1,7 @@
 import { STORAGE_KEYS, SYNC_EVENTS } from '../database/schema.js?v=20260804-06';
 import { emit } from './event-bus.service.js?v=20260804-06';
 import { getItem, setItem } from './storage.service.js?v=20260804-06';
+import { roundMoney } from '../utils/currency.js?v=20260804-06';
 
 // O numero da comanda e gerado no aparelho. Para nao repetir numeros de
 // outros aparelhos (ja sincronizados) a proxima comanda segue o maior
@@ -33,7 +34,7 @@ export function addItem(product) {
 
   if (existingItem) {
     existingItem.quantity += 1;
-    existingItem.total = existingItem.quantity * existingItem.unitPrice;
+    existingItem.total = roundMoney(existingItem.quantity * existingItem.unitPrice);
   } else {
     comanda.items.push({
       productId: product.id,
@@ -68,14 +69,14 @@ export function addItemQuantity(product, quantity = 1) {
 
   if (existingItem) {
     existingItem.quantity += normalizedQuantity;
-    existingItem.total = existingItem.quantity * existingItem.unitPrice;
+    existingItem.total = roundMoney(existingItem.quantity * existingItem.unitPrice);
   } else {
     comanda.items.push({
       productId: product.id,
       name: product.name,
       unitPrice: product.price,
       quantity: normalizedQuantity,
-      total: product.price * normalizedQuantity
+      total: roundMoney(product.price * normalizedQuantity)
     });
   }
 
@@ -111,7 +112,7 @@ export function updateQuantity(productId, quantity) {
   }
 
   item.quantity = normalizedQuantity;
-  item.total = item.quantity * item.unitPrice;
+  item.total = roundMoney(item.quantity * item.unitPrice);
   comanda.updatedAt = new Date().toISOString();
   saveComanda(comanda);
   emit(SYNC_EVENTS.comandaQuantityChanged, { comandaId: comanda.id, productId, quantity: item.quantity, comanda });
@@ -145,7 +146,7 @@ export function startNewComanda(number) {
 }
 
 export function getSubtotal(comanda = getActiveComanda()) {
-  return comanda.items.reduce((total, item) => total + item.total, 0);
+  return roundMoney(comanda.items.reduce((total, item) => total + item.total, 0));
 }
 
 function saveComanda(comanda) {

@@ -16,6 +16,7 @@ import {
 } from './financial-sync.service.js?v=20260804-06';
 import { prepareShowcaseSale, prepareShowcaseReversal, flushShowcaseQueue } from './showcase-sync.service.js?v=20260804-06';
 import { runLocalTransaction } from './providers/local.provider.js?v=20260804-06';
+import { roundMoney } from '../utils/currency.js?v=20260804-06';
 import { assertCashSessionOpen } from './cash-session.service.js?v=20260804-06';
 
 function enforceCashSession() {
@@ -516,21 +517,21 @@ function runShowcaseSync(promise) {
 }
 
 function sumByType(transactions, type) {
-  return transactions
+  return roundMoney(transactions
     .filter((transaction) => transaction.type === type && transaction.status !== 'cancelada')
-    .reduce((total, transaction) => total + (transaction.total || transaction.amount || 0), 0);
+    .reduce((total, transaction) => total + (transaction.total || transaction.amount || 0), 0));
 }
 
 function sumCashOutputs(transactions) {
-  return transactions
+  return roundMoney(transactions
     .filter((transaction) => ['saida', 'sangria'].includes(transaction.type) && transaction.status !== 'cancelada')
-    .reduce((total, transaction) => total + (transaction.total || transaction.amount || 0), 0);
+    .reduce((total, transaction) => total + (transaction.total || transaction.amount || 0), 0));
 }
 
 function sumPaymentMethod(sales, paymentMethod) {
-  return sales
+  return roundMoney(sales
     .filter((sale) => sale.paymentMethod === paymentMethod)
-    .reduce((total, sale) => total + Number(sale.total || 0), 0);
+    .reduce((total, sale) => total + Number(sale.total || 0), 0));
 }
 
 function createId(prefix) {

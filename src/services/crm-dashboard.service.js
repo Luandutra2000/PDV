@@ -1,4 +1,5 @@
 import { getCategories, getProductById } from './product.service.js?v=20260804-06';
+import { roundMoney } from '../utils/currency.js?v=20260804-06';
 import { getActiveComanda } from './comanda.service.js?v=20260804-06';
 import { getCashSessionTransactions, getClosedComandas, getTransactions } from './transaction.service.js?v=20260804-06';
 
@@ -57,7 +58,7 @@ export function getCrmSummary(filter = createPeriodFilter()) {
     salesTotal,
     entriesTotal,
     outputsTotal,
-    estimatedProfit: salesTotal + entriesTotal - outputsTotal,
+    estimatedProfit: roundMoney(salesTotal + entriesTotal - outputsTotal),
     openComandas: getActiveComanda().items.length ? 1 : 0,
     closedComandas: closedComandas.length,
     ticketAverage: sales.length ? salesTotal / sales.length : 0,
@@ -171,13 +172,13 @@ function isInFilter(value, filter) {
 }
 
 function sumTransactions(transactions) {
-  return transactions.reduce((total, transaction) => total + Number(transaction.total || transaction.amount || 0), 0);
+  return roundMoney(transactions.reduce((total, transaction) => total + Number(transaction.total || transaction.amount || 0), 0));
 }
 
 function sumPayment(sales, paymentMethod) {
-  return sales
+  return roundMoney(sales
     .filter((sale) => sale.paymentMethod === paymentMethod)
-    .reduce((total, sale) => total + Number(sale.total || 0), 0);
+    .reduce((total, sale) => total + Number(sale.total || 0), 0));
 }
 
 function sumOtherPayments(sales) {
