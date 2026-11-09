@@ -32,7 +32,10 @@ const estoqueState = {
   customStart: '',
   customEnd: '',
   editingId: null,
-  movementHistoryExpanded: false
+  movementHistoryExpanded: false,
+  // Rascunho do "Novo lancamento": a tela e redesenhada por sincronizacoes em
+  // segundo plano e nao pode apagar o que o operador ja escolheu/digitou.
+  draft: { produtoId: '', quantidade: '' }
 };
 
 // Ate esta quantidade a vitrine mostra "N restantes" (igual a frente de caixa).
@@ -167,6 +170,12 @@ function renderProductionBars(liveSummary, summary) {
 }
 
 function bindEstoqueEvents(container) {
+  container.addEventListener('input', (event) => {
+    if (event.target?.matches?.('[data-stock-form] [name="quantidade"]') && !estoqueState.editingId) {
+      estoqueState.draft.quantidade = event.target.value;
+    }
+  });
+
   container.addEventListener('submit', (event) => {
     if (!event.target.matches('[data-stock-form]')) {
       return;
@@ -200,7 +209,12 @@ function bindEstoqueEvents(container) {
     }
 
     if (event.target.matches('[name="produtoId"]')) {
+      if (!estoqueState.editingId) estoqueState.draft.produtoId = event.target.value;
       updateSelectedProductFields(event.target);
+    }
+
+    if (event.target.matches('[data-stock-form] [name="quantidade"]') && !estoqueState.editingId) {
+      estoqueState.draft.quantidade = event.target.value;
     }
   });
 
@@ -304,6 +318,7 @@ function saveStockLaunch(form, container) {
       });
     } else {
       createStockLaunch({ produtoId, quantidade });
+      estoqueState.draft = { produtoId: '', quantidade: '' };
       estoqueState.period = 'today';
       estoqueState.categoryIds = [];
       estoqueState.productIds = [];
@@ -332,7 +347,8 @@ function renderStockForm() {
   const launch = estoqueState.editingId
     ? getStockLaunches({ period: 'all' }).find((item) => item.id === estoqueState.editingId)
     : null;
-  const selectedProduct = launch ? getProductById(launch.produtoId) : null;
+  const draft = launch ? null : estoqueState.draft;
+  const selectedProduct = launch ? getProductById(launch.produtoId) : (draft.produtoId ? getProductById(draft.produtoId) : null);
   const categoryName = launch ? launch.categoriaNome : selectedProduct ? getCategoryName(selectedProduct.categoryId) : 'Categoria automática';
   const unitValue = launch ? launch.valorUnitario : selectedProduct ? selectedProduct.price : '';
   const canSubmit = launch ? canCurrentUser('showcase.edit') : canCurrentUser('showcase.launch');
@@ -343,7 +359,7 @@ function renderStockForm() {
       <select class="ui-input" id="vt-produto" name="produtoId" required ${launch ? 'disabled' : ''}>
         <option value="">Selecione um produto</option>
         ${getLaunchableProducts(launch).map((product) => `
-          <option value="${escapeHtml(product.id)}" ${launch?.produtoId === product.id ? 'selected' : ''}>
+          <option value="${escapeHtml(product.id)}" ${(launch?.produtoId ?? draft?.produtoId) === product.id ? 'selected' : ''}>
             ${escapeHtml(product.name)}
           </option>
         `).join('')}
@@ -357,7 +373,7 @@ function renderStockForm() {
     <div class="vt-form__row">
       <div class="ui-field">
         <label for="vt-quantidade">Quantidade</label>
-        <input class="ui-input" id="vt-quantidade" name="quantidade" type="number" min="1" step="1" placeholder="0" required value="${launch ? launch.quantidade : ''}">
+        <input class="ui-input" id="vt-quantidade" name="quantidade" type="number" min="1" step="1" placeholder="0" required value="${launch ? launch.quantidade : escapeHtml(draft.quantidade)}">
       </div>
       <div class="ui-field">
         <label for="vt-valor">Valor unitário</label>
