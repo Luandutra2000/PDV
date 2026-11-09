@@ -21,15 +21,26 @@ function renderKpi(label, value, tone = '') {
   `;
 }
 
-export function renderCashSessionStatus(status = {}) {
+// Pendencias de envio ao servidor (queda de conexao, erro): o operador precisa
+// saber que as vendas ainda estao so neste aparelho.
+export function renderSyncPending(pending = 0) {
+  const count = Number(pending) || 0;
+  if (!count) return '';
+  return `<span class="ui-status ui-status--pending" role="status" title="Mantenha o aparelho ligado e conectado; o envio e repetido automaticamente.">${count === 1 ? '1 envio pendente' : `${count} envios pendentes`}</span>`;
+}
+
+export function renderCashSessionStatus(status = {}, { pendingSync = 0 } = {}) {
+  const pending = renderSyncPending(pendingSync);
   if (status.open) {
     return `
+      ${pending}
       <span class="ui-status ui-status--open"><i></i>Caixa aberto</span>
       <button class="ui-btn" type="button" data-action="go-to-cash-closing">Fechar caixa</button>
     `;
   }
 
   return `
+    ${pending}
     <span class="ui-status ui-status--closed"><i></i>Caixa fechado</span>
     <button class="ui-btn ui-btn--ok" type="button" data-action="open-cash-session">Abrir caixa</button>
   `;

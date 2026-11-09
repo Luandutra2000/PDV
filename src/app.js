@@ -5,10 +5,10 @@ import { ensureSeedData } from './services/storage.service.js?v=20260804-06';
 import { hydrateDataProvider } from './services/data-provider.service.js?v=20260804-06';
 import { flushDataProvider } from './services/data-provider.service.js?v=20260804-06';
 import { loadCategories, loadProducts, startCatalogRealtime, syncCatalogNow } from './services/product.service.js?v=20260804-06';
-import { flushFinancialQueue, hydrateFinancialData, startFinancialRealtime } from './services/financial-sync.service.js?v=20260804-06';
+import { flushFinancialQueue, getFinancialSyncStatus, hydrateFinancialData, startFinancialRealtime } from './services/financial-sync.service.js?v=20260804-06';
 import { isSupabaseEnabled } from './services/app-config.service.js?v=20260804-06';
 import { hydrateOnlineOperationalData } from './services/online-data.service.js?v=20260804-06';
-import { flushShowcaseQueue } from './services/showcase-sync.service.js?v=20260804-06';
+import { flushShowcaseQueue, getShowcaseSyncStatus } from './services/showcase-sync.service.js?v=20260804-06';
 import { getDashboardResumo } from './services/dashboard-resumo.service.js?v=20260804-06';
 import { initVendasModule } from './modules/vendas/vendas.module.js?v=20260807-21';
 import { initProdutosModule } from './modules/produtos/produtos.module.js?v=20260807-21';
@@ -204,6 +204,8 @@ function renderCashStrip(root = document) {
 
 function bindCashUpdates(app) {
   on(UI_EVENTS.cashSummaryChanged, () => renderCashStrip(app));
+  on(UI_EVENTS.financialSyncStatusChanged, () => renderCashSessionIndicator(app));
+  on(UI_EVENTS.showcaseSyncStatusChanged, () => renderCashSessionIndicator(app));
   on(UI_EVENTS.cashSessionChanged, () => {
     renderCashSessionIndicator(app);
     const workspace = app.querySelector('[data-workspace-body]');
@@ -214,7 +216,12 @@ function bindCashUpdates(app) {
 function renderCashSessionIndicator(root = document) {
   const target = root.querySelector('[data-cash-session-indicator]');
   if (!target) return;
-  target.innerHTML = renderCashSessionStatus(getCashSessionStatus());
+  target.innerHTML = renderCashSessionStatus(getCashSessionStatus(), { pendingSync: getPendingSyncCount() });
+}
+
+function getPendingSyncCount() {
+  if (!isSupabaseEnabled()) return 0;
+  return (Number(getFinancialSyncStatus().pending) || 0) + (Number(getShowcaseSyncStatus().pending) || 0);
 }
 
 function renderOpenCashSessionModal(app) {

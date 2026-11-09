@@ -248,6 +248,7 @@
 .ui-status i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .ui-status--open { background: var(--green-soft); color: var(--green); }
 .ui-status--closed { background: var(--red-soft); color: var(--red); }
+.ui-status--pending { background: var(--accent-soft); color: var(--accent-soft-ink, var(--accent-ink-soft)); }
 
 .ui-user { position: relative; padding-left: 12px; border-left: 1px solid var(--line); }
 .ui-user__summary {
