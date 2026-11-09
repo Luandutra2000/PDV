@@ -1004,7 +1004,10 @@ function mergeRemoteWithCache(remoteItems, cachedItems) {
   const merged = new Map(cachedItems.map((item) => [item.id, item]));
   remoteItems.forEach((item) => {
     const cached = merged.get(item.id);
-    merged.set(item.id, cached?.syncPending ? { ...item, ...cached } : item);
+    // Cancelamento e definitivo (nao existe "descancelar"): uma leitura remota
+    // feita antes de o cancelamento chegar ao servidor nao pode reativar o item.
+    const remote = cached?.status === 'cancelada' ? preserveCancellation(cached, item) : item;
+    merged.set(item.id, cached?.syncPending ? { ...remote, ...cached } : remote);
   });
   return Array.from(merged.values());
 }
