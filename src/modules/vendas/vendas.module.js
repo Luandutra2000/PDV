@@ -7,7 +7,7 @@ import { renderFechamentoRapidoModal } from '../../components/fechamento-rapido-
 import { buildClosingSummary, buildShowcaseConference, confirmClosing, saveClosingDraft } from '../../services/cash-closing.service.js?v=20260804-06';
 import { getActiveComanda, addItem, addItemQuantity, clearComanda, removeItem, updateQuantity } from '../../services/comanda.service.js?v=20260804-06';
 import { createPeriodFilter, getCrmSummary } from '../../services/crm-dashboard.service.js?v=20260804-06';
-import { getCategories, getFavoriteProducts, getProductById, searchProducts } from '../../services/product.service.js?v=20260804-06';
+import { getCatalogSyncStatus, getCategories, getFavoriteProducts, getProductById, getProducts, searchProducts } from '../../services/product.service.js?v=20260804-06';
 import { finalizeComandaPayment, getBestSellingProducts } from '../../services/transaction.service.js?v=20260804-06';
 import { formatCurrency } from '../../utils/currency.js?v=20260804-06';
 import { escapeHtml, qs } from '../../utils/dom.js?v=20260804-06';
@@ -54,6 +54,12 @@ export function initVendasModule(container) {
         renderProducts(container);
       }
     });
+    // O erro do catalogo (ex.: leitura negada) precisa aparecer na grade.
+    [UI_EVENTS.productCatalogChanged, UI_EVENTS.productSyncStatusChanged].forEach((eventName) => on(eventName, () => {
+      if (container.querySelector('.pdv-screen')) {
+        renderProducts(container);
+      }
+    }));
     bindOtherTabComandaChanges(container);
     boundContainers.add(container);
   }
@@ -419,7 +425,12 @@ function renderProducts(container) {
   const products = getVisibleProducts();
 
   if (!products.length) {
-    target.innerHTML = '<div class="fc-empty">Nenhum produto encontrado.</div>';
+    // Catalogo vazio por erro de sincronizacao (ex.: perfil sem leitura no
+    // servidor) precisa aparecer para o operador, nao parecer busca sem resultado.
+    const syncError = !getProducts().length ? getCatalogSyncStatus()?.products?.error || getCatalogSyncStatus()?.error : '';
+    target.innerHTML = syncError
+      ? `<div class="fc-empty" role="alert">Produtos indisponíveis: ${escapeHtml(syncError)}</div>`
+      : '<div class="fc-empty">Nenhum produto encontrado.</div>';
     return;
   }
 

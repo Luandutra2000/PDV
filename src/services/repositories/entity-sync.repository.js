@@ -27,12 +27,17 @@ export function createEntitySyncRepository({
   getClient,
   emitChange = () => {},
   readCacheOverride = null,
-  writeCacheOverride = null
+  writeCacheOverride = null,
+  // Permite recusar uma lista remota suspeita (ex.: vazia porque o servidor nao
+  // liberou a leitura) sem apagar o cache local. Devolve a mensagem de erro.
+  validateRemoteList = null
 }) {
   let status = createStatus('idle', readQueue().length);
   let channel = null;
   let subscriptionPromise = null;
   let listRequestId = 0;
+  // true quando a ultima listagem foi recusada por validateRemoteList.
+  let remoteListRejected = false;
   let mutationVersion = 0;
 
   function readCache() {
@@ -130,6 +135,11 @@ export function createEntitySyncRepository({
 
       const queue = readQueue();
       const items = applyQueuedOperations(Array.isArray(data) ? data.map(adapter.fromRow) : [], queue);
+      const rejection = validateRemoteList?.(items);
+      remoteListRejected = Boolean(rejection);
+      if (rejection) {
+        throw new Error(rejection);
+      }
       writeCache(items);
       setStatusFromQueue(queue, queue.length ? previousError : '');
       return items;
@@ -214,7 +224,11 @@ export function createEntitySyncRepository({
     const queue = readQueue();
 
     if (!queue.length) {
-      setStatus({ state: 'synced', pending: 0, error: '' });
+      // Sem pendencias nao ha o que enviar: nao apaga um erro de leitura
+      // (ex.: catalogo negado pelo servidor) registrado pela ultima listagem.
+      if (!remoteListRejected) {
+        setStatus({ state: 'synced', pending: 0, error: '' });
+      }
       return;
     }
 
@@ -266,7 +280,9 @@ export function createEntitySyncRepository({
 
     await list();
 
-    setStatusFromQueue(remaining, remaining.length ? firstError || 'Algumas alteracoes continuam pendentes.' : '');
+    if (remaining.length || !remoteListRejected) {
+      setStatusFromQueue(remaining, remaining.length ? firstError || 'Algumas alteracoes continuam pendentes.' : '');
+    }
   }
 
   async function clearQueue() {

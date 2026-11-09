@@ -221,6 +221,12 @@ async function hydrateCollection(client, localProvider, key) {
   }
 
   if (Array.isArray(data)) {
+    // Catalogo vazio vindo do servidor costuma ser leitura negada para o perfil
+    // (RLS). A sincronizacao do catalogo (product-sync) decide e mostra o erro;
+    // esta hidratacao generica nao apaga o catalogo que ja esta no aparelho.
+    if (!data.length && [STORAGE_KEYS.categories, STORAGE_KEYS.products].includes(key) && localProvider.read(key, []).length) {
+      return;
+    }
     let hydrated = mapper.unmapCollection ? mapper.unmapCollection(data) : data.map(mapper.unmap);
     if (key === STORAGE_KEYS.auditLogs) {
       const pending = localProvider.read(key, []).filter((entry) => entry.pendingSync === true);

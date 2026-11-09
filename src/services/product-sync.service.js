@@ -5,6 +5,19 @@ import { createEntitySyncRepository } from './repositories/entity-sync.repositor
 import { categoryAdapter } from './repositories/category.adapter.js?v=20260804-06';
 import { productAdapter } from './repositories/product.adapter.js?v=20260804-06';
 import { setLocalCache } from './providers/local.provider.js?v=20260804-06';
+import { getCurrentUser } from './auth.service.js?v=20260804-06';
+import { hasPermission } from './permission.service.js?v=20260804-06';
+
+export const CATALOG_READ_DENIED_MESSAGE = 'O servidor não liberou o catálogo para o seu perfil. Avise o administrador para liberar a leitura de produtos.';
+
+// No servidor, so admin (products.view) e quem gerencia produtos leem o
+// catalogo. Lista vazia para outro perfil e recusa de leitura, nao catalogo vazio:
+// manter o cache do aparelho e mostrar o erro.
+function rejectEmptyCatalogForReaderWithoutPermission(items) {
+  const user = getCurrentUser();
+  const canReadCatalog = user?.role === 'admin' || hasPermission(user, 'products.manage');
+  return !items.length && user && !canReadCatalog ? CATALOG_READ_DENIED_MESSAGE : '';
+}
 
 let categoryRepository = null;
 let productRepository = null;
@@ -20,6 +33,7 @@ function getCategoryRepository() {
       adapter: categoryAdapter,
       getClient: getSupabaseClient,
       writeCacheOverride: (items) => setLocalCache(categoryAdapter.cacheKey, items),
+      validateRemoteList: rejectEmptyCatalogForReaderWithoutPermission,
       emitChange: (payload) => emitCatalogChange('categories', payload)
     });
   }
@@ -33,6 +47,7 @@ function getProductRepository() {
       adapter: productAdapter,
       getClient: getSupabaseClient,
       writeCacheOverride: (items) => setLocalCache(productAdapter.cacheKey, items),
+      validateRemoteList: rejectEmptyCatalogForReaderWithoutPermission,
       emitChange: (payload) => emitCatalogChange('products', payload)
     });
   }
