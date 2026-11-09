@@ -154,6 +154,9 @@ export async function cancelarLancamento(produto, quantidade) {
   const antes = show.getShowcaseStockByProductId(produto).quantityAvailable;
   const linha = await waitFor(() => linhaLancamento(produto, quantidade), { label: 'linha do lancamento' });
   linha.querySelector('[data-action="cancel-launch"]').click();
+  await sleep(250);
+  // segundo clique confirma (o botao vira "Confirmar cancelamento")
+  (await waitFor(() => linhaLancamento(produto, quantidade), { label: 'linha do lancamento' })).querySelector('[data-action="cancel-launch"]').click();
   await sleep(1200);
   const depois = show.getShowcaseStockByProductId(produto).quantityAvailable;
   return { produto, quantidade, antes, depois, ok: depois === Math.max(0, antes - quantidade), avisos: toasts().slice(-1) };

@@ -35,8 +35,14 @@ const estoqueState = {
   movementHistoryExpanded: false,
   // Rascunho do "Novo lancamento": a tela e redesenhada por sincronizacoes em
   // segundo plano e nao pode apagar o que o operador ja escolheu/digitou.
-  draft: { produtoId: '', quantidade: '' }
+  draft: { produtoId: '', quantidade: '' },
+  // Acoes destrutivas pedem um segundo clique no mesmo botao.
+  confirming: null
 };
+
+function isConfirming(action, id) {
+  return estoqueState.confirming?.action === action && estoqueState.confirming?.id === id;
+}
 
 // Ate esta quantidade a vitrine mostra "N restantes" (igual a frente de caixa).
 const LOW_STOCK_LIMIT = 3;
@@ -233,6 +239,14 @@ function bindEstoqueEvents(container) {
 
     const button = event.target.closest('[data-action], [data-clear-filter], [data-showcase-movements-more]');
 
+    if (estoqueState.confirming && !['cancel-launch', 'delete-comparison-row'].includes(button?.dataset?.action)) {
+      estoqueState.confirming = null;
+      if (!button) {
+        renderEstoque(container);
+        return;
+      }
+    }
+
     if (!button) {
       return;
     }
@@ -268,6 +282,12 @@ function bindEstoqueEvents(container) {
     }
 
     if (button.dataset.action === 'cancel-launch') {
+      if (!isConfirming('cancel-launch', button.dataset.launchId)) {
+        estoqueState.confirming = { action: 'cancel-launch', id: button.dataset.launchId };
+        renderEstoque(container);
+        return;
+      }
+      estoqueState.confirming = null;
       cancelStockLaunch(button.dataset.launchId);
       showNotification({
         title: 'Lançamento cancelado',
@@ -279,6 +299,12 @@ function bindEstoqueEvents(container) {
     }
 
     if (button.dataset.action === 'delete-comparison-row') {
+      if (!isConfirming('delete-comparison-row', button.dataset.productId)) {
+        estoqueState.confirming = { action: 'delete-comparison-row', id: button.dataset.productId };
+        renderEstoque(container);
+        return;
+      }
+      estoqueState.confirming = null;
       const result = deleteStockComparisonRow(button.dataset.productId, getFilters());
       showNotification({
         title: 'Linha apagada do comparativo',
@@ -425,7 +451,7 @@ function renderLaunchRows(launches) {
                 <td>
                   <div class="vt-actions">
                     <button class="ui-btn ui-btn--sm" type="button" data-action="edit-launch" data-launch-id="${launch.id}" ${launch.status === 'cancelado' ? 'disabled' : ''}>Editar</button>
-                    <button class="ui-btn ui-btn--loss ui-btn--sm" type="button" data-action="cancel-launch" data-launch-id="${launch.id}" ${launch.status === 'cancelado' ? 'disabled' : ''}>Cancelar</button>
+                    <button class="ui-btn ui-btn--loss ui-btn--sm" type="button" data-action="cancel-launch" data-launch-id="${launch.id}" ${launch.status === 'cancelado' ? 'disabled' : ''}>${isConfirming('cancel-launch', launch.id) ? 'Confirmar cancelamento' : 'Cancelar'}</button>
                   </div>
                 </td>
               ` : ''}
@@ -540,7 +566,7 @@ function renderComparison(filters) {
               <td class="r">${formatCurrency(item.diferencaValor)}</td>
               <td class="r">${item.percentualVendido}%</td>
               <td>
-                ${canWriteOff ? `<button class="ui-btn ui-btn--loss ui-btn--sm" type="button" data-action="delete-comparison-row" data-product-id="${item.produtoId}">Apagar</button>` : ''}
+                ${canWriteOff ? `<button class="ui-btn ui-btn--loss ui-btn--sm" type="button" data-action="delete-comparison-row" data-product-id="${item.produtoId}">${isConfirming('delete-comparison-row', item.produtoId) ? 'Confirmar exclusão' : 'Apagar'}</button>` : ''}
               </td>
             </tr>
           `).join('')}
