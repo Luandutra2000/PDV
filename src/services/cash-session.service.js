@@ -21,7 +21,7 @@ export function isCashSessionOpen() {
 
 export function assertCashSessionOpen() {
   if (!isCashSessionOpen()) {
-    throw new Error('Abra o caixa do dia antes de registrar vendas.');
+    throw new Error('Abra o caixa do dia antes de registrar vendas ou movimentos de dinheiro.');
   }
 }
 
@@ -36,11 +36,16 @@ export function openCashSession({ openingAmount = 0 } = {}) {
 
   const user = getCurrentUser();
   const now = new Date().toISOString();
+  // O fechamento do mesmo dia e cumulativo: ao reabrir, o troco da abertura
+  // anterior continua na gaveta e o valor informado e apenas o troco adicional.
+  const previous = getCashSession();
+  const previousOpening = previous?.status === 'fechado' ? Number(previous.openingAmount || 0) : 0;
   const session = {
     id: `cash-session-${getLocalDateKey()}-${crypto.randomUUID()}`,
     date: getLocalDateKey(),
     status: 'aberto',
-    openingAmount: Math.round(amount * 100) / 100,
+    openingAmount: Math.round((previousOpening + amount) * 100) / 100,
+    ...(previous?.status === 'fechado' ? { previousClosingId: previous.closingId || '', reopenedFrom: previous.id } : {}),
     openedAt: now,
     openedBy: user?.id || '',
     openedByName: user?.name || 'Sistema'
