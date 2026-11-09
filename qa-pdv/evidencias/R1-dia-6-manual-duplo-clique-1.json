@@ -1,0 +1,14 @@
+{
+ "evento": "CLI-139 duplo-clique real (mouse) em Finalizar venda",
+ "vendasCriadas": 1,
+ "vendas": [
+  {
+   "id": "sale-1794055267825-7e5f2394902728",
+   "total": 4.5,
+   "metodo": "pix",
+   "comanda": 143,
+   "criadoEm": "2026-11-07T12:41:07.825+00:00"
+  }
+ ],
+ "observacao": "o segundo clique caiu no botao OK do modal de confirmacao (mesma posicao), fechando-o imediatamente"
+}

@@ -1,0 +1,15 @@
+{
+ "servicos": [
+  "cancelar venda: bloqueado (Usuario sem permissao para esta acao.)",
+  "salvar produto: bloqueado (Usuario sem permissao para esta acao.)",
+  "fechar caixa: bloqueado (Usuario sem permissao para esta acao.)",
+  "perda na vitrine: bloqueado (Usuario sem permissao para esta acao.)",
+  "editar lancamento: bloqueado (Usuario sem permissao para esta acao.)",
+  "lancamento financeiro: bloqueado (Usuario sem permissao para esta acao.)"
+ ],
+ "botoesFrente": [
+  "open-entry",
+  "open-output"
+ ],
+ "cartoes": 0
+}

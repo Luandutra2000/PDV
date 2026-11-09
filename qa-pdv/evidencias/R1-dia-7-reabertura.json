@@ -1,0 +1,20 @@
+{
+ "reabertura": {
+  "status": "aberto",
+  "fundo": 0,
+  "indicador": "Caixa aberto\nFechar caixa"
+ },
+ "cli188": {
+  "id": "sale-1794155425182-eedfc4bd49975",
+  "total": 174.75,
+  "metodo": "pix",
+  "criadoEm": "2026-11-08T16:30:25.182+00:00",
+  "itens": [
+   "qa-pao-de-queijox12",
+   "qa-bolo-de-cenoura-fatiax3",
+   "qa-esfihax2",
+   "qa-brigadeirox5",
+   "qa-misto-quentex5"
+  ]
+ }
+}

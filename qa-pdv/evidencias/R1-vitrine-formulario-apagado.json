@@ -1,0 +1,12 @@
+{
+ "cenario": "Vitrine: formulario preenchido + atualizacao de vitrine em segundo plano",
+ "antes": {
+  "produto": "qa-coxinha",
+  "qtd": "12"
+ },
+ "depois": {
+  "produto": "",
+  "qtd": ""
+ },
+ "apagado": true
+}

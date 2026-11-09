@@ -1,0 +1,112 @@
+{
+ "abertura1": {
+  "status": "aberto",
+  "fundo": 5000,
+  "indicador": "Caixa aberto\nFechar caixa"
+ },
+ "venda1": {
+  "id": "EXT-13",
+  "metodo": "dinheiro",
+  "totalEsperado": 300,
+  "observacoes": [],
+  "totalPainel": 300,
+  "linhasPainel": [
+   "1x QA Água 500ml"
+  ],
+  "totalModal": 300,
+  "entradaDinheiro": "teclado:5",
+  "recebidoTela": 500,
+  "trocoTela": 200,
+  "rotuloTroco": "Troco",
+  "comanda": 413,
+  "totalConfirmado": 300,
+  "trocoConfirmado": 200,
+  "vendasCriadas": 1,
+  "saleId": "sale-1792930200313-8576d0c10d5438",
+  "criadoEm": "2026-10-25T12:10:00.313Z",
+  "totalRegistro": 300,
+  "trocoRegistro": 200,
+  "recebidoRegistro": 500,
+  "itensRegistro": [
+   {
+    "produto": "qa-agua-500ml",
+    "quantidade": 1,
+    "unit": 300,
+    "total": 300
+   }
+  ],
+  "ok": true,
+  "precoUnitarioUsado": {
+   "qa-agua-500ml": 300
+  }
+ },
+ "fechamento1": {
+  "dif": {
+   "diferencaGeral": "R$ 0,00",
+   "diferencaDinheiro": "R$ 0,00"
+  },
+  "exp": 5300,
+  "cont": 5300
+ },
+ "reabertura": {
+  "status": "aberto",
+  "fundo": 6000,
+  "indicador": "Caixa aberto\nFechar caixa"
+ },
+ "sessao": {
+  "openingAmount": 60,
+  "previousClosingId": true,
+  "reopenedFrom": true
+ },
+ "venda2": {
+  "id": "EXT-14",
+  "metodo": "pix",
+  "totalEsperado": 300,
+  "observacoes": [],
+  "totalPainel": 300,
+  "linhasPainel": [
+   "1x QA Água 500ml"
+  ],
+  "totalModal": 300,
+  "comanda": 414,
+  "totalConfirmado": 300,
+  "trocoConfirmado": 0,
+  "vendasCriadas": 1,
+  "saleId": "sale-1792944600574-d7ec458d772db",
+  "criadoEm": "2026-10-25T16:10:00.574Z",
+  "totalRegistro": 300,
+  "trocoRegistro": 0,
+  "recebidoRegistro": 300,
+  "itensRegistro": [
+   {
+    "produto": "qa-agua-500ml",
+    "quantidade": 1,
+    "unit": 300,
+    "total": 300
+   }
+  ],
+  "ok": true,
+  "precoUnitarioUsado": {
+   "qa-agua-500ml": 300
+  }
+ },
+ "cancelamento": {
+  "resultado": {
+   "saleId": "sale-1792944600574-d7ec458d772db",
+   "comanda": 414,
+   "statusDepois": "ativa",
+   "ok": false,
+   "aviso": "Comanda cancelada A comanda ficou registrada como cancelada. X"
+  },
+  "linhaDoTempo": "106:a 210:a 313:a 421:a 526:a 630:c 746:c 859:c 972:a 1082:a 1188:a 1298:a 1412:a 1513:a 1614:a 1725:a 1828:a 1936:c 2045:c 2157:c 2266:c 2376:c 2512:c 2624:c 2730:c 2833:c 2947:c 3064:c 3176:c 3289:c 3400:c 3506:c 3617:c 3722:c 3837:c 3953:c 4059:c 4164:c 4275:c 4387:c"
+ },
+ "fechamento2": {
+  "dif": {
+   "diferencaGeral": "R$ 0,00",
+   "diferencaDinheiro": "R$ 0,00"
+  },
+  "exp": 6300,
+  "cont": 6300,
+  "aviso": "Caixa fechado Fechamento salvo no historico do CRM. X"
+ }
+}

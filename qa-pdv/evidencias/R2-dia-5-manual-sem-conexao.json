@@ -1,0 +1,73 @@
+{
+ "evento": "R2 CLI-107 sem-conexao",
+ "vendaOk": true,
+ "durante": {
+  "fin": {
+   "state": "pending",
+   "pending": 1,
+   "error": "Failed to fetch (QA: sem conexao simulada)"
+  },
+  "vit": {
+   "state": "pending",
+   "pending": 1,
+   "error": "TypeError: Failed to fetch (QA: sem conexao simulada)"
+  }
+ },
+ "depois": {
+  "fin": {
+   "state": "synced",
+   "pending": 0,
+   "error": ""
+  },
+  "vit": {
+   "state": "synced",
+   "pending": 0,
+   "error": ""
+  },
+  "servidor": {
+   "id": "sale-1793362450381-1450035388143",
+   "total": 18.3,
+   "status": "ativa"
+  }
+ },
+ "venda": {
+  "id": "CLI-107",
+  "metodo": "debito",
+  "totalEsperado": 1830,
+  "observacoes": [],
+  "totalPainel": 1830,
+  "linhasPainel": [
+   "2x QA Esfiha",
+   "1x QA Café"
+  ],
+  "totalModal": 1830,
+  "comanda": 317,
+  "totalConfirmado": 1830,
+  "trocoConfirmado": 0,
+  "vendasCriadas": 1,
+  "saleId": "sale-1793362450381-1450035388143",
+  "criadoEm": "2026-10-30T12:14:10.381Z",
+  "totalRegistro": 1830,
+  "trocoRegistro": 0,
+  "recebidoRegistro": 1830,
+  "itensRegistro": [
+   {
+    "produto": "qa-esfiha",
+    "quantidade": 2,
+    "unit": 690,
+    "total": 1380
+   },
+   {
+    "produto": "qa-cafe",
+    "quantidade": 1,
+    "unit": 450,
+    "total": 450
+   }
+  ],
+  "ok": true,
+  "precoUnitarioUsado": {
+   "qa-esfiha": 690,
+   "qa-cafe": 450
+  }
+ }
+}

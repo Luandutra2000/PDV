@@ -1,0 +1,12 @@
+{
+ "evento": "R2 CLI-115 recarregar-no-pagamento",
+ "linhasAposReload": [
+  "2x QA Café",
+  "10x QA Refrigerante Lata",
+  "3x QA Coxinha"
+ ],
+ "total": 9650,
+ "troco": 10350,
+ "saleId": "sale-1793373388278-240122b1b02628",
+ "ok": true
+}

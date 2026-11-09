@@ -1,0 +1,14 @@
+{
+ "evento": "CLI-156 clique repetido em Finalizar venda",
+ "vendasCriadas": 1,
+ "vendas": [
+  {
+   "id": "sale-1794073980415-97759f824d649",
+   "total": 6,
+   "metodo": "debito",
+   "comanda": 161
+  }
+ ],
+ "modalAindaAberto": false,
+ "observacao": "OK do modal de sucesso ocupa a mesma posicao do Finalizar; em hover o texto fica rgb(28,35,49) sobre rgb(15,23,42)"
+}

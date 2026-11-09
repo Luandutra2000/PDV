@@ -1,0 +1,16 @@
+{
+ "evento": "R2 EXT-09 duas abas",
+ "abaA_depois_da_B": [
+  "QA Último Item R$ 11,10 R$ 5,55 cada − 2 + ×"
+ ],
+ "botao": "Receber R$ 11,10",
+ "modalTotal": "R$ 11,10",
+ "venda": {
+  "id": "sale-1793455222008-793a84746a704",
+  "total": 11.1,
+  "itens": [
+   "qa-ultimo-itemx2"
+  ]
+ },
+ "estoque": 0
+}

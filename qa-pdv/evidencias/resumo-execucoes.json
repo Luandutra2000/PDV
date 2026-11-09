@@ -1,0 +1,124 @@
+{
+  "R1": {
+    "fase": "antes das correcoes (correcoes BUG-001/002/003 aplicadas durante a execucao)",
+    "dias": [
+      {
+        "dia": 1,
+        "data": "2026-11-02",
+        "compras": 20,
+        "comprasOk": 20,
+        "diferencaDinheiro": 0,
+        "vendasServidor": 20
+      },
+      {
+        "dia": 2,
+        "data": "2026-11-03",
+        "compras": 25,
+        "comprasOk": 25,
+        "diferencaDinheiro": 12000,
+        "vendasServidor": 25
+      },
+      {
+        "dia": 3,
+        "data": "2026-11-04",
+        "compras": 25,
+        "comprasOk": 25,
+        "diferencaDinheiro": 10000,
+        "vendasServidor": 26
+      },
+      {
+        "dia": 4,
+        "data": "2026-11-05",
+        "compras": 30,
+        "comprasOk": 29,
+        "diferencaDinheiro": 13170,
+        "vendasServidor": 0
+      },
+      {
+        "dia": 5,
+        "data": "2026-11-06",
+        "compras": 30,
+        "comprasOk": 30,
+        "diferencaDinheiro": 9500,
+        "vendasServidor": 30
+      },
+      {
+        "dia": 6,
+        "data": "2026-11-07",
+        "compras": 40,
+        "comprasOk": 40,
+        "diferencaDinheiro": 20000,
+        "vendasServidor": 41
+      },
+      {
+        "dia": 7,
+        "data": "2026-11-08",
+        "compras": 30,
+        "comprasOk": 30,
+        "diferencaDinheiro": 15000,
+        "vendasServidor": 31
+      }
+    ]
+  },
+  "R2": {
+    "fase": "depois das correcoes",
+    "dias": [
+      {
+        "dia": 1,
+        "data": "2026-10-26",
+        "compras": 20,
+        "comprasOk": 20,
+        "diferencaDinheiro": 0,
+        "vendasServidor": 20
+      },
+      {
+        "dia": 2,
+        "data": "2026-10-27",
+        "compras": 25,
+        "comprasOk": 25,
+        "diferencaDinheiro": 0,
+        "vendasServidor": 25
+      },
+      {
+        "dia": 3,
+        "data": "2026-10-28",
+        "compras": 25,
+        "comprasOk": 25,
+        "diferencaDinheiro": 0,
+        "vendasServidor": 26
+      },
+      {
+        "dia": 4,
+        "data": "2026-10-29",
+        "compras": 30,
+        "comprasOk": 30,
+        "diferencaDinheiro": -2280,
+        "vendasServidor": 30
+      },
+      {
+        "dia": 5,
+        "data": "2026-10-30",
+        "compras": 30,
+        "comprasOk": 30,
+        "diferencaDinheiro": -500,
+        "vendasServidor": 30
+      },
+      {
+        "dia": 6,
+        "data": "2026-10-31",
+        "compras": 40,
+        "comprasOk": 40,
+        "diferencaDinheiro": 0,
+        "vendasServidor": 41
+      },
+      {
+        "dia": 7,
+        "data": "2026-11-01",
+        "compras": 30,
+        "comprasOk": 30,
+        "diferencaDinheiro": 0,
+        "vendasServidor": 31
+      }
+    ]
+  }
+}

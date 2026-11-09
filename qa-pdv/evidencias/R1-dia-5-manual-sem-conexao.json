@@ -1,0 +1,75 @@
+{
+ "evento": "CLI-107 sem-conexao",
+ "venda": {
+  "id": "CLI-107",
+  "metodo": "debito",
+  "totalEsperado": 1830,
+  "observacoes": [],
+  "totalPainel": 1830,
+  "linhasPainel": [
+   "2x QA Esfiha",
+   "1x QA Café"
+  ],
+  "totalModal": 1830,
+  "comanda": 111,
+  "totalConfirmado": 1830,
+  "trocoConfirmado": 0,
+  "vendasCriadas": 1,
+  "saleId": "sale-1793967250402-80392104353e4",
+  "criadoEm": "2026-11-06T12:14:10.402Z",
+  "totalRegistro": 1830,
+  "trocoRegistro": 0,
+  "recebidoRegistro": 1830,
+  "itensRegistro": [
+   {
+    "produto": "qa-esfiha",
+    "quantidade": 2,
+    "unit": 690,
+    "total": 1380
+   },
+   {
+    "produto": "qa-cafe",
+    "quantidade": 1,
+    "unit": 450,
+    "total": 450
+   }
+  ],
+  "ok": true,
+  "precoUnitarioUsado": {
+   "qa-esfiha": 690,
+   "qa-cafe": 450
+  }
+ },
+ "durante": {
+  "fin": {
+   "state": "pending",
+   "pending": 1,
+   "error": "Failed to fetch (QA: sem conexao simulada)"
+  },
+  "vit": {
+   "state": "pending",
+   "pending": 1,
+   "error": "TypeError: Failed to fetch (QA: sem conexao simulada)"
+  },
+  "indicador": "Caixa atual R$ 200,25 Vitrine estimada R$ 990,15 Total vendido R$ 200,25 Entradas R$ 0,00 Saídas R$ 0,00",
+  "toasts": []
+ },
+ "depois": {
+  "fin": {
+   "state": "synced",
+   "pending": 0,
+   "error": ""
+  },
+  "vit": {
+   "state": "pending",
+   "pending": 1,
+   "error": "TypeError: Failed to fetch (QA: sem conexao simulada)"
+  },
+  "servidor": {
+   "id": "sale-1793967250402-80392104353e4",
+   "total": 18.3,
+   "status": "ativa"
+  },
+  "botaoAtualizar": true
+ }
+}

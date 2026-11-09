@@ -1,0 +1,59 @@
+{
+ "entradaCaixaFechado": "Não foi possível registrar Abra o caixa do dia antes de registrar vendas. X",
+ "cancelSaida": {
+  "status": "cancelada",
+  "financeiroVinculado": "canceled",
+  "aviso": "Movimentação cancelada O lançamento foi mantido no histórico em vermelho. X"
+ },
+ "fechamentosDia7Depois": [
+  {
+   "id": "closing-1794174316107-1dc9d0a8eb93a8",
+   "outputs": 0,
+   "expectedCash": 491.2
+  },
+  {
+   "id": "closing-1794174316091-48f145705feb38",
+   "outputs": 12.3,
+   "expectedCash": 609.7
+  }
+ ],
+ "fechAntes": [
+  {
+   "id": "closing-1794174316107-1dc9d0a8eb93a8",
+   "outputs": 0,
+   "expectedCash": 491.2
+  },
+  {
+   "id": "closing-1794174316091-48f145705feb38",
+   "outputs": 12.3,
+   "expectedCash": 609.7
+  }
+ ],
+ "resumoHoje": {
+  "totalVendido": 1426.65,
+  "entradas": 0,
+  "saidas": 0,
+  "caixaAtual": 1426.65,
+  "vitrineEstimada": 0,
+  "paymentTotals": {
+   "dinheiro": 621.9999999999999,
+   "pix": 295.55,
+   "debito": 367.85,
+   "credito": 141.25
+  },
+  "closedComandas": 31,
+  "canceledComandas": 0
+ },
+ "filas": [
+  {
+   "state": "synced",
+   "pending": 0,
+   "error": ""
+  },
+  {
+   "state": "synced",
+   "pending": 0,
+   "error": ""
+  }
+ ]
+}

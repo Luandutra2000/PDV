@@ -1,0 +1,31 @@
+{
+ "evento": "CLI-115 recarregar-no-pagamento",
+ "parcialAntesDoReload": {
+  "id": "CLI-115",
+  "metodo": "dinheiro",
+  "totalEsperado": 9650,
+  "observacoes": [],
+  "totalPainel": 9650,
+  "linhasPainel": [
+   "2x QA Café",
+   "10x QA Refrigerante Lata",
+   "3x QA Coxinha"
+  ],
+  "totalModal": 9650,
+  "entradaDinheiro": "cedula-rapida",
+  "recebidoTela": 20000,
+  "trocoTela": 10350,
+  "rotuloTroco": "Troco",
+  "pendente": true
+ },
+ "linhasAposReload": [
+  "2x QA Café",
+  "10x QA Refrigerante Lata",
+  "3x QA Coxinha"
+ ],
+ "trocoTela": "R$ 103,50",
+ "saleId": "sale-1793978200230-09f29e81631fe8",
+ "total": 9650,
+ "troco": 10350,
+ "ok": true
+}

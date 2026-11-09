@@ -1,0 +1,98 @@
+id;modulo;tela;elemento_acao;perfil;estado_precondicao;cenario;resultado_esperado;resultado_observado;status;evidencia;bug_relacionado
+COB-001;Acesso;Login;Entrar (admin);admin;sem sessao;login com conta real feito pelo usuario;abre o PDV;abriu (usuario Luan, admin);PASSOU;interface;
+COB-002;Acesso;Login;Entrar (operador);operador;sem sessao;login da operadora feito pelo usuario;abre o PDV com menus do perfil;"abriu; menus Vender, Vitrine, Suporte";PASSOU;interface;
+COB-003;Acesso;Login;Senha invalida / campos vazios;todos;sem sessao;digitar senha errada;mensagem de erro;nao executado;BLOQUEADO;;"Digitar senhas em nome do usuario nao e permitido ao agente; requer execucao pelo usuario"
+COB-004;Acesso;Menu do usuario;Sair;admin;logado;logout pelo usuario para trocar de perfil;volta ao login;voltou ao login (feito pelo usuario);PASSOU;interface;
+COB-005;Acesso;Carregamento;Inicializacao com sessao ativa;admin;sessao salva;recarregar a pagina;abrir direto o PDV;formulario de login estatico aparece por ~7,6 s antes de abrir;FALHOU;interface (medicao);BUG-023
+COB-006;Acesso;Permissoes;Rota restrita pela URL (?view=pessoas);operador;logado;abrir URL de tela sem permissao;redirecionar para tela permitida;abriu Frente de caixa;PASSOU;interface;
+COB-007;Acesso;Permissoes;Servicos sem botao (cancelar venda, salvar produto, fechar caixa, perda, financeiro, editar lancamento);operador;logado;chamar as regras do app diretamente;bloquear;6/6 bloqueados;PASSOU;console (regras do app);
+COB-008;Acesso;Permissoes;Servidor: alterar preco de produto;operador;token do operador;update via API em produto QA;0 linhas;0 linhas alteradas;PASSOU;API;
+COB-009;Acesso;Permissoes;Servidor: ler financeiro e auditoria;operador;token do operador;select via API;nao visivel;0 linhas;PASSOU;API;
+COB-010;Acesso;Permissoes;Servidor: ler catalogo (products/categories);operador;token do operador;carregar o PDV como operadora;catalogo visivel para vender;"0 produtos e 0 categorias; frente de caixa vazia";FALHOU;interface + API;BUG-017
+COB-011;Acesso;Permissoes;Servidor: escalonar o proprio perfil;operador;token do operador;update em profiles.role_id;bloquear;nao executado: bloqueado pela protecao do agente;BLOQUEADO;;Tentativa de escalonamento recusada pelo controle de permissoes do agente
+COB-012;Acesso;Permissoes;Servidor: ler auditoria;admin;token do admin;inserir registro QA e ler;admin le audit_logs;insert 201, select 0 linhas;FALHOU;API;BUG-018
+COB-013;Caixa;Topo;Abrir caixa;admin;caixa fechado;abrir com R$ 150 (D1) e demais fundos;sessao aberta com o fundo;aberto 14 vezes (R1+R2);PASSOU;interface + dados/R*/dia-*;
+COB-014;Caixa;Abrir caixa;Valor negativo;admin;caixa fechado;digitar -10;bloquear;validacao nativa bloqueou;PASSOU;interface;
+COB-015;Caixa;Abrir caixa;Abertura duplicada;admin;caixa aberto;procurar Abrir caixa com sessao aberta;nao permitir;"botao some; sessao mantida";PASSOU;dados/R*/dia-*;
+COB-016;Caixa;Abrir caixa;Visual do modal;admin;caixa fechado;abrir o modal;campos com espacamento do visual B;"R1: campo encostado na borda; apos correcao com espacamento correto";PASSOU;interface;BUG-013 (corrigido)
+COB-017;Caixa;Abrir caixa;Cancelar;operador;modal aberto;fechar sem abrir;fechar sem salvar;"fechou; caixa continua fechado";PASSOU;interface;
+COB-018;Caixa;Abrir caixa;Reabertura no mesmo dia;admin;caixa fechado no dia;reabrir com troco adicional;troco anterior continua contando;"R1: troco substituido (perdeu R$ 150); R2: 50+10=60, fechamento exato";PASSOU;dados/R2/ext-13-14;BUG-010 (corrigido)
+COB-019;Caixa;Frente/Caixa;+ Entrada (suprimento);admin;caixa aberto;D2 R$ 50, D6 R$ 30;registrar e sincronizar;"R1: travou a fila do servidor; R2: ok";PASSOU;dados/R2/servidor-dia-2;BUG-001 (corrigido)
+COB-020;Caixa;Frente/Caixa;- Saida (despesa);admin;caixa aberto;D3/D5/D7 despesas em dinheiro;registrar e sincronizar;"R1: categoria inexistente travou a fila; R2: ok";PASSOU;dados/R2/servidor-dia-3;BUG-002 (corrigido)
+COB-021;Caixa;Frente/Caixa;- Saida como sangria;admin;caixa aberto;D4 R$ 200, D6 R$ 300;sangria reduz gaveta sem virar despesa;"nao existe tipo sangria; virou despesa ""Retirada do dono""";FALHOU;Financeiro;BUG-021
+COB-022;Caixa;Frente/Caixa;Entrada com caixa fechado;admin;caixa fechado;tentar registrar entrada;bloquear com mensagem clara;"bloqueou; mensagem falava em ""vendas""";PASSOU;dados/R1/ext-12;BUG-013 (corrigido)
+COB-023;Caixa;Caixa;Conferencia e Fechar caixa (Hoje);admin;caixa aberto;contar gaveta fisica e fechar;diferenca = contado - (fundo + dinheiro + entradas - saidas);"R1: diferenca = troco inicial em 7/7 dias; R2: exata (exceto regra D4 e -5 proposital D5)";PASSOU;conciliacao.csv;BUG-005 (corrigido)
+COB-024;Caixa;Caixa;Contagem divergente proposital;admin;caixa aberto;contar R$ 5,00 a menos (D5);diferenca -5,00;"R1: +95,00; R2: -5,00";PASSOU;conciliacao.csv;BUG-005 (corrigido)
+COB-025;Caixa;Caixa;Fechamento repetido no mesmo dia;admin;caixa reaberto;segundo fechamento (cumulativo);conferencia do dia inteiro;"cumulativo; exato apos correcao";PASSOU;dados/R2/ext-13-14;BUG-010 (corrigido)
+COB-026;Caixa;Caixa;Alteracao apos o fechamento;admin;dia fechado;cancelar saida apos fechar (EXT-12);manter fechamento salvo e rastrear;"fechamento inalterado; saida e financeiro cancelados";PASSOU;dados/R1/ext-12;
+COB-027;Caixa;Caixa;Periodos Ontem/Semana/Mes/Personalizado;admin;qualquer;trocar periodo;conferencia so leitura e fechar desativado;"coberto por teste automatizado (caixa-module); nao exercido na interface";NAO EXECUTADO;teste automatizado;
+COB-028;Caixa;Caixa;Fechar com diferenca sem observacao;admin;caixa aberto;deixar observacao vazia;bloquear;nao executado na interface (regra coberta por teste automatizado);NAO EXECUTADO;teste automatizado;
+COB-029;Caixa;Frente;Fechamento rapido;admin;caixa aberto;fechar pelo modal rapido;mesmo calculo da tela Caixa;"calculo validado por teste automatizado; fluxo de interface nao exercido";NAO EXECUTADO;teste automatizado;BUG-005 (corrigido)
+COB-030;Caixa;App do dono;Fechar caixa pelo celular;admin;caixa aberto;fechar pelo App do dono;mesmo calculo;"calculo validado por teste automatizado; interface nao exercida";NAO EXECUTADO;teste automatizado;
+COB-031;Caixa;Topo;Indicador Caixa atual;admin;qualquer;comparar com gaveta fisica;dinheiro na gaveta;soma Pix e cartoes (R$ 1.414,35 x gaveta R$ 759,70);FALHOU;interface;BUG-012
+COB-032;Caixa;Servidor;Sessao de caixa no servidor;admin;caixa aberto;consultar cash_sessions;sessao/troco visivel a outros aparelhos;0 sessoes no servidor;FALHOU;API;BUG-011
+COB-033;Vendas;Frente;Adicionar produto (toque);admin;caixa aberto;200 compras x 2 execucoes;item na comanda;ok;PASSOU;transacoes.csv;
+COB-034;Vendas;Frente;Toque longo / botao direito -> quantidade;admin;caixa aberto;quantidades 2 a 12;adiciona a quantidade;ok;PASSOU;transacoes.csv;
+COB-035;Vendas;Frente;Quantidade invalida (0);admin;modal quantidade;informar 0;bloquear;nao executado na interface;NAO EXECUTADO;;
+COB-036;Vendas;Frente;Busca de produto;admin;caixa aberto;filtrar e adicionar;filtra;ok;PASSOU;transacoes.csv;
+COB-037;Vendas;Frente;Categoria Todos;admin;caixa aberto;antes de cada venda;lista todos;ok;PASSOU;interface;
+COB-038;Vendas;Frente;Categorias, Mais vendidos, Favoritos;admin;caixa aberto;trocar aba;filtra;nao exercido individualmente;NAO EXECUTADO;;
+COB-039;Vendas;Frente;Aumentar / diminuir / remover item;admin;comanda com itens;D2 (3 vendas com edicao);comanda e total corretos;ok;PASSOU;transacoes.csv;
+COB-040;Vendas;Frente;Limpar (carrinho abandonado);admin;comanda com itens;EXT-01;comanda vazia;ok;PASSOU;dados/R*/dia-2;
+COB-041;Vendas;Pagamento;Dinheiro exato (botao Exato);admin;modal aberto;vendas em dinheiro exato;troco 0;ok;PASSOU;transacoes.csv;
+COB-042;Vendas;Pagamento;Dinheiro com troco (cedulas rapidas e teclado);admin;modal aberto;67 vendas em dinheiro por execucao;troco = recebido - total;ok (centavos);PASSOU;transacoes.csv;
+COB-043;Vendas;Pagamento;Dinheiro insuficiente;admin;modal aberto;CLI-003 digita valor menor;Finalizar desabilitado, mostra Faltam;ok;PASSOU;dados/R*/dia-1;
+COB-044;Vendas;Pagamento;Pix / Debito / Credito;admin;modal aberto;55/45/33 vendas por execucao;registrar forma;ok;PASSOU;transacoes.csv;
+COB-045;Vendas;Pagamento;Pagamento dividido;admin;;pagar em duas formas;;"recurso inexistente; 20 compras redistribuidas";NAO APLICAVEL;;Sugestao
+COB-046;Vendas;Pagamento;Pix/cartao pendente, recusado, cancelado;admin;;estados do provedor;;"PDV nao integra provedor; registra a forma apos confirmacao manual";NAO APLICAVEL;;
+COB-047;Vendas;Pagamento;Desconto / acrescimo / taxa;admin;;aplicar desconto;;recurso inexistente;NAO APLICAVEL;;Sugestao
+COB-048;Vendas;Pagamento;Cancelar (fechar modal);admin;modal aberto;fechar pagamento;volta sem vender;ok (fechamento de modais pela automacao);PASSOU;interface;
+COB-049;Vendas;Pagamento;Duplo clique em Finalizar;admin;modal aberto;mouse real, 2 vendas por execucao;1 venda e confirmacao visivel;"sempre 1 venda; R1 confirmacao fechada pelo 2o clique; R2 ok";PASSOU;dados/R*/dia-6-manual-duplo-clique-*;BUG-009 (corrigido)
+COB-050;Vendas;Confirmacao;OK da venda (contraste no hover);admin;venda finalizada;mouse sobre OK;texto legivel;"R1 1,1:1; R2 17,85:1";PASSOU;dados/R2/dia-6-manual-duplo-clique-1;BUG-009 (corrigido)
+COB-051;Vendas;Frente;Produto esgotado;admin;vitrine 0;vender sem estoque;aviso e registro de venda sem estoque;aviso + venda_sem_estoque;PASSOU;dados/R*/servidor-dia-*;
+COB-052;Vendas;Frente;Recarregar com pagamento aberto;admin;modal aberto;CLI-115;comanda preservada, sem venda duplicada;ok;PASSOU;dados/R*/dia-5-manual-recarregar;
+COB-053;Vendas;Frente;Venda sem conexao;admin;servidor inacessivel (simulado);CLI-107;venda local e envio depois;"R1: vitrine ficou pendente; R2: Atualizar enviou tudo";PASSOU;dados/R*/dia-5-manual-sem-conexao;BUG-007 (corrigido)
+COB-054;Vendas;Frente;Aviso de sem conexao para o operador;admin;servidor inacessivel;olhar a tela durante a queda;aviso de pendencia;nenhum aviso na Frente de caixa;FALHOU;dados/R1/dia-5-manual-sem-conexao;BUG-024
+COB-055;Vendas;Frente;Duas abas no mesmo aparelho;admin;duas abas;EXT-09 disputa da ultima unidade;tela e cobranca coerentes;"R1: tela 5,55 x cobranca 11,10; R2: tela atualizada";PASSOU;dados/R*/dia-6-manual-duas-abas;BUG-008 (corrigido)
+COB-056;Vendas;Frente;Dois operadores em aparelhos diferentes (ultima unidade);admin+operador;dois aparelhos;venda simultanea;politica de estoque respeitada no servidor;nao executado: exige segundo aparelho/sessao isolada;BLOQUEADO;;Somente um navegador com sessao disponivel
+COB-057;Vendas;Frente;Confirmacao apos visitar Produtos;admin;Produtos visitado;vender depois de editar preco;confirmacao e tela mantidas;"R1: tela Produtos cobriu a venda e 12 vendas falharam; R2: ok";PASSOU;dados/R2/dia-7-b;BUG-003 (corrigido)
+COB-058;Vendas;Frente;Receber visivel em 1024x600;admin;janela baixa;abrir frente de caixa;Receber visivel;"antes a 1.340 px; depois visivel";PASSOU;interface;BUG-016 (corrigido)
+COB-059;Vendas;Frente;Celular 375 px;admin;tela estreita;abrir frente de caixa;layout adaptado;conteudo cortado na horizontal;FALHOU;interface;BUG-025
+COB-060;Historico;Historico;Cancelar comanda (mesmo dia);admin;venda ativa;EXT-06/07/08;cancelada, estoque estornado, sincronizada;"ok; R1 mostrava ""ativa"" por ~1 s";PASSOU;dados/R2/ext-15;BUG-015 (corrigido)
+COB-061;Historico;Historico;Cancelar venda de dia anterior;admin;venda de ontem;EXT-05 (D3) cancelada no D4;devolucao registrada no dia do cancelamento;"dia original alterado; devolucao nao entra no D4 (-22,80 na gaveta)";FALHOU;conciliacao.csv;BUG-019
+COB-062;Historico;Historico;Cancelar movimento (saida);admin;movimento ativo;EXT-12 com motivo;cancelado e financeiro vinculado cancelado;ok (motivo via prompt nativo);PASSOU;dados/R1/ext-12;BUG-029
+COB-063;Historico;Historico;Periodos Hoje / Todo periodo;admin;qualquer;filtrar historico;lista do periodo;ok;PASSOU;interface;
+COB-064;Historico;Historico;Limpar historico;admin;;apagar periodo;;nao executado: apaga dados no servidor de producao;BLOQUEADO;;Destrutivo em producao
+COB-065;Historico;Historico;Numero de comanda unico;admin;varios aparelhos;comparar comandas;numero nao repete;comanda 1 repetida entre 09/11 (real) e 02/11 (QA);FALHOU;dados/R1/dia-1;BUG-020
+COB-066;Vitrine;Vitrine;Lancar na vitrine;admin;qualquer;9-10 lancamentos/dia;estoque +quantidade;"R1: 1 lancamento perdido; R2: todos ok";PASSOU;conciliacao.csv;BUG-006 (corrigido)
+COB-067;Vitrine;Vitrine;Formulario preservado em sincronizacao;admin;formulario preenchido;evento de vitrine em segundo plano;manter produto/quantidade;"R1 apagava; corrigido";PASSOU;dados/R1/vitrine-formulario-apagado + teste;BUG-006 (corrigido)
+COB-068;Vitrine;Vitrine;Editar lancamento;admin;lancamento ativo;EXT-02 20 -> 22;estoque +2;ok;PASSOU;dados/R*/dia-3;
+COB-069;Vitrine;Vitrine;Cancelar lancamento;admin;lancamento ativo;EXT-03;estoque -5;"ok; sem confirmacao";PASSOU;dados/R*/dia-3;BUG-026
+COB-070;Vitrine;Vitrine;Reposicao no meio do dia;admin;qualquer;EXT-04 +10;estoque +10;ok;PASSOU;dados/R*/dia-3;
+COB-071;Vitrine;Vitrine;Quantidade zero/negativa;admin;formulario;lancar 0;bloquear;nao exercido na interface (regra em teste automatizado);NAO EXECUTADO;teste automatizado;
+COB-072;Vitrine;Vitrine;Estoque herdado do dia anterior;admin;novo dia;conferir abertura de 14 dias;igual ao fechamento anterior;14/14 iguais a referencia;PASSOU;conciliacao.csv;
+COB-073;Vitrine;Vitrine;Filtros de periodo, produtos e categorias;admin;qualquer;filtrar;filtra;nao exercido;NAO EXECUTADO;;
+COB-074;Vitrine;Vitrine;Apagar linha do comparativo;admin;qualquer;apagar linha;confirmar antes;"nao exercido; sem confirmacao no codigo";NAO EXECUTADO;inspecao estatica;BUG-026
+COB-075;Vitrine;Perda/Consumo;Perda de produto lancado hoje;admin;lancamento do dia;D3: 2 bolos vencidos;estoque -2;ok;PASSOU;dados/R*/dia-3;
+COB-076;Vitrine;Perda/Consumo;Perda de estoque herdado;admin;vitrine com 48 brigadeiros;D7: 3 brigadeiros consumo;registrar;"recusada: ""maior que a sobra""";FALHOU;dados/R*/dia-7;BUG-004
+COB-077;Vitrine;App do dono;Alertas Produto acabando / Vitrine estimada;admin;estoque herdado;comparar com vitrine;refletir estoque real;"""restam 1"" com 48 na vitrine";FALHOU;interface;BUG-004
+COB-078;Produtos;Produtos;Nova categoria (vazia e valida);admin;;criar 4 categorias QA;valida e salva;ok;PASSOU;interface;
+COB-079;Produtos;Produtos;Novo produto com estoque inicial;admin;;13 produtos QA;salva e ajusta vitrine;ok;PASSOU;interface;
+COB-080;Produtos;Produtos;Editar preco;admin;produto com vendas;EXT-10 cafe 4,50 -> 4,80;vendas antigas mantem 4,50;"57 vendas antigas com 4,50; novas 4,80";PASSOU;dados/R*/dia-7;
+COB-081;Produtos;Produtos;Editar estoque (restaurar base);admin;;ajustar 13 produtos;vitrine = valor informado;ok;PASSOU;interface;BUG-027
+COB-082;Produtos;Produtos;Apagar produto com vendas;admin;produto vendido;EXT-16 QA Inativo;"confirmar; historico preserva nome";"confirmou; historico e relatorios consistentes";PASSOU;dados/R2/ext-16;
+COB-083;Produtos;Produtos;Inativar produto;admin;;procurar acao;existir;"so existe filtro ""Inativos""";NAO APLICAVEL;;BUG-022 (sugestao)
+COB-084;Produtos;Produtos;Editar/apagar categoria, busca, filtros;admin;;usar controles;;nao exercidos;NAO EXECUTADO;;
+COB-085;Relatorios;Relatorios;7 dias (R1 e R2);admin;semana completa;comparar com referencia;totais por forma, comandas, ticket;"R2 identico; R1 identico exceto desvio de 4,50";PASSOU;interface;
+COB-086;Relatorios;Relatorios;Movimentacoes recentes;admin;;ler a tabela;descricao e categoria legiveis;"R1 codigos crus; R2 ok";PASSOU;interface;BUG-014 (corrigido)
+COB-087;Relatorios;Relatorios;Hoje / Ontem / Mes / Periodo;admin;;trocar periodo;;nao exercidos;NAO EXECUTADO;;
+COB-088;Relatorios;Relatorios;Impressao / exportacao;admin;;imprimir/exportar;;"nao ha botao de impressao/exportacao nas telas; cupom e impressora nao testados";NAO APLICAVEL;;Impressao fisica pendente
+COB-089;Financeiro;Financeiro;Leitura do mes;admin;;conferir entradas/saidas;refletir movimentos;entradas 80,00 e saidas 551,45 corretas (sangria como despesa);PASSOU;interface;BUG-021
+COB-090;Financeiro;Financeiro;+ Entrada / - Saida / + Boleto / Marcar pago / Editar;admin;;lancar no financeiro;;nao executado (ha conta real a pagar em producao);NAO EXECUTADO;;
+COB-091;App do dono;Inicio/Caixa;Leitura do dia;admin;;conferir indicadores;totais do dia;"total vendido correto; Caixa atual mistura formas";PASSOU;interface;BUG-012
+COB-092;App do dono;Vitrine/CRM/Financeiro;Abas;admin;;navegar;;nao exercidas;NAO EXECUTADO;;
+COB-093;Pessoas;Pessoas;Novo usuario / editar / excluir / permissoes / historico;admin;;gerir usuarios;;nao executado: criar contas nao e permitido ao agente e afetaria usuarios reais;BLOQUEADO;;
+COB-094;Empresa;Empresa;Salvar identidade, logo, restaurar padrao;admin;;alterar configuracoes;;nao executado: alteraria a identidade real da empresa em producao;NAO EXECUTADO;;
+COB-095;Suporte;Suporte;Baixar backup deste aparelho;admin;;baixar arquivo;;nao executado: download nao autorizado nesta sessao (backup coberto por teste automatizado);NAO EXECUTADO;teste automatizado;
+COB-096;Tema;Menu do usuario;Modo escuro;admin;;alternar tema;;nao exercido;NAO EXECUTADO;;
+COB-097;Integracoes;Pagamento;Maquininha / Pix / emissao fiscal / impressora;todos;;integracao real;;"nao ha integracao no PDV; validacao fisica pendente";NAO APLICAVEL;;

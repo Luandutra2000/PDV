@@ -18,3 +18,7 @@ reports/
 
 # Copia de visualizacao local do redesenho
 .design-preview/
+
+# Backup de producao feito pelo QA (contem dados reais)
+qa-pdv/backup-inicial/
+qa-pdv/dados/

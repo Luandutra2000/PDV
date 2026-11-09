@@ -1,0 +1,16 @@
+{
+ "evento": "EXT-09 disputa ultima unidade em duas abas do mesmo aparelho",
+ "abaB_depois_da_venda_na_A": {
+  "telaB": [
+   "QA Último Item R$ 11,10 R$ 5,55 cada − 2 + ×"
+  ],
+  "titulo": "Comanda 148",
+  "botao": "Receber R$ 11,10",
+  "cartaoEstoque": "Esgotado"
+ },
+ "abaA": {
+  "telaMostrava": "1x QA Último Item R$ 5,55",
+  "modalCobrou": "R$ 11,10",
+  "venda": "2x qa-ultimo-item pix 11,10 (1 baixada da vitrine, 1 sem estoque)"
+ }
+}

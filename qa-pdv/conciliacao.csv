@@ -1,0 +1,132 @@
+execucao;dia;data;indicador;esperado_referencia;observado_sistema;diferenca;explicacao
+R1;1;2026-11-02;compras principais (qtd);20;20;0;20/20 com valores conferidos
+R1;1;2026-11-02;dinheiro esperado na gaveta (regra do roteiro) (R$);701,25;25,00;-676,25;R1: sistema ignorava o troco inicial (BUG-005)
+R1;1;2026-11-02;dinheiro contado informado (R$);701,25;25,00;-676,25;
+R1;1;2026-11-02;diferenca de dinheiro registrada (R$);0,00;0,00;0,00;
+R1;1;2026-11-02;pix esperado no fechamento (R$);430,55;0,00;-430,55;
+R1;1;2026-11-02;debito esperado no fechamento (R$);0,00;0,00;0,00;
+R1;1;2026-11-02;credito esperado no fechamento (R$);0,00;0,00;0,00;
+R1;1;2026-11-02;vendas ativas no servidor (R$);981,80;981,80;0,00;"fotografia do servidor no fechamento do dia (periodo pela data da venda; cancelada = excluida)"
+R1;1;2026-11-02;vitrine: produtos sem diferenca (qtd);13;13;0;
+R1;2;2026-11-03;compras principais (qtd);25;25;0;25/25 com valores conferidos
+R1;2;2026-11-03;dinheiro esperado na gaveta (regra do roteiro) (R$);400,20;280,20;-120,00;R1: sistema ignorava o troco inicial (BUG-005)
+R1;2;2026-11-03;dinheiro contado informado (R$);400,20;400,20;0,00;
+R1;2;2026-11-03;diferenca de dinheiro registrada (R$);0,00;120,00;120,00;
+R1;2;2026-11-03;pix esperado no fechamento (R$);148,30;148,30;0,00;
+R1;2;2026-11-03;debito esperado no fechamento (R$);354,80;354,80;0,00;
+R1;2;2026-11-03;credito esperado no fechamento (R$);409,25;409,25;0,00;
+R1;2;2026-11-03;vendas ativas no servidor (R$);1142,55;1142,55;0,00;"fotografia do servidor no fechamento do dia (periodo pela data da venda; cancelada = excluida)"
+R1;2;2026-11-03;vitrine: produtos sem diferenca (qtd);13;13;0;
+R1;3;2026-11-04;compras principais (qtd);25;25;0;25/25 com valores conferidos
+R1;3;2026-11-04;dinheiro esperado na gaveta (regra do roteiro) (R$);409,35;309,35;-100,00;R1: sistema ignorava o troco inicial (BUG-005)
+R1;3;2026-11-04;dinheiro contado informado (R$);409,35;409,35;0,00;
+R1;3;2026-11-04;diferenca de dinheiro registrada (R$);0,00;100,00;100,00;
+R1;3;2026-11-04;pix esperado no fechamento (R$);151,15;151,15;0,00;
+R1;3;2026-11-04;debito esperado no fechamento (R$);191,20;191,20;0,00;
+R1;3;2026-11-04;credito esperado no fechamento (R$);56,20;56,20;0,00;
+R1;3;2026-11-04;vendas ativas no servidor (R$);708,50;731,30;22,80;"EXT-05 (R$ 22,80) ainda ativa no fechamento do Dia 3; foi cancelada no Dia 4"
+R1;3;2026-11-04;vitrine: produtos sem diferenca (qtd);13;13;0;
+R1;4;2026-11-05;compras principais (qtd);30;30;0;29/30 com valores conferidos
+R1;4;2026-11-05;dinheiro esperado na gaveta (regra do roteiro) (R$);240,30;108,60;-131,70;R1: sistema ignorava o troco inicial (BUG-005)
+R1;4;2026-11-05;dinheiro contado informado (R$);240,30;240,30;0,00;
+R1;4;2026-11-05;diferenca de dinheiro registrada (R$);0,00;131,70;131,70;
+R1;4;2026-11-05;pix esperado no fechamento (R$);261,05;261,05;0,00;
+R1;4;2026-11-05;debito esperado no fechamento (R$);181,65;181,65;0,00;
+R1;4;2026-11-05;credito esperado no fechamento (R$);59,65;59,65;0,00;
+R1;4;2026-11-05;vitrine qa-cafe (un);48;49;1;ver desvios de execucao / BUG-004
+R1;4;2026-11-05;vitrine: produtos sem diferenca (qtd);13;12;-1;
+R1;5;2026-11-06;compras principais (qtd);30;30;0;30/30 com valores conferidos
+R1;5;2026-11-06;dinheiro esperado na gaveta (regra do roteiro) (R$);737,70;637,70;-100,00;R1: sistema ignorava o troco inicial (BUG-005)
+R1;5;2026-11-06;dinheiro contado informado (R$);732,70;732,70;0,00;contagem divergente proposital de -5,00
+R1;5;2026-11-06;diferenca de dinheiro registrada (R$);-5,00;95,00;100,00;
+R1;5;2026-11-06;pix esperado no fechamento (R$);158,80;158,80;0,00;
+R1;5;2026-11-06;debito esperado no fechamento (R$);329,20;329,20;0,00;
+R1;5;2026-11-06;credito esperado no fechamento (R$);139,35;139,35;0,00;
+R1;5;2026-11-06;vendas ativas no servidor (R$);1280,80;1280,80;0,00;"fotografia do servidor no fechamento do dia (periodo pela data da venda; cancelada = excluida)"
+R1;5;2026-11-06;vitrine qa-cafe (un);52;53;1;ver desvios de execucao / BUG-004
+R1;5;2026-11-06;vitrine: produtos sem diferenca (qtd);13;12;-1;
+R1;6;2026-11-07;compras principais (qtd);40;40;0;40/40 com valores conferidos
+R1;6;2026-11-07;dinheiro esperado na gaveta (regra do roteiro) (R$);373,95;173,95;-200,00;R1: sistema ignorava o troco inicial (BUG-005)
+R1;6;2026-11-07;dinheiro contado informado (R$);373,95;373,95;0,00;
+R1;6;2026-11-07;diferenca de dinheiro registrada (R$);0,00;200,00;200,00;
+R1;6;2026-11-07;pix esperado no fechamento (R$);252,55;252,55;0,00;
+R1;6;2026-11-07;debito esperado no fechamento (R$);364,55;364,55;0,00;
+R1;6;2026-11-07;credito esperado no fechamento (R$);245,30;245,30;0,00;
+R1;6;2026-11-07;vendas ativas no servidor (R$);1306,35;1306,35;0,00;"fotografia do servidor no fechamento do dia (periodo pela data da venda; cancelada = excluida)"
+R1;6;2026-11-07;vitrine qa-cafe (un);75;76;1;ver desvios de execucao / BUG-004
+R1;6;2026-11-07;vitrine: produtos sem diferenca (qtd);13;12;-1;
+R1;7;2026-11-08;compras principais (qtd);30;30;0;30/30 com valores conferidos
+R1;7;2026-11-08;dinheiro esperado na gaveta (regra do roteiro) (R$);759,70;609,70;-150,00;R1: sistema ignorava o troco inicial (BUG-005)
+R1;7;2026-11-08;dinheiro contado informado (R$);759,70;759,70;0,00;
+R1;7;2026-11-08;diferenca de dinheiro registrada (R$);0,00;150,00;150,00;
+R1;7;2026-11-08;pix esperado no fechamento (R$);295,55;295,55;0,00;
+R1;7;2026-11-08;debito esperado no fechamento (R$);367,85;367,85;0,00;
+R1;7;2026-11-08;credito esperado no fechamento (R$);141,25;141,25;0,00;
+R1;7;2026-11-08;vendas ativas no servidor (R$);1426,65;1426,65;0,00;"fotografia do servidor no fechamento do dia (periodo pela data da venda; cancelada = excluida)"
+R1;7;2026-11-08;vitrine qa-brigadeiro (un);45;48;3;ver desvios de execucao / BUG-004
+R1;7;2026-11-08;vitrine qa-cafe (un);94;95;1;ver desvios de execucao / BUG-004
+R1;7;2026-11-08;vitrine: produtos sem diferenca (qtd);13;11;-2;
+R2;1;2026-10-26;compras principais (qtd);20;20;0;20/20 com valores conferidos
+R2;1;2026-10-26;dinheiro esperado na gaveta (regra do roteiro) (R$);701,25;701,25;0,00;
+R2;1;2026-10-26;dinheiro contado informado (R$);701,25;701,25;0,00;
+R2;1;2026-10-26;diferenca de dinheiro registrada (R$);0,00;0,00;0,00;
+R2;1;2026-10-26;pix esperado no fechamento (R$);430,55;430,55;0,00;
+R2;1;2026-10-26;debito esperado no fechamento (R$);0,00;0,00;0,00;
+R2;1;2026-10-26;credito esperado no fechamento (R$);0,00;0,00;0,00;
+R2;1;2026-10-26;vendas ativas no servidor (R$);981,80;981,80;0,00;"fotografia do servidor no fechamento do dia (periodo pela data da venda; cancelada = excluida)"
+R2;1;2026-10-26;vitrine: produtos sem diferenca (qtd);13;13;0;
+R2;2;2026-10-27;compras principais (qtd);25;25;0;25/25 com valores conferidos
+R2;2;2026-10-27;dinheiro esperado na gaveta (regra do roteiro) (R$);400,20;400,20;0,00;
+R2;2;2026-10-27;dinheiro contado informado (R$);400,20;400,20;0,00;
+R2;2;2026-10-27;diferenca de dinheiro registrada (R$);0,00;0,00;0,00;
+R2;2;2026-10-27;pix esperado no fechamento (R$);148,30;148,30;0,00;
+R2;2;2026-10-27;debito esperado no fechamento (R$);354,80;354,80;0,00;
+R2;2;2026-10-27;credito esperado no fechamento (R$);409,25;409,25;0,00;
+R2;2;2026-10-27;vendas ativas no servidor (R$);1142,55;1142,55;0,00;"fotografia do servidor no fechamento do dia (periodo pela data da venda; cancelada = excluida)"
+R2;2;2026-10-27;vitrine: produtos sem diferenca (qtd);13;13;0;
+R2;3;2026-10-28;compras principais (qtd);25;25;0;25/25 com valores conferidos
+R2;3;2026-10-28;dinheiro esperado na gaveta (regra do roteiro) (R$);409,35;409,35;0,00;
+R2;3;2026-10-28;dinheiro contado informado (R$);409,35;409,35;0,00;
+R2;3;2026-10-28;diferenca de dinheiro registrada (R$);0,00;0,00;0,00;
+R2;3;2026-10-28;pix esperado no fechamento (R$);151,15;151,15;0,00;
+R2;3;2026-10-28;debito esperado no fechamento (R$);191,20;191,20;0,00;
+R2;3;2026-10-28;credito esperado no fechamento (R$);56,20;56,20;0,00;
+R2;3;2026-10-28;vendas ativas no servidor (R$);708,50;731,30;22,80;"EXT-05 (R$ 22,80) ainda ativa no fechamento do Dia 3; foi cancelada no Dia 4"
+R2;3;2026-10-28;vitrine: produtos sem diferenca (qtd);13;13;0;
+R2;4;2026-10-29;compras principais (qtd);30;30;0;30/30 com valores conferidos
+R2;4;2026-10-29;dinheiro esperado na gaveta (regra do roteiro) (R$);240,30;263,10;22,80;devolucao em dinheiro de venda do dia anterior nao entra no dia do cancelamento (regra a decidir)
+R2;4;2026-10-29;dinheiro contado informado (R$);240,30;240,30;0,00;
+R2;4;2026-10-29;diferenca de dinheiro registrada (R$);0,00;-22,80;-22,80;
+R2;4;2026-10-29;pix esperado no fechamento (R$);261,05;261,05;0,00;
+R2;4;2026-10-29;debito esperado no fechamento (R$);181,65;181,65;0,00;
+R2;4;2026-10-29;credito esperado no fechamento (R$);59,65;59,65;0,00;
+R2;4;2026-10-29;vendas ativas no servidor (R$);815,45;815,45;0,00;"fotografia do servidor no fechamento do dia (periodo pela data da venda; cancelada = excluida)"
+R2;4;2026-10-29;vitrine: produtos sem diferenca (qtd);13;13;0;
+R2;5;2026-10-30;compras principais (qtd);30;30;0;30/30 com valores conferidos
+R2;5;2026-10-30;dinheiro esperado na gaveta (regra do roteiro) (R$);737,70;737,70;0,00;
+R2;5;2026-10-30;dinheiro contado informado (R$);732,70;732,70;0,00;contagem divergente proposital de -5,00
+R2;5;2026-10-30;diferenca de dinheiro registrada (R$);-5,00;-5,00;0,00;
+R2;5;2026-10-30;pix esperado no fechamento (R$);158,80;158,80;0,00;
+R2;5;2026-10-30;debito esperado no fechamento (R$);329,20;329,20;0,00;
+R2;5;2026-10-30;credito esperado no fechamento (R$);139,35;139,35;0,00;
+R2;5;2026-10-30;vendas ativas no servidor (R$);1280,80;1280,80;0,00;"fotografia do servidor no fechamento do dia (periodo pela data da venda; cancelada = excluida)"
+R2;5;2026-10-30;vitrine: produtos sem diferenca (qtd);13;13;0;
+R2;6;2026-10-31;compras principais (qtd);40;40;0;40/40 com valores conferidos
+R2;6;2026-10-31;dinheiro esperado na gaveta (regra do roteiro) (R$);373,95;373,95;0,00;
+R2;6;2026-10-31;dinheiro contado informado (R$);373,95;373,95;0,00;
+R2;6;2026-10-31;diferenca de dinheiro registrada (R$);0,00;0,00;0,00;
+R2;6;2026-10-31;pix esperado no fechamento (R$);252,55;252,55;0,00;
+R2;6;2026-10-31;debito esperado no fechamento (R$);364,55;364,55;0,00;
+R2;6;2026-10-31;credito esperado no fechamento (R$);245,30;245,30;0,00;
+R2;6;2026-10-31;vendas ativas no servidor (R$);1306,35;1306,35;0,00;"fotografia do servidor no fechamento do dia (periodo pela data da venda; cancelada = excluida)"
+R2;6;2026-10-31;vitrine: produtos sem diferenca (qtd);13;13;0;
+R2;7;2026-11-01;compras principais (qtd);30;30;0;30/30 com valores conferidos
+R2;7;2026-11-01;dinheiro esperado na gaveta (regra do roteiro) (R$);759,70;759,70;0,00;
+R2;7;2026-11-01;dinheiro contado informado (R$);759,70;759,70;0,00;
+R2;7;2026-11-01;diferenca de dinheiro registrada (R$);0,00;0,00;0,00;
+R2;7;2026-11-01;pix esperado no fechamento (R$);295,55;295,55;0,00;
+R2;7;2026-11-01;debito esperado no fechamento (R$);367,85;367,85;0,00;
+R2;7;2026-11-01;credito esperado no fechamento (R$);141,25;141,25;0,00;
+R2;7;2026-11-01;vendas ativas no servidor (R$);1426,65;1426,65;0,00;"fotografia do servidor no fechamento do dia (periodo pela data da venda; cancelada = excluida)"
+R2;7;2026-11-01;vitrine qa-brigadeiro (un);45;48;3;ver desvios de execucao / BUG-004
+R2;7;2026-11-01;vitrine: produtos sem diferenca (qtd);13;12;-1;

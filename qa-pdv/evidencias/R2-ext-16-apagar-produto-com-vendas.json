@@ -1,0 +1,12 @@
+{
+ "modal": "Apagar produto Esta ação não pode ser desfeita. Confirma apagar QA Inativo? Cancelar Confirmar exclusão",
+ "botao": "Confirmar exclusão",
+ "produtoLocal": false,
+ "vendasLocaisComProduto": 2,
+ "nomeNoHistorico": true,
+ "itensNoServidor": 2,
+ "itensProdutoIdServidor": [
+  "qa-inativo"
+ ],
+ "produtoNoServidor": 0
+}

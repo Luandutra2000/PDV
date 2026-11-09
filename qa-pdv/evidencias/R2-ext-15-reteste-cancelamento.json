@@ -1,0 +1,26 @@
+{
+ "reabertura": {
+  "status": "aberto",
+  "fundo": 6000,
+  "indicador": "Caixa aberto\nFechar caixa"
+ },
+ "cancelamento": {
+  "resultado": {
+   "saleId": "sale-1792964100297-418106864dcbf",
+   "comanda": 415,
+   "statusDepois": "cancelada",
+   "ok": true,
+   "aviso": "Comanda cancelada A comanda ficou registrada como cancelada. X"
+  },
+  "linhaDoTempo": "110:a 214:a 316:a 423:a 531:a 640:c 741:c 842:c 943:c 1048:c 1163:c 1265:c 1375:c 1476:c 1578:c 1693:c 1805:c 1912:c 2038:c 2141:c 2243:c 2344:c 2455:c 2570:c 2678:c 2779:c 2884:c 2999:c 3107:c 3224:c 3332:c 3435:c 3546:c 3654:c 3755:c 3864:c 3974:c 4075:c 4176:c 4285:c"
+ },
+ "reverteu": false,
+ "fechamento": {
+  "dif": {
+   "diferencaGeral": "R$ 0,00",
+   "diferencaDinheiro": "R$ 0,00"
+  },
+  "exp": 6300,
+  "abertura": 60
+ }
+}

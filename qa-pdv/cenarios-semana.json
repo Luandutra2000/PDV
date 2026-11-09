@@ -1,0 +1,5216 @@
+{
+  "execucao": "R1",
+  "semente": 20261102,
+  "geradoEm": "2026-11-09T16:03:08.894Z",
+  "arredondamento": "Valores em centavos inteiros; total = soma(quantidade x preco unitario em centavos). Sem descontos/acrescimos (o sistema nao possui). Troco = recebido - total.",
+  "adaptacaoPagamentos": "O PDV nao possui pagamento dividido: as 20 compras divididas foram redistribuidas (+7 dinheiro, +5 pix, +5 debito, +3 credito). Distribuicao final: 67 dinheiro, 55 pix, 45 debito, 33 credito.",
+  "catalogo": {
+    "qa-coxinha": {
+      "nome": "QA Coxinha",
+      "preco": 750,
+      "peso": 18
+    },
+    "qa-pao-de-queijo": {
+      "nome": "QA Pão de Queijo",
+      "preco": 425,
+      "peso": 15
+    },
+    "qa-esfiha": {
+      "nome": "QA Esfiha",
+      "preco": 690,
+      "peso": 8
+    },
+    "qa-misto-quente": {
+      "nome": "QA Misto Quente",
+      "preco": 1290,
+      "peso": 8
+    },
+    "qa-x-salada": {
+      "nome": "QA X-Salada",
+      "preco": 1850,
+      "peso": 6
+    },
+    "qa-brigadeiro": {
+      "nome": "QA Brigadeiro",
+      "preco": 375,
+      "peso": 10
+    },
+    "qa-bolo-de-cenoura-fatia": {
+      "nome": "QA Bolo de Cenoura (fatia)",
+      "preco": 890,
+      "peso": 6
+    },
+    "qa-cafe": {
+      "nome": "QA Café",
+      "preco": 450,
+      "peso": 14
+    },
+    "qa-agua-500ml": {
+      "nome": "QA Água 500ml",
+      "preco": 300,
+      "peso": 7
+    },
+    "qa-suco-de-laranja": {
+      "nome": "QA Suco de Laranja",
+      "preco": 990,
+      "peso": 5
+    },
+    "qa-refrigerante-lata": {
+      "nome": "QA Refrigerante Lata",
+      "preco": 650,
+      "peso": 8
+    },
+    "qa-ultimo-item": {
+      "nome": "QA Último Item",
+      "preco": 555,
+      "peso": 0
+    },
+    "qa-inativo": {
+      "nome": "QA Inativo",
+      "preco": 200,
+      "peso": 0
+    }
+  },
+  "estoqueInicial": {
+    "qa-agua-500ml": 48,
+    "qa-refrigerante-lata": 36,
+    "qa-ultimo-item": 1,
+    "qa-inativo": 5
+  },
+  "dias": [
+    {
+      "dia": 1,
+      "data": "2026-11-02",
+      "enfase": "Abertura, vendas basicas, dinheiro, Pix e primeiro fechamento",
+      "clientes": 20,
+      "eventos": [
+        {
+          "tipo": "abrir-caixa",
+          "hora": "07:00",
+          "fundo": 15000
+        },
+        {
+          "tipo": "abrir-caixa-duplicado",
+          "hora": "07:01"
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-coxinha",
+          "quantidade": 25
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-pao-de-queijo",
+          "quantidade": 30
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-esfiha",
+          "quantidade": 12
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-misto-quente",
+          "quantidade": 10
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-x-salada",
+          "quantidade": 6
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-brigadeiro",
+          "quantidade": 20
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-bolo-de-cenoura-fatia",
+          "quantidade": 8
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-cafe",
+          "quantidade": 30
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-suco-de-laranja",
+          "quantidade": 10
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-001",
+          "hora": "07:37",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 6100,
+          "recebido": 10000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-002",
+          "hora": "07:41",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 3430
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-003",
+          "hora": "08:14",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1380,
+          "falha": "dinheiro-insuficiente-antes"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-004",
+          "hora": "08:18",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 450
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-005",
+          "hora": "08:20",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 2250,
+          "recebido": 5000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-006",
+          "hora": "08:34",
+          "itens": [
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 6
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 8
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 8
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 4
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 19120,
+          "recebido": 20000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-007",
+          "hora": "08:37",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1850,
+          "recebido": 2000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-008",
+          "hora": "08:41",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 4
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 8050
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-009",
+          "hora": "08:56",
+          "itens": [
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 2580
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-010",
+          "hora": "08:58",
+          "itens": [
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 3390
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-011",
+          "hora": "09:35",
+          "itens": [
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 3620,
+          "recebido": 5000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-012",
+          "hora": "10:46",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 14355,
+          "recebido": 20000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-013",
+          "hora": "12:25",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 2150
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-014",
+          "hora": "12:29",
+          "itens": [
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 6970
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-015",
+          "hora": "13:18",
+          "itens": [
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 6
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 4
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 12840
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-016",
+          "hora": "14:16",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1815
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-017",
+          "hora": "14:53",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 850,
+          "recebido": 1000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-018",
+          "hora": "15:12",
+          "itens": [
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1740,
+          "recebido": 2000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-019",
+          "hora": "16:26",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1550,
+          "recebido": 2000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-020",
+          "hora": "18:29",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 3690,
+          "recebido": 3690,
+          "modo": "exato"
+        },
+        {
+          "tipo": "fechar-caixa",
+          "hora": "18:45"
+        }
+      ]
+    },
+    {
+      "dia": 2,
+      "data": "2026-11-03",
+      "enfase": "Cartoes, variedade de itens e edicao do carrinho",
+      "clientes": 25,
+      "eventos": [
+        {
+          "tipo": "abrir-caixa",
+          "hora": "07:00",
+          "fundo": 12000
+        },
+        {
+          "tipo": "abrir-caixa-duplicado",
+          "hora": "07:01"
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-coxinha",
+          "quantidade": 25
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-pao-de-queijo",
+          "quantidade": 25
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-esfiha",
+          "quantidade": 10
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-misto-quente",
+          "quantidade": 10
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-x-salada",
+          "quantidade": 8
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-brigadeiro",
+          "quantidade": 15
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-bolo-de-cenoura-fatia",
+          "quantidade": 8
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-cafe",
+          "quantidade": 30
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-suco-de-laranja",
+          "quantidade": 10
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-021",
+          "hora": "07:41",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 11230,
+          "recebido": 20000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-022",
+          "hora": "08:39",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 1315
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-023",
+          "hora": "08:40",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 10
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 4
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 16520
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-024",
+          "hora": "08:55",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 2820,
+          "recebido": 5000,
+          "modo": "nota",
+          "edicoes": [
+            "aumentar",
+            "diminuir",
+            "remover-extra"
+          ]
+        },
+        {
+          "tipo": "carrinho-abandonado",
+          "id": "EXT-01",
+          "hora": "09:15",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ]
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-025",
+          "hora": "09:35",
+          "itens": [
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1340
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-026",
+          "hora": "09:36",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 4520,
+          "recebido": 20000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "movimento",
+          "tipoMovimento": "entrada",
+          "hora": "10:05",
+          "valor": 5000,
+          "descricao": "QA suprimento de troco"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-027",
+          "hora": "10:09",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 2450
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-028",
+          "hora": "10:25",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 5650
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-029",
+          "hora": "11:09",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 6
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 9
+            },
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 12
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 6
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 25665
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-030",
+          "hora": "11:50",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 3700,
+          "recebido": 3700,
+          "modo": "exato"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-031",
+          "hora": "11:51",
+          "itens": [
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 2680,
+          "edicoes": [
+            "aumentar"
+          ]
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-032",
+          "hora": "11:56",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 750
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-033",
+          "hora": "12:11",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1500
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-034",
+          "hora": "13:25",
+          "itens": [
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 7900
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-035",
+          "hora": "13:37",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 2830
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-036",
+          "hora": "13:45",
+          "itens": [
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 2730
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-037",
+          "hora": "13:58",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 1640
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-038",
+          "hora": "14:26",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 2490,
+          "edicoes": [
+            "remover-extra"
+          ]
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-039",
+          "hora": "14:52",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 900
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-040",
+          "hora": "15:41",
+          "itens": [
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 1780
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-041",
+          "hora": "16:11",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 750
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-042",
+          "hora": "16:15",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 750,
+          "recebido": 1000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-043",
+          "hora": "16:40",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 1500
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-044",
+          "hora": "17:18",
+          "itens": [
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 6755
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-045",
+          "hora": "18:23",
+          "itens": [
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 4090
+        },
+        {
+          "tipo": "fechar-caixa",
+          "hora": "18:45"
+        }
+      ]
+    },
+    {
+      "dia": 3,
+      "data": "2026-11-04",
+      "enfase": "Lancamentos de vitrine, reposicoes, sobras e estoque",
+      "clientes": 25,
+      "eventos": [
+        {
+          "tipo": "abrir-caixa",
+          "hora": "07:00",
+          "fundo": 10000
+        },
+        {
+          "tipo": "abrir-caixa-duplicado",
+          "hora": "07:01"
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-coxinha",
+          "quantidade": 20
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-pao-de-queijo",
+          "quantidade": 25
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-esfiha",
+          "quantidade": 10
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-misto-quente",
+          "quantidade": 8
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-x-salada",
+          "quantidade": 3
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-brigadeiro",
+          "quantidade": 15
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-bolo-de-cenoura-fatia",
+          "quantidade": 10
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-cafe",
+          "quantidade": 25
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-suco-de-laranja",
+          "quantidade": 8
+        },
+        {
+          "tipo": "editar-lancamento",
+          "id": "EXT-02",
+          "hora": "07:20",
+          "produto": "qa-coxinha",
+          "de": 20,
+          "para": 22
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "id": "EXT-03",
+          "hora": "07:25",
+          "produto": "qa-esfiha",
+          "quantidade": 5,
+          "cancelar": true
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-046",
+          "hora": "07:37",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 1415
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-047",
+          "hora": "07:44",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 600
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-048",
+          "hora": "08:04",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 2400,
+          "recebido": 2400,
+          "modo": "exato"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-049",
+          "hora": "08:05",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 690
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-050",
+          "hora": "08:15",
+          "itens": [
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 2500
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-051",
+          "hora": "08:46",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1500
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-052",
+          "hora": "08:49",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 2100
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-053",
+          "hora": "09:11",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 690
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-054",
+          "hora": "10:30",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1850
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-055",
+          "hora": "11:30",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 1830
+        },
+        {
+          "tipo": "movimento",
+          "tipoMovimento": "saida",
+          "hora": "11:40",
+          "valor": 2340,
+          "descricao": "QA despesa gelo (dinheiro)"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-056",
+          "hora": "11:52",
+          "itens": [
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 1440
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-057",
+          "hora": "11:58",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1850,
+          "recebido": 5000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "id": "EXT-04",
+          "hora": "12:00",
+          "produto": "qa-pao-de-queijo",
+          "quantidade": 10,
+          "reposicao": true
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-058",
+          "hora": "12:29",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1275
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-059",
+          "hora": "12:32",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 450,
+          "recebido": 500,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-060",
+          "hora": "12:38",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 7
+            },
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 5
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 12875
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-061",
+          "hora": "12:39",
+          "itens": [
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 2700
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-062",
+          "hora": "13:13",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1300,
+          "recebido": 2000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-063",
+          "hora": "14:18",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 6
+            },
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 6
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 5
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 15025,
+          "recebido": 20000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-064",
+          "hora": "15:41",
+          "itens": [
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 3870,
+          "recebido": 20000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-065",
+          "hora": "15:44",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 900,
+          "recebido": 1000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-066",
+          "hora": "16:36",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1200,
+          "recebido": 1200,
+          "modo": "exato"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-067",
+          "hora": "16:53",
+          "itens": [
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 5690
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-068",
+          "hora": "16:57",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 750
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-069",
+          "hora": "17:23",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1950
+        },
+        {
+          "tipo": "venda-extra",
+          "id": "EXT-05",
+          "hora": "17:30",
+          "itens": [
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "recebido": 2500,
+          "cancelarNoDia": 4,
+          "motivo": "QA cancelamento de venda do dia anterior",
+          "totalEsperado": 2280
+        },
+        {
+          "tipo": "perda",
+          "hora": "17:50",
+          "produto": "qa-bolo-de-cenoura-fatia",
+          "quantidade": 2,
+          "motivo": "vencido"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-070",
+          "hora": "17:51",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 4000,
+          "recebido": 5000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "fechar-caixa",
+          "hora": "18:45"
+        }
+      ]
+    },
+    {
+      "dia": 4,
+      "data": "2026-11-05",
+      "enfase": "Descontos (nao suportado) e cancelamentos",
+      "clientes": 30,
+      "eventos": [
+        {
+          "tipo": "abrir-caixa",
+          "hora": "07:00",
+          "fundo": 15000
+        },
+        {
+          "tipo": "abrir-caixa-duplicado",
+          "hora": "07:01"
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-coxinha",
+          "quantidade": 30
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-pao-de-queijo",
+          "quantidade": 30
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-esfiha",
+          "quantidade": 12
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-misto-quente",
+          "quantidade": 12
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-x-salada",
+          "quantidade": 8
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-brigadeiro",
+          "quantidade": 20
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-bolo-de-cenoura-fatia",
+          "quantidade": 8
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-cafe",
+          "quantidade": 35
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-suco-de-laranja",
+          "quantidade": 10
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-agua-500ml",
+          "quantidade": 24
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-071",
+          "hora": "07:32",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 7
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 17075
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-072",
+          "hora": "08:03",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 300
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-073",
+          "hora": "08:04",
+          "itens": [
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 5
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 10950,
+          "recebido": 20000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "cancelar",
+          "id": "EXT-05",
+          "hora": "08:05"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-074",
+          "hora": "08:07",
+          "itens": [
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 2000
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-075",
+          "hora": "08:26",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 2225
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-076",
+          "hora": "08:37",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 3250
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-077",
+          "hora": "08:58",
+          "itens": [
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 950,
+          "recebido": 5000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-078",
+          "hora": "09:08",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 3740,
+          "recebido": 4000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-079",
+          "hora": "09:38",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1025
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-080",
+          "hora": "10:00",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 750,
+          "recebido": 750,
+          "modo": "exato"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-081",
+          "hora": "10:01",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 2100,
+          "recebido": 5000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-082",
+          "hora": "10:02",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 850,
+          "recebido": 1000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda-extra",
+          "id": "EXT-06",
+          "hora": "10:30",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "recebido": 2000,
+          "cancelarNoDia": 4,
+          "motivo": "QA cliente desistiu (dinheiro devolvido)",
+          "totalEsperado": 1500
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-083",
+          "hora": "10:42",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 1275
+        },
+        {
+          "tipo": "cancelar",
+          "id": "EXT-06",
+          "hora": "10:45"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-084",
+          "hora": "11:03",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 690
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-085",
+          "hora": "11:18",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 2575,
+          "recebido": 2575,
+          "modo": "exato"
+        },
+        {
+          "tipo": "venda-extra",
+          "id": "EXT-07",
+          "hora": "12:15",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "cancelarNoDia": 4,
+          "motivo": "QA pix estornado",
+          "totalEsperado": 2500
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-086",
+          "hora": "12:20",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 425
+        },
+        {
+          "tipo": "cancelar",
+          "id": "EXT-07",
+          "hora": "12:30"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-087",
+          "hora": "13:17",
+          "itens": [
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 1675
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-088",
+          "hora": "13:33",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 450,
+          "recebido": 500,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-089",
+          "hora": "13:34",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1140,
+          "recebido": 1140,
+          "modo": "exato"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-090",
+          "hora": "13:35",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 5100
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-091",
+          "hora": "13:44",
+          "itens": [
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 2375
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-092",
+          "hora": "13:54",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 2600
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-093",
+          "hora": "13:55",
+          "itens": [
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 990
+        },
+        {
+          "tipo": "movimento",
+          "tipoMovimento": "sangria",
+          "hora": "15:20",
+          "valor": 20000,
+          "descricao": "QA sangria para cofre"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-094",
+          "hora": "15:26",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 900
+        },
+        {
+          "tipo": "venda-extra",
+          "id": "EXT-08",
+          "hora": "15:40",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 4
+            }
+          ],
+          "metodo": "debito",
+          "cancelarNoDia": 4,
+          "motivo": "QA lancado na forma errada",
+          "totalEsperado": 1500
+        },
+        {
+          "tipo": "cancelar",
+          "id": "EXT-08",
+          "hora": "15:50"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-095",
+          "hora": "16:14",
+          "itens": [
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 890
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-096",
+          "hora": "16:45",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1950,
+          "recebido": 2000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-097",
+          "hora": "17:04",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 5855,
+          "recebido": 10000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-098",
+          "hora": "17:21",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1115
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-099",
+          "hora": "17:49",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 5200
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-100",
+          "hora": "18:08",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 1125
+        },
+        {
+          "tipo": "fechar-caixa",
+          "hora": "18:45"
+        }
+      ]
+    },
+    {
+      "dia": 5,
+      "data": "2026-11-06",
+      "enfase": "Pagamento dividido (nao suportado), permissoes e recuperacao de falhas",
+      "clientes": 30,
+      "eventos": [
+        {
+          "tipo": "abrir-caixa",
+          "hora": "07:00",
+          "fundo": 10000
+        },
+        {
+          "tipo": "abrir-caixa-duplicado",
+          "hora": "07:01"
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-coxinha",
+          "quantidade": 30
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-pao-de-queijo",
+          "quantidade": 30
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-esfiha",
+          "quantidade": 12
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-misto-quente",
+          "quantidade": 12
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-x-salada",
+          "quantidade": 8
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-brigadeiro",
+          "quantidade": 20
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-bolo-de-cenoura-fatia",
+          "quantidade": 10
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-cafe",
+          "quantidade": 35
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-suco-de-laranja",
+          "quantidade": 12
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-101",
+          "hora": "07:31",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 8
+            },
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 4
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 10955,
+          "recebido": 20000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-102",
+          "hora": "07:32",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1440,
+          "recebido": 2000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-103",
+          "hora": "07:43",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 3700
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-104",
+          "hora": "07:55",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 900
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-105",
+          "hora": "08:12",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 450
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-106",
+          "hora": "09:13",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 750
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-107",
+          "hora": "09:14",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 1830,
+          "falha": "sem-conexao"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-108",
+          "hora": "09:15",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1050
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-109",
+          "hora": "09:17",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 3700
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-110",
+          "hora": "10:16",
+          "itens": [
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 3870,
+          "recebido": 5000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-111",
+          "hora": "10:58",
+          "itens": [
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 9
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 15615,
+          "recebido": 20000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-112",
+          "hora": "11:38",
+          "itens": [
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 4
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 14460
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-113",
+          "hora": "11:43",
+          "itens": [
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 3395
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-114",
+          "hora": "12:09",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 1830
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-115",
+          "hora": "12:16",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 10
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 9650,
+          "recebido": 20000,
+          "modo": "nota",
+          "falha": "recarregar-no-pagamento"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-116",
+          "hora": "12:26",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 3375
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-117",
+          "hora": "12:30",
+          "itens": [
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 1300
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-118",
+          "hora": "12:46",
+          "itens": [
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 3660
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-119",
+          "hora": "13:06",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 850
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-120",
+          "hora": "13:07",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 825,
+          "recebido": 825,
+          "modo": "exato"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-121",
+          "hora": "13:09",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 5375
+        },
+        {
+          "tipo": "movimento",
+          "tipoMovimento": "saida",
+          "hora": "13:10",
+          "valor": 1575,
+          "descricao": "QA despesa entrega (dinheiro)"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-122",
+          "hora": "13:32",
+          "itens": [
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 1780
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-123",
+          "hora": "13:45",
+          "itens": [
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 2900,
+          "recebido": 5000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-124",
+          "hora": "13:46",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 675,
+          "recebido": 1000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-125",
+          "hora": "13:57",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 2230
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-126",
+          "hora": "14:38",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1975
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-127",
+          "hora": "15:23",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 6
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 6
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 9375
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-128",
+          "hora": "16:05",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 750
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-129",
+          "hora": "17:14",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 6
+            },
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 4
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 9890,
+          "recebido": 9890,
+          "modo": "exato"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-130",
+          "hora": "18:16",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 9
+            },
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 9525,
+          "recebido": 10000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "fechar-caixa",
+          "hora": "18:45",
+          "divergenciaDinheiro": -500
+        }
+      ]
+    },
+    {
+      "dia": 6,
+      "data": "2026-11-07",
+      "enfase": "Movimento maior, sessoes simultaneas e duplicidade",
+      "clientes": 40,
+      "eventos": [
+        {
+          "tipo": "abrir-caixa",
+          "hora": "07:00",
+          "fundo": 20000
+        },
+        {
+          "tipo": "abrir-caixa-duplicado",
+          "hora": "07:01"
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-coxinha",
+          "quantidade": 40
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-pao-de-queijo",
+          "quantidade": 40
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-esfiha",
+          "quantidade": 15
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-misto-quente",
+          "quantidade": 15
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-x-salada",
+          "quantidade": 10
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-brigadeiro",
+          "quantidade": 25
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-bolo-de-cenoura-fatia",
+          "quantidade": 12
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-cafe",
+          "quantidade": 45
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-suco-de-laranja",
+          "quantidade": 15
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-refrigerante-lata",
+          "quantidade": 24
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-131",
+          "hora": "07:45",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 15
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 11595
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-132",
+          "hora": "08:18",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 800,
+          "recebido": 800,
+          "modo": "exato"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-133",
+          "hora": "08:43",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 4
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 6240
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-134",
+          "hora": "09:02",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 375,
+          "recebido": 500,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-135",
+          "hora": "09:05",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 5
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 13885
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-136",
+          "hora": "09:13",
+          "itens": [
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1300,
+          "recebido": 2000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-137",
+          "hora": "09:24",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 4470
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-138",
+          "hora": "09:30",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 10
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 16400,
+          "recebido": 20000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-139",
+          "hora": "09:41",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 450,
+          "falha": "duplo-clique"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-140",
+          "hora": "09:42",
+          "itens": [
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 1780
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-141",
+          "hora": "10:33",
+          "itens": [
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 1980
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-142",
+          "hora": "10:46",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 690
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-143",
+          "hora": "10:59",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 2730
+        },
+        {
+          "tipo": "disputa-ultima-unidade",
+          "id": "EXT-09",
+          "hora": "11:00",
+          "produto": "qa-ultimo-item"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-144",
+          "hora": "11:13",
+          "itens": [
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 2580
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-145",
+          "hora": "11:21",
+          "itens": [
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 4180
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-146",
+          "hora": "11:22",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1680,
+          "recebido": 2000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-147",
+          "hora": "11:24",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1025,
+          "recebido": 2000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-148",
+          "hora": "11:38",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 3980
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-149",
+          "hora": "11:39",
+          "itens": [
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 2230,
+          "recebido": 10000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-150",
+          "hora": "11:40",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 300
+        },
+        {
+          "tipo": "movimento",
+          "tipoMovimento": "entrada",
+          "hora": "12:30",
+          "valor": 3000,
+          "descricao": "QA suprimento moedas"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-151",
+          "hora": "13:07",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 1575
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-152",
+          "hora": "13:14",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 2405,
+          "recebido": 2405,
+          "modo": "exato"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-153",
+          "hora": "13:53",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 3340,
+          "recebido": 10000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-154",
+          "hora": "13:54",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 1380
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-155",
+          "hora": "14:33",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1225
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-156",
+          "hora": "14:53",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 600,
+          "falha": "duplo-clique"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-157",
+          "hora": "15:02",
+          "itens": [
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 6040
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-158",
+          "hora": "15:46",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1950
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-159",
+          "hora": "16:27",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 2700,
+          "recebido": 5000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-160",
+          "hora": "16:36",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 8
+            },
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 12175
+        },
+        {
+          "tipo": "movimento",
+          "tipoMovimento": "sangria",
+          "hora": "16:45",
+          "valor": 30000,
+          "descricao": "QA sangria fim de tarde"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-161",
+          "hora": "17:02",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 875
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-162",
+          "hora": "17:13",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 425
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-163",
+          "hora": "17:36",
+          "itens": [
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 1300
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-164",
+          "hora": "18:00",
+          "itens": [
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 4
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 9000,
+          "recebido": 9000,
+          "modo": "exato"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-165",
+          "hora": "18:08",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 375
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-166",
+          "hora": "18:18",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 750
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-167",
+          "hora": "18:22",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 850
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-168",
+          "hora": "18:25",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 750
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-169",
+          "hora": "18:26",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1300,
+          "recebido": 2000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-170",
+          "hora": "18:29",
+          "itens": [
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1840,
+          "recebido": 1840,
+          "modo": "exato"
+        },
+        {
+          "tipo": "fechar-caixa",
+          "hora": "18:45"
+        }
+      ]
+    },
+    {
+      "dia": 7,
+      "data": "2026-11-08",
+      "enfase": "Estoque final, fechamento e conferencia semanal",
+      "clientes": 30,
+      "eventos": [
+        {
+          "tipo": "abrir-caixa",
+          "hora": "07:00",
+          "fundo": 15000
+        },
+        {
+          "tipo": "abrir-caixa-duplicado",
+          "hora": "07:01"
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-coxinha",
+          "quantidade": 25
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-pao-de-queijo",
+          "quantidade": 25
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-esfiha",
+          "quantidade": 10
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-misto-quente",
+          "quantidade": 10
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-x-salada",
+          "quantidade": 6
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-brigadeiro",
+          "quantidade": 15
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-bolo-de-cenoura-fatia",
+          "quantidade": 8
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-cafe",
+          "quantidade": 30
+        },
+        {
+          "tipo": "lancar-vitrine",
+          "hora": "07:10",
+          "produto": "qa-suco-de-laranja",
+          "quantidade": 10
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-171",
+          "hora": "07:39",
+          "itens": [
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 4455,
+          "recebido": 4455,
+          "modo": "exato"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-172",
+          "hora": "07:40",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 900
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-173",
+          "hora": "07:46",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 4250
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-174",
+          "hora": "07:59",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 6
+            },
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 6
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 11490,
+          "recebido": 20000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-175",
+          "hora": "08:38",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 425
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-176",
+          "hora": "08:51",
+          "itens": [
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 750
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-177",
+          "hora": "08:52",
+          "itens": [
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 2580
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-178",
+          "hora": "09:00",
+          "itens": [
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 890
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-179",
+          "hora": "10:02",
+          "itens": [
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 2180
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-180",
+          "hora": "10:16",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1500
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-181",
+          "hora": "11:32",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 2540
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-182",
+          "hora": "11:38",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 1500
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-183",
+          "hora": "11:43",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 16
+            },
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 4
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 24660,
+          "recebido": 24660,
+          "modo": "exato"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-184",
+          "hora": "11:54",
+          "itens": [
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 4860,
+          "recebido": 20000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-185",
+          "hora": "11:55",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1850,
+          "recebido": 2000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-186",
+          "hora": "12:12",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 11
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 6
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 27640
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-187",
+          "hora": "12:42",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 1805,
+          "recebido": 1805,
+          "modo": "exato"
+        },
+        {
+          "tipo": "alterar-preco",
+          "id": "EXT-10",
+          "hora": "13:00",
+          "produto": "qa-cafe",
+          "de": 450,
+          "para": 480
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-188",
+          "hora": "13:30",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 12
+            },
+            {
+              "produto": "qa-bolo-de-cenoura-fatia",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-brigadeiro",
+              "quantidade": 5
+            },
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 5
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 17475
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-189",
+          "hora": "13:54",
+          "itens": [
+            {
+              "produto": "qa-pao-de-queijo",
+              "quantidade": 3
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 6
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 4
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 8415
+        },
+        {
+          "tipo": "movimento",
+          "tipoMovimento": "saida",
+          "hora": "14:00",
+          "valor": 1230,
+          "descricao": "QA despesa guardanapos (dinheiro)"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-190",
+          "hora": "14:12",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 300
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-191",
+          "hora": "14:21",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 300
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-192",
+          "hora": "14:45",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-cafe",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 1710
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-193",
+          "hora": "15:12",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 300
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-194",
+          "hora": "15:29",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 750
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-195",
+          "hora": "15:38",
+          "itens": [
+            {
+              "produto": "qa-x-salada",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-refrigerante-lata",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "credito",
+          "totalEsperado": 2500
+        },
+        {
+          "tipo": "venda-extra",
+          "id": "EXT-11",
+          "hora": "16:00",
+          "itens": [
+            {
+              "produto": "qa-inativo",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "pix",
+          "totalEsperado": 200
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-196",
+          "hora": "16:50",
+          "itens": [
+            {
+              "produto": "qa-misto-quente",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 1290
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-197",
+          "hora": "16:53",
+          "itens": [
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 2
+            },
+            {
+              "produto": "qa-suco-de-laranja",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 5
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 8310,
+          "recebido": 10000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-198",
+          "hora": "16:56",
+          "itens": [
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 3
+            }
+          ],
+          "metodo": "debito",
+          "totalEsperado": 2070
+        },
+        {
+          "tipo": "perda",
+          "hora": "17:50",
+          "produto": "qa-brigadeiro",
+          "quantidade": 3,
+          "motivo": "consumo"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-199",
+          "hora": "18:02",
+          "itens": [
+            {
+              "produto": "qa-coxinha",
+              "quantidade": 4
+            },
+            {
+              "produto": "qa-esfiha",
+              "quantidade": 1
+            },
+            {
+              "produto": "qa-agua-500ml",
+              "quantidade": 2
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 4290,
+          "recebido": 5000,
+          "modo": "nota"
+        },
+        {
+          "tipo": "venda",
+          "id": "CLI-200",
+          "hora": "18:14",
+          "itens": [
+            {
+              "produto": "qa-cafe",
+              "quantidade": 1
+            }
+          ],
+          "metodo": "dinheiro",
+          "totalEsperado": 480,
+          "recebido": 500,
+          "modo": "nota"
+        },
+        {
+          "tipo": "fechar-caixa",
+          "hora": "18:45"
+        }
+      ]
+    }
+  ],
+  "referencia": {
+    "dias": [
+      {
+        "dia": 1,
+        "data": "2026-11-02",
+        "fundo": 15000,
+        "comprasPrincipais": 20,
+        "vendasExtras": 0,
+        "vendasCanceladasNoDia": 0,
+        "recebido": {
+          "dinheiro": 55125,
+          "pix": 43055,
+          "debito": 0,
+          "credito": 0
+        },
+        "devolucoes": {
+          "dinheiro": 0,
+          "pix": 0,
+          "debito": 0,
+          "credito": 0
+        },
+        "trocoTotal": 15565,
+        "entradas": 0,
+        "saidas": 0,
+        "sangrias": 0,
+        "vendidoUnidades": {
+          "qa-agua-500ml": 7,
+          "qa-misto-quente": 25,
+          "qa-esfiha": 11,
+          "qa-pao-de-queijo": 22,
+          "qa-cafe": 19,
+          "qa-coxinha": 25,
+          "qa-x-salada": 4,
+          "qa-brigadeiro": 8,
+          "qa-refrigerante-lata": 5,
+          "qa-suco-de-laranja": 6
+        },
+        "lancado": {
+          "qa-coxinha": 25,
+          "qa-pao-de-queijo": 30,
+          "qa-esfiha": 12,
+          "qa-misto-quente": 10,
+          "qa-x-salada": 6,
+          "qa-brigadeiro": 20,
+          "qa-bolo-de-cenoura-fatia": 8,
+          "qa-cafe": 30,
+          "qa-suco-de-laranja": 10
+        },
+        "perdas": {},
+        "semEstoque": {
+          "qa-misto-quente": 15
+        },
+        "divergenciaDinheiro": 0,
+        "dinheiroFisicoEsperado": 70125,
+        "dinheiroContado": 70125,
+        "eletronicoLiquido": {
+          "pix": 43055,
+          "debito": 0,
+          "credito": 0
+        },
+        "faturamentoBrutoDoDia": 98180,
+        "vitrineInicio": {
+          "qa-agua-500ml": 48,
+          "qa-refrigerante-lata": 36,
+          "qa-ultimo-item": 1,
+          "qa-inativo": 5
+        },
+        "vitrineFim": {
+          "qa-agua-500ml": 41,
+          "qa-refrigerante-lata": 31,
+          "qa-ultimo-item": 1,
+          "qa-inativo": 5,
+          "qa-coxinha": 0,
+          "qa-pao-de-queijo": 8,
+          "qa-esfiha": 1,
+          "qa-misto-quente": 0,
+          "qa-x-salada": 2,
+          "qa-brigadeiro": 12,
+          "qa-bolo-de-cenoura-fatia": 8,
+          "qa-cafe": 11,
+          "qa-suco-de-laranja": 4
+        },
+        "regraAtualDoSistema": {
+          "vendasAtivas": 20,
+          "totalVendido": 98180,
+          "porMetodo": {
+            "dinheiro": 55125,
+            "pix": 43055,
+            "debito": 0,
+            "credito": 0
+          },
+          "dinheiroEsperadoSemFundo": 55125,
+          "dinheiroEsperadoComFundo": 70125
+        }
+      },
+      {
+        "dia": 2,
+        "data": "2026-11-03",
+        "fundo": 12000,
+        "comprasPrincipais": 25,
+        "vendasExtras": 0,
+        "vendasCanceladasNoDia": 0,
+        "recebido": {
+          "dinheiro": 23020,
+          "pix": 14830,
+          "debito": 35480,
+          "credito": 40925
+        },
+        "devolucoes": {
+          "dinheiro": 0,
+          "pix": 0,
+          "debito": 0,
+          "credito": 0
+        },
+        "trocoTotal": 26680,
+        "entradas": 5000,
+        "saidas": 0,
+        "sangrias": 0,
+        "vendidoUnidades": {
+          "qa-x-salada": 10,
+          "qa-suco-de-laranja": 18,
+          "qa-pao-de-queijo": 22,
+          "qa-bolo-de-cenoura-fatia": 13,
+          "qa-esfiha": 13,
+          "qa-coxinha": 35,
+          "qa-misto-quente": 8,
+          "qa-refrigerante-lata": 3,
+          "qa-cafe": 17,
+          "qa-brigadeiro": 5
+        },
+        "lancado": {
+          "qa-coxinha": 25,
+          "qa-pao-de-queijo": 25,
+          "qa-esfiha": 10,
+          "qa-misto-quente": 10,
+          "qa-x-salada": 8,
+          "qa-brigadeiro": 15,
+          "qa-bolo-de-cenoura-fatia": 8,
+          "qa-cafe": 30,
+          "qa-suco-de-laranja": 10
+        },
+        "perdas": {},
+        "semEstoque": {
+          "qa-esfiha": 2,
+          "qa-coxinha": 10,
+          "qa-suco-de-laranja": 4
+        },
+        "divergenciaDinheiro": 0,
+        "dinheiroFisicoEsperado": 40020,
+        "dinheiroContado": 40020,
+        "eletronicoLiquido": {
+          "pix": 14830,
+          "debito": 35480,
+          "credito": 40925
+        },
+        "faturamentoBrutoDoDia": 114255,
+        "vitrineInicio": {
+          "qa-agua-500ml": 41,
+          "qa-refrigerante-lata": 31,
+          "qa-ultimo-item": 1,
+          "qa-inativo": 5,
+          "qa-coxinha": 0,
+          "qa-pao-de-queijo": 8,
+          "qa-esfiha": 1,
+          "qa-misto-quente": 0,
+          "qa-x-salada": 2,
+          "qa-brigadeiro": 12,
+          "qa-bolo-de-cenoura-fatia": 8,
+          "qa-cafe": 11,
+          "qa-suco-de-laranja": 4
+        },
+        "vitrineFim": {
+          "qa-agua-500ml": 41,
+          "qa-refrigerante-lata": 28,
+          "qa-ultimo-item": 1,
+          "qa-inativo": 5,
+          "qa-coxinha": 0,
+          "qa-pao-de-queijo": 11,
+          "qa-esfiha": 0,
+          "qa-misto-quente": 2,
+          "qa-x-salada": 0,
+          "qa-brigadeiro": 22,
+          "qa-bolo-de-cenoura-fatia": 3,
+          "qa-cafe": 24,
+          "qa-suco-de-laranja": 0
+        },
+        "regraAtualDoSistema": {
+          "vendasAtivas": 25,
+          "totalVendido": 114255,
+          "porMetodo": {
+            "dinheiro": 23020,
+            "pix": 14830,
+            "debito": 35480,
+            "credito": 40925
+          },
+          "dinheiroEsperadoSemFundo": 28020,
+          "dinheiroEsperadoComFundo": 40020
+        }
+      },
+      {
+        "dia": 3,
+        "data": "2026-11-04",
+        "fundo": 10000,
+        "comprasPrincipais": 25,
+        "vendasExtras": 1,
+        "vendasCanceladasNoDia": 0,
+        "recebido": {
+          "dinheiro": 33275,
+          "pix": 15115,
+          "debito": 19120,
+          "credito": 5620
+        },
+        "devolucoes": {
+          "dinheiro": 0,
+          "pix": 0,
+          "debito": 0,
+          "credito": 0
+        },
+        "trocoTotal": 26325,
+        "entradas": 0,
+        "saidas": 2340,
+        "sangrias": 0,
+        "vendidoUnidades": {
+          "qa-pao-de-queijo": 17,
+          "qa-suco-de-laranja": 3,
+          "qa-agua-500ml": 10,
+          "qa-coxinha": 14,
+          "qa-cafe": 23,
+          "qa-esfiha": 5,
+          "qa-refrigerante-lata": 11,
+          "qa-x-salada": 12,
+          "qa-brigadeiro": 3,
+          "qa-misto-quente": 4
+        },
+        "lancado": {
+          "qa-coxinha": 22,
+          "qa-pao-de-queijo": 35,
+          "qa-esfiha": 10,
+          "qa-misto-quente": 8,
+          "qa-x-salada": 3,
+          "qa-brigadeiro": 15,
+          "qa-bolo-de-cenoura-fatia": 10,
+          "qa-cafe": 25,
+          "qa-suco-de-laranja": 8
+        },
+        "perdas": {
+          "qa-bolo-de-cenoura-fatia": 2
+        },
+        "semEstoque": {
+          "qa-x-salada": 9
+        },
+        "divergenciaDinheiro": 0,
+        "dinheiroFisicoEsperado": 40935,
+        "dinheiroContado": 40935,
+        "eletronicoLiquido": {
+          "pix": 15115,
+          "debito": 19120,
+          "credito": 5620
+        },
+        "faturamentoBrutoDoDia": 73130,
+        "vitrineInicio": {
+          "qa-agua-500ml": 41,
+          "qa-refrigerante-lata": 28,
+          "qa-ultimo-item": 1,
+          "qa-inativo": 5,
+          "qa-coxinha": 0,
+          "qa-pao-de-queijo": 11,
+          "qa-esfiha": 0,
+          "qa-misto-quente": 2,
+          "qa-x-salada": 0,
+          "qa-brigadeiro": 22,
+          "qa-bolo-de-cenoura-fatia": 3,
+          "qa-cafe": 24,
+          "qa-suco-de-laranja": 0
+        },
+        "vitrineFim": {
+          "qa-agua-500ml": 31,
+          "qa-refrigerante-lata": 17,
+          "qa-ultimo-item": 1,
+          "qa-inativo": 5,
+          "qa-coxinha": 8,
+          "qa-pao-de-queijo": 29,
+          "qa-esfiha": 5,
+          "qa-misto-quente": 6,
+          "qa-x-salada": 0,
+          "qa-brigadeiro": 34,
+          "qa-bolo-de-cenoura-fatia": 11,
+          "qa-cafe": 26,
+          "qa-suco-de-laranja": 5
+        },
+        "regraAtualDoSistema": {
+          "vendasAtivas": 25,
+          "totalVendido": 70850,
+          "porMetodo": {
+            "dinheiro": 30995,
+            "pix": 15115,
+            "debito": 19120,
+            "credito": 5620
+          },
+          "dinheiroEsperadoSemFundo": 28655,
+          "dinheiroEsperadoComFundo": 38655
+        }
+      },
+      {
+        "dia": 4,
+        "data": "2026-11-05",
+        "fundo": 15000,
+        "comprasPrincipais": 30,
+        "vendasExtras": 3,
+        "vendasCanceladasNoDia": 4,
+        "recebido": {
+          "dinheiro": 32810,
+          "pix": 28605,
+          "debito": 19665,
+          "credito": 5965
+        },
+        "devolucoes": {
+          "dinheiro": 3780,
+          "pix": 2500,
+          "debito": 1500,
+          "credito": 0
+        },
+        "trocoTotal": 21155,
+        "entradas": 0,
+        "saidas": 0,
+        "sangrias": 20000,
+        "vendidoUnidades": {
+          "qa-x-salada": 15,
+          "qa-brigadeiro": 10,
+          "qa-coxinha": 19,
+          "qa-agua-500ml": 6,
+          "qa-suco-de-laranja": 8,
+          "qa-cafe": 13,
+          "qa-misto-quente": 0,
+          "qa-refrigerante-lata": 11,
+          "qa-pao-de-queijo": 11,
+          "qa-esfiha": 5,
+          "qa-bolo-de-cenoura-fatia": 3
+        },
+        "lancado": {
+          "qa-coxinha": 30,
+          "qa-pao-de-queijo": 30,
+          "qa-esfiha": 12,
+          "qa-misto-quente": 12,
+          "qa-x-salada": 8,
+          "qa-brigadeiro": 20,
+          "qa-bolo-de-cenoura-fatia": 8,
+          "qa-cafe": 35,
+          "qa-suco-de-laranja": 10,
+          "qa-agua-500ml": 24
+        },
+        "perdas": {},
+        "semEstoque": {
+          "qa-x-salada": 7
+        },
+        "divergenciaDinheiro": 0,
+        "dinheiroFisicoEsperado": 24030,
+        "dinheiroContado": 24030,
+        "eletronicoLiquido": {
+          "pix": 26105,
+          "debito": 18165,
+          "credito": 5965
+        },
+        "faturamentoBrutoDoDia": 87045,
+        "vitrineInicio": {
+          "qa-agua-500ml": 31,
+          "qa-refrigerante-lata": 17,
+          "qa-ultimo-item": 1,
+          "qa-inativo": 5,
+          "qa-coxinha": 8,
+          "qa-pao-de-queijo": 29,
+          "qa-esfiha": 5,
+          "qa-misto-quente": 6,
+          "qa-x-salada": 0,
+          "qa-brigadeiro": 34,
+          "qa-bolo-de-cenoura-fatia": 11,
+          "qa-cafe": 26,
+          "qa-suco-de-laranja": 5
+        },
+        "vitrineFim": {
+          "qa-agua-500ml": 49,
+          "qa-refrigerante-lata": 6,
+          "qa-ultimo-item": 1,
+          "qa-inativo": 5,
+          "qa-coxinha": 19,
+          "qa-pao-de-queijo": 48,
+          "qa-esfiha": 12,
+          "qa-misto-quente": 18,
+          "qa-x-salada": 0,
+          "qa-brigadeiro": 44,
+          "qa-bolo-de-cenoura-fatia": 16,
+          "qa-cafe": 48,
+          "qa-suco-de-laranja": 7
+        },
+        "regraAtualDoSistema": {
+          "vendasAtivas": 30,
+          "totalVendido": 81545,
+          "porMetodo": {
+            "dinheiro": 31310,
+            "pix": 26105,
+            "debito": 18165,
+            "credito": 5965
+          },
+          "dinheiroEsperadoSemFundo": 11310,
+          "dinheiroEsperadoComFundo": 26310
+        }
+      },
+      {
+        "dia": 5,
+        "data": "2026-11-06",
+        "fundo": 10000,
+        "comprasPrincipais": 30,
+        "vendasExtras": 0,
+        "vendasCanceladasNoDia": 0,
+        "recebido": {
+          "dinheiro": 65345,
+          "pix": 15880,
+          "debito": 32920,
+          "credito": 13935
+        },
+        "devolucoes": {
+          "dinheiro": 0,
+          "pix": 0,
+          "debito": 0,
+          "credito": 0
+        },
+        "trocoTotal": 28370,
+        "entradas": 0,
+        "saidas": 1575,
+        "sangrias": 0,
+        "vendidoUnidades": {
+          "qa-brigadeiro": 27,
+          "qa-misto-quente": 9,
+          "qa-pao-de-queijo": 29,
+          "qa-cafe": 31,
+          "qa-agua-500ml": 26,
+          "qa-esfiha": 11,
+          "qa-x-salada": 5,
+          "qa-coxinha": 27,
+          "qa-suco-de-laranja": 13,
+          "qa-refrigerante-lata": 22,
+          "qa-bolo-de-cenoura-fatia": 9
+        },
+        "lancado": {
+          "qa-coxinha": 30,
+          "qa-pao-de-queijo": 30,
+          "qa-esfiha": 12,
+          "qa-misto-quente": 12,
+          "qa-x-salada": 8,
+          "qa-brigadeiro": 20,
+          "qa-bolo-de-cenoura-fatia": 10,
+          "qa-cafe": 35,
+          "qa-suco-de-laranja": 12
+        },
+        "perdas": {},
+        "semEstoque": {
+          "qa-refrigerante-lata": 16
+        },
+        "divergenciaDinheiro": -500,
+        "dinheiroFisicoEsperado": 73770,
+        "dinheiroContado": 73270,
+        "eletronicoLiquido": {
+          "pix": 15880,
+          "debito": 32920,
+          "credito": 13935
+        },
+        "faturamentoBrutoDoDia": 128080,
+        "vitrineInicio": {
+          "qa-agua-500ml": 49,
+          "qa-refrigerante-lata": 6,
+          "qa-ultimo-item": 1,
+          "qa-inativo": 5,
+          "qa-coxinha": 19,
+          "qa-pao-de-queijo": 48,
+          "qa-esfiha": 12,
+          "qa-misto-quente": 18,
+          "qa-x-salada": 0,
+          "qa-brigadeiro": 44,
+          "qa-bolo-de-cenoura-fatia": 16,
+          "qa-cafe": 48,
+          "qa-suco-de-laranja": 7
+        },
+        "vitrineFim": {
+          "qa-agua-500ml": 23,
+          "qa-refrigerante-lata": 0,
+          "qa-ultimo-item": 1,
+          "qa-inativo": 5,
+          "qa-coxinha": 22,
+          "qa-pao-de-queijo": 49,
+          "qa-esfiha": 13,
+          "qa-misto-quente": 21,
+          "qa-x-salada": 3,
+          "qa-brigadeiro": 37,
+          "qa-bolo-de-cenoura-fatia": 17,
+          "qa-cafe": 52,
+          "qa-suco-de-laranja": 6
+        },
+        "regraAtualDoSistema": {
+          "vendasAtivas": 30,
+          "totalVendido": 128080,
+          "porMetodo": {
+            "dinheiro": 65345,
+            "pix": 15880,
+            "debito": 32920,
+            "credito": 13935
+          },
+          "dinheiroEsperadoSemFundo": 63770,
+          "dinheiroEsperadoComFundo": 73770
+        }
+      },
+      {
+        "dia": 6,
+        "data": "2026-11-07",
+        "fundo": 20000,
+        "comprasPrincipais": 40,
+        "vendasExtras": 2,
+        "vendasCanceladasNoDia": 0,
+        "recebido": {
+          "dinheiro": 44395,
+          "pix": 25255,
+          "debito": 36455,
+          "credito": 24530
+        },
+        "devolucoes": {
+          "dinheiro": 0,
+          "pix": 0,
+          "debito": 0,
+          "credito": 0
+        },
+        "trocoTotal": 23150,
+        "entradas": 3000,
+        "saidas": 0,
+        "sangrias": 30000,
+        "vendidoUnidades": {
+          "qa-pao-de-queijo": 42,
+          "qa-cafe": 22,
+          "qa-esfiha": 26,
+          "qa-agua-500ml": 17,
+          "qa-brigadeiro": 15,
+          "qa-misto-quente": 7,
+          "qa-x-salada": 10,
+          "qa-refrigerante-lata": 13,
+          "qa-coxinha": 28,
+          "qa-bolo-de-cenoura-fatia": 7,
+          "qa-suco-de-laranja": 10,
+          "qa-ultimo-item": 2
+        },
+        "lancado": {
+          "qa-coxinha": 40,
+          "qa-pao-de-queijo": 40,
+          "qa-esfiha": 15,
+          "qa-misto-quente": 15,
+          "qa-x-salada": 10,
+          "qa-brigadeiro": 25,
+          "qa-bolo-de-cenoura-fatia": 12,
+          "qa-cafe": 45,
+          "qa-suco-de-laranja": 15,
+          "qa-refrigerante-lata": 24
+        },
+        "perdas": {},
+        "semEstoque": {
+          "qa-ultimo-item": 1
+        },
+        "divergenciaDinheiro": 0,
+        "dinheiroFisicoEsperado": 37395,
+        "dinheiroContado": 37395,
+        "eletronicoLiquido": {
+          "pix": 25255,
+          "debito": 36455,
+          "credito": 24530
+        },
+        "faturamentoBrutoDoDia": 130635,
+        "vitrineInicio": {
+          "qa-agua-500ml": 23,
+          "qa-refrigerante-lata": 0,
+          "qa-ultimo-item": 1,
+          "qa-inativo": 5,
+          "qa-coxinha": 22,
+          "qa-pao-de-queijo": 49,
+          "qa-esfiha": 13,
+          "qa-misto-quente": 21,
+          "qa-x-salada": 3,
+          "qa-brigadeiro": 37,
+          "qa-bolo-de-cenoura-fatia": 17,
+          "qa-cafe": 52,
+          "qa-suco-de-laranja": 6
+        },
+        "vitrineFim": {
+          "qa-agua-500ml": 6,
+          "qa-refrigerante-lata": 11,
+          "qa-ultimo-item": 0,
+          "qa-inativo": 5,
+          "qa-coxinha": 34,
+          "qa-pao-de-queijo": 47,
+          "qa-esfiha": 2,
+          "qa-misto-quente": 29,
+          "qa-x-salada": 3,
+          "qa-brigadeiro": 47,
+          "qa-bolo-de-cenoura-fatia": 22,
+          "qa-cafe": 75,
+          "qa-suco-de-laranja": 11
+        },
+        "regraAtualDoSistema": {
+          "vendasAtivas": 42,
+          "totalVendido": 130635,
+          "porMetodo": {
+            "dinheiro": 44395,
+            "pix": 25255,
+            "debito": 36455,
+            "credito": 24530
+          },
+          "dinheiroEsperadoSemFundo": 17395,
+          "dinheiroEsperadoComFundo": 37395
+        }
+      },
+      {
+        "dia": 7,
+        "data": "2026-11-08",
+        "fundo": 15000,
+        "comprasPrincipais": 30,
+        "vendasExtras": 1,
+        "vendasCanceladasNoDia": 0,
+        "recebido": {
+          "dinheiro": 62200,
+          "pix": 29555,
+          "debito": 36785,
+          "credito": 14125
+        },
+        "devolucoes": {
+          "dinheiro": 0,
+          "pix": 0,
+          "debito": 0,
+          "credito": 0
+        },
+        "trocoTotal": 26220,
+        "entradas": 0,
+        "saidas": 1230,
+        "sangrias": 0,
+        "vendidoUnidades": {
+          "qa-bolo-de-cenoura-fatia": 7,
+          "qa-coxinha": 49,
+          "qa-pao-de-queijo": 23,
+          "qa-cafe": 11,
+          "qa-refrigerante-lata": 6,
+          "qa-x-salada": 8,
+          "qa-esfiha": 21,
+          "qa-agua-500ml": 12,
+          "qa-brigadeiro": 14,
+          "qa-misto-quente": 20,
+          "qa-suco-de-laranja": 17,
+          "qa-inativo": 1
+        },
+        "lancado": {
+          "qa-coxinha": 25,
+          "qa-pao-de-queijo": 25,
+          "qa-esfiha": 10,
+          "qa-misto-quente": 10,
+          "qa-x-salada": 6,
+          "qa-brigadeiro": 15,
+          "qa-bolo-de-cenoura-fatia": 8,
+          "qa-cafe": 30,
+          "qa-suco-de-laranja": 10
+        },
+        "perdas": {
+          "qa-brigadeiro": 3
+        },
+        "semEstoque": {
+          "qa-esfiha": 9,
+          "qa-agua-500ml": 6
+        },
+        "divergenciaDinheiro": 0,
+        "dinheiroFisicoEsperado": 75970,
+        "dinheiroContado": 75970,
+        "eletronicoLiquido": {
+          "pix": 29555,
+          "debito": 36785,
+          "credito": 14125
+        },
+        "faturamentoBrutoDoDia": 142665,
+        "vitrineInicio": {
+          "qa-agua-500ml": 6,
+          "qa-refrigerante-lata": 11,
+          "qa-ultimo-item": 0,
+          "qa-inativo": 5,
+          "qa-coxinha": 34,
+          "qa-pao-de-queijo": 47,
+          "qa-esfiha": 2,
+          "qa-misto-quente": 29,
+          "qa-x-salada": 3,
+          "qa-brigadeiro": 47,
+          "qa-bolo-de-cenoura-fatia": 22,
+          "qa-cafe": 75,
+          "qa-suco-de-laranja": 11
+        },
+        "vitrineFim": {
+          "qa-agua-500ml": 0,
+          "qa-refrigerante-lata": 5,
+          "qa-ultimo-item": 0,
+          "qa-inativo": 4,
+          "qa-coxinha": 10,
+          "qa-pao-de-queijo": 49,
+          "qa-esfiha": 0,
+          "qa-misto-quente": 19,
+          "qa-x-salada": 1,
+          "qa-brigadeiro": 45,
+          "qa-bolo-de-cenoura-fatia": 23,
+          "qa-cafe": 94,
+          "qa-suco-de-laranja": 4
+        },
+        "regraAtualDoSistema": {
+          "vendasAtivas": 31,
+          "totalVendido": 142665,
+          "porMetodo": {
+            "dinheiro": 62200,
+            "pix": 29555,
+            "debito": 36785,
+            "credito": 14125
+          },
+          "dinheiroEsperadoSemFundo": 60970,
+          "dinheiroEsperadoComFundo": 75970
+        }
+      }
+    ],
+    "semana": {
+      "comprasPrincipais": 200,
+      "vendasExtras": 7,
+      "cancelamentos": 4,
+      "recebidoLiquido": {
+        "dinheiro": 312390,
+        "pix": 169795,
+        "debito": 178925,
+        "credito": 105100
+      },
+      "vitrineFinal": {
+        "qa-agua-500ml": 0,
+        "qa-refrigerante-lata": 5,
+        "qa-ultimo-item": 0,
+        "qa-inativo": 4,
+        "qa-coxinha": 10,
+        "qa-pao-de-queijo": 49,
+        "qa-esfiha": 0,
+        "qa-misto-quente": 19,
+        "qa-x-salada": 1,
+        "qa-brigadeiro": 45,
+        "qa-bolo-de-cenoura-fatia": 23,
+        "qa-cafe": 94,
+        "qa-suco-de-laranja": 4
+      },
+      "faturamentoLiquido": 766210
+    }
+  }
+}
