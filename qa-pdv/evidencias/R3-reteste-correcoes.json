@@ -1,0 +1,59 @@
+{
+ "inativado": {
+  "ativo": false,
+  "naFrente": false
+ },
+ "reativado": {
+  "ativo": true,
+  "naFrente": true
+ },
+ "lancamento": {
+  "produto": "qa-coxinha",
+  "quantidade": 1,
+  "antes": 10,
+  "depois": 11,
+  "tentativas": 1,
+  "ok": true,
+  "avisos": [
+   "Estoque lançado Produto enviado para a vitrine. X"
+  ]
+ },
+ "primeiroClique": {
+  "botao": "Confirmar cancelamento",
+  "estoque": true
+ },
+ "segundoClique": {
+  "estoqueAntes": 11,
+  "estoqueDepois": 10
+ },
+ "fechamento": {
+  "telaAntes": {
+   "diferencaGeral": "R$ 0,00",
+   "diferencaDinheiro": "R$ 0,00"
+  },
+  "abertura": "Aberto às 07:00 por <admin>, com R$ 100,00 de troco inicial.",
+  "nota": "O dinheiro esperado soma o troco inicial, as vendas em dinheiro e as entradas, menos as saídas e as devoluções em dinheiro de vendas de outros dias canceladas hoje.",
+  "fechamento": {
+   "sales": 1400,
+   "entries": 0,
+   "outputs": 5000,
+   "closedComandas": 200,
+   "expectedCash": 5750,
+   "countedCash": 5750,
+   "cashDifference": 0,
+   "expectedPix": 650,
+   "checkedPix": 650,
+   "expectedDebit": 0,
+   "checkedDebit": 0,
+   "expectedCredit": 0,
+   "checkedCredit": 0,
+   "generalDifference": 0
+  },
+  "aviso": "Caixa fechado Fechamento salvo no historico do CRM. X",
+  "conferenciaVitrine": [
+   "qa-brigadeiro: produzido 0, esperado 43",
+   "qa-cafe: produzido 0, esperado 94",
+   "qa-x-salada: produzido 0, esperado 1"
+  ]
+ }
+}

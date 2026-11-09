@@ -4,7 +4,7 @@ Atualizado em 09/11/2026 (relógio real).
 
 ## Fase atual
 
-Concluídas: reconhecimento, backup, inventário, semana R1 (antes), correções, semana R2 (depois), testes dedicados, permissões de operador, relatórios. **Pendente de decisão do usuário:** aplicar a migração do BUG-017, decidir as regras pendentes, limpar ou manter os dados de teste em produção, publicar.
+Concluídas: reconhecimento, backup, inventário, semana R1 (antes), correções, semana R2 (depois), testes dedicados, permissões, relatórios, **segunda rodada de correções (pendências e regras) e reteste em 24/10/2026**. Pendente de ação do usuário: aplicar as migrações 202611090001/0002/0003, revisar as regras adotadas, publicar, decidir sobre os dados de teste.
 
 ## Contagens
 
@@ -15,8 +15,8 @@ Concluídas: reconhecimento, backup, inventário, semana R1 (antes), correções
 | Vendas extras | 6 | 9 |
 | Cancelamentos | 4 vendas + 1 movimento | 6 vendas |
 | Fechamentos | 8 (1 prematuro, BUG-003) | 7 + 3 no dia de testes 25/10 |
-| Correções aplicadas | 3 durante a execução | 14 commits no total |
-| Testes do projeto | 94/94 | 107/107 |
+| Correções aplicadas | 3 durante a execução | 28 commits no total (2 rodadas) |
+| Testes do projeto | 94/94 | 120/120 |
 
 ## Desvios de execução (não são defeitos do PDV)
 
@@ -42,6 +42,7 @@ Concluídas: reconhecimento, backup, inventário, semana R1 (antes), correções
 ## Ponto de retomada
 
 - Base: Supabase de produção `inquppkbkmhnbtwpriuw`; backup inicial em `qa-pdv/backup-inicial/` (fora do Git).
-- O painel do navegador ficou logado como a operadora (Patricia). Para novos testes de administrador, sair e entrar como admin.
+- O painel do navegador ficou logado como administrador.
 - Relógio de teste já restaurado para o horário real no navegador (`window.__QA_CLOCK__.reset()`).
-- Próximos passos: aplicar a migração `202611090001`, repetir login da operadora e uma venda; decidir BUG-004/012/019/021; publicar com atualização de `?v=` e do cache do service worker; limpar dados de teste se desejado.
+- Reteste da segunda rodada: dia 24/10/2026 (caixa aberto com R$ 100 e fechado com diferença zero).
+- Próximos passos: aplicar as migrações `202611090001`, `202611090002` e `202611090003`; repetir login da operadora e uma venda; revisar as regras adotadas; publicar com atualização de `?v=` e do cache do service worker; limpar dados de teste se desejado.

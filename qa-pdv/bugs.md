@@ -6,8 +6,50 @@ Prioridades: P0 crítico, P1 alto, P2 médio, P3 baixo. "Causa" separa o que foi
 
 ## Resumo
 
+Situação após a segunda rodada de correções (09/11/2026). "Migração pendente" = a correção do app está feita, mas o banco de produção precisa da migração indicada (não aplicada pelo QA).
+
 | ID | Prioridade | Título | Situação |
 | --- | --- | --- | --- |
+| BUG-001 | P0 | Entrada/saída de caixa trava a fila de sincronização (FK do movimento) | Corrigido e retestado (`afebbe5`) |
+| BUG-002 | P0 | Categoria inexistente no modal Entrada/Saída trava a fila (FK da categoria) | Corrigido e retestado (`0f70d6e`) |
+| BUG-005 | P0 | Troco inicial ignorado no dinheiro esperado | Corrigido e retestado (`778c481`) |
+| BUG-017 | P0 | Operador e caixa não leem o catálogo no servidor | App corrigido (`fb232f2`); **migração 202611090001 pendente** |
+| BUG-003 | P1 | Tela Produtos cobre a Frente de caixa | Corrigido e retestado (`544864c`) |
+| BUG-004 | P1 | Perdas, alertas e sobras ignoravam o estoque herdado | Corrigido e retestado (`ad16b92`) |
+| BUG-008 | P1 | Duas abas: tela e cobrança diferentes | Corrigido e retestado (`7f94e72`) |
+| BUG-010 | P1 | Reabrir o caixa perdia o troco anterior | Corrigido e retestado (`95831a5`) |
+| BUG-019 | P1 | Devolução de venda de outro dia não saía do caixa do dia | Corrigido (`28133d2`), validado por teste automatizado |
+| BUG-006 | P2 | Formulário da Vitrine apagado em segundo plano | Corrigido e retestado (`d59f231`) |
+| BUG-007 | P2 | Fila da vitrine sem nova tentativa | Corrigido e retestado (`6250dc9`) |
+| BUG-009 | P2 | OK da venda sob Finalizar; hover ilegível | Corrigido e retestado (`8efbaaa`) |
+| BUG-011 | P2 | Sessão de caixa só no aparelho | App corrigido (`1bd5ece`); **migração 202611090002 pendente** (servidor recusa por RLS, inclusive para admin) |
+| BUG-012 | P2 | "Caixa atual" somava Pix e cartões | Corrigido e retestado (`8638059`) |
+| BUG-015 | P2 | Cancelada voltava a "ativa" por ~1 s | Corrigido e retestado (`4b11015`) |
+| BUG-016 | P2 | "Receber" fora da tela em 1024×600 | Corrigido e retestado (`bd96a2d`) |
+| BUG-018 | P2 | Admin não lê a auditoria no servidor | **Migração 202611090003 pendente** (causa não confirmada) |
+| BUG-021 | P2 | Sangria virava despesa | Corrigido e retestado (`80ae878`, `671743d`) |
+| BUG-024 | P2 | Sem aviso de envio pendente | Corrigido e retestado (`949ac26`) |
+| BUG-013 | P3 | Modal Abrir caixa sem estilo; mensagem só de vendas | Corrigido e retestado (`95831a5`) |
+| BUG-014 | P3 | Relatórios com códigos crus | Corrigido e retestado (`8523c2b`) |
+| BUG-020 | P3 | Número de comanda repetido entre aparelhos | Corrigido (`050f380`), teste automatizado; vendas simultâneas em aparelhos diferentes ainda podem repetir |
+| BUG-022 | P3 | Não havia como inativar produto | Corrigido e retestado (`aa1d69a`) |
+| BUG-023 | P3 | Login estático por ~7,6 s com sessão ativa | Corrigido (`4d9a1a2`), teste automatizado |
+| BUG-025 | P3 | Frente de caixa transbordava em 375 px | Corrigido e retestado (`ab3a6be`) |
+| BUG-026 | P3 | Ações destrutivas da Vitrine sem confirmação | Corrigido e retestado (`06618e1`) |
+| BUG-027 | P3 | Edição gravava estoque absoluto | Corrigido (`aa1d69a`), teste automatizado |
+| BUG-028 | P3 | Somas em ponto flutuante | Corrigido (`0546df3`), teste automatizado |
+| BUG-029 | P3 | Diálogos nativos (prompt/alert) | Corrigido e retestado (`34947d5`) |
+
+Contagem: 29 itens — 26 corrigidos (21 retestados na interface, 5 validados por teste automatizado) e 3 dependentes de migração no banco (BUG-011, BUG-017, BUG-018).
+
+### Regras adotadas na segunda rodada (antes "a decidir")
+
+- **Vitrine contínua (BUG-004):** o saldo da vitrine passa de um dia para o outro; perdas, alertas, "Vitrine estimada" e sobras do fechamento usam o saldo real.
+- **Devolução entre dias (BUG-019):** cancelar hoje uma venda em dinheiro de outro dia desconta o valor do dinheiro esperado de hoje; o fechamento salvo do dia original não muda.
+- **Caixa atual (BUG-012):** é o dinheiro da gaveta (troco + vendas em dinheiro + entradas − saídas − devoluções do dia). O total com todas as formas continua em Relatórios como "Caixa líquido".
+- **Sangria (BUG-021):** tipo próprio na Saída; reduz a gaveta e não gera despesa no Financeiro. No servidor vai como `saida` com categoria `sangria`, porque o banco de produção recusa o tipo `sangria` (achado no reteste).
+
+--- | --- | --- | --- |
 | BUG-001 | P0 | Entrada/saída de caixa trava a fila de sincronização (FK do movimento) | Corrigido e retestado |
 | BUG-002 | P0 | Categoria inexistente no modal Entrada/Saída trava a fila (FK da categoria) | Corrigido e retestado |
 | BUG-005 | P0 | Troco inicial ignorado no dinheiro esperado (tela Caixa e Fechamento rápido) | Corrigido e retestado |
