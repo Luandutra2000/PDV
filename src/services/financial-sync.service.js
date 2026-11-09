@@ -279,8 +279,32 @@ export function flushFinancialQueue() {
   return flushPromise;
 }
 
+// Filas gravadas por versoes anteriores podem ter o lancamento financeiro antes
+// do movimento de caixa que ele referencia; isso falharia para sempre (FK) e
+// bloquearia toda a fila. O movimento nao depende do lancamento, entao pode
+// ser adiantado com seguranca.
+function moveCashMovementsBeforeLinkedTransactions(queue) {
+  const ordered = [...queue];
+  let changed = false;
+  for (let index = 0; index < ordered.length; index += 1) {
+    const movementId = ordered[index]?.action === 'saveFinancialTransaction' ? ordered[index].transaction?.cashMovementId : '';
+    if (!movementId) continue;
+    const movementIndex = ordered.findIndex((candidate, candidateIndex) => (
+      candidateIndex > index && candidate.action === 'saveCashMovement' && candidate.movement?.id === movementId
+    ));
+    if (movementIndex < 0) continue;
+    const [movementOperation] = ordered.splice(movementIndex, 1);
+    ordered.splice(index, 0, movementOperation);
+    changed = true;
+    index += 1;
+  }
+  return changed ? ordered : queue;
+}
+
 async function flushPendingFinancialOperations() {
-  const queue = readQueue();
+  const storedQueue = readQueue();
+  const queue = moveCashMovementsBeforeLinkedTransactions(storedQueue);
+  if (queue !== storedQueue) writeQueue(queue);
 
   if (!queue.length) {
     setStatus({ state: 'synced', pending: 0, error: '' });

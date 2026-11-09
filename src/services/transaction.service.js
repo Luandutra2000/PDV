@@ -151,6 +151,9 @@ export function registerCashMovement({
 
   runLocalTransaction(() => {
     appendTransaction(movement);
+    // O movimento precisa chegar ao servidor antes do lancamento financeiro
+    // que o referencia (FK financial_transactions.cash_movement_id).
+    if (isSupabaseEnabled()) prepareFinancialOperation({ action: 'saveCashMovement', movement });
     if (createFinancialTransaction) {
       const finance = createFinanceTransaction({
         type: type === 'entrada' ? 'income' : 'expense',
@@ -167,7 +170,6 @@ export function registerCashMovement({
       }, { enforcePermission: false, sync: false });
       if (isSupabaseEnabled()) prepareFinancialOperation({ action: 'saveFinancialTransaction', transaction: finance });
     }
-    if (isSupabaseEnabled()) prepareFinancialOperation({ action: 'saveCashMovement', movement });
     recordAudit({
       action: 'cash.movement',
       entityType: 'transaction',
