@@ -3,6 +3,7 @@ import { emit } from './event-bus.service.js';
 import { getActiveComanda, getSubtotal, startNewComanda } from './comanda.service.js';
 import { getProductById } from './product.service.js';
 import { getDataProvider } from './data-provider.service.js';
+import { enqueueRemote } from './remote-outbox.service.js';
 
 export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
   const comanda = getActiveComanda();
@@ -43,6 +44,7 @@ export function finalizeComandaPayment({ paymentMethod, receivedAmount = 0 }) {
     change
   });
   startNewComanda(comanda.number + 1);
+  enqueueRemote('sale', sale);
   emit(SYNC_EVENTS.saleFinished, sale);
 
   return sale;
@@ -77,6 +79,7 @@ export function registerCashMovement({
   };
 
   appendTransaction(movement);
+  enqueueRemote('cashMovement', movement);
   emit(SYNC_EVENTS.cashMovementRegistered, movement);
 
   return movement;
@@ -96,16 +99,23 @@ export function clearTransactionHistory() {
 }
 
 export function cancelClosedComanda(comandaId) {
+  const canceledSales = [];
   const transactions = getTransactions().map((transaction) => {
     if (transaction.comandaId !== comandaId) {
       return transaction;
     }
 
-    return {
+    const canceledTransaction = {
       ...transaction,
       status: 'cancelada',
       canceledAt: new Date().toISOString()
     };
+
+    if (transaction.status !== 'cancelada') {
+      canceledSales.push(canceledTransaction);
+    }
+
+    return canceledTransaction;
   });
   const comandas = getClosedComandas().map((comanda) => {
     if (comanda.id !== comandaId) {
@@ -121,11 +131,13 @@ export function cancelClosedComanda(comandaId) {
 
   getDataProvider().setCollection('transactions', transactions);
   getDataProvider().setCollection('closedComandas', comandas);
+  canceledSales.forEach((sale) => enqueueRemote('saleStatus', sale));
 }
 
 export function cancelTransaction(transactionId) {
   const canceledAt = new Date().toISOString();
   let canceledSaleComandaId = null;
+  let canceledTransaction = null;
   const transactions = getTransactions().map((transaction) => {
     if (transaction.id !== transactionId) {
       return transaction;
@@ -135,6 +147,10 @@ export function cancelTransaction(transactionId) {
       canceledSaleComandaId = transaction.comandaId;
     }
 
+    canceledTransaction = transaction.status === 'cancelada'
+      ? null
+      : { ...transaction, status: 'cancelada', canceledAt };
+
     return {
       ...transaction,
       status: 'cancelada',
@@ -143,6 +159,10 @@ export function cancelTransaction(transactionId) {
   });
 
   getDataProvider().setCollection('transactions', transactions);
+
+  if (canceledTransaction) {
+    enqueueRemote(canceledTransaction.type === 'venda' ? 'saleStatus' : 'movementStatus', canceledTransaction);
+  }
 
   if (!canceledSaleComandaId) {
     return;

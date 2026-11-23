@@ -133,5 +133,10 @@ const afterClosing = closing.getSalesAfterClosing(confirmed);
 assert(afterClosing.length === 1, 'sales after closing should be listed separately');
 assert(closing.getCashClosings()[0].totals.sales === confirmed.totals.sales, 'confirmed closing totals should not change after later sale');
 
+const nextSummary = closing.buildClosingSummary({ countedCash: 16 });
+assert(nextSummary.payments.expectedCash === 16, 'next closing should only expect cash from sales after the last closing');
+assert(nextSummary.payments.cashDifference === 0, 'next closing should not carry previous closing amounts');
+assert(nextSummary.totals.closedComandas === 1, 'next closing should only count comandas after the last closing');
+
 console.log('cash closing service ok');
 });

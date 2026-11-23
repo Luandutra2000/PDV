@@ -1,6 +1,31 @@
 import { getSupabaseClient } from './supabase-client.service.js';
+import { buildProfile } from './permission.service.js';
 
 let authClientForTests = null;
+let profileClientForTests = null;
+
+export function setProfileClientForTests(client) {
+  profileClientForTests = client;
+}
+
+export async function loadCurrentProfile(user) {
+  const client = profileClientForTests || await getSupabaseClient();
+  const { data, error } = await client
+    .from('profiles')
+    .select('id, name, role, is_active')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message || 'Falha ao carregar perfil.');
+  }
+
+  if (!data || data.is_active === false) {
+    throw new Error('Usuario sem perfil ativo. Fale com o administrador.');
+  }
+
+  return buildProfile(data);
+}
 
 export function setAuthClientForTests(client) {
   authClientForTests = client;

@@ -9,6 +9,8 @@ import {
 } from '../../services/transaction.service.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { showNotification } from '../../services/notification.service.js';
+import { can } from '../../services/permission.service.js';
+import { isRemoteSyncEnabled } from '../../services/remote-outbox.service.js';
 
 const dashboardState = {
   modal: null,
@@ -60,7 +62,7 @@ function renderDashboard(container) {
         <section class="manager-section">
           <header class="manager-section__header">
             <strong>Historico de comandas</strong>
-            <button class="button button--ghost" type="button" data-action="clear-history">Limpar historico</button>
+            ${can('sale.cancel') ? '<button class="button button--ghost" type="button" data-action="clear-history">Limpar historico</button>' : ''}
           </header>
           <div class="manager-list history-list">
             ${renderClosedComandas()}
@@ -79,6 +81,7 @@ function renderDashboard(container) {
 
       ${dashboardState.modal === 'entrada' || dashboardState.modal === 'saida' ? renderCashMovementModal(dashboardState.modal) : ''}
       ${dashboardState.modal === 'cancel-comanda' ? renderCancelComandaModal() : ''}
+      ${dashboardState.modal === 'clear-history' ? renderClearHistoryModal() : ''}
     </section>
   `;
 }
@@ -111,7 +114,25 @@ function bindDashboardEvents(container) {
       renderDashboard(container);
     }
 
-    if (button.dataset.action === 'clear-history') {
+    if (button.dataset.action === 'clear-history' && can('sale.cancel')) {
+      dashboardState.modal = 'clear-history';
+      renderDashboard(container);
+      return;
+    }
+
+    if (button.dataset.action === 'confirm-clear-history' && can('sale.cancel')) {
+      const typed = container.querySelector('[data-clear-history-confirmation]')?.value.trim().toUpperCase();
+
+      if (typed !== 'APAGAR') {
+        showNotification({
+          title: 'Historico mantido',
+          message: 'Digite APAGAR para confirmar.',
+          type: 'danger'
+        });
+        return;
+      }
+
+      dashboardState.modal = null;
       clearTransactionHistory();
       showNotification({
         title: 'Historico limpo',
@@ -119,6 +140,15 @@ function bindDashboardEvents(container) {
         type: 'danger'
       });
       renderDashboard(container);
+    }
+
+    if (['cancel-comanda', 'confirm-cancel-comanda', 'cancel-transaction'].includes(button.dataset.action) && !can('sale.cancel')) {
+      showNotification({
+        title: 'Sem permissao',
+        message: 'Somente o administrador pode cancelar vendas e movimentos.',
+        type: 'danger'
+      });
+      return;
     }
 
     if (button.dataset.action === 'cancel-comanda') {
@@ -266,6 +296,36 @@ function renderCashMovementModal(type) {
             <button class="button" type="submit">Salvar</button>
           </div>
         </form>
+      </div>
+    </div>
+  `;
+}
+
+function renderClearHistoryModal() {
+  const scope = isRemoteSyncEnabled()
+    ? 'Os registros ja enviados continuam salvos no servidor; somente este aparelho sera limpo.'
+    : 'Nao existe copia no servidor: as vendas e movimentos serao perdidos para sempre.';
+
+  return `
+    <div class="modal-backdrop is-open">
+      <div class="modal modal--small" role="dialog" aria-modal="true">
+        <header class="modal__header">
+          <h2>Limpar historico</h2>
+          <button class="icon-button" type="button" data-action="close-modal">X</button>
+        </header>
+        <div class="product-form">
+          <p class="modal-text">
+            Isso apaga todas as comandas e movimentos de dinheiro deste aparelho. ${scope}
+          </p>
+          <label class="login-field">
+            <span>Digite APAGAR para confirmar</span>
+            <input class="field" type="text" autocomplete="off" data-clear-history-confirmation>
+          </label>
+          <div class="form-actions">
+            <button class="button button--ghost" type="button" data-action="close-modal">Voltar</button>
+            <button class="button button--danger" type="button" data-action="confirm-clear-history">Apagar historico</button>
+          </div>
+        </div>
       </div>
     </div>
   `;

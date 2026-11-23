@@ -9,6 +9,8 @@ Configurar o banco online do piloto do PDV usando Supabase.
 1. Criar um projeto Supabase.
 2. Abrir SQL Editor.
 3. Rodar o conteudo de `supabase/migrations/202605220001_initial_pdv_pilot.sql`.
+   Depois, rodar `supabase/migrations/202611230001_sales_sync_policies.sql` (permite ao admin cancelar
+   qualquer venda, impede o operador de editar movimentos e itens ja enviados e valida valores).
 4. Criar o primeiro usuario admin em Authentication.
 5. Criar linha em `profiles` para esse admin usando o mesmo `id` do Auth.
 6. Configurar Auth URL para o dominio do Netlify quando o deploy existir.
