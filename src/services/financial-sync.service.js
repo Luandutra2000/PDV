@@ -10,7 +10,7 @@ import { commandItemAdapter } from './repositories/command-item.adapter.js?v=202
 import { cashClosingAdapter } from './repositories/cash-closing.adapter.js?v=20260804-06';
 import { financialCategoryAdapter } from './repositories/financial-category.adapter.js?v=20260804-06';
 import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js?v=20260804-06';
-import { readLocalCache as readJson, setLocalCache as writeJson } from './providers/local.provider.js?v=20261123-01';
+import { readLocalCache as readJson, setLocalCache as writeJson } from './providers/local.provider.js?v=20261123-02';
 import { applyHistoryFilters, getHistoryQuery } from './history-window.service.js?v=20261123-01';
 import { randomHex } from '../utils/random-id.js?v=20261123-01';
 

@@ -244,16 +244,16 @@ function isHeavyKeyActive(key) {
 function writeHeavyValue(key, value) {
   const store = getHeavyStore();
   store.values.set(key, value);
+  store.localRevision.set(key, (store.localRevision.get(key) || 0) + 1);
   getMemoryCache().delete(key);
   getSerializedCache().delete(key);
-  store.channel?.postMessage({ type: 'set', key, value });
   persistHeavy(store, (backend) => backend.put(key, value), key);
 }
 
 function removeHeavyValue(key) {
   const store = getHeavyStore();
   store.values.delete(key);
-  store.channel?.postMessage({ type: 'delete', key });
+  store.localRevision.set(key, (store.localRevision.get(key) || 0) + 1);
   persistHeavy(store, (backend) => backend.delete(key), key);
 }
 
@@ -262,6 +262,9 @@ function persistHeavy(store, operation, key) {
   store.pendingWrites += 1;
   store.chain = store.chain
     .then(() => operation(backend))
+    // Only the key goes to other tabs: copying a 60-day list into the message
+    // cost about 45 ms per collection on every sale. They reread it from IndexedDB.
+    .then(() => store.channel?.postMessage({ type: 'changed', key }))
     .catch((error) => {
       store.lastError = error;
       console.error(`Nao foi possivel salvar ${key} no banco local do navegador.`, error);
@@ -295,17 +298,21 @@ function listenToOtherTabs(store) {
   store.channel = new BroadcastChannel(HEAVY_CHANNEL_NAME);
   store.channel.unref?.();
   store.channel.addEventListener('message', (event) => {
-    const { type, key, value } = event.data || {};
+    const { key } = event.data || {};
 
     if (!HEAVY_STORAGE_KEYS.includes(key)) {
       return;
     }
 
-    if (type === 'delete') {
-      store.values.delete(key);
-    } else {
-      store.values.set(key, value);
-    }
+    const revisionAtStart = store.localRevision.get(key) || 0;
+    store.backend.get(key).then((value) => {
+      // A write made in this tab meanwhile is newer: keep it.
+      if ((store.localRevision.get(key) || 0) !== revisionAtStart) return;
+      if (value === undefined) store.values.delete(key);
+      else store.values.set(key, value);
+    }).catch((error) => {
+      console.warn(`Nao foi possivel atualizar ${key} vindo de outra aba.`, error);
+    });
   });
 }
 
@@ -359,6 +366,7 @@ function getHeavyStore() {
       backend: null,
       channel: null,
       values: new Map(),
+      localRevision: new Map(),
       chain: Promise.resolve(),
       pendingWrites: 0,
       lastError: null

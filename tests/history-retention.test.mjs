@@ -19,11 +19,11 @@ globalThis.__PDV_RUNTIME_CONFIG__ = {
 
 const { STORAGE_KEYS: keys } = await import('../src/database/schema.js?v=20260804-06');
 const windowService = await import('../src/services/history-window.service.js?v=20261123-01');
-const financialSync = await import('../src/services/financial-sync.service.js?v=20261123-01');
-const retention = await import('../src/services/history-retention.service.js?v=20261123-01');
+const financialSync = await import('../src/services/financial-sync.service.js?v=20261123-02');
+const retention = await import('../src/services/history-retention.service.js?v=20261123-02');
 const archive = await import('../src/services/history-archive.store.js?v=20261123-01');
-const crm = await import('../src/services/crm-dashboard.service.js?v=20261123-01');
-const { setLocalCache, readLocalCache } = await import('../src/services/providers/local.provider.js?v=20261123-01');
+const crm = await import('../src/services/crm-dashboard.service.js?v=20261123-02');
+const { setLocalCache, readLocalCache } = await import('../src/services/providers/local.provider.js?v=20261123-02');
 
 const DAY = 24 * 60 * 60 * 1000;
 const cutoff = windowService.getHistoryCutoff();

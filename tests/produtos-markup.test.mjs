@@ -8,11 +8,11 @@ globalThis.localStorage = {
 };
 
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
-const storage = await import('../src/services/storage.service.js?v=20261123-01');
+const storage = await import('../src/services/storage.service.js?v=20261123-02');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs');
-const sync = await import('../src/services/showcase-sync.service.js?v=20261123-01');
-const products = await import('../src/services/product.service.js?v=20261123-01');
-const { initProdutosModule } = await import('../src/modules/produtos/produtos.module.js?v=20261123-01');
+const sync = await import('../src/services/showcase-sync.service.js?v=20261123-02');
+const products = await import('../src/services/product.service.js?v=20261123-02');
+const { initProdutosModule } = await import('../src/modules/produtos/produtos.module.js?v=20261123-02');
 
 seedTestAdmin(storage, STORAGE_KEYS);
 storage.setItem(STORAGE_KEYS.categories, [

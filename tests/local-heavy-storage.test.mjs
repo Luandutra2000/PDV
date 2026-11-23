@@ -20,7 +20,7 @@ globalThis.localStorage = {
   clear: () => disk.clear()
 };
 
-const local = await import('../src/services/providers/local.provider.js?v=20261123-01');
+const local = await import('../src/services/providers/local.provider.js?v=20261123-02');
 
 disk.set('pdv.transactions', JSON.stringify([{ id: 'sale-legacy', total: 10 }]));
 disk.set('pdv.products', JSON.stringify([{ id: 'x-burger' }]));
@@ -67,6 +67,14 @@ local.resetLocalHeavyStorageForTests();
 assert.equal(local.isLocalHeavyStorageActive(), false);
 await local.initLocalHeavyStorage({ backend });
 assert.deepEqual(local.readLocalCache('pdv.transactions').map((item) => item.id), ['sale-3', 'sale-new', 'sale-legacy']);
+
+// Outra aba gravou: a mensagem traz so a chave e esta aba rele do IndexedDB.
+database.set('pdv.transactions', [{ id: 'sale-other-tab' }, ...database.get('pdv.transactions')]);
+const otherTab = new BroadcastChannel('pdv-local-history');
+otherTab.postMessage({ type: 'changed', key: 'pdv.transactions' });
+await new Promise((resolve) => setTimeout(resolve, 50));
+otherTab.close();
+assert.equal(local.readLocalCache('pdv.transactions')[0].id, 'sale-other-tab', 'venda feita em outra aba aparece aqui');
 
 const provider = local.createLocalProvider();
 provider.remove('pdv.transactions');

@@ -1,7 +1,7 @@
-import { getCategories, getProductById } from './product.service.js?v=20261123-01';
+import { getCategories, getProductById } from './product.service.js?v=20261123-02';
 import { roundMoney } from '../utils/currency.js?v=20261109-01';
-import { getActiveComanda } from './comanda.service.js?v=20261123-01';
-import { getCashSessionTransactions, getClosedComandas, getTransactions } from './transaction.service.js?v=20261123-01';
+import { getActiveComanda } from './comanda.service.js?v=20261123-02';
+import { getCashSessionTransactions, getClosedComandas, getTransactions } from './transaction.service.js?v=20261123-02';
 import { getArchivedComandas, getArchivedTransactions, mergeWithArchive } from './history-archive.store.js?v=20261123-01';
 
 export function createPeriodFilter(period = 'today', customStart = '', customEnd = '') {

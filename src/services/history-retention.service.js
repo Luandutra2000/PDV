@@ -1,7 +1,7 @@
 import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
-import { readLocalCache, runLocalTransaction, setLocalCache } from './providers/local.provider.js?v=20261123-01';
-import { fetchFinancialHistoryRange, getFinancialSyncStatus } from './financial-sync.service.js?v=20261123-01';
-import { getShowcaseSyncStatus } from './showcase-sync.service.js?v=20261123-01';
+import { readLocalCache, runLocalTransaction, setLocalCache } from './providers/local.provider.js?v=20261123-02';
+import { fetchFinancialHistoryRange, getFinancialSyncStatus } from './financial-sync.service.js?v=20261123-02';
+import { getShowcaseSyncStatus } from './showcase-sync.service.js?v=20261123-02';
 import { getHistoryCutoff, isHistoryWindowActive } from './history-window.service.js?v=20261123-01';
 import {
   getHistoryArchiveState,

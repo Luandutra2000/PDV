@@ -19,7 +19,7 @@ const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
 
-const { createLocalProvider } = await import('../src/services/providers/local.provider.js?v=20261123-01');
+const { createLocalProvider } = await import('../src/services/providers/local.provider.js?v=20261123-02');
 const provider = createLocalProvider();
 const largeCollection = Array.from({ length: 20000 }, (_, index) => ({
   id: `large-${index}`,

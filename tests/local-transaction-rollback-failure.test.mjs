@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { runLocalTransaction, setLocalCache, readLocalCache, deferLocalEffect } from '../src/services/providers/local.provider.js?v=20261123-01';
+import { runLocalTransaction, setLocalCache, readLocalCache, deferLocalEffect } from '../src/services/providers/local.provider.js?v=20261123-02';
 const disk = new Map([['first', '["old-first"]'], ['second', '["old-second"]'], ['third', '["old-third"]']]);
 let rollback = false;
 globalThis.localStorage = {

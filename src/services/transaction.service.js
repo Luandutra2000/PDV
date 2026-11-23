@@ -1,22 +1,22 @@
 import { STORAGE_KEYS, SYNC_EVENTS, UI_EVENTS } from '../database/schema.js?v=20260804-06';
 import { emit } from './event-bus.service.js?v=20260804-06';
-import { getActiveComanda, getNextComandaNumber, getSubtotal, startNewComanda } from './comanda.service.js?v=20261123-01';
-import { getProductById } from './product.service.js?v=20261123-01';
-import { getItem, setItem } from './storage.service.js?v=20261123-01';
-import { getCurrentUser } from './auth.service.js?v=20261123-01';
-import { assertPermission, hasPermission } from './permission.service.js?v=20261123-01';
-import { recordAudit } from './audit.service.js?v=20261123-01';
+import { getActiveComanda, getNextComandaNumber, getSubtotal, startNewComanda } from './comanda.service.js?v=20261123-02';
+import { getProductById } from './product.service.js?v=20261123-02';
+import { getItem, setItem } from './storage.service.js?v=20261123-02';
+import { getCurrentUser } from './auth.service.js?v=20261123-02';
+import { assertPermission, hasPermission } from './permission.service.js?v=20261123-02';
+import { recordAudit } from './audit.service.js?v=20261123-02';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { createFinancialTransaction as createFinanceTransaction, getFinancialCategories } from './financial.service.js?v=20261123-01';
+import { createFinancialTransaction as createFinanceTransaction, getFinancialCategories } from './financial.service.js?v=20261123-02';
 import {
   getFinancialSyncStatus,
   prepareFinancialOperation,
   flushFinancialQueue
-} from './financial-sync.service.js?v=20261123-01';
-import { prepareShowcaseSale, prepareShowcaseReversal, flushShowcaseQueue } from './showcase-sync.service.js?v=20261123-01';
-import { runLocalTransaction } from './providers/local.provider.js?v=20261123-01';
+} from './financial-sync.service.js?v=20261123-02';
+import { prepareShowcaseSale, prepareShowcaseReversal, flushShowcaseQueue } from './showcase-sync.service.js?v=20261123-02';
+import { runLocalTransaction } from './providers/local.provider.js?v=20261123-02';
 import { roundMoney } from '../utils/currency.js?v=20261109-01';
-import { assertCashSessionOpen } from './cash-session.service.js?v=20261123-01';
+import { assertCashSessionOpen } from './cash-session.service.js?v=20261123-02';
 import { randomHex } from '../utils/random-id.js?v=20261123-01';
 
 function enforceCashSession() {
