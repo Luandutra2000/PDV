@@ -1,8 +1,8 @@
-import { buildClosingSummary, completeClosingLocalEffects, getCashClosings, validateClosingInput } from './cash-closing.service.js?v=20261123-02';
+import { buildClosingSummary, completeClosingLocalEffects, getCashClosings, validateClosingInput } from './cash-closing.service.js?v=20261123-03';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { saveCashClosingToSupabaseStrict } from './financial-sync.service.js?v=20261123-02';
-import { getCurrentUser } from './auth.service.js?v=20261123-02';
-import { assertPermission } from './permission.service.js?v=20261123-02';
+import { saveCashClosingToSupabaseStrict } from './financial-sync.service.js?v=20261123-03';
+import { getCurrentUser } from './auth.service.js?v=20261123-03';
+import { assertPermission } from './permission.service.js?v=20261123-03';
 import { randomHex } from '../utils/random-id.js?v=20261123-01';
 
 export function getMobileClosingSummary() {

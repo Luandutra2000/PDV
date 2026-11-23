@@ -15,13 +15,13 @@ globalThis.localStorage = {
 };
 globalThis.__PDV_RUNTIME_CONFIG__ = { dataProvider: 'supabase', supabaseUrl: 'https://example.test', supabaseAnonKey: 'public' };
 
-const storage = await import('../src/services/storage.service.js?v=20261123-02');
+const storage = await import('../src/services/storage.service.js?v=20261123-03');
 const { STORAGE_KEYS: keys } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const transactions = await import('../src/services/transaction.service.js?v=20261123-02');
-const financial = await import('../src/services/financial-sync.service.js?v=20261123-02');
-const showcase = await import('../src/services/showcase-sync.service.js?v=20261123-02');
-const { configureSupabaseClientForTests } = await import('../src/services/supabase-client.service.js?v=20260804-06');
+const transactions = await import('../src/services/transaction.service.js?v=20261123-03');
+const financial = await import('../src/services/financial-sync.service.js?v=20261123-03');
+const showcase = await import('../src/services/showcase-sync.service.js?v=20261123-03');
+const { configureSupabaseClientForTests } = await import('../src/services/supabase-client.service.js?v=20261123-03');
 
 const movements = new Set();
 const writes = [];

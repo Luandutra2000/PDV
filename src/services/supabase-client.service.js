@@ -21,6 +21,11 @@ export async function getSupabaseClient() {
     clientPromise = import('https://esm.sh/@supabase/supabase-js@2').then(({ createClient }) => {
       const config = getRuntimeConfig();
       return createClient(config.supabaseUrl, config.supabaseAnonKey);
+    }).catch((error) => {
+      // Without internet the library may fail to load: forget the failure so
+      // the next attempt (when the connection is back) loads it again.
+      clientPromise = null;
+      throw error;
     });
   }
 

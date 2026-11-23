@@ -1,5 +1,5 @@
 import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { getSupabaseAuthSession } from './supabase-client.service.js?v=20260804-06';
+import { getSupabaseAuthSession } from './supabase-client.service.js?v=20261123-03';
 
 export function getSupabaseRestClient() {
   if (!isSupabaseEnabled()) {

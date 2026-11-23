@@ -1,9 +1,9 @@
 import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260804-06';
-import { getCurrentUser } from './auth.service.js?v=20261123-02';
+import { getCurrentUser } from './auth.service.js?v=20261123-03';
 import { emit } from './event-bus.service.js?v=20260804-06';
-import { getItem, setItem } from './storage.service.js?v=20261123-02';
+import { getItem, setItem } from './storage.service.js?v=20261123-03';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { getSupabaseClient } from './supabase-client.service.js?v=20260804-06';
+import { getSupabaseClient } from './supabase-client.service.js?v=20261123-03';
 
 // A sessao de caixa (troco inicial) tambem vai para o servidor, para que o
 // App do dono e outros aparelhos vejam o troco. Falha de envio nao bloqueia

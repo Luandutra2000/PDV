@@ -7,12 +7,12 @@ globalThis.localStorage = {
   removeItem(key) { if (key === failKey) throw new Error(`quota:${key}`); store.delete(key); },
   clear: () => store.clear()
 };
-const storage = await import('../src/services/storage.service.js?v=20261123-02');
+const storage = await import('../src/services/storage.service.js?v=20261123-03');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
-const closing = await import('../src/services/cash-closing.service.js?v=20261123-02');
-const mobile = await import('../src/services/mobile-closing.service.js?v=20261123-02');
-const financial = await import('../src/services/financial-sync.service.js?v=20261123-02');
-const { configureSupabaseClientForTests } = await import('../src/services/supabase-client.service.js?v=20260804-06');
+const closing = await import('../src/services/cash-closing.service.js?v=20261123-03');
+const mobile = await import('../src/services/mobile-closing.service.js?v=20261123-03');
+const financial = await import('../src/services/financial-sync.service.js?v=20261123-03');
+const { configureSupabaseClientForTests } = await import('../src/services/supabase-client.service.js?v=20261123-03');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
 function reset() {
   failKey = '';

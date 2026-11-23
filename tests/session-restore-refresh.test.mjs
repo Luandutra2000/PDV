@@ -27,9 +27,9 @@ globalThis.__PDV_RUNTIME_CONFIG__ = {
   supabaseAnonKey: 'anon-key'
 };
 
-const storage = await import('../src/services/storage.service.js?v=20261123-02');
-const auth = await import('../src/services/auth.service.js?v=20261123-02');
-const supabaseClient = await import('../src/services/supabase-client.service.js?v=20260804-06');
+const storage = await import('../src/services/storage.service.js?v=20261123-03');
+const auth = await import('../src/services/auth.service.js?v=20261123-03');
+const supabaseClient = await import('../src/services/supabase-client.service.js?v=20261123-03');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
 
 storage.setItem(STORAGE_KEYS.users, [{

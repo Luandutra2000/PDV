@@ -1,7 +1,7 @@
-import { getProductsWithShowcaseStock } from './estoque.service.js?v=20261123-02';
-import { getShowcaseStockByProductId } from './showcase-stock.service.js?v=20261123-02';
-import { getFinancialTransactions } from './financial.service.js?v=20261123-02';
-import { getTransactions } from './transaction.service.js?v=20261123-02';
+import { getProductsWithShowcaseStock } from './estoque.service.js?v=20261123-03';
+import { getShowcaseStockByProductId } from './showcase-stock.service.js?v=20261123-03';
+import { getFinancialTransactions } from './financial.service.js?v=20261123-03';
+import { getTransactions } from './transaction.service.js?v=20261123-03';
 
 const FILTERS = {
   all: () => true,

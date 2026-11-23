@@ -5,21 +5,21 @@ import {
   getFinancialMovements,
   getProductRanking,
   getSalesSeries
-} from '../../services/crm-dashboard.service.js?v=20261123-02';
-import { buildClosingSummary, confirmClosing, getCashClosings, getSalesAfterClosing, saveClosingDraft } from '../../services/cash-closing.service.js?v=20261123-02';
+} from '../../services/crm-dashboard.service.js?v=20261123-03';
+import { buildClosingSummary, confirmClosing, getCashClosings, getSalesAfterClosing, saveClosingDraft } from '../../services/cash-closing.service.js?v=20261123-03';
 import { renderDashboardResumo } from '../../components/dashboard-resumo.component.js?v=20261109-01';
 import { renderFormasPagamento, renderVendasPorPeriodo } from '../../components/graficos-financeiros.component.js?v=20261109-01';
 import { renderMaisVendidos, renderRankingFaturamento } from '../../components/analise-produtos.component.js?v=20261109-01';
 import { renderEntradasSaidas } from '../../components/entradas-saidas.component.js?v=20261109-01';
 import { renderHistoricoFechamentos } from '../../components/historico-fechamentos.component.js?v=20261109-01';
-import { renderCashActionButtons, renderCashMovementModal, renderWriteOffModal, submitCashMovementForm, submitWriteOffForm } from '../../components/cash-actions.component.js?v=20261123-02';
+import { renderCashActionButtons, renderCashMovementModal, renderWriteOffModal, submitCashMovementForm, submitWriteOffForm } from '../../components/cash-actions.component.js?v=20261123-03';
 import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-21';
-import { getCategories } from '../../services/product.service.js?v=20261123-02';
-import { getCurrentUser } from '../../services/auth.service.js?v=20261123-02';
-import { getCashSessionStatus } from '../../services/cash-session.service.js?v=20261123-02';
+import { getCategories } from '../../services/product.service.js?v=20261123-03';
+import { getCurrentUser } from '../../services/auth.service.js?v=20261123-03';
+import { getCashSessionStatus } from '../../services/cash-session.service.js?v=20261123-03';
 import { formatCurrency } from '../../utils/currency.js?v=20261109-01';
 import { showNotification } from '../../services/notification.service.js?v=20260804-06';
-import { getCashRefundsOfEarlierSales, getTransactionSyncStatus } from '../../services/transaction.service.js?v=20261123-02';
+import { getCashRefundsOfEarlierSales, getTransactionSyncStatus } from '../../services/transaction.service.js?v=20261123-03';
 import { UI_EVENTS } from '../../database/schema.js?v=20260804-06';
 import { on } from '../../services/event-bus.service.js?v=20260804-06';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';

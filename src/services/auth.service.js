@@ -1,7 +1,7 @@
 import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
 import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { getSupabaseAuthSession, getSupabaseClient, setSupabaseAuthSession } from './supabase-client.service.js?v=20260804-06';
-import { getItem, setItem } from './storage.service.js?v=20261123-02';
+import { getSupabaseAuthSession, getSupabaseClient, setSupabaseAuthSession } from './supabase-client.service.js?v=20261123-03';
+import { getItem, setItem } from './storage.service.js?v=20261123-03';
 import { randomHex } from '../utils/random-id.js?v=20261123-01';
 
 const VALID_ROLES = new Set(['admin', 'gerente', 'operador', 'dono']);

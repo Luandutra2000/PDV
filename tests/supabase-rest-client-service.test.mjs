@@ -39,8 +39,8 @@ globalThis.fetch = async (url, options = {}) => {
   };
 };
 
-const { getSupabaseRestClient } = await import('../src/services/supabase-rest-client.service.js?v=20261123-01');
-const { configureSupabaseClientForTests } = await import('../src/services/supabase-client.service.js?v=20260804-06');
+const { getSupabaseRestClient } = await import('../src/services/supabase-rest-client.service.js?v=20261123-03');
+const { configureSupabaseClientForTests } = await import('../src/services/supabase-client.service.js?v=20261123-03');
 let liveToken = 'session-jwt';
 let refreshCount = 0;
 configureSupabaseClientForTests({ client: { auth: {

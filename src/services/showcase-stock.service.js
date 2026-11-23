@@ -1,5 +1,5 @@
 import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
-import { getItem, setItem } from './storage.service.js?v=20261123-02';
+import { getItem, setItem } from './storage.service.js?v=20261123-03';
 
 const MOVEMENT_TYPES = {
   production: 'entrada_producao',
