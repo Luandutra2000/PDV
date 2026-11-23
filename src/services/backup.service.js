@@ -1,7 +1,7 @@
 import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
-import { getItem } from './storage.service.js?v=20261109-01';
+import { getItem } from './storage.service.js?v=20261123-01';
 import { getDataProviderMode } from './app-config.service.js?v=20260804-06';
-import { createLocalProvider } from './providers/local.provider.js?v=20260804-06';
+import { createLocalProvider } from './providers/local.provider.js?v=20261123-01';
 
 const BACKUP_VERSION = 1;
 const AUTH_KEYS = new Set([STORAGE_KEYS.users, STORAGE_KEYS.currentSession, STORAGE_KEYS.userPermissionOverrides]);

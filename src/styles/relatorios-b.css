@@ -89,3 +89,14 @@
   .rp-chart { gap: 4px; }
   .rp-hours { gap: 4px; }
 }
+
+/* Aviso de periodo antigo consultado no servidor (aparelho guarda 60 dias) */
+.rp-archive {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+  background: var(--accent-soft);
+  color: var(--accent-soft-ink, var(--accent-ink-soft));
+  font-size: 12.5px;
+}
+.rp-archive.is-error { background: var(--red-soft); color: var(--ink); }

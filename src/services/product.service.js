@@ -11,10 +11,10 @@ import {
   saveCategoryToSupabase,
   saveProductToSupabase,
   startProductCatalogRealtime
-} from './product-sync.service.js?v=20261109-01';
-import { getCurrentUser } from './auth.service.js?v=20261109-01';
-import { assertPermission } from './permission.service.js?v=20261109-01';
-import { getItem, setItem } from './storage.service.js?v=20261109-01';
+} from './product-sync.service.js?v=20261123-01';
+import { getCurrentUser } from './auth.service.js?v=20261123-01';
+import { assertPermission } from './permission.service.js?v=20261123-01';
+import { getItem, setItem } from './storage.service.js?v=20261123-01';
 
 export function getProducts() {
   return getItem(STORAGE_KEYS.products, []);

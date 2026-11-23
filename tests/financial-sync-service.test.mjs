@@ -22,8 +22,8 @@ const assert = (condition, message) => {
 };
 
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
-const financial = await import('../src/services/financial-sync.service.js?v=20261109-01');
-const storage = await import('../src/services/storage.service.js?v=20261109-01');
+const financial = await import('../src/services/financial-sync.service.js?v=20261123-01');
+const storage = await import('../src/services/storage.service.js?v=20261123-01');
 
 const calls = [];
 let failTable = '';
@@ -366,13 +366,6 @@ assert(
   'online hydrate should not display local-only queued movements as synced history'
 );
 
-await financial.clearFinancialHistoryInSupabase({ period: 'all' });
-assert(rows.sales.length === 0, 'remote history clear should delete sales');
-assert(rows.sale_items.length === 0, 'remote history clear should delete sale items');
-assert(rows.commands.length === 0, 'remote history clear should delete commands');
-assert(rows.command_items.length === 0, 'remote history clear should delete command items');
-assert(rows.cash_movements.length === 0, 'remote history clear should delete cash movements');
-assert(rows.financial_transactions.length === 0, 'remote history clear should delete financial transactions');
-assert(JSON.parse(localStorage.getItem(STORAGE_KEYS.financialTransactions)).length === 0, 'history clear should remove local financial cache');
+assert(!('clearFinancialHistoryInSupabase' in financial), 'nao existe apagar historico financeiro no servidor');
 
 console.log('financial sync service ok');

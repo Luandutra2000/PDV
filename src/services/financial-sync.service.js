@@ -1,7 +1,7 @@
 import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260804-06';
 import { emit } from './event-bus.service.js?v=20260804-06';
 import { getSupabaseClient } from './supabase-client.service.js?v=20260804-06';
-import { getSupabaseRestClient } from './supabase-rest-client.service.js?v=20260804-06';
+import { getSupabaseRestClient } from './supabase-rest-client.service.js?v=20261123-01';
 import { saleAdapter } from './repositories/sale.adapter.js?v=20260804-06';
 import { saleItemAdapter } from './repositories/sale-item.adapter.js?v=20260804-06';
 import { cashMovementAdapter } from './repositories/cash-movement.adapter.js?v=20261109-01';
@@ -10,7 +10,9 @@ import { commandItemAdapter } from './repositories/command-item.adapter.js?v=202
 import { cashClosingAdapter } from './repositories/cash-closing.adapter.js?v=20260804-06';
 import { financialCategoryAdapter } from './repositories/financial-category.adapter.js?v=20260804-06';
 import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js?v=20260804-06';
-import { readLocalCache as readJson, setLocalCache as writeJson } from './providers/local.provider.js?v=20260804-06';
+import { readLocalCache as readJson, setLocalCache as writeJson } from './providers/local.provider.js?v=20261123-01';
+import { applyHistoryFilters, getHistoryQuery } from './history-window.service.js?v=20261123-01';
+import { randomHex } from '../utils/random-id.js?v=20261123-01';
 
 const FINANCIAL_TABLES = [
   commandAdapter.table,
@@ -158,20 +160,23 @@ export function saveFinancialTransactionToSupabaseStrict(transaction) {
   return writeStrictOperation({ action: 'saveFinancialTransaction', transaction });
 }
 
-async function readFinancialTables(client) {
-  const entries = [
-    ['sales', saleAdapter],
-    ['saleItems', saleItemAdapter],
-    ['movements', cashMovementAdapter],
-    ['commands', commandAdapter],
-    ['commandItems', commandItemAdapter],
-    ['closings', cashClosingAdapter],
-    ['financialCategories', financialCategoryAdapter],
-    ['financialTransactions', financialTransactionAdapter]
-  ];
+const HISTORY_TABLE_ENTRIES = [
+  ['sales', saleAdapter],
+  ['saleItems', saleItemAdapter],
+  ['movements', cashMovementAdapter],
+  ['commands', commandAdapter],
+  ['commandItems', commandItemAdapter]
+];
+
+async function readFinancialTables(client, entries = [
+  ...HISTORY_TABLE_ENTRIES,
+  ['closings', cashClosingAdapter],
+  ['financialCategories', financialCategoryAdapter],
+  ['financialTransactions', financialTransactionAdapter]
+], range = {}) {
   const results = await Promise.all(entries.map(async ([key, adapter]) => {
     try {
-      return [key, { ok: true, rows: await selectRows(client, adapter) }];
+      return [key, { ok: true, rows: await selectRows(client, adapter, range) }];
     } catch (error) {
       return [key, { ok: false, rows: [], error }];
     }
@@ -348,41 +353,6 @@ function removeConfirmedOperation(operation) {
   return true;
 }
 
-export async function clearFinancialHistoryInSupabase({ period = 'today', customStart = '', customEnd = '' } = {}) {
-  const client = await getWriteClient();
-  const range = resolvePeriodRange({ period, customStart, customEnd });
-  const [
-    saleRows,
-    commandRows,
-    movementRows,
-    closingRows,
-    financialTransactionRows
-  ] = await Promise.all([
-    selectRows(client, saleAdapter),
-    selectRows(client, commandAdapter),
-    selectRows(client, cashMovementAdapter),
-    selectRows(client, cashClosingAdapter),
-    selectRows(client, financialTransactionAdapter)
-  ]);
-  const saleIds = saleRows.filter((row) => isRowInRange(row.created_at, range)).map((row) => row.id);
-  const commandIds = commandRows.filter((row) => isRowInRange(row.closed_at || row.created_at, range)).map((row) => row.id);
-  const movementIds = movementRows.filter((row) => isRowInRange(row.created_at, range)).map((row) => row.id);
-  const closingIds = closingRows.filter((row) => isRowInRange(row.created_at || row.closed_at, range)).map((row) => row.id);
-  const financialTransactionIds = financialTransactionRows
-    .filter((row) => isRowInRange(row.transaction_date || row.created_at, range))
-    .map((row) => row.id);
-
-  await deleteByForeignIds(client, saleItemAdapter.table, 'sale_id', saleIds);
-  await deleteByIds(client, saleAdapter.table, saleIds);
-  await deleteByForeignIds(client, commandItemAdapter.table, 'command_id', commandIds);
-  await deleteByIds(client, commandAdapter.table, commandIds);
-  await deleteByIds(client, cashMovementAdapter.table, movementIds);
-  await deleteByIds(client, cashClosingAdapter.table, closingIds);
-  await deleteByIds(client, financialTransactionAdapter.table, financialTransactionIds);
-  clearLocalFinancialHistory(range);
-  await hydrateFinancialData({ includePending: true });
-}
-
 export async function startFinancialRealtime() {
   if (realtimeChannel) {
     return realtimeChannel;
@@ -545,14 +515,45 @@ async function writeMovementCancellation(client, { movementId, canceledAt }) {
   });
 }
 
-async function selectRows(client, adapter) {
-  const initialTable = client.from(adapter.table);
+// Reads sales, movements and comandas of an older period straight from the
+// server (Relatorios), without touching the local caches.
+export async function fetchFinancialHistoryRange({ since, until } = {}) {
+  const client = await getWriteClient();
 
-  if (typeof initialTable?.selectRange === 'function') {
-    return selectRestRows(client, adapter);
+  if (!client) {
+    throw new Error('Servidor indisponivel para consultar periodos antigos.');
   }
 
-  const initialQuery = initialTable.select(adapter.select || '*');
+  const rows = await readFinancialTables(client, HISTORY_TABLE_ENTRIES, { since, until });
+  const failed = Object.values(rows).find((result) => !result.ok);
+
+  if (failed) {
+    throw failed.error || new Error('Nao foi possivel consultar o historico no servidor.');
+  }
+
+  const sales = rows.sales.rows.map((row) => ({
+    ...saleAdapter.fromRow(row),
+    items: saleItemAdapter.fromRows(rows.saleItems.rows, row.id)
+  }));
+  const movements = rows.movements.rows.map(cashMovementAdapter.fromRow);
+  const comandas = rows.commands.rows.map((row) => ({
+    ...commandAdapter.fromRow(row),
+    items: commandItemAdapter.fromRows(rows.commandItems.rows, row.id)
+  }));
+
+  return { transactions: sortNewestFirst([...sales, ...movements]), comandas: sortNewestFirst(comandas) };
+}
+
+async function selectRows(client, adapter, range = {}) {
+  const initialTable = client.from(adapter.table);
+  const historyQuery = getHistoryQuery(adapter.table, range);
+  const columns = `${adapter.select || '*'}${historyQuery?.selectSuffix || ''}`;
+
+  if (typeof initialTable?.selectRange === 'function') {
+    return selectRestRows(client, adapter, columns, historyQuery);
+  }
+
+  const initialQuery = applyHistoryFilters(initialTable.select(columns), historyQuery);
 
   if (typeof initialQuery?.range !== 'function') {
     const { data, error } = await initialQuery;
@@ -568,7 +569,8 @@ async function selectRows(client, adapter) {
   let offset = 0;
 
   while (true) {
-    const query = client.from(adapter.table).select(adapter.select || '*');
+    let query = applyHistoryFilters(client.from(adapter.table).select(columns), historyQuery);
+    if (typeof query.order === 'function') query = query.order('id', { ascending: true });
     const { data, error } = await query.range(offset, offset + SELECT_PAGE_SIZE - 1);
 
     if (error) {
@@ -586,14 +588,17 @@ async function selectRows(client, adapter) {
   }
 }
 
-async function selectRestRows(client, adapter) {
+async function selectRestRows(client, adapter, columns = adapter.select || '*', historyQuery = null) {
   const rows = [];
   let offset = 0;
 
   while (true) {
     const { data, error } = await client
       .from(adapter.table)
-      .selectRange(adapter.select || '*', offset, offset + SELECT_PAGE_SIZE - 1);
+      .selectRange(columns, offset, offset + SELECT_PAGE_SIZE - 1, {
+        filters: historyQuery?.filters || [],
+        order: 'id.asc'
+      });
 
     if (error) {
       throw error;
@@ -632,105 +637,6 @@ async function updateById(client, table, id, patch) {
   if (error) {
     throw error;
   }
-}
-
-async function deleteByIds(client, table, ids) {
-  const nextIds = ids.filter(Boolean);
-
-  if (!nextIds.length) {
-    return;
-  }
-
-  const query = client.from(table);
-
-  if (typeof query.delete !== 'function') {
-    return;
-  }
-
-  const { error } = await query.delete().in('id', nextIds);
-
-  if (error) {
-    throw error;
-  }
-}
-
-async function deleteByForeignIds(client, table, column, ids) {
-  const nextIds = ids.filter(Boolean);
-
-  if (!nextIds.length) {
-    return;
-  }
-
-  const query = client.from(table);
-
-  if (typeof query.delete !== 'function') {
-    return;
-  }
-
-  const { error } = await query.delete().in(column, nextIds);
-
-  if (error) {
-    throw error;
-  }
-}
-
-function resolvePeriodRange({ period = 'today', customStart = '', customEnd = '' } = {}) {
-  const now = new Date();
-
-  if (period === 'all') {
-    return { start: null, end: null };
-  }
-
-  if (period === 'hour') {
-    const start = new Date(now);
-    start.setMinutes(0, 0, 0);
-    const end = new Date(start);
-    end.setMinutes(59, 59, 999);
-    return { start, end };
-  }
-
-  if (period === 'custom') {
-    return {
-      start: customStart ? new Date(`${customStart}T00:00:00`) : null,
-      end: customEnd ? new Date(`${customEnd}T23:59:59`) : null
-    };
-  }
-
-  if (period === 'yesterday') {
-    const start = new Date(now);
-    start.setDate(now.getDate() - 1);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setHours(23, 59, 59, 999);
-    return { start, end };
-  }
-
-  if (period === 'month') {
-    return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: now };
-  }
-
-  if (period === 'year') {
-    return { start: new Date(now.getFullYear(), 0, 1), end: now };
-  }
-
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(now);
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
-}
-
-function isRowInRange(value, { start, end }) {
-  if (!start && !end) {
-    return true;
-  }
-
-  if (!value) {
-    return false;
-  }
-
-  const date = new Date(value);
-  return (!start || date >= start) && (!end || date <= end);
 }
 
 function applyCompletedOperationToCache(operation) {
@@ -972,7 +878,7 @@ function getSortTimestamp(item) {
 }
 
 function enqueueOperation(operation) {
-  const nextOperation = { ...operation, createdAt: new Date().toISOString(), queueRevision: globalThis.crypto?.randomUUID?.() || Date.now() + '-' + Math.random() };
+  const nextOperation = { ...operation, createdAt: new Date().toISOString(), queueRevision: globalThis.crypto?.randomUUID?.() || Date.now() + '-' + randomHex() };
   const operationKey = getOperationKey(nextOperation);
   const currentQueue = readQueue();
   const lastEntityIndex = currentQueue.findLastIndex((candidate) => getOperationEntity(candidate) === getOperationEntity(nextOperation));
@@ -986,18 +892,6 @@ function enqueueOperation(operation) {
     ));
   writeQueue(queue);
   return queue;
-}
-
-function clearLocalFinancialHistory(range) {
-  const transactionCache = readJson(STORAGE_KEYS.transactions, []);
-  const closingCache = readJson(STORAGE_KEYS.cashClosings, []);
-  const financialCache = readJson(STORAGE_KEYS.financialTransactions, []);
-  writeJson(STORAGE_KEYS.transactions, transactionCache.filter((item) => !isRowInRange(item.createdAt, range)));
-  writeJson(STORAGE_KEYS.cashClosings, closingCache.filter((item) => !isRowInRange(item.closedAt || item.createdAt, range)));
-  writeJson(
-    STORAGE_KEYS.financialTransactions,
-    financialCache.filter((item) => !isRowInRange(item.transactionDate || item.createdAt, range))
-  );
 }
 
 function mergeRemoteWithCache(remoteItems, cachedItems) {

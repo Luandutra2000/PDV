@@ -1,5 +1,6 @@
 import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
-import { getItem, setItem } from './storage.service.js?v=20261109-01';
+import { getItem, setItem } from './storage.service.js?v=20261123-01';
+import { randomHex } from '../utils/random-id.js?v=20261123-01';
 
 export const KITCHEN_STATUSES = Object.freeze({
   pending: 'pendente',
@@ -206,5 +207,5 @@ function structuredCloneSafe(value) {
 }
 
 function createId(prefix) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}-${Date.now()}-${randomHex()}`;
 }

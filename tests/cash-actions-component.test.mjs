@@ -23,10 +23,10 @@ const assert = (condition, message) => {
   }
 };
 
-const storage = await import('../src/services/storage.service.js?v=20261109-01');
+const storage = await import('../src/services/storage.service.js?v=20261123-01');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const cashActions = await import('../src/components/cash-actions.component.js?v=20261109-01');
+const cashActions = await import('../src/components/cash-actions.component.js?v=20261123-01');
 const { initNotificationService } = await import('../src/services/notification.service.js?v=20260804-06');
 
 seedTestAdmin(storage, STORAGE_KEYS);
@@ -106,7 +106,7 @@ assert(!saidaModal.includes('Descricao obrigatoria') && !saidaModal.includes('re
 assert(writeOffModal.includes('Nenhum produto com estoque na vitrine.'), 'vitrine vazia com acento');
 const cashActionsSource = readFileSync(new URL('../src/components/cash-actions.component.js', import.meta.url), 'utf8');
 assert(cashActionsSource.includes('<option value="erro-lancamento">Erro de lançamento</option>'), 'motivo com acento e valor igual');
-assert(/\n\s*Observação\n/.test(cashActionsSource), 'rotulo Observação com acento');
+assert(/\n\s*Observação\r?\n/.test(cashActionsSource), 'rotulo Observação com acento');
 assert(cashActionsSource.includes("const ENTRY_CATEGORIES = ['Reforco de caixa', 'Pagamento de cliente', 'Dinheiro extra', 'Ajuste manual', 'Outros'];"), 'categorias de entrada gravadas sem mudanca');
 assert(cashActionsSource.includes("const OUTPUT_CATEGORIES = ['Compra de material', 'Compra de ingredientes', 'Pagamento de fornecedor', 'Despesa operacional', 'Retirada do dono', 'Troco', 'Manutencao', 'Outros'];"), 'categorias de saida gravadas sem mudanca');
 ['Saída registrada', 'lançado no histórico.', 'Perda ou consumo entrou na conferência da vitrine.'].forEach((text) => {

@@ -1,6 +1,7 @@
 import { STORAGE_KEYS, SYNC_EVENTS } from '../database/schema.js?v=20260804-06';
 import { on } from './event-bus.service.js?v=20260804-06';
-import { getItem, setItem } from './storage.service.js?v=20261109-01';
+import { getItem, setItem } from './storage.service.js?v=20261123-01';
+import { randomHex } from '../utils/random-id.js?v=20261123-01';
 
 const subscribedEvents = Object.values(SYNC_EVENTS);
 let initialized = false;
@@ -24,7 +25,7 @@ export function getSyncQueue() {
 function appendSyncEvent(type, payload) {
   const queue = getSyncQueue();
   const syncEvent = {
-    id: `${type}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    id: `${type}-${Date.now()}-${randomHex()}`,
     type,
     payload,
     createdAt: new Date().toISOString(),

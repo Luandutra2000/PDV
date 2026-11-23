@@ -1,16 +1,15 @@
 import {
-  clearTransactionHistory,
   cancelClosedComanda,
   cancelTransaction,
   getClosedComandas,
   getMoneySummary,
   getTransactions
-} from '../../services/transaction.service.js?v=20261109-01';
-import { renderCashActionButtons, renderCashMovementModal, submitCashMovementForm } from '../../components/cash-actions.component.js?v=20261109-01';
-import { getCurrentUser } from '../../services/auth.service.js?v=20261109-01';
+} from '../../services/transaction.service.js?v=20261123-01';
+import { renderCashActionButtons, renderCashMovementModal, submitCashMovementForm } from '../../components/cash-actions.component.js?v=20261123-01';
+import { getCurrentUser } from '../../services/auth.service.js?v=20261123-01';
 import { formatCurrency } from '../../utils/currency.js?v=20261109-01';
 import { showNotification } from '../../services/notification.service.js?v=20260804-06';
-import { hydrateOnlineOperationalData } from '../../services/online-data.service.js?v=20261109-01';
+import { hydrateOnlineOperationalData } from '../../services/online-data.service.js?v=20261123-01';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
 
 const dashboardState = {
@@ -55,7 +54,6 @@ function renderDashboard(container) {
           <h2 class="ui-head">
             Comandas
             <span>${comandas.length} ${comandas.length === 1 ? 'comanda' : 'comandas'} no período</span>
-            <button class="ui-btn ui-btn--ghost ui-btn--sm hs-clear" type="button" data-action="clear-history">Limpar histórico</button>
           </h2>
           ${renderClosedComandas(comandas)}
         </section>
@@ -125,31 +123,6 @@ function bindDashboardEvents(container) {
       dashboardState.pendingCancelComandaId = null;
       dashboardState.pendingCancelTransactionId = null;
       renderDashboard(container);
-    }
-
-    if (button.dataset.action === 'clear-history') {
-      const periodLabel = getPeriodLabel(dashboardState.period);
-      const confirmed = window.confirm(`Limpar histórico de ${periodLabel}? Isso também apaga esse período no Supabase.`);
-
-      if (!confirmed) {
-        return;
-      }
-
-      try {
-        await clearTransactionHistory({ period: dashboardState.period });
-        showNotification({
-          title: 'Histórico limpo',
-          message: `Comandas e movimentos de ${periodLabel} foram removidos.`,
-          type: 'danger'
-        });
-        renderDashboard(container);
-      } catch (error) {
-        showNotification({
-          title: 'Não foi possível limpar',
-          message: error.message || 'Tente novamente em instantes.',
-          type: 'danger'
-        });
-      }
     }
 
     if (button.dataset.action === 'cancel-comanda') {

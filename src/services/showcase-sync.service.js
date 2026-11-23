@@ -1,20 +1,21 @@
 import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260804-06';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { hydrateDataProvider } from './data-provider.service.js?v=20261109-01';
+import { hydrateDataProvider } from './data-provider.service.js?v=20261123-01';
 import { emit } from './event-bus.service.js?v=20260804-06';
-import { hydrateFinancialData } from './financial-sync.service.js?v=20261109-01';
+import { hydrateFinancialData } from './financial-sync.service.js?v=20261123-01';
 import { getSupabaseClient } from './supabase-client.service.js?v=20260804-06';
 import {
   adjustShowcaseStock,
   applyProductionToShowcase,
   applySaleToShowcase,
   reverseSaleInShowcase
-} from './showcase-stock.service.js?v=20261109-01';
-import { setItem } from './storage.service.js?v=20261109-01';
-import { readLocalCache, setLocalCache, runLocalTransaction, deferLocalEffect } from './providers/local.provider.js?v=20260804-06';
+} from './showcase-stock.service.js?v=20261123-01';
+import { setItem } from './storage.service.js?v=20261123-01';
+import { readLocalCache, setLocalCache, runLocalTransaction, deferLocalEffect } from './providers/local.provider.js?v=20261123-01';
 import { outOfStockSaleAdapter } from './repositories/out-of-stock-sale.adapter.js?v=20260804-06';
 import { productStockAdapter } from './repositories/product-stock.adapter.js?v=20260804-06';
 import { showcaseMovementAdapter } from './repositories/showcase-movement.adapter.js?v=20260804-06';
+import { applyHistoryFilters, getHistoryQuery } from './history-window.service.js?v=20261123-01';
 
 const SHOWCASE_ADAPTERS = [
   productStockAdapter,
@@ -305,8 +306,10 @@ async function selectRows(client, adapter) {
 
   const rows = [];
   const pageSize = 1000;
+  // Movement history follows the retention window; product_stock (the balance) is always complete.
+  const historyQuery = getHistoryQuery(adapter.table);
   for (let offset = 0; ; offset += pageSize) {
-    const { data, error } = await client.from(adapter.table).select(adapter.select || '*')
+    const { data, error } = await applyHistoryFilters(client.from(adapter.table).select(adapter.select || '*'), historyQuery)
       .order('id', { ascending: true }).range(offset, offset + pageSize - 1);
     if (error) throw error;
     const page = Array.isArray(data) ? data : [];

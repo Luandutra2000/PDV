@@ -1,7 +1,8 @@
 import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
 import { getRuntimeConfig, isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
 import { getSupabaseAuthSession, getSupabaseClient, setSupabaseAuthSession } from './supabase-client.service.js?v=20260804-06';
-import { getItem, setItem } from './storage.service.js?v=20261109-01';
+import { getItem, setItem } from './storage.service.js?v=20261123-01';
+import { randomHex } from '../utils/random-id.js?v=20261123-01';
 
 const VALID_ROLES = new Set(['admin', 'gerente', 'operador', 'dono']);
 const REQUIRED_FIELDS_ERROR = 'Preencha nome, usuario, senha e perfil.';
@@ -357,5 +358,5 @@ function normalizeRoleLocal(role) {
 }
 
 function createId(prefix) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}-${Date.now()}-${randomHex()}`;
 }
