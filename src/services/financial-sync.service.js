@@ -1,7 +1,7 @@
 import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260804-06';
 import { emit } from './event-bus.service.js?v=20260804-06';
 import { getSupabaseClient } from './supabase-client.service.js?v=20260804-06';
-import { getSupabaseRestClient } from './supabase-rest-client.service.js?v=20260804-06';
+import { getSupabaseRestClient } from './supabase-rest-client.service.js?v=20261123-01';
 import { saleAdapter } from './repositories/sale.adapter.js?v=20260804-06';
 import { saleItemAdapter } from './repositories/sale-item.adapter.js?v=20260804-06';
 import { cashMovementAdapter } from './repositories/cash-movement.adapter.js?v=20261109-01';
@@ -10,7 +10,9 @@ import { commandItemAdapter } from './repositories/command-item.adapter.js?v=202
 import { cashClosingAdapter } from './repositories/cash-closing.adapter.js?v=20260804-06';
 import { financialCategoryAdapter } from './repositories/financial-category.adapter.js?v=20260804-06';
 import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js?v=20260804-06';
-import { readLocalCache as readJson, setLocalCache as writeJson } from './providers/local.provider.js?v=20260804-06';
+import { readLocalCache as readJson, setLocalCache as writeJson } from './providers/local.provider.js?v=20261123-01';
+import { applyHistoryFilters, getHistoryQuery } from './history-window.service.js?v=20261123-01';
+import { randomHex } from '../utils/random-id.js?v=20261123-01';
 
 const FINANCIAL_TABLES = [
   commandAdapter.table,
@@ -158,20 +160,23 @@ export function saveFinancialTransactionToSupabaseStrict(transaction) {
   return writeStrictOperation({ action: 'saveFinancialTransaction', transaction });
 }
 
-async function readFinancialTables(client) {
-  const entries = [
-    ['sales', saleAdapter],
-    ['saleItems', saleItemAdapter],
-    ['movements', cashMovementAdapter],
-    ['commands', commandAdapter],
-    ['commandItems', commandItemAdapter],
-    ['closings', cashClosingAdapter],
-    ['financialCategories', financialCategoryAdapter],
-    ['financialTransactions', financialTransactionAdapter]
-  ];
+const HISTORY_TABLE_ENTRIES = [
+  ['sales', saleAdapter],
+  ['saleItems', saleItemAdapter],
+  ['movements', cashMovementAdapter],
+  ['commands', commandAdapter],
+  ['commandItems', commandItemAdapter]
+];
+
+async function readFinancialTables(client, entries = [
+  ...HISTORY_TABLE_ENTRIES,
+  ['closings', cashClosingAdapter],
+  ['financialCategories', financialCategoryAdapter],
+  ['financialTransactions', financialTransactionAdapter]
+], range = {}) {
   const results = await Promise.all(entries.map(async ([key, adapter]) => {
     try {
-      return [key, { ok: true, rows: await selectRows(client, adapter) }];
+      return [key, { ok: true, rows: await selectRows(client, adapter, range) }];
     } catch (error) {
       return [key, { ok: false, rows: [], error }];
     }
@@ -545,14 +550,45 @@ async function writeMovementCancellation(client, { movementId, canceledAt }) {
   });
 }
 
-async function selectRows(client, adapter) {
-  const initialTable = client.from(adapter.table);
+// Reads sales, movements and comandas of an older period straight from the
+// server (Relatorios), without touching the local caches.
+export async function fetchFinancialHistoryRange({ since, until } = {}) {
+  const client = await getWriteClient();
 
-  if (typeof initialTable?.selectRange === 'function') {
-    return selectRestRows(client, adapter);
+  if (!client) {
+    throw new Error('Servidor indisponivel para consultar periodos antigos.');
   }
 
-  const initialQuery = initialTable.select(adapter.select || '*');
+  const rows = await readFinancialTables(client, HISTORY_TABLE_ENTRIES, { since, until });
+  const failed = Object.values(rows).find((result) => !result.ok);
+
+  if (failed) {
+    throw failed.error || new Error('Nao foi possivel consultar o historico no servidor.');
+  }
+
+  const sales = rows.sales.rows.map((row) => ({
+    ...saleAdapter.fromRow(row),
+    items: saleItemAdapter.fromRows(rows.saleItems.rows, row.id)
+  }));
+  const movements = rows.movements.rows.map(cashMovementAdapter.fromRow);
+  const comandas = rows.commands.rows.map((row) => ({
+    ...commandAdapter.fromRow(row),
+    items: commandItemAdapter.fromRows(rows.commandItems.rows, row.id)
+  }));
+
+  return { transactions: sortNewestFirst([...sales, ...movements]), comandas: sortNewestFirst(comandas) };
+}
+
+async function selectRows(client, adapter, range = {}) {
+  const initialTable = client.from(adapter.table);
+  const historyQuery = getHistoryQuery(adapter.table, range);
+  const columns = `${adapter.select || '*'}${historyQuery?.selectSuffix || ''}`;
+
+  if (typeof initialTable?.selectRange === 'function') {
+    return selectRestRows(client, adapter, columns, historyQuery);
+  }
+
+  const initialQuery = applyHistoryFilters(initialTable.select(columns), historyQuery);
 
   if (typeof initialQuery?.range !== 'function') {
     const { data, error } = await initialQuery;
@@ -568,7 +604,8 @@ async function selectRows(client, adapter) {
   let offset = 0;
 
   while (true) {
-    const query = client.from(adapter.table).select(adapter.select || '*');
+    let query = applyHistoryFilters(client.from(adapter.table).select(columns), historyQuery);
+    if (typeof query.order === 'function') query = query.order('id', { ascending: true });
     const { data, error } = await query.range(offset, offset + SELECT_PAGE_SIZE - 1);
 
     if (error) {
@@ -586,14 +623,17 @@ async function selectRows(client, adapter) {
   }
 }
 
-async function selectRestRows(client, adapter) {
+async function selectRestRows(client, adapter, columns = adapter.select || '*', historyQuery = null) {
   const rows = [];
   let offset = 0;
 
   while (true) {
     const { data, error } = await client
       .from(adapter.table)
-      .selectRange(adapter.select || '*', offset, offset + SELECT_PAGE_SIZE - 1);
+      .selectRange(columns, offset, offset + SELECT_PAGE_SIZE - 1, {
+        filters: historyQuery?.filters || [],
+        order: 'id.asc'
+      });
 
     if (error) {
       throw error;
@@ -972,7 +1012,7 @@ function getSortTimestamp(item) {
 }
 
 function enqueueOperation(operation) {
-  const nextOperation = { ...operation, createdAt: new Date().toISOString(), queueRevision: globalThis.crypto?.randomUUID?.() || Date.now() + '-' + Math.random() };
+  const nextOperation = { ...operation, createdAt: new Date().toISOString(), queueRevision: globalThis.crypto?.randomUUID?.() || Date.now() + '-' + randomHex() };
   const operationKey = getOperationKey(nextOperation);
   const currentQueue = readQueue();
   const lastEntityIndex = currentQueue.findLastIndex((candidate) => getOperationEntity(candidate) === getOperationEntity(nextOperation));

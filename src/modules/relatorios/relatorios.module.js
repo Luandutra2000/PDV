@@ -4,14 +4,17 @@ import {
   getCrmSummary,
   getFinancialMovements,
   getProductRanking
-} from '../../services/crm-dashboard.service.js?v=20261109-01';
-import { getCategories } from '../../services/product.service.js?v=20261109-01';
-import { getFinancialCategories } from '../../services/financial.service.js?v=20261109-01';
+} from '../../services/crm-dashboard.service.js?v=20261123-01';
+import { getCategories } from '../../services/product.service.js?v=20261123-01';
+import { getFinancialCategories } from '../../services/financial.service.js?v=20261123-01';
 import { UI_EVENTS } from '../../database/schema.js?v=20260804-06';
 import { on } from '../../services/event-bus.service.js?v=20260804-06';
 import { formatCurrency } from '../../utils/currency.js?v=20261109-01';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
 import { getCategoryColorVar } from '../../utils/category-colors.js?v=20260807-21';
+import { getArchiveRange, loadArchivedHistory, needsArchivedHistory } from '../../services/history-retention.service.js?v=20261123-01';
+import { clearHistoryArchive, getHistoryArchiveState } from '../../services/history-archive.store.js?v=20261123-01';
+import { getHistoryCutoff } from '../../services/history-window.service.js?v=20261123-01';
 
 const reportState = {
   period: 'today',
@@ -63,6 +66,7 @@ export function initRelatoriosModule(container) {
     const period = button.dataset.reportPeriod;
 
     if (PERIODS.some(([value]) => value === period)) {
+      clearFailedArchive();
       reportState.period = period;
       renderReports(container);
     }
@@ -72,6 +76,8 @@ export function initRelatoriosModule(container) {
     if (!event.target.closest('[data-reports-screen]')) {
       return;
     }
+
+    clearFailedArchive();
 
     if (event.target.matches('[data-report-start]')) {
       reportState.customStart = event.target.value;
@@ -99,6 +105,7 @@ function renderReports(container) {
   const filter = createPeriodFilter(reportState.period, reportState.customStart, reportState.customEnd);
 
   container.innerHTML = renderReportsMarkup({
+    archiveNote: getArchiveNote(filter, container),
     period: reportState.period,
     customStart: reportState.customStart,
     customEnd: reportState.customEnd,
@@ -110,7 +117,40 @@ function renderReports(container) {
   });
 }
 
+function clearFailedArchive() {
+  if (getHistoryArchiveState().status === 'error') {
+    clearHistoryArchive();
+  }
+}
+
+// Periods older than the local window come from the server (memory only).
+function getArchiveNote(filter, container) {
+  if (!needsArchivedHistory(filter.start)) {
+    return '';
+  }
+
+  const range = getArchiveRange({ since: filter.start, until: filter.end });
+  const state = getHistoryArchiveState();
+  const cutoffLabel = getHistoryCutoff().toLocaleDateString('pt-BR');
+
+  if (state.since !== range.since || state.until !== range.until) {
+    loadArchivedHistory({ since: filter.start, until: filter.end }).then(() => renderIfActive(container));
+    return { tone: 'is-loading', text: `Buscando no servidor as vendas antes de ${cutoffLabel}...` };
+  }
+
+  if (state.status === 'loading') {
+    return { tone: 'is-loading', text: `Buscando no servidor as vendas antes de ${cutoffLabel}...` };
+  }
+
+  if (state.status === 'error') {
+    return { tone: 'is-error', text: `Sem conexão com o servidor: as vendas antes de ${cutoffLabel} não entram neste relatório. Escolha o período de novo para tentar outra vez.` };
+  }
+
+  return { tone: '', text: `Vendas antes de ${cutoffLabel} consultadas no servidor; este aparelho guarda só os últimos 60 dias.` };
+}
+
 export function renderReportsMarkup({
+  archiveNote = '',
   period = 'today',
   customStart = '',
   customEnd = '',
@@ -140,6 +180,8 @@ export function renderReportsMarkup({
           <input class="ui-input" type="date" aria-label="Data final do relatório" data-report-end value="${escapeHtml(customEnd)}">
         </div>
       ` : ''}
+
+      ${archiveNote ? `<p class="rp-archive ${archiveNote.tone}" role="status" data-report-archive>${escapeHtml(archiveNote.text)}</p>` : ''}
 
       <div class="ui-stats rp-stats" aria-label="Resumo dos relatórios">
         ${renderStat('Total vendido', formatCurrency(summary.salesTotal))}

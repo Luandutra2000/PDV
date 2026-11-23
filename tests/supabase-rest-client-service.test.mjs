@@ -39,7 +39,7 @@ globalThis.fetch = async (url, options = {}) => {
   };
 };
 
-const { getSupabaseRestClient } = await import('../src/services/supabase-rest-client.service.js?v=20260804-06');
+const { getSupabaseRestClient } = await import('../src/services/supabase-rest-client.service.js?v=20261123-01');
 const { configureSupabaseClientForTests } = await import('../src/services/supabase-client.service.js?v=20260804-06');
 let liveToken = 'session-jwt';
 let refreshCount = 0;
@@ -73,6 +73,18 @@ assert(calls[4].options.method === 'DELETE', 'delete in should use DELETE');
 assert(calls[4].url.includes('id=in.('), 'delete in should filter by id list');
 assert(calls[5].options.headers.Prefer.includes('resolution=ignore-duplicates'), 'immutable sale retry must not request UPDATE permissions');
 assert(calls[5].url.endsWith('?on_conflict=id'), 'upsert options must reach the real PostgREST conflict target');
+
+await client.from('sale_items').selectRange('id,sales!inner(created_at)', 0, 999, {
+  filters: [
+    { column: 'sales.created_at', op: 'gte', value: '2026-09-24T03:00:00.000Z' },
+    { column: 'sales.created_at', op: 'lt', value: '2026-10-01T03:00:00.000Z' }
+  ],
+  order: 'id.asc'
+});
+const windowedUrl = calls.at(-1).url;
+assert(windowedUrl.startsWith('https://example.supabase.co/rest/v1/sale_items?select=id%2Csales!inner(created_at)'), 'windowed select keeps the embedded parent date');
+assert(windowedUrl.includes('&sales.created_at=gte.2026-09-24T03%3A00%3A00.000Z&sales.created_at=lt.2026-10-01T03%3A00%3A00.000Z'), 'history window filters reach PostgREST');
+assert(windowedUrl.includes('&order=id.asc&offset=0&limit=1000'), 'paged reads use a stable order');
 
 liveToken = 'sdk-renewed-jwt';
 await client.from('sales').select();

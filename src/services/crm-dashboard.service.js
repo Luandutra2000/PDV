@@ -1,7 +1,8 @@
-import { getCategories, getProductById } from './product.service.js?v=20261109-01';
+import { getCategories, getProductById } from './product.service.js?v=20261123-01';
 import { roundMoney } from '../utils/currency.js?v=20261109-01';
-import { getActiveComanda } from './comanda.service.js?v=20261109-01';
-import { getCashSessionTransactions, getClosedComandas, getTransactions } from './transaction.service.js?v=20261109-01';
+import { getActiveComanda } from './comanda.service.js?v=20261123-01';
+import { getCashSessionTransactions, getClosedComandas, getTransactions } from './transaction.service.js?v=20261123-01';
+import { getArchivedComandas, getArchivedTransactions, mergeWithArchive } from './history-archive.store.js?v=20261123-01';
 
 export function createPeriodFilter(period = 'today', customStart = '', customEnd = '') {
   const now = new Date();
@@ -50,7 +51,7 @@ export function getCrmSummary(filter = createPeriodFilter()) {
   const salesTotal = sumTransactions(sales);
   const entriesTotal = sumTransactions(entries);
   const outputsTotal = sumTransactions(outputs);
-  const closedComandas = getClosedComandas().filter((comanda) => (
+  const closedComandas = mergeWithArchive(getClosedComandas(), getArchivedComandas()).filter((comanda) => (
     comanda.status !== 'cancelada' && isInFilter(comanda.closedAt, filter)
   ));
 
@@ -154,7 +155,8 @@ export function getFinancialMovements(filter = createPeriodFilter()) {
 }
 
 function getPeriodTransactions(filter) {
-  return getCashSessionTransactions().filter((transaction) => (
+  // Older periods add the history fetched from the server (memory only).
+  return mergeWithArchive(getCashSessionTransactions(), getArchivedTransactions()).filter((transaction) => (
     transaction.status !== 'cancelada' && isInFilter(transaction.createdAt, filter)
   ));
 }

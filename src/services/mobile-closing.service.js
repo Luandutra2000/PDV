@@ -1,8 +1,9 @@
-import { buildClosingSummary, completeClosingLocalEffects, getCashClosings, validateClosingInput } from './cash-closing.service.js?v=20261109-01';
+import { buildClosingSummary, completeClosingLocalEffects, getCashClosings, validateClosingInput } from './cash-closing.service.js?v=20261123-01';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { saveCashClosingToSupabaseStrict } from './financial-sync.service.js?v=20261109-01';
-import { getCurrentUser } from './auth.service.js?v=20261109-01';
-import { assertPermission } from './permission.service.js?v=20261109-01';
+import { saveCashClosingToSupabaseStrict } from './financial-sync.service.js?v=20261123-01';
+import { getCurrentUser } from './auth.service.js?v=20261123-01';
+import { assertPermission } from './permission.service.js?v=20261123-01';
+import { randomHex } from '../utils/random-id.js?v=20261123-01';
 
 export function getMobileClosingSummary() {
   const base = buildClosingSummary({});
@@ -158,7 +159,7 @@ function normalizeClosingHistoryItem(item) {
 }
 
 function createId(prefix) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}-${Date.now()}-${randomHex()}`;
 }
 
 function normalizeMoney(value) {

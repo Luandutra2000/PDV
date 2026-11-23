@@ -1,11 +1,12 @@
 import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { hydrateDataProvider } from './data-provider.service.js?v=20261109-01';
-import { flushDataProvider } from './data-provider.service.js?v=20261109-01';
-import { syncCatalogNow } from './product.service.js?v=20261109-01';
-import { flushFinancialQueue, hydrateFinancialData } from './financial-sync.service.js?v=20261109-01';
-import { flushShowcaseQueue, getShowcaseSyncStatus, hydrateShowcaseData } from './showcase-sync.service.js?v=20261109-01';
-import { hydrateCashSessionFromServer } from './cash-session.service.js?v=20261109-01';
+import { hydrateDataProvider } from './data-provider.service.js?v=20261123-01';
+import { flushDataProvider } from './data-provider.service.js?v=20261123-01';
+import { syncCatalogNow } from './product.service.js?v=20261123-01';
+import { flushFinancialQueue, hydrateFinancialData } from './financial-sync.service.js?v=20261123-01';
+import { flushShowcaseQueue, getShowcaseSyncStatus, hydrateShowcaseData } from './showcase-sync.service.js?v=20261123-01';
+import { hydrateCashSessionFromServer } from './cash-session.service.js?v=20261123-01';
+import { pruneLocalHistory } from './history-retention.service.js?v=20261123-01';
 
 const OPERATIONAL_KEYS = [
   STORAGE_KEYS.stockLaunches,
@@ -39,6 +40,11 @@ export async function hydrateOnlineOperationalData({ catalog = false, financial 
     }
   }
 
+  try {
+    pruneLocalHistory();
+  } catch (error) {
+    console.warn('Nao foi possivel limpar o historico antigo deste aparelho.', error);
+  }
 }
 
 export async function syncOnlineOperationalData(options = {}) {

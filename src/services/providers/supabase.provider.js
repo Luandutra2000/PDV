@@ -1,5 +1,6 @@
 import { STORAGE_KEYS } from '../../database/schema.js?v=20260804-06';
-import { createLocalProvider, deferLocalEffect } from './local.provider.js?v=20260804-06';
+import { createLocalProvider, deferLocalEffect } from './local.provider.js?v=20261123-01';
+import { applyHistoryFilters, getHistoryQuery } from '../history-window.service.js?v=20261123-01';
 
 const TABLE_MAPPERS = {
   [STORAGE_KEYS.categories]: {
@@ -214,7 +215,10 @@ async function hydrateCollection(client, localProvider, key) {
     return;
   }
 
-  const { data, error } = await client.from(mapper.table).select(mapper.select || '*');
+  const { data, error } = await applyHistoryFilters(
+    client.from(mapper.table).select(mapper.select || '*'),
+    getHistoryQuery(mapper.table)
+  );
 
   if (error) {
     throw error;

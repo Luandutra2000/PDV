@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdv-v88';
+const CACHE_NAME = 'pdv-v89';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -20,13 +20,13 @@ const STATIC_ASSETS = [
   './src/styles/produtos-b.css?v=20260807-21',
   './src/styles/pessoas-b.css?v=20260807-21',
   './src/styles/financeiro-b.css?v=20260807-21',
-  './src/styles/relatorios-b.css?v=20260807-21',
+  './src/styles/relatorios-b.css?v=20261123-01',
   './src/styles/empresa-config.css?v=20260807-18',
   './src/styles/suporte-b.css?v=20260807-18',
   './src/styles/mobile-b.css?v=20260807-21',
   './src/config/runtime-config.js?v=20260807-02',
-  './src/modules/auth/login.module.js?v=20261109-01',
-  './src/app.js?v=20261109-01'
+  './src/modules/auth/login.module.js?v=20261123-01',
+  './src/app.js?v=20261123-01'
 ];
 
 self.addEventListener('install', (event) => {

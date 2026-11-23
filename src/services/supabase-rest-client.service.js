@@ -28,9 +28,13 @@ function createTableClient({ baseUrl, headers, table }) {
         headers
       });
     },
-    selectRange(columns = '*', from = 0, to = 999) {
+    selectRange(columns = '*', from = 0, to = 999, { filters = [], order = '' } = {}) {
       const limit = Math.max(0, to - from + 1);
-      const query = `select=${encodeURIComponent(columns)}&offset=${encodeURIComponent(from)}&limit=${encodeURIComponent(limit)}`;
+      const filterQuery = filters
+        .map(({ column, op, value }) => `&${encodeURIComponent(column)}=${encodeURIComponent(op)}.${encodeURIComponent(value)}`)
+        .join('');
+      const orderQuery = order ? `&order=${encodeURIComponent(order)}` : '';
+      const query = `select=${encodeURIComponent(columns)}${filterQuery}${orderQuery}&offset=${encodeURIComponent(from)}&limit=${encodeURIComponent(limit)}`;
       return requestJson(`${baseUrl}/${table}?${query}`, {
         method: 'GET',
         headers

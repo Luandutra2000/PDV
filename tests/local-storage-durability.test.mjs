@@ -6,7 +6,7 @@ globalThis.localStorage = {
   removeItem: key => disk.delete(key),
   clear: () => disk.clear()
 };
-const { createLocalProvider } = await import('../src/services/providers/local.provider.js?v=20260804-06');
+const { createLocalProvider } = await import('../src/services/providers/local.provider.js?v=20261123-01');
 const provider = createLocalProvider();
 provider.write('pdv.transactions', [{id:'A',total:10}]);
 disk.set('pdv.transactions', JSON.stringify([{id:'A',total:10},{id:'B',total:20}]));

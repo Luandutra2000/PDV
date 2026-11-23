@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="./src/styles/produtos-b.css?v=20260807-21">
   <link rel="stylesheet" href="./src/styles/pessoas-b.css?v=20260807-21">
   <link rel="stylesheet" href="./src/styles/financeiro-b.css?v=20260807-21">
-  <link rel="stylesheet" href="./src/styles/relatorios-b.css?v=20260807-21">
+  <link rel="stylesheet" href="./src/styles/relatorios-b.css?v=20261123-01">
   <link rel="stylesheet" href="./src/styles/empresa-config.css?v=20260807-18">
   <link rel="stylesheet" href="./src/styles/suporte-b.css?v=20260807-18">
   <link rel="stylesheet" href="./src/styles/mobile-b.css?v=20260807-21">
@@ -78,7 +78,7 @@
   </div>
   <div class="toast-root" aria-live="polite"></div>
   <script type="module">
-    const LOCAL_CACHE_VERSION = '20261109-01-qa-correcoes';
+    const LOCAL_CACHE_VERSION = '20261123-01-retencao-60-dias';
 
     async function clearStaleClientCaches() {
       try {
@@ -114,7 +114,7 @@
 
     try {
       await clearStaleClientCaches();
-      await import('./src/app.js?v=20261109-01');
+      await import('./src/app.js?v=20261123-01');
     } catch (error) {
       console.error('Nao foi possivel iniciar o PDV.', error);
       const app = document.getElementById('app');

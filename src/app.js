@@ -1,37 +1,38 @@
 import './config/runtime-config.js?v=20260807-02';
-import { renderSidebar } from './components/sidebar.component.js?v=20261109-01';
-import { renderCashKpis, renderCashSessionStatus, renderUserMenu } from './components/topbar.component.js?v=20261109-01';
-import { ensureSeedData } from './services/storage.service.js?v=20261109-01';
-import { hydrateDataProvider } from './services/data-provider.service.js?v=20261109-01';
-import { flushDataProvider } from './services/data-provider.service.js?v=20261109-01';
-import { loadCategories, loadProducts, startCatalogRealtime, syncCatalogNow } from './services/product.service.js?v=20261109-01';
-import { flushFinancialQueue, getFinancialSyncStatus, hydrateFinancialData, startFinancialRealtime } from './services/financial-sync.service.js?v=20261109-01';
+import { renderSidebar } from './components/sidebar.component.js?v=20261123-01';
+import { renderCashKpis, renderCashSessionStatus, renderUserMenu } from './components/topbar.component.js?v=20261123-01';
+import { ensureSeedData } from './services/storage.service.js?v=20261123-01';
+import { initLocalHeavyStorage } from './services/providers/local.provider.js?v=20261123-01';
+import { hydrateDataProvider } from './services/data-provider.service.js?v=20261123-01';
+import { flushDataProvider } from './services/data-provider.service.js?v=20261123-01';
+import { loadCategories, loadProducts, startCatalogRealtime, syncCatalogNow } from './services/product.service.js?v=20261123-01';
+import { flushFinancialQueue, getFinancialSyncStatus, hydrateFinancialData, startFinancialRealtime } from './services/financial-sync.service.js?v=20261123-01';
 import { isSupabaseEnabled } from './services/app-config.service.js?v=20260804-06';
-import { hydrateOnlineOperationalData } from './services/online-data.service.js?v=20261109-01';
-import { flushShowcaseQueue, getShowcaseSyncStatus } from './services/showcase-sync.service.js?v=20261109-01';
-import { getDashboardResumo } from './services/dashboard-resumo.service.js?v=20261109-01';
-import { initVendasModule } from './modules/vendas/vendas.module.js?v=20261109-01';
-import { initProdutosModule } from './modules/produtos/produtos.module.js?v=20261109-01';
-import { initDashboardModule } from './modules/dashboard/dashboard.module.js?v=20261109-01';
-import { initEstoqueModule } from './modules/estoque/estoque.module.js?v=20261109-01';
-import { initCaixaModule } from './modules/caixa/caixa.module.js?v=20261109-01';
-import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js?v=20261109-01';
-import { initPessoasModule } from './modules/pessoas/pessoas.module.js?v=20261109-01';
-import { initDespesasModule } from './modules/despesas/despesas.module.js?v=20261109-01';
-import { initEmpresaConfigModule } from './modules/empresa-config/empresa-config.module.js?v=20261109-01';
-import { initRelatoriosModule } from './modules/relatorios/relatorios.module.js?v=20261109-01';
-import { initSyncAppModule } from './modules/sync-app/sync-app.module.js?v=20261109-01';
+import { hydrateOnlineOperationalData } from './services/online-data.service.js?v=20261123-01';
+import { flushShowcaseQueue, getShowcaseSyncStatus } from './services/showcase-sync.service.js?v=20261123-01';
+import { getDashboardResumo } from './services/dashboard-resumo.service.js?v=20261123-01';
+import { initVendasModule } from './modules/vendas/vendas.module.js?v=20261123-01';
+import { initProdutosModule } from './modules/produtos/produtos.module.js?v=20261123-01';
+import { initDashboardModule } from './modules/dashboard/dashboard.module.js?v=20261123-01';
+import { initEstoqueModule } from './modules/estoque/estoque.module.js?v=20261123-01';
+import { initCaixaModule } from './modules/caixa/caixa.module.js?v=20261123-01';
+import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js?v=20261123-01';
+import { initPessoasModule } from './modules/pessoas/pessoas.module.js?v=20261123-01';
+import { initDespesasModule } from './modules/despesas/despesas.module.js?v=20261123-01';
+import { initEmpresaConfigModule } from './modules/empresa-config/empresa-config.module.js?v=20261123-01';
+import { initRelatoriosModule } from './modules/relatorios/relatorios.module.js?v=20261123-01';
+import { initSyncAppModule } from './modules/sync-app/sync-app.module.js?v=20261123-01';
 import { initNotificationService } from './services/notification.service.js?v=20260804-06';
-import { initRealtimeService } from './services/realtime.service.js?v=20261109-01';
+import { initRealtimeService } from './services/realtime.service.js?v=20261123-01';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js?v=20260807-05';
-import { getDailyMoneySummary } from './services/transaction.service.js?v=20261109-01';
-import { getCurrentUser, login, logout, restoreSupabaseSession } from './services/auth.service.js?v=20261109-01';
-import { hasPermission } from './services/permission.service.js?v=20261109-01';
-import { applyCompanyIdentity, loadCompanySettings, loadCompanySettingsLocal } from './services/empresa-config.service.js?v=20261109-01';
-import { renderLoginModule } from './modules/auth/login.module.js?v=20261109-01';
+import { getDailyMoneySummary } from './services/transaction.service.js?v=20261123-01';
+import { getCurrentUser, login, logout, restoreSupabaseSession } from './services/auth.service.js?v=20261123-01';
+import { hasPermission } from './services/permission.service.js?v=20261123-01';
+import { applyCompanyIdentity, loadCompanySettings, loadCompanySettingsLocal } from './services/empresa-config.service.js?v=20261123-01';
+import { renderLoginModule } from './modules/auth/login.module.js?v=20261123-01';
 import { on } from './services/event-bus.service.js?v=20260804-06';
 import { UI_EVENTS } from './database/schema.js?v=20260804-06';
-import { getCashSessionStatus, openCashSession } from './services/cash-session.service.js?v=20261109-01';
+import { getCashSessionStatus, openCashSession } from './services/cash-session.service.js?v=20261123-01';
 
 const routes = {
   'frente-caixa': initVendasModule,
@@ -65,6 +66,12 @@ let sessionRestorePromise = null;
 let auditRetryStarted = false;
 
 async function bootstrap({ skipFreshLoginCheck = false } = {}) {
+  try {
+    // Sales history lives in IndexedDB; load it before anything reads data.
+    await initLocalHeavyStorage();
+  } catch (error) {
+    console.error('Nao foi possivel abrir o banco local do navegador; usando o armazenamento simples.', error);
+  }
   ensureSeedData();
   initTheme();
   if (!skipFreshLoginCheck) {

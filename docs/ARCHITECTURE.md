@@ -113,6 +113,23 @@ modules -> services -> data provider -> localStorage ou Supabase
 
 Assim o projeto pode migrar por partes.
 
+### Historico local: IndexedDB e janela de 60 dias (2026-11-23)
+
+- As colecoes que crescem a cada venda (`pdv.transactions`, `pdv.closedComandas`,
+  `pdv.cashClosings`, `pdv.showcaseMovements`, `pdv.outOfStockSales`, `pdv.auditLogs`)
+  ficam no IndexedDB (`pdv-local-history`), nao no `localStorage`. As leituras continuam
+  sincronas: `initLocalHeavyStorage()` (em `providers/local.provider.js`) carrega tudo em
+  memoria no inicio do `bootstrap` e migra o que estava no `localStorage`. As demais chaves
+  continuam no `localStorage`. Abas do mesmo aparelho trocam as gravacoes por `BroadcastChannel`.
+- No modo online, cada aparelho guarda so os ultimos 60 dias (`history-window.service.js`):
+  a leitura do servidor vem filtrada pela data (itens seguem a data da venda/comanda) e com
+  ordem estavel na paginacao; `pruneLocalHistory()` apaga do aparelho o que passou da janela,
+  somente quando nao ha envio pendente. Saldo da vitrine (`product_stock`) e o Financeiro
+  (`financial_transactions`) continuam completos.
+- Relatorios de periodos mais antigos consultam o servidor na hora
+  (`loadArchivedHistory`), e o resultado fica so em memoria (`history-archive.store.js`).
+- No modo local (sem Supabase) nada e apagado: nao existe copia no servidor.
+
 ## Autenticacao e permissoes
 
 A futura arquitetura deve separar:
