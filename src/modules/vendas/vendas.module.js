@@ -9,6 +9,7 @@ import { finalizeComandaPayment, getBestSellingProducts, registerCashMovement } 
 import { formatCurrency } from '../../utils/currency.js';
 import { qs } from '../../utils/dom.js';
 import { showNotification } from '../../services/notification.service.js';
+import { can } from '../../services/permission.service.js';
 import { createShowcaseWriteOff, getTodayShowcaseProducts } from '../../services/estoque.service.js';
 
 const CATEGORY_ALL = 'todos';
@@ -47,7 +48,7 @@ function renderScreen(container) {
           <div class="pdv-actions">
             <label class="sr-only" for="product-search">Buscar produto</label>
             <input id="product-search" class="field" type="search" placeholder="Buscar produto..." value="${state.query}">
-            <button class="button button--ghost" type="button" data-action="open-quick-closing">Fechamento Rapido</button>
+            ${can('cash.close') ? '<button class="button button--ghost" type="button" data-action="open-quick-closing">Fechamento Rapido</button>' : ''}
             <button class="button button--danger" type="button" data-action="open-write-off">Perda / Consumo</button>
           </div>
         </header>
@@ -410,6 +411,10 @@ function handleOrderAction(actionButton, container) {
 
   if (action === 'open-write-off') {
     state.modal = 'write-off';
+  }
+
+  if ((action === 'open-quick-closing' || action === 'confirm-quick-closing') && !can('cash.close')) {
+    return;
   }
 
   if (action === 'open-quick-closing') {

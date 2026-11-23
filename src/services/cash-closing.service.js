@@ -1,6 +1,7 @@
 import { getProductionSalesComparison } from './estoque.service.js';
 import { getDataProvider } from './data-provider.service.js';
 import { getTransactions } from './transaction.service.js';
+import { enqueueRemote } from './remote-outbox.service.js';
 
 export function buildClosingSummary(input = {}) {
   const payments = buildPaymentConference(input);
@@ -164,6 +165,7 @@ export function confirmClosing(draft) {
   closings.unshift(closing);
   getDataProvider().setCollection('cashClosings', closings);
   getDataProvider().setItem('cashClosingDraft', null);
+  enqueueRemote('cashClosing', closing);
 
   return closing;
 }
@@ -181,16 +183,35 @@ export function getSalesAfterClosing(closing) {
     return [];
   }
 
-  const closedAt = new Date(closing.closedAt);
+  const cutoff = getClosingCutoff(closing);
   return getTransactions().filter((transaction) => (
     transaction.type === 'venda'
       && transaction.status !== 'cancelada'
-      && new Date(transaction.createdAt) > closedAt
+      && new Date(transaction.createdAt) > cutoff
   ));
 }
 
+// The totals of a closing were computed at generatedAt, so that instant (not the
+// confirm click) is where the next closing period starts.
+function getClosingCutoff(closing) {
+  return new Date(closing.generatedAt || closing.closedAt);
+}
+
+export function getLastClosingDate() {
+  const closedTimes = getCashClosings()
+    .map((closing) => getClosingCutoff(closing).getTime())
+    .filter(Number.isFinite);
+
+  return closedTimes.length ? new Date(Math.max(...closedTimes)) : null;
+}
+
 function getClosingTransactions() {
-  return getTransactions().filter((transaction) => transaction.status !== 'cancelada');
+  const lastClosingDate = getLastClosingDate();
+
+  return getTransactions().filter((transaction) => (
+    transaction.status !== 'cancelada'
+      && (!lastClosingDate || new Date(transaction.createdAt) > lastClosingDate)
+  ));
 }
 
 function sumPayment(sales, paymentMethod) {

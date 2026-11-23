@@ -1,5 +1,6 @@
-import { renderSidebar } from './components/sidebar.component.js';
+import { canAccessMenu, renderSidebar } from './components/sidebar.component.js';
 import { ensureSeedData } from './services/storage.service.js';
+import { initHistoryStore } from './services/history-store.service.js';
 import { initSyncService } from './services/sync.service.js';
 import { getCaixaSummary } from './services/caixa.service.js';
 import { initVendasModule } from './modules/vendas/vendas.module.js';
@@ -13,7 +14,9 @@ import { initNotificationService } from './services/notification.service.js';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js';
 import { getDailyMoneySummary } from './services/transaction.service.js';
 import { getDataProviderMode } from './services/app-config.service.js';
-import { getCurrentUser, logout } from './services/auth.service.js';
+import { getCurrentUser, loadCurrentProfile, logout } from './services/auth.service.js';
+import { LOCAL_PROFILE, setCurrentProfile } from './services/permission.service.js';
+import { getRemoteOutboxStatus, onRemoteOutboxChange, startRemoteOutbox } from './services/remote-outbox.service.js';
 import { syncProductsFromOnlineDatabase } from './services/product.service.js';
 import { renderLoginModule } from './modules/auth/login.module.js';
 
@@ -27,11 +30,13 @@ const routes = {
 };
 
 async function bootstrap() {
+  await initHistoryStore();
   ensureSeedData();
   initSyncService();
   initTheme();
 
   const app = document.getElementById('app');
+  setCurrentProfile(null);
 
   if (getDataProviderMode() === 'supabase') {
     const user = await getCurrentUser();
@@ -41,29 +46,43 @@ async function bootstrap() {
       return;
     }
 
+    try {
+      setCurrentProfile(await loadCurrentProfile(user));
+    } catch (error) {
+      await logout().catch(() => {});
+      renderLoginModule(app, () => bootstrap());
+      showLoginError(app, error.message);
+      return;
+    }
+
+    startRemoteOutbox();
     await syncProductsFromOnlineDatabase();
+  } else {
+    setCurrentProfile(LOCAL_PROFILE);
   }
 
   renderAppShell(app);
 }
 
+function showLoginError(app, message) {
+  const error = app.querySelector('[data-login-error]');
+
+  if (error) {
+    error.hidden = false;
+    error.textContent = message;
+  }
+}
+
 function renderAppShell(app) {
   initNotificationService(document.querySelector('.toast-root'));
-  const caixa = getCaixaSummary();
-  const moneySummary = getDailyMoneySummary();
-  const estimatedCash = moneySummary.expectedCash;
-  const currentCash = Number(caixa.currentAmount || 0);
 
   app.innerHTML = `
     <div class="pdv-layout">
       ${renderSidebar()}
       <section class="workspace">
         <header class="topbar">
-          <div class="cash-strip" aria-label="Resumo do caixa">
-            ${renderCashMetric('Caixa atual', currentCash, true)}
-            ${renderCashMetric('Caixa estimado', estimatedCash, false, 'money-warning')}
-            ${renderCashMetric('Entradas', moneySummary.entriesTotal, false, 'money-positive')}
-            ${renderCashMetric('Saidas', moneySummary.outputsTotal, false, 'money-negative')}
+          <div class="cash-strip" aria-label="Resumo do caixa" data-cash-strip>
+            ${renderCashStrip()}
           </div>
           <div class="header-actions">
             <button class="button button--ghost" type="button" data-action="toggle-theme">${getThemeLabel()}</button>
@@ -77,7 +96,51 @@ function renderAppShell(app) {
 
   const workspace = app.querySelector('[data-workspace-body]');
   initVendasModule(workspace);
-  bindNavigation(app, workspace);
+  bindNavigation(app);
+  bindRemoteSyncStatus(app);
+}
+
+function renderCashStrip() {
+  const caixa = getCaixaSummary();
+  const moneySummary = getDailyMoneySummary();
+
+  return `
+    ${renderCashMetric('Caixa atual', Number(caixa.currentAmount || 0), true)}
+    ${renderCashMetric('Caixa estimado', moneySummary.expectedCash, false, 'money-warning')}
+    ${renderCashMetric('Entradas', moneySummary.entriesTotal, false, 'money-positive')}
+    ${renderCashMetric('Saidas', moneySummary.outputsTotal, false, 'money-negative')}
+    <div class="cash-pill money-warning" data-remote-sync-status style="display: none"></div>
+  `;
+}
+
+let unsubscribeRemoteStatus = null;
+
+function bindRemoteSyncStatus(app) {
+  unsubscribeRemoteStatus?.();
+  const update = (status) => {
+    const pill = app.querySelector('[data-remote-sync-status]');
+
+    if (!pill) {
+      return;
+    }
+
+    pill.style.display = !status.enabled || status.pending === 0 ? 'none' : '';
+    pill.className = `cash-pill ${status.failing ? 'money-negative' : 'money-warning'}`;
+    pill.title = status.lastError || '';
+    pill.innerHTML = `<span>${status.failing ? 'Sem envio ao servidor' : 'Enviando'}:</span><strong>${status.pending} pendente(s)</strong>`;
+  };
+
+  unsubscribeRemoteStatus = onRemoteOutboxChange(update);
+  update(getRemoteOutboxStatus());
+}
+
+function refreshCashStrip(app) {
+  const strip = app.querySelector('[data-cash-strip]');
+
+  if (strip) {
+    strip.innerHTML = renderCashStrip();
+    bindRemoteSyncStatus(app);
+  }
 }
 
 function renderCashMetric(label, value, signed = false, fixedClass = '') {
@@ -92,19 +155,31 @@ function renderCashMetric(label, value, signed = false, fixedClass = '') {
   `;
 }
 
-try {
-  await bootstrap();
-} catch (error) {
-  console.error('Nao foi possivel iniciar o PDV.', error);
-}
+const navigationBoundApps = new WeakSet();
 
-function bindNavigation(app, workspace) {
+function bindNavigation(app) {
+  if (navigationBoundApps.has(app)) {
+    return;
+  }
+
+  navigationBoundApps.add(app);
   app.addEventListener('click', (event) => {
+    const workspace = app.querySelector('[data-workspace-body]');
+
+    if (!workspace) {
+      return;
+    }
+
     const themeButton = event.target.closest('[data-action="toggle-theme"]');
 
     if (themeButton) {
       toggleTheme();
       themeButton.textContent = getThemeLabel();
+      return;
+    }
+
+    if (event.target.closest('[data-action="refresh"]')) {
+      refreshCashStrip(app);
       return;
     }
 
@@ -118,6 +193,10 @@ function bindNavigation(app, workspace) {
     const menuButton = event.target.closest('[data-menu-id]');
 
     if (!menuButton) {
+      return;
+    }
+
+    if (!canAccessMenu(menuButton.dataset.menuId)) {
       return;
     }
 
@@ -136,6 +215,12 @@ function bindNavigation(app, workspace) {
 }
 
 async function handleLogout(app) {
+  const { pending } = getRemoteOutboxStatus();
+
+  if (pending && !globalThis.confirm(`Ainda ha ${pending} registro(s) nao enviados ao servidor. Eles ficam salvos neste aparelho e serao enviados no proximo login. Sair mesmo assim?`)) {
+    return;
+  }
+
   try {
     await logout();
   } finally {
@@ -152,4 +237,10 @@ function renderModulePlaceholder(workspace, label) {
       <div class="empty-products">Modulo preparado para a proxima etapa.</div>
     </section>
   `;
+}
+
+try {
+  await bootstrap();
+} catch (error) {
+  console.error('Nao foi possivel iniciar o PDV.', error);
 }

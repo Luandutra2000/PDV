@@ -10,7 +10,8 @@ export const STORAGE_KEYS = {
   cashClosings: 'pdv.cashClosings',
   cashClosingDraft: 'pdv.cashClosingDraft',
   showcaseWriteOffs: 'pdv.showcaseWriteOffs',
-  syncQueue: 'pdv.syncQueue'
+  syncQueue: 'pdv.syncQueue',
+  remoteOutbox: 'pdv.remoteOutbox'
 };
 
 export const DATA_PROVIDER_MODES = {

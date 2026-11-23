@@ -1,5 +1,6 @@
 import { mockActiveComanda, mockCaixa, mockCategories, mockProducts } from '../database/mock-data.js';
 import { STORAGE_KEYS } from '../database/schema.js';
+import { isHistoryKey, isHistoryStoreActive, readHistoryValue, writeHistoryValue } from './history-store.service.js';
 
 const UNSAFE_OBJECT_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
@@ -26,6 +27,11 @@ export function sanitizeForStorage(value) {
 }
 
 export function getItem(key, fallback = null) {
+  if (isHistoryStoreActive() && isHistoryKey(key)) {
+    const value = readHistoryValue(key);
+    return value === undefined ? fallback : value;
+  }
+
   const rawValue = localStorage.getItem(key);
 
   if (rawValue === null) {
@@ -42,9 +48,56 @@ export function getItem(key, fallback = null) {
 
 export function setItem(key, value) {
   const sanitizedValue = sanitizeForStorage(value);
-  // sanitizeForStorage removes executable markup and unsafe object keys before persistence.
-  localStorage.setItem(key, JSON.stringify(sanitizedValue)); // NOSONAR
+
+  if (isHistoryStoreActive() && isHistoryKey(key)) {
+    writeHistoryValue(key, sanitizedValue);
+    return sanitizedValue;
+  }
+
+  const serializedValue = JSON.stringify(sanitizedValue);
+
+  try {
+    // sanitizeForStorage removes executable markup and unsafe object keys before persistence.
+    localStorage.setItem(key, serializedValue); // NOSONAR
+  } catch (error) {
+    if (!isQuotaError(error)) {
+      throw error;
+    }
+
+    freeDisposableStorage(key);
+
+    try {
+      localStorage.setItem(key, serializedValue); // NOSONAR
+    } catch (retryError) {
+      if (isQuotaError(retryError)) {
+        throw new Error('Armazenamento do navegador cheio. Exporte os dados e limpe o historico antigo.');
+      }
+
+      throw retryError;
+    }
+  }
+
   return sanitizedValue;
+}
+
+function isQuotaError(error) {
+  return error?.name === 'QuotaExceededError'
+    || error?.name === 'NS_ERROR_DOM_QUOTA_REACHED'
+    || error?.code === 22
+    || error?.code === 1014;
+}
+
+function freeDisposableStorage(keyBeingWritten) {
+  if (keyBeingWritten === STORAGE_KEYS.syncQueue) {
+    return;
+  }
+
+  try {
+    localStorage.removeItem(STORAGE_KEYS.syncQueue);
+    localStorage.setItem(STORAGE_KEYS.syncQueue, '[]'); // NOSONAR
+  } catch {
+    // Best effort: the caller retries the original write and reports a clear error.
+  }
 }
 
 export function ensureSeedData() {

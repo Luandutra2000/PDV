@@ -38,3 +38,26 @@ await auth.logout();
 
 console.log('auth service ok');
 });
+
+test('auth service loads the profile and permissions of the logged user', async () => {
+  const assert = await import('node:assert/strict');
+  const auth = await import('../src/services/auth.service.js');
+  const rows = {
+    'op-1': { id: 'op-1', name: 'Caixa', role: 'operador', is_active: true },
+    'off-1': { id: 'off-1', name: 'Antigo', role: 'operador', is_active: false }
+  };
+  auth.setProfileClientForTests({
+    from: () => ({
+      select: () => ({
+        eq: (_column, id) => ({ maybeSingle: async () => ({ data: rows[id] || null, error: null }) })
+      })
+    })
+  });
+
+  const profile = await auth.loadCurrentProfile({ id: 'op-1' });
+  assert.equal(profile.role, 'operador');
+  assert.ok(profile.permissions.includes('sale.create'));
+  assert.ok(!profile.permissions.includes('sale.cancel'));
+  await assert.rejects(() => auth.loadCurrentProfile({ id: 'off-1' }), /perfil ativo/);
+  await assert.rejects(() => auth.loadCurrentProfile({ id: 'missing' }), /perfil ativo/);
+});
