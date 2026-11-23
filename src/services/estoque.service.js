@@ -1,12 +1,12 @@
 import { STORAGE_KEYS } from '../database/schema.js?v=20260804-06';
-import { getCategories, getProductById, getProducts, updateProduct } from './product.service.js?v=20261123-02';
-import { getTransactions } from './transaction.service.js?v=20261123-02';
-import { getCurrentUser } from './auth.service.js?v=20261123-02';
-import { assertPermission } from './permission.service.js?v=20261123-02';
-import { recordAudit } from './audit.service.js?v=20261123-02';
-import { getItem, setItem } from './storage.service.js?v=20261123-02';
-import { getShowcaseStock, getShowcaseStockByProductId } from './showcase-stock.service.js?v=20261123-02';
-import { adjustShowcaseStockOnline, processShowcaseProduction } from './showcase-sync.service.js?v=20261123-02';
+import { getCategories, getProductById, getProducts, updateProduct } from './product.service.js?v=20261123-03';
+import { getTransactions } from './transaction.service.js?v=20261123-03';
+import { getCurrentUser } from './auth.service.js?v=20261123-03';
+import { assertPermission } from './permission.service.js?v=20261123-03';
+import { recordAudit } from './audit.service.js?v=20261123-03';
+import { getItem, setItem } from './storage.service.js?v=20261123-03';
+import { getShowcaseStock, getShowcaseStockByProductId } from './showcase-stock.service.js?v=20261123-03';
+import { adjustShowcaseStockOnline, processShowcaseProduction } from './showcase-sync.service.js?v=20261123-03';
 import { randomHex } from '../utils/random-id.js?v=20261123-01';
 
 export function createStockLaunch({ produtoId, quantidade, note = '' }) {

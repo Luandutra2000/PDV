@@ -1,38 +1,38 @@
 import './config/runtime-config.js?v=20260807-02';
-import { renderSidebar } from './components/sidebar.component.js?v=20261123-02';
-import { renderCashKpis, renderCashSessionStatus, renderUserMenu } from './components/topbar.component.js?v=20261123-02';
-import { ensureSeedData } from './services/storage.service.js?v=20261123-02';
+import { renderSidebar } from './components/sidebar.component.js?v=20261123-03';
+import { renderCashKpis, renderCashSessionStatus, renderUserMenu } from './components/topbar.component.js?v=20261123-03';
+import { ensureSeedData } from './services/storage.service.js?v=20261123-03';
 import { initLocalHeavyStorage } from './services/providers/local.provider.js?v=20261123-02';
-import { hydrateDataProvider } from './services/data-provider.service.js?v=20261123-02';
-import { flushDataProvider } from './services/data-provider.service.js?v=20261123-02';
-import { loadCategories, loadProducts, startCatalogRealtime, syncCatalogNow } from './services/product.service.js?v=20261123-02';
-import { flushFinancialQueue, getFinancialSyncStatus, hydrateFinancialData, startFinancialRealtime } from './services/financial-sync.service.js?v=20261123-02';
+import { hydrateDataProvider } from './services/data-provider.service.js?v=20261123-03';
+import { flushDataProvider } from './services/data-provider.service.js?v=20261123-03';
+import { loadCategories, loadProducts, startCatalogRealtime, syncCatalogNow } from './services/product.service.js?v=20261123-03';
+import { flushFinancialQueue, getFinancialSyncStatus, hydrateFinancialData, startFinancialRealtime } from './services/financial-sync.service.js?v=20261123-03';
 import { isSupabaseEnabled } from './services/app-config.service.js?v=20260804-06';
-import { hydrateOnlineOperationalData } from './services/online-data.service.js?v=20261123-02';
-import { flushShowcaseQueue, getShowcaseSyncStatus } from './services/showcase-sync.service.js?v=20261123-02';
-import { getDashboardResumo } from './services/dashboard-resumo.service.js?v=20261123-02';
-import { initVendasModule } from './modules/vendas/vendas.module.js?v=20261123-02';
-import { initProdutosModule } from './modules/produtos/produtos.module.js?v=20261123-02';
-import { initDashboardModule } from './modules/dashboard/dashboard.module.js?v=20261123-02';
-import { initEstoqueModule } from './modules/estoque/estoque.module.js?v=20261123-02';
-import { initCaixaModule } from './modules/caixa/caixa.module.js?v=20261123-02';
-import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js?v=20261123-02';
-import { initPessoasModule } from './modules/pessoas/pessoas.module.js?v=20261123-02';
-import { initDespesasModule } from './modules/despesas/despesas.module.js?v=20261123-02';
-import { initEmpresaConfigModule } from './modules/empresa-config/empresa-config.module.js?v=20261123-02';
-import { initRelatoriosModule } from './modules/relatorios/relatorios.module.js?v=20261123-02';
-import { initSyncAppModule } from './modules/sync-app/sync-app.module.js?v=20261123-02';
+import { hydrateOnlineOperationalData } from './services/online-data.service.js?v=20261123-03';
+import { flushShowcaseQueue, getShowcaseSyncStatus } from './services/showcase-sync.service.js?v=20261123-03';
+import { getDashboardResumo } from './services/dashboard-resumo.service.js?v=20261123-03';
+import { initVendasModule } from './modules/vendas/vendas.module.js?v=20261123-03';
+import { initProdutosModule } from './modules/produtos/produtos.module.js?v=20261123-03';
+import { initDashboardModule } from './modules/dashboard/dashboard.module.js?v=20261123-03';
+import { initEstoqueModule } from './modules/estoque/estoque.module.js?v=20261123-03';
+import { initCaixaModule } from './modules/caixa/caixa.module.js?v=20261123-03';
+import { initMobileDashboardModule } from './modules/mobile/mobile-dashboard.module.js?v=20261123-03';
+import { initPessoasModule } from './modules/pessoas/pessoas.module.js?v=20261123-03';
+import { initDespesasModule } from './modules/despesas/despesas.module.js?v=20261123-03';
+import { initEmpresaConfigModule } from './modules/empresa-config/empresa-config.module.js?v=20261123-03';
+import { initRelatoriosModule } from './modules/relatorios/relatorios.module.js?v=20261123-03';
+import { initSyncAppModule } from './modules/sync-app/sync-app.module.js?v=20261123-03';
 import { initNotificationService } from './services/notification.service.js?v=20260804-06';
-import { initRealtimeService } from './services/realtime.service.js?v=20261123-02';
+import { initRealtimeService } from './services/realtime.service.js?v=20261123-03';
 import { getThemeLabel, initTheme, toggleTheme } from './services/theme.service.js?v=20260807-05';
-import { getDailyMoneySummary } from './services/transaction.service.js?v=20261123-02';
-import { getCurrentUser, login, logout, restoreSupabaseSession } from './services/auth.service.js?v=20261123-02';
-import { hasPermission } from './services/permission.service.js?v=20261123-02';
-import { applyCompanyIdentity, loadCompanySettings, loadCompanySettingsLocal } from './services/empresa-config.service.js?v=20261123-02';
-import { renderLoginModule } from './modules/auth/login.module.js?v=20261123-02';
+import { getDailyMoneySummary } from './services/transaction.service.js?v=20261123-03';
+import { getCurrentUser, login, logout, restoreSupabaseSession } from './services/auth.service.js?v=20261123-03';
+import { hasPermission } from './services/permission.service.js?v=20261123-03';
+import { applyCompanyIdentity, loadCompanySettings, loadCompanySettingsLocal } from './services/empresa-config.service.js?v=20261123-03';
+import { renderLoginModule } from './modules/auth/login.module.js?v=20261123-03';
 import { on } from './services/event-bus.service.js?v=20260804-06';
 import { UI_EVENTS } from './database/schema.js?v=20260804-06';
-import { getCashSessionStatus, openCashSession } from './services/cash-session.service.js?v=20261123-02';
+import { getCashSessionStatus, openCashSession } from './services/cash-session.service.js?v=20261123-03';
 
 const routes = {
   'frente-caixa': initVendasModule,
@@ -65,6 +65,25 @@ const AUTH_SESSION_VERSION = '20260620-02-company-profile';
 let sessionRestorePromise = null;
 let auditRetryStarted = false;
 
+let onlineStartPending = false;
+
+async function startOnlineServices() {
+  await startCatalogRealtime();
+  if (isSupabaseEnabled()) {
+    await syncCatalogNow();
+    await hydrateOnlineOperationalData({ catalog: false, financial: true, showcase: true });
+    await startFinancialRealtime();
+  }
+  await hydrateDataProvider();
+  await flushDataProvider();
+}
+
+function isNetworkFailure(error) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+  return /failed to fetch|networkerror|network request failed|load failed|fetch dynamically imported module|importing a module script failed|err_internet_disconnected|err_name_not_resolved/i
+    .test(String(error?.message || error || ''));
+}
+
 async function bootstrap({ skipFreshLoginCheck = false } = {}) {
   try {
     // Sales history lives in IndexedDB; load it before anything reads data.
@@ -95,19 +114,19 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
 
   try {
     await Promise.all([loadCategories(), loadProducts()]);
-    await startCatalogRealtime();
-    if (isSupabaseEnabled()) {
-      await syncCatalogNow();
-      await hydrateOnlineOperationalData({ catalog: false, financial: true, showcase: true });
-      await startFinancialRealtime();
-    }
-    await hydrateDataProvider();
-    await flushDataProvider();
+    await startOnlineServices();
+    onlineStartPending = false;
   } catch (error) {
-    renderLoginModule(app, () => bootstrap({ skipFreshLoginCheck: true }), {
-      message: error.message || 'Nao foi possivel carregar os dados online.'
-    });
-    return;
+    // Without internet the user already signed in on this device keeps
+    // selling with the local data; the connection is retried below.
+    if (!isNetworkFailure(error)) {
+      renderLoginModule(app, () => bootstrap({ skipFreshLoginCheck: true }), {
+        message: error.message || 'Nao foi possivel carregar os dados online.'
+      });
+      return;
+    }
+    console.warn('Sem conexao com o servidor; abrindo com os dados deste aparelho.', error);
+    onlineStartPending = true;
   }
 
   if (!auditRetryStarted) {
@@ -115,6 +134,12 @@ async function bootstrap({ skipFreshLoginCheck = false } = {}) {
     // vitrine): sem isso a vitrine so sincronizava na venda seguinte.
     const retryPendingSync = () => {
       if (!getCurrentUser()) return;
+      if (onlineStartPending && navigator.onLine !== false) {
+        startOnlineServices()
+          .then(() => { onlineStartPending = false; })
+          .catch((error) => console.warn('Servidor ainda indisponivel.', error));
+        return;
+      }
       flushDataProvider().catch((error) => console.warn('Falha ao reenviar auditoria.', error));
       if (isSupabaseEnabled()) {
         flushFinancialQueue()

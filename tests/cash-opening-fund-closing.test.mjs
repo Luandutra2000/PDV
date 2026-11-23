@@ -13,17 +13,17 @@ globalThis.localStorage = {
   clear: () => disk.clear()
 };
 
-const storage = await import('../src/services/storage.service.js?v=20261123-02');
+const storage = await import('../src/services/storage.service.js?v=20261123-03');
 const { STORAGE_KEYS: keys } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
-const cashSession = await import('../src/services/cash-session.service.js?v=20261123-02');
-const comanda = await import('../src/services/comanda.service.js?v=20261123-02');
-const transactions = await import('../src/services/transaction.service.js?v=20261123-02');
-const { buildClosingSummary } = await import('../src/services/cash-closing.service.js?v=20261123-02');
-const { getMobileClosingSummary } = await import('../src/services/mobile-closing.service.js?v=20261123-02');
-const { createPeriodFilter, getCrmSummary } = await import('../src/services/crm-dashboard.service.js?v=20261123-02');
-const { buildCrmClosingInput } = await import('../src/modules/caixa/caixa.module.js?v=20261123-02');
-const { buildQuickClosingInput } = await import('../src/modules/vendas/vendas.module.js?v=20261123-02');
+const cashSession = await import('../src/services/cash-session.service.js?v=20261123-03');
+const comanda = await import('../src/services/comanda.service.js?v=20261123-03');
+const transactions = await import('../src/services/transaction.service.js?v=20261123-03');
+const { buildClosingSummary } = await import('../src/services/cash-closing.service.js?v=20261123-03');
+const { getMobileClosingSummary } = await import('../src/services/mobile-closing.service.js?v=20261123-03');
+const { createPeriodFilter, getCrmSummary } = await import('../src/services/crm-dashboard.service.js?v=20261123-03');
+const { buildCrmClosingInput } = await import('../src/modules/caixa/caixa.module.js?v=20261123-03');
+const { buildQuickClosingInput } = await import('../src/modules/vendas/vendas.module.js?v=20261123-03');
 const { renderFechamentoRapidoModal } = await import('../src/components/fechamento-rapido-modal.component.js?v=20261109-01');
 
 storage.resetAppData();

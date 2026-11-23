@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdv-v90';
+const CACHE_NAME = 'pdv-v91';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -25,8 +25,8 @@ const STATIC_ASSETS = [
   './src/styles/suporte-b.css?v=20260807-18',
   './src/styles/mobile-b.css?v=20260807-21',
   './src/config/runtime-config.js?v=20260807-02',
-  './src/modules/auth/login.module.js?v=20261123-02',
-  './src/app.js?v=20261123-02'
+  './src/modules/auth/login.module.js?v=20261123-03',
+  './src/app.js?v=20261123-03'
 ];
 
 self.addEventListener('install', (event) => {
@@ -49,8 +49,16 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// The Supabase client library comes from esm.sh. Keeping a copy lets the PDV
+// start without internet; versioned esm.sh URLs do not change content.
+const LIBRARY_ORIGIN = 'https://esm.sh';
+
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+  if (event.request.method === 'GET' && url.origin === LIBRARY_ORIGIN) {
+    event.respondWith(fetchAndKeepCopy(event));
+    return;
+  }
   const publicPath = url.pathname === '/' || url.pathname === '/index.html'
     || url.pathname === '/manifest.json' || url.pathname === '/favicon.ico'
     || /^\/src\/.*\.(?:js|css|svg|png|jpe?g|webp|ico|woff2?)$/.test(url.pathname);
@@ -60,8 +68,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(
-    fetch(event.request, { cache: 'no-cache' })
+  event.respondWith(fetchAndKeepCopy(event, { cache: 'no-cache' }));
+});
+
+function fetchAndKeepCopy(event, init = {}) {
+  return fetch(event.request, init)
       .then((response) => {
         if (!response || response.status !== 200 || response.type === 'opaque'
           || response.redirected || /(?:private|no-store)/i.test(response.headers.get('cache-control') || '')) {
@@ -77,6 +88,5 @@ self.addEventListener('fetch', (event) => {
       .catch(async () => {
         const cache = await caches.open(CACHE_NAME);
         return (await cache.match(event.request)) || Response.error();
-      })
-  );
-});
+      });
+}

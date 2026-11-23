@@ -78,15 +78,23 @@
   </div>
   <div class="toast-root" aria-live="polite"></div>
   <script type="module">
-    const LOCAL_CACHE_VERSION = '20261123-02-desempenho-60-dias';
+    const LOCAL_CACHE_VERSION = '20261123-03-offline-e-sync-incremental';
 
+    // Clears old caches only when the app version really changed, and never
+    // without internet: the cached files are what lets the PDV open offline.
+    // (sessionStorage was cleared on every new tab, so opening the PDV with
+    // the internet down deleted the cache first and showed "Erro ao iniciar".)
     async function clearStaleClientCaches() {
       try {
-        if (window.sessionStorage.getItem('pdv.localCacheVersion') === LOCAL_CACHE_VERSION) {
+        if (window.localStorage.getItem('pdv.localCacheVersion') === LOCAL_CACHE_VERSION) {
           return false;
         }
 
-        window.sessionStorage.setItem('pdv.localCacheVersion', LOCAL_CACHE_VERSION);
+        if (navigator.onLine === false) {
+          return false;
+        }
+
+        window.localStorage.setItem('pdv.localCacheVersion', LOCAL_CACHE_VERSION);
       } catch (error) {
         console.warn('Nao foi possivel ler a versao de cache local.', error);
       }
@@ -114,7 +122,7 @@
 
     try {
       await clearStaleClientCaches();
-      await import('./src/app.js?v=20261123-02');
+      await import('./src/app.js?v=20261123-03');
     } catch (error) {
       console.error('Nao foi possivel iniciar o PDV.', error);
       const app = document.getElementById('app');

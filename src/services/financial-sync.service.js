@@ -1,7 +1,7 @@
 import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260804-06';
 import { emit } from './event-bus.service.js?v=20260804-06';
-import { getSupabaseClient } from './supabase-client.service.js?v=20260804-06';
-import { getSupabaseRestClient } from './supabase-rest-client.service.js?v=20261123-01';
+import { getSupabaseClient } from './supabase-client.service.js?v=20261123-03';
+import { getSupabaseRestClient } from './supabase-rest-client.service.js?v=20261123-03';
 import { saleAdapter } from './repositories/sale.adapter.js?v=20260804-06';
 import { saleItemAdapter } from './repositories/sale-item.adapter.js?v=20260804-06';
 import { cashMovementAdapter } from './repositories/cash-movement.adapter.js?v=20261109-01';
@@ -12,6 +12,7 @@ import { financialCategoryAdapter } from './repositories/financial-category.adap
 import { financialTransactionAdapter } from './repositories/financial-transaction.adapter.js?v=20260804-06';
 import { readLocalCache as readJson, setLocalCache as writeJson } from './providers/local.provider.js?v=20261123-02';
 import { applyHistoryFilters, getHistoryQuery } from './history-window.service.js?v=20261123-01';
+import { readRealtimeChange, selectRowsByValues } from './realtime-delta.service.js?v=20261123-03';
 import { randomHex } from '../utils/random-id.js?v=20261123-01';
 
 const FINANCIAL_TABLES = [
@@ -32,6 +33,7 @@ let getClientOverride = null;
 let realtimeChannel = null;
 let realtimePromise = null;
 let realtimeHydrateTimer = null;
+let pendingRealtimeChanges = [];
 let flushPromise = null;
 let writeTail = Promise.resolve();
 const preparedRevisions = new Map();
@@ -58,11 +60,15 @@ export function getFinancialSyncStatus() {
   };
 }
 
-export async function hydrateFinancialData({ includePending = false } = {}) {
+// `changes` (realtime events) limits the read to the rows they name; without it
+// the whole retention window is read (startup, "Atualizar", reconnect).
+export async function hydrateFinancialData({ includePending = false, changes = null } = {}) {
   try {
     setStatus({ state: 'syncing', error: '' });
     const client = await getWriteClient();
-    const rows = await readFinancialTables(client);
+    const rows = changes
+      ? await readFinancialChanges(client, changes)
+      : await readFinancialTables(client);
     const currentTransactions = readJson(STORAGE_KEYS.transactions, []);
     const currentCommands = readJson(STORAGE_KEYS.closedComandas, []);
     const currentClosings = readJson(STORAGE_KEYS.cashClosings, []);
@@ -104,7 +110,7 @@ export async function hydrateFinancialData({ includePending = false } = {}) {
         ? applyQueueToFinancialTransactions(mergeRemoteWithCache(financialTransactions, currentFinancialTransactions), queue)
         : mergeRemoteWithCache(financialTransactions, currentFinancialTransactions))
     });
-    const failedTable = Object.values(rows).find((result) => !result.ok);
+    const failedTable = Object.values(rows).find((result) => !result.ok && !result.skipped);
     setStatusFromQueue(readQueue());
     if (failedTable) {
       setStatus({
@@ -158,6 +164,65 @@ export async function saveFinancialTransactionToSupabase(transaction) {
 
 export function saveFinancialTransactionToSupabaseStrict(transaction) {
   return writeStrictOperation({ action: 'saveFinancialTransaction', transaction });
+}
+
+const SKIPPED = Object.freeze({ ok: false, skipped: true, rows: [] });
+
+// Reads only what realtime events point to. Anything not identifiable falls
+// back to the full read, so nothing is silently missed.
+async function readFinancialChanges(client, changes) {
+  const ids = {
+    sales: new Set(),
+    commands: new Set(),
+    movements: new Set(),
+    closings: new Set(),
+    financialTransactions: new Set()
+  };
+  let categories = false;
+
+  for (const { table, row } of changes) {
+    const target = {
+      [saleAdapter.table]: [ids.sales, row.id],
+      [saleItemAdapter.table]: [ids.sales, row.sale_id],
+      [commandAdapter.table]: [ids.commands, row.id],
+      [commandItemAdapter.table]: [ids.commands, row.command_id],
+      [cashMovementAdapter.table]: [ids.movements, row.id],
+      [cashClosingAdapter.table]: [ids.closings, row.id],
+      [financialTransactionAdapter.table]: [ids.financialTransactions, row.id]
+    }[table];
+
+    if (table === financialCategoryAdapter.table) {
+      categories = true;
+    } else if (target && target[1]) {
+      target[0].add(target[1]);
+    } else {
+      return readFinancialTables(client);
+    }
+  }
+
+  const read = async (set, adapter, column = 'id') => {
+    if (!set.size) return SKIPPED;
+    try {
+      return { ok: true, rows: await selectRowsByValues(client, adapter, column, [...set]) };
+    } catch (error) {
+      return { ok: false, rows: [], error };
+    }
+  };
+
+  const [sales, saleItems, commands, commandItems, movements, closings, financialTransactions, financialCategories] = await Promise.all([
+    read(ids.sales, saleAdapter),
+    read(ids.sales, saleItemAdapter, 'sale_id'),
+    read(ids.commands, commandAdapter),
+    read(ids.commands, commandItemAdapter, 'command_id'),
+    read(ids.movements, cashMovementAdapter),
+    read(ids.closings, cashClosingAdapter),
+    read(ids.financialTransactions, financialTransactionAdapter),
+    categories
+      ? selectRows(client, financialCategoryAdapter).then((rows) => ({ ok: true, rows }), (error) => ({ ok: false, rows: [], error }))
+      : Promise.resolve(SKIPPED)
+  ]);
+
+  return { sales, saleItems, movements, commands, commandItems, closings, financialCategories, financialTransactions };
 }
 
 const HISTORY_TABLE_ENTRIES = [
@@ -366,7 +431,8 @@ export async function startFinancialRealtime() {
     try {
       const client = await getClient();
       const channel = client.channel('financial-changes');
-      const onChange = () => {
+      const onChange = (payload) => {
+        pendingRealtimeChanges.push(readRealtimeChange(payload));
         scheduleRealtimeHydrate();
       };
 
@@ -374,7 +440,17 @@ export async function startFinancialRealtime() {
         channel.on('postgres_changes', { event: '*', schema: 'public', table }, onChange);
       });
 
-      realtimeChannel = channel.subscribe();
+      // Events sent while the connection was down are lost: after a reconnect
+      // read the whole window once, since realtime now reads only changed rows.
+      let connectionLost = false;
+      realtimeChannel = channel.subscribe((channelStatus) => {
+        if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(channelStatus)) {
+          connectionLost = true;
+        } else if (channelStatus === 'SUBSCRIBED' && connectionLost) {
+          connectionLost = false;
+          Promise.resolve(hydrateFinancialData({ includePending: true })).catch(() => {});
+        }
+      });
       return realtimeChannel;
     } catch (error) {
       setStatus({
@@ -436,7 +512,9 @@ function scheduleRealtimeHydrate() {
   clearRealtimeHydrateTimer();
   realtimeHydrateTimer = setTimeout(async () => {
     realtimeHydrateTimer = null;
-    await hydrateFinancialData({ includePending: true });
+    const changes = pendingRealtimeChanges;
+    pendingRealtimeChanges = [];
+    await hydrateFinancialData({ includePending: true, changes: changes.length ? changes : null });
   }, REALTIME_HYDRATE_DELAY_MS);
 }
 

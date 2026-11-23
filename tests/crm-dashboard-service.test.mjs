@@ -21,12 +21,12 @@ const assert = (condition, message) => {
   }
 };
 
-const storage = await import('../src/services/storage.service.js?v=20261123-02');
-const products = await import('../src/services/product.service.js?v=20261123-02');
-const comandas = await import('../src/services/comanda.service.js?v=20261123-02');
-const transactions = await import('../src/services/transaction.service.js?v=20261123-02');
-const crm = await import('../src/services/crm-dashboard.service.js?v=20261123-02');
-const auth = await import('../src/services/auth.service.js?v=20261123-02');
+const storage = await import('../src/services/storage.service.js?v=20261123-03');
+const products = await import('../src/services/product.service.js?v=20261123-03');
+const comandas = await import('../src/services/comanda.service.js?v=20261123-03');
+const transactions = await import('../src/services/transaction.service.js?v=20261123-03');
+const crm = await import('../src/services/crm-dashboard.service.js?v=20261123-03');
+const auth = await import('../src/services/auth.service.js?v=20261123-03');
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs?v=20260804-06');
 

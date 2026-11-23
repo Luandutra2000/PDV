@@ -1,21 +1,22 @@
 import { STORAGE_KEYS, UI_EVENTS } from '../database/schema.js?v=20260804-06';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
-import { hydrateDataProvider } from './data-provider.service.js?v=20261123-02';
+import { hydrateDataProvider } from './data-provider.service.js?v=20261123-03';
 import { emit } from './event-bus.service.js?v=20260804-06';
-import { hydrateFinancialData } from './financial-sync.service.js?v=20261123-02';
-import { getSupabaseClient } from './supabase-client.service.js?v=20260804-06';
+import { hydrateFinancialData } from './financial-sync.service.js?v=20261123-03';
+import { getSupabaseClient } from './supabase-client.service.js?v=20261123-03';
 import {
   adjustShowcaseStock,
   applyProductionToShowcase,
   applySaleToShowcase,
   reverseSaleInShowcase
-} from './showcase-stock.service.js?v=20261123-02';
-import { setItem } from './storage.service.js?v=20261123-02';
+} from './showcase-stock.service.js?v=20261123-03';
+import { setItem } from './storage.service.js?v=20261123-03';
 import { readLocalCache, setLocalCache, runLocalTransaction, deferLocalEffect } from './providers/local.provider.js?v=20261123-02';
 import { outOfStockSaleAdapter } from './repositories/out-of-stock-sale.adapter.js?v=20260804-06';
 import { productStockAdapter } from './repositories/product-stock.adapter.js?v=20260804-06';
 import { showcaseMovementAdapter } from './repositories/showcase-movement.adapter.js?v=20260804-06';
 import { applyHistoryFilters, getHistoryQuery } from './history-window.service.js?v=20261123-01';
+import { mergeById, readRealtimeChange, selectRowsByValues } from './realtime-delta.service.js?v=20261123-03';
 
 const SHOWCASE_ADAPTERS = [
   productStockAdapter,
@@ -44,6 +45,10 @@ let getClientOverride = null;
 let realtimeChannel = null;
 let realtimePromise = null;
 let realtimeHydrateTimer = null;
+let pendingRealtimeChanges = [];
+// Movements created by a sale or its reversal; any other movement (production,
+// adjustment, loss) also refreshes production and write-off lists.
+const SALE_MOVEMENT_TYPES = new Set(['saida_venda', 'estorno_venda', 'venda_sem_estoque', 'estorno_sem_estoque']);
 let flushPromise = null;
 let status = createStatus('idle', readQueue().length);
 
@@ -66,7 +71,8 @@ export function getShowcaseSyncStatus() {
   };
 }
 
-export async function hydrateShowcaseData({ force = false } = {}) {
+// `changes` (realtime events) limits the read to the rows they name.
+export async function hydrateShowcaseData({ force = false, changes = null } = {}) {
   const queue = readQueue();
   const cachedBefore = JSON.stringify(readShowcaseCaches());
 
@@ -82,16 +88,23 @@ export async function hydrateShowcaseData({ force = false } = {}) {
   try {
     setStatus({ state: 'syncing', error: '' });
     const client = await getClient();
-    const [stockRows, movementRows, outOfStockRows] = await Promise.all(SHOWCASE_ADAPTERS.map((adapter) => selectRows(client, adapter)));
+    const delta = changes ? await readShowcaseChanges(client, changes) : null;
+    const [stockRows, movementRows, outOfStockRows] = delta
+      ? [delta.stockRows, delta.movementRows, delta.outOfStockRows]
+      : await Promise.all(SHOWCASE_ADAPTERS.map((adapter) => selectRows(client, adapter)));
 
     if (readQueue().length || cachedBefore !== JSON.stringify(readShowcaseCaches())) {
       setStatusFromQueue(readQueue());
       return readShowcaseCaches();
     }
 
-    setItem(STORAGE_KEYS.productStock, stockRows.map(productStockAdapter.fromRow));
-    setItem(STORAGE_KEYS.showcaseMovements, movementRows.map(showcaseMovementAdapter.fromRow));
-    setItem(STORAGE_KEYS.outOfStockSales, outOfStockRows.map(outOfStockSaleAdapter.fromRow));
+    const caches = readShowcaseCaches();
+    const merge = (rows, adapter, cached) => (delta
+      ? mergeById(rows.map(adapter.fromRow), cached)
+      : rows.map(adapter.fromRow));
+    setItem(STORAGE_KEYS.productStock, merge(stockRows, productStockAdapter, caches.productStock));
+    setItem(STORAGE_KEYS.showcaseMovements, merge(movementRows, showcaseMovementAdapter, caches.showcaseMovements));
+    setItem(STORAGE_KEYS.outOfStockSales, merge(outOfStockRows, outOfStockSaleAdapter, caches.outOfStockSales));
     emitShowcaseDataChanged({ type: 'hydrated' });
     setStatusFromQueue(readQueue());
 
@@ -188,7 +201,8 @@ export async function startShowcaseRealtime() {
     try {
       const client = await getClient();
       const channel = client.channel('showcase-stock-changes');
-      const onChange = () => {
+      const onChange = (payload) => {
+        pendingRealtimeChanges.push(readRealtimeChange(payload));
         scheduleRealtimeHydrate();
       };
 
@@ -196,7 +210,17 @@ export async function startShowcaseRealtime() {
         channel.on('postgres_changes', { event: '*', schema: 'public', table }, onChange);
       });
 
-      realtimeChannel = channel.subscribe();
+      // Events sent while the connection was down are lost: after a reconnect
+      // read the whole window once, since realtime now reads only changed rows.
+      let connectionLost = false;
+      realtimeChannel = channel.subscribe((channelStatus) => {
+        if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(channelStatus)) {
+          connectionLost = true;
+        } else if (channelStatus === 'SUBSCRIBED' && connectionLost) {
+          connectionLost = false;
+          Promise.resolve(hydrateRealtimeShowcaseData([])).catch(() => {});
+        }
+      });
       return realtimeChannel;
     } catch (error) {
       setStatus({
@@ -322,16 +346,59 @@ function scheduleRealtimeHydrate() {
   clearRealtimeHydrateTimer();
   realtimeHydrateTimer = setTimeout(async () => {
     realtimeHydrateTimer = null;
-    await hydrateRealtimeShowcaseData();
+    const changes = pendingRealtimeChanges;
+    pendingRealtimeChanges = [];
+    await hydrateRealtimeShowcaseData(changes);
   }, REALTIME_HYDRATE_DELAY_MS);
 }
 
-async function hydrateRealtimeShowcaseData() {
-  await hydrateDataProvider(SHOWCASE_OPERATIONAL_KEYS);
+async function hydrateRealtimeShowcaseData(changes = []) {
+  if (!changes.length) {
+    await hydrateDataProvider(SHOWCASE_OPERATIONAL_KEYS);
+    await Promise.all([hydrateShowcaseData(), hydrateFinancialData({ includePending: true })]);
+    return;
+  }
+
+  const needsOperationalLists = changes.some(({ table, row }) => table === 'stock_production'
+    || (table === showcaseMovementAdapter.table && !SALE_MOVEMENT_TYPES.has(row.movement_type)));
+  if (needsOperationalLists) {
+    await hydrateDataProvider(SHOWCASE_OPERATIONAL_KEYS);
+  }
+
+  const saleIds = [...new Set(changes.map(({ row }) => row.sale_id).filter(Boolean))];
   await Promise.all([
-    hydrateShowcaseData(),
-    hydrateFinancialData({ includePending: true })
+    hydrateShowcaseData({ changes }),
+    saleIds.length
+      ? hydrateFinancialData({ includePending: true, changes: saleIds.map((id) => ({ table: 'sales', row: { id } })) })
+      : Promise.resolve()
   ]);
+}
+
+// Reads only the stock balances, movements and out-of-stock sales the events
+// point to. An event that cannot be identified falls back to the full read.
+async function readShowcaseChanges(client, changes) {
+  const productIds = new Set();
+  const movementIds = new Set();
+  const outOfStockIds = new Set();
+
+  for (const { table, row } of changes) {
+    if (table === 'stock_production') continue;
+    if (![productStockAdapter.table, showcaseMovementAdapter.table, outOfStockSaleAdapter.table].includes(table) || !row.id) {
+      return null;
+    }
+    if (row.product_id) productIds.add(row.product_id);
+    if (table === showcaseMovementAdapter.table) movementIds.add(row.id);
+    if (table === outOfStockSaleAdapter.table) outOfStockIds.add(row.id);
+    if (table === productStockAdapter.table && !row.product_id) return null;
+  }
+
+  const [stockRows, movementRows, outOfStockRows] = await Promise.all([
+    productIds.size ? selectRowsByValues(client, productStockAdapter, 'product_id', [...productIds]) : [],
+    movementIds.size ? selectRowsByValues(client, showcaseMovementAdapter, 'id', [...movementIds]) : [],
+    outOfStockIds.size ? selectRowsByValues(client, outOfStockSaleAdapter, 'id', [...outOfStockIds]) : []
+  ]);
+
+  return { stockRows, movementRows, outOfStockRows };
 }
 
 function clearRealtimeHydrateTimer() {

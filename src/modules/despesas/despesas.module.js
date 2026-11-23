@@ -9,10 +9,10 @@ import {
   markFinancialTransactionPaid,
   seedFinancialCategories,
   upsertFinancialTransaction
-} from '../../services/financial.service.js?v=20261123-02';
+} from '../../services/financial.service.js?v=20261123-03';
 import { showNotification } from '../../services/notification.service.js?v=20260804-06';
-import { getCurrentUser } from '../../services/auth.service.js?v=20261123-02';
-import { hasPermission } from '../../services/permission.service.js?v=20261123-02';
+import { getCurrentUser } from '../../services/auth.service.js?v=20261123-03';
+import { hasPermission } from '../../services/permission.service.js?v=20261123-03';
 import { escapeHtml } from '../../utils/dom.js?v=20260804-06';
 
 const DEFAULT_FILTERS = {

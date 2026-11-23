@@ -6,7 +6,7 @@ const repositorySource = fs.readFileSync(
   'utf8'
 );
 const syncSource = fs.readFileSync(
-  new URL('../src/services/product-sync.service.js?v=20261123-02', import.meta.url),
+  new URL('../src/services/product-sync.service.js?v=20261123-03', import.meta.url),
   'utf8'
 );
 

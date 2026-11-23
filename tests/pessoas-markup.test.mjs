@@ -9,8 +9,8 @@ globalThis.localStorage = {
 };
 
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
-const storage = await import('../src/services/storage.service.js?v=20261123-02');
-const { initPessoasModule } = await import('../src/modules/pessoas/pessoas.module.js?v=20261123-02');
+const storage = await import('../src/services/storage.service.js?v=20261123-03');
+const { initPessoasModule } = await import('../src/modules/pessoas/pessoas.module.js?v=20261123-03');
 const { seedTestAdmin } = await import('./test-auth-fixture.mjs');
 
 seedTestAdmin(storage, STORAGE_KEYS);
@@ -113,7 +113,7 @@ container.querySelector = () => null;
 
 // Salvar: o gerenciamento de usuarios exige a funcao central, entao ligamos o provedor
 // remoto so aqui, com a chamada de rede trocada por um registro.
-const supabaseClient = await import('../src/services/supabase-client.service.js?v=20260804-06');
+const supabaseClient = await import('../src/services/supabase-client.service.js?v=20261123-03');
 globalThis.__PDV_RUNTIME_CONFIG__ = { dataProvider: 'supabase', supabaseUrl: 'https://example.supabase.co', supabaseAnonKey: 'anon-key' };
 supabaseClient.configureSupabaseClientForTests({
   client: {
