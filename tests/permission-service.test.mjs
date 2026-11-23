@@ -36,8 +36,8 @@ const assertThrows = (callback, expectedMessage, message) => {
 };
 
 const { STORAGE_KEYS } = await import('../src/database/schema.js?v=20260804-06');
-const storage = await import('../src/services/storage.service.js?v=20261123-01');
-const permissions = await import('../src/services/permission.service.js?v=20261123-01');
+const storage = await import('../src/services/storage.service.js?v=20261123-02');
+const permissions = await import('../src/services/permission.service.js?v=20261123-02');
 
 storage.ensureSeedData();
 

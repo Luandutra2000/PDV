@@ -1,19 +1,19 @@
-import { getCurrentUser, getUsers } from '../../services/auth.service.js?v=20261123-01';
-import { getAuditLogs, recordAudit } from '../../services/audit.service.js?v=20261123-01';
+import { getCurrentUser, getUsers } from '../../services/auth.service.js?v=20261123-02';
+import { getAuditLogs, recordAudit } from '../../services/audit.service.js?v=20261123-02';
 import {
   createManagedUser,
   deleteManagedUser,
   loadManagedUsers,
   updateManagedUser,
   saveManagedPermissionChecklist
-} from '../../services/user-admin.service.js?v=20261123-01';
+} from '../../services/user-admin.service.js?v=20261123-02';
 import {
   PERMISSIONS,
   getRolePermissions,
   getUserPermissionOverride,
   hasPermission,
   normalizeRole
-} from '../../services/permission.service.js?v=20261123-01';
+} from '../../services/permission.service.js?v=20261123-02';
 
 const ROLE_OPTIONS = [
   { value: 'admin', label: 'Administrador' },
@@ -746,8 +746,13 @@ function getAuditRows() {
     .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
 }
 
+// The table shows the most recent actions; filters narrow older ones. Rendering
+// every row of 60 days (thousands) took over a second to open the screen.
+const AUDIT_ROW_LIMIT = 200;
+
 function renderAuditPanel(users, logs) {
-  const rows = filterAuditRows(logs);
+  const matchingRows = filterAuditRows(logs);
+  const rows = matchingRows.slice(0, AUDIT_ROW_LIMIT);
   const modules = [...new Set(logs.map((entry) => entry.module).filter(Boolean))];
   const actions = [...new Set(logs.map((entry) => entry.action).filter(Boolean))];
 
@@ -783,6 +788,7 @@ function renderAuditPanel(users, logs) {
           </tbody>
         </table>
         ${rows.length ? '' : '<p class="ps-empty">Nenhuma ação encontrada para estes filtros.</p>'}
+        ${matchingRows.length > rows.length ? `<p class="ps-empty" data-audit-limit>Mostrando as ${rows.length} ações mais recentes de ${matchingRows.length}. Use os filtros para ver as anteriores.</p>` : ''}
       </div>
     </section>
   `;
