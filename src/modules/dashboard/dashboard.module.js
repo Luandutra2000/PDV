@@ -1,5 +1,4 @@
 import {
-  clearTransactionHistory,
   cancelClosedComanda,
   cancelTransaction,
   getClosedComandas,
@@ -55,7 +54,6 @@ function renderDashboard(container) {
           <h2 class="ui-head">
             Comandas
             <span>${comandas.length} ${comandas.length === 1 ? 'comanda' : 'comandas'} no período</span>
-            <button class="ui-btn ui-btn--ghost ui-btn--sm hs-clear" type="button" data-action="clear-history">Limpar histórico</button>
           </h2>
           ${renderClosedComandas(comandas)}
         </section>
@@ -125,31 +123,6 @@ function bindDashboardEvents(container) {
       dashboardState.pendingCancelComandaId = null;
       dashboardState.pendingCancelTransactionId = null;
       renderDashboard(container);
-    }
-
-    if (button.dataset.action === 'clear-history') {
-      const periodLabel = getPeriodLabel(dashboardState.period);
-      const confirmed = window.confirm(`Limpar histórico de ${periodLabel}? Isso também apaga esse período no Supabase.`);
-
-      if (!confirmed) {
-        return;
-      }
-
-      try {
-        await clearTransactionHistory({ period: dashboardState.period });
-        showNotification({
-          title: 'Histórico limpo',
-          message: `Comandas e movimentos de ${periodLabel} foram removidos.`,
-          type: 'danger'
-        });
-        renderDashboard(container);
-      } catch (error) {
-        showNotification({
-          title: 'Não foi possível limpar',
-          message: error.message || 'Tente novamente em instantes.',
-          type: 'danger'
-        });
-      }
     }
 
     if (button.dataset.action === 'cancel-comanda') {

@@ -162,8 +162,9 @@ assert(/hs-dot hs-dot--out/.test(html), 'saida com ponto vermelho');
 assert(/hs-dot hs-dot--loss/.test(html), 'perda com ponto ambar');
 assert(html.includes('data-action="cancel-transaction"') && html.includes('data-transaction-id="in-1"'), 'cancelar movimento continua');
 
-// Limpar historico: botao fantasma
-assert(/ui-btn ui-btn--ghost[^>]*data-action="clear-history"[^>]*>Limpar histórico</.test(html), 'Limpar histórico e ui-btn--ghost');
+// Vendas e caixa sao registro permanente: nao existe "Limpar historico"
+// (ele apagava itens de vendas no servidor e deixava vendas sem itens).
+assert(!html.includes('clear-history') && !html.includes('Limpar histórico'), 'sem botao Limpar histórico');
 
 // Botoes de caixa via componente compartilhado: Entrada e Saida, sem Perda / Consumo
 assert(html.includes('data-action="open-entry"') && html.includes('data-action="open-output"'), 'botoes + Entrada e − Saída');
@@ -181,11 +182,10 @@ assert(yesterdayHtml.includes('Nenhuma comanda finalizada'), 'estado vazio das c
 assert(yesterdayHtml.includes('Nenhum movimento registrado'), 'estado vazio do movimento em frase normal');
 await clickOn(screen, { '[data-dashboard-period]': { dataset: { dashboardPeriod: 'today' } } });
 
-// Limpar historico pede confirmacao e nao apaga se recusar
-confirmAnswer = false;
+// Uma acao antiga de limpar historico nao faz nada
 await clickOn(screen, { '[data-action]': { dataset: { action: 'clear-history' } } });
-assert(confirmMessages.length === 1 && confirmMessages[0].includes('hoje'), 'Limpar histórico pergunta antes, citando o periodo');
-assert(transactions.getTransactions().length === 7, 'recusar a confirmacao nao apaga nada');
+assert(confirmMessages.length === 0, 'nenhuma confirmacao de limpeza');
+assert(transactions.getTransactions().length === 7, 'historico continua intacto');
 
 // + Entrada abre o modal compartilhado, e salvar registra e fecha
 await clickOn(screen, { '[data-action]': { dataset: { action: 'open-entry' } } });

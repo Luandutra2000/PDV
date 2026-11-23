@@ -353,41 +353,6 @@ function removeConfirmedOperation(operation) {
   return true;
 }
 
-export async function clearFinancialHistoryInSupabase({ period = 'today', customStart = '', customEnd = '' } = {}) {
-  const client = await getWriteClient();
-  const range = resolvePeriodRange({ period, customStart, customEnd });
-  const [
-    saleRows,
-    commandRows,
-    movementRows,
-    closingRows,
-    financialTransactionRows
-  ] = await Promise.all([
-    selectRows(client, saleAdapter),
-    selectRows(client, commandAdapter),
-    selectRows(client, cashMovementAdapter),
-    selectRows(client, cashClosingAdapter),
-    selectRows(client, financialTransactionAdapter)
-  ]);
-  const saleIds = saleRows.filter((row) => isRowInRange(row.created_at, range)).map((row) => row.id);
-  const commandIds = commandRows.filter((row) => isRowInRange(row.closed_at || row.created_at, range)).map((row) => row.id);
-  const movementIds = movementRows.filter((row) => isRowInRange(row.created_at, range)).map((row) => row.id);
-  const closingIds = closingRows.filter((row) => isRowInRange(row.created_at || row.closed_at, range)).map((row) => row.id);
-  const financialTransactionIds = financialTransactionRows
-    .filter((row) => isRowInRange(row.transaction_date || row.created_at, range))
-    .map((row) => row.id);
-
-  await deleteByForeignIds(client, saleItemAdapter.table, 'sale_id', saleIds);
-  await deleteByIds(client, saleAdapter.table, saleIds);
-  await deleteByForeignIds(client, commandItemAdapter.table, 'command_id', commandIds);
-  await deleteByIds(client, commandAdapter.table, commandIds);
-  await deleteByIds(client, cashMovementAdapter.table, movementIds);
-  await deleteByIds(client, cashClosingAdapter.table, closingIds);
-  await deleteByIds(client, financialTransactionAdapter.table, financialTransactionIds);
-  clearLocalFinancialHistory(range);
-  await hydrateFinancialData({ includePending: true });
-}
-
 export async function startFinancialRealtime() {
   if (realtimeChannel) {
     return realtimeChannel;
@@ -674,105 +639,6 @@ async function updateById(client, table, id, patch) {
   }
 }
 
-async function deleteByIds(client, table, ids) {
-  const nextIds = ids.filter(Boolean);
-
-  if (!nextIds.length) {
-    return;
-  }
-
-  const query = client.from(table);
-
-  if (typeof query.delete !== 'function') {
-    return;
-  }
-
-  const { error } = await query.delete().in('id', nextIds);
-
-  if (error) {
-    throw error;
-  }
-}
-
-async function deleteByForeignIds(client, table, column, ids) {
-  const nextIds = ids.filter(Boolean);
-
-  if (!nextIds.length) {
-    return;
-  }
-
-  const query = client.from(table);
-
-  if (typeof query.delete !== 'function') {
-    return;
-  }
-
-  const { error } = await query.delete().in(column, nextIds);
-
-  if (error) {
-    throw error;
-  }
-}
-
-function resolvePeriodRange({ period = 'today', customStart = '', customEnd = '' } = {}) {
-  const now = new Date();
-
-  if (period === 'all') {
-    return { start: null, end: null };
-  }
-
-  if (period === 'hour') {
-    const start = new Date(now);
-    start.setMinutes(0, 0, 0);
-    const end = new Date(start);
-    end.setMinutes(59, 59, 999);
-    return { start, end };
-  }
-
-  if (period === 'custom') {
-    return {
-      start: customStart ? new Date(`${customStart}T00:00:00`) : null,
-      end: customEnd ? new Date(`${customEnd}T23:59:59`) : null
-    };
-  }
-
-  if (period === 'yesterday') {
-    const start = new Date(now);
-    start.setDate(now.getDate() - 1);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setHours(23, 59, 59, 999);
-    return { start, end };
-  }
-
-  if (period === 'month') {
-    return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: now };
-  }
-
-  if (period === 'year') {
-    return { start: new Date(now.getFullYear(), 0, 1), end: now };
-  }
-
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(now);
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
-}
-
-function isRowInRange(value, { start, end }) {
-  if (!start && !end) {
-    return true;
-  }
-
-  if (!value) {
-    return false;
-  }
-
-  const date = new Date(value);
-  return (!start || date >= start) && (!end || date <= end);
-}
-
 function applyCompletedOperationToCache(operation) {
   if (operation.action === 'saveSale') {
     upsertTransactionCache(preserveCancellation(readJson(STORAGE_KEYS.transactions, []).find((item) => item.id === operation.sale.id), operation.sale));
@@ -1026,18 +892,6 @@ function enqueueOperation(operation) {
     ));
   writeQueue(queue);
   return queue;
-}
-
-function clearLocalFinancialHistory(range) {
-  const transactionCache = readJson(STORAGE_KEYS.transactions, []);
-  const closingCache = readJson(STORAGE_KEYS.cashClosings, []);
-  const financialCache = readJson(STORAGE_KEYS.financialTransactions, []);
-  writeJson(STORAGE_KEYS.transactions, transactionCache.filter((item) => !isRowInRange(item.createdAt, range)));
-  writeJson(STORAGE_KEYS.cashClosings, closingCache.filter((item) => !isRowInRange(item.closedAt || item.createdAt, range)));
-  writeJson(
-    STORAGE_KEYS.financialTransactions,
-    financialCache.filter((item) => !isRowInRange(item.transactionDate || item.createdAt, range))
-  );
 }
 
 function mergeRemoteWithCache(remoteItems, cachedItems) {

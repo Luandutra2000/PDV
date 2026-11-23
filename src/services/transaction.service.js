@@ -9,7 +9,6 @@ import { recordAudit } from './audit.service.js?v=20261123-01';
 import { isSupabaseEnabled } from './app-config.service.js?v=20260804-06';
 import { createFinancialTransaction as createFinanceTransaction, getFinancialCategories } from './financial.service.js?v=20261123-01';
 import {
-  clearFinancialHistoryInSupabase,
   getFinancialSyncStatus,
   prepareFinancialOperation,
   flushFinancialQueue
@@ -215,19 +214,6 @@ export function getCashSessionTransactions() {
 
 export function getClosedComandas() {
   return getItem(STORAGE_KEYS.closedComandas, []);
-}
-
-export async function clearTransactionHistory({ period = 'today', customStart = '', customEnd = '' } = {}) {
-  const filters = { customStart, customEnd };
-  const shouldClear = (value) => isInPeriod(value, period, filters);
-  setItem(STORAGE_KEYS.transactions, getTransactions().filter((transaction) => !shouldClear(transaction.createdAt)));
-  setItem(STORAGE_KEYS.closedComandas, getClosedComandas().filter((comanda) => !shouldClear(comanda.closedAt || comanda.createdAt)));
-
-  if (isSupabaseEnabled()) {
-    await clearFinancialHistoryInSupabase({ period, customStart, customEnd });
-  }
-
-  emit(UI_EVENTS.cashSummaryChanged, { type: 'historico-limpo' });
 }
 
 export function cancelClosedComanda(comandaId, { reason = '' } = {}) {

@@ -13,7 +13,6 @@
 /* Paineis: a tabela larga rola dentro do cartao em vez de cortar */
 .hs .ui-panel { overflow: visible; }
 .hs-main, .hs-side { align-self: stretch; }
-.hs-clear { margin-left: auto; }
 .hs-scroll { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
 .hs .ui-table th, .hs .ui-table td { white-space: nowrap; }
 .hs-table td.hs-items { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
